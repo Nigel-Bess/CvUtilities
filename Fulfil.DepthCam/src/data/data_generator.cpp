@@ -1,0 +1,188 @@
+//
+// Created by steve on 2/20/20.
+// Copyright (c) 2020 Fulfil Solutions, Inc. All rights reserved.
+//
+/**
+ * This file contains the implementation for generating data
+ * from sessions for saving
+ */
+#include "Fulfil.DepthCam/data/data_generator.h"
+#include "../coders/matrix3xd_coder.h"
+#include <Fulfil.CPPUtils/file_system_util.h>
+#include <opencv2/opencv.hpp>
+#include <fstream>
+#include <Fulfil.DepthCam/core/transform_depth_session.h>
+#include "../coders/extrinsics_coder.h"
+#include "../coders/intrinsics_coder.h"
+#include <Fulfil.DepthCam/point_cloud.h>
+#include <ctime>
+#include <unistd.h>
+#include <thread>
+#include <Fulfil.DepthCam/json.hpp>
+#include <Fulfil.CPPUtils/timer.h>
+#include <Fulfil.CPPUtils/logging.h>
+
+
+using fulfil::utils::FileSystemUtil;
+using fulfil::depthcam::data::DataGenerator;
+using fulfil::utils::Logger;
+
+
+DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
+        std::shared_ptr<std::string> path,
+        std::shared_ptr<nlohmann::json> request_json)
+{
+
+    this->session = session;
+    this->destination_directory = std::make_shared<std::string>(*image_path_out);
+    FileSystemUtil::join_append(this->destination_directory, *path);
+
+
+    this->request_json = request_json;
+}
+
+DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
+                             std::shared_ptr<nlohmann::json> request_json)
+{
+
+  this->session = session;
+  this->destination_directory = image_path_out;
+  this->request_json = request_json;
+}
+
+void DataGenerator::save_color_data(std::shared_ptr<std::string> filename)
+{
+    Logger::Instance()->Trace("Data Generator: save_color_data started");
+    bool res = cv::imwrite(filename->c_str(), *this->session->get_color_mat());
+    if (!res){
+        Logger::Instance()->Error("DataGenerator failed to save color image {}", *filename);
+        throw std::runtime_error("Failed to save color data");
+    }
+}
+
+void DataGenerator::save_aligned_depth_data(std::shared_ptr<std::string> filename)
+{
+    Logger::Instance()->Trace("Data Generator: save_aligned_depth_data started");
+    bool res = cv::imwrite(filename->c_str(), *this->session->get_depth_mat(true));
+    if (!res){
+        Logger::Instance()->Error("DataGenerator failed to save aligned depth image {}", *filename);
+        throw std::runtime_error("Failed to save aligned depth data");
+    }
+}
+
+void DataGenerator::save_raw_depth_data(std::shared_ptr<std::string> filename)
+{
+  Logger::Instance()->Trace("Data Generator: save_raw_depth_data started");
+  bool res = cv::imwrite(filename->c_str(), *this->session->get_depth_mat(false));
+  if (!res){
+      Logger::Instance()->Error("DataGenerator failed to save raw depth image {}", *filename);
+      throw std::runtime_error("Failed to save raw depth data");
+  }
+}
+
+void DataGenerator::save_point_cloud(std::shared_ptr<std::string> directory_path)
+{
+  Logger::Instance()->Trace("Data Generator: save_point_cloud started");
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = session->get_point_cloud(true);
+  std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_cloud = point_cloud->as_camera_cloud();
+  std::shared_ptr<Eigen::Matrix3Xd> data = camera_cloud->get_data();
+  point_cloud->encode_to_directory(directory_path);
+}
+
+void DataGenerator::save_frame_information(std::shared_ptr<std::string> frame_directory)
+{
+    auto timer = fulfil::utils::timing::Timer("DataGenerator::save_frame_information " + *frame_directory );
+
+    std::shared_ptr<std::string> rgb_image_name = std::make_shared<std::string>(*frame_directory);
+    FileSystemUtil::join_append(rgb_image_name, "color_image.png");
+    this->save_color_data(rgb_image_name);
+
+    this->save_point_cloud(frame_directory);
+
+    std::shared_ptr<std::string> depth_image_name = std::make_shared<std::string>(*frame_directory);
+    FileSystemUtil::join_append(depth_image_name, "aligned_depth_image.png");
+    this->save_aligned_depth_data(depth_image_name);
+
+    std::shared_ptr<std::string> depth_image_name2 = std::make_shared<std::string>(*frame_directory);
+    FileSystemUtil::join_append(depth_image_name2, "raw_depth_image.png");
+    this->save_raw_depth_data(depth_image_name2);
+
+    //std::shared_ptr<std::string> depth_image_name3 = std::make_shared<std::string>(*frame_directory);
+    //FileSystemUtil::join_append(depth_image_name3, "raw_depth_image.jpg");
+    //this->save_raw_depth_data(depth_image_name3);
+}
+
+void DataGenerator::save_data(const std::string& file_prefix) {
+    // TODO honestly too busy to keep dealing with interface overhaul. deferring for now.
+    save_data(std::make_shared<std::string> (file_prefix));
+}
+
+
+void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
+{
+  Logger::Instance()->Trace("Data Generator save_data started");
+  std::shared_ptr<std::string> frame_directory = std::make_shared<std::string>(*destination_directory);
+  if (file_prefix != nullptr && file_prefix->length() > 0)
+    FileSystemUtil::join_append(frame_directory, *file_prefix);
+  try {
+    if (!FileSystemUtil::directory_exists(frame_directory->c_str())) {
+      //throw std::invalid_argument("invalid data save request, destination directory did not exist");
+      Logger::Instance()->Trace("Creating nested directory {}", *frame_directory);
+      FileSystemUtil::create_nested_directory(frame_directory);
+    }
+
+    Logger::Instance()->Trace("Saving DataGenerator data at {} ", *frame_directory);
+    if (this->request_json->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
+    {
+      Logger::Instance()->Debug("No request_json is available, json file will not be saved along with data generation");
+    }
+    else  //save json request to file for use later
+    {
+      std::string json_file_name = *frame_directory;
+      FileSystemUtil::join_append(json_file_name, "json_request.json");
+
+      Logger::Instance()->Trace("JSon file saving to {}", json_file_name);
+      std::ofstream file(json_file_name);
+      file << *this->request_json;
+    }
+    this->save_frame_information(frame_directory);
+  }
+  catch (...) {
+    Logger::Instance()->Error("Error occurred in trying to save all image + depth + pointcloud + transform data");
+    exit(18);
+  }
+}
+
+void DataGenerator::save_data()
+{
+  Logger::Instance()->Trace("Data Generator save_data started");
+  std::shared_ptr<std::string> frame_directory = std::make_shared<std::string>(*destination_directory);
+  try {
+    if (!FileSystemUtil::directory_exists(frame_directory->c_str())) {
+      //throw std::invalid_argument("invalid data save request, destination directory did not exist");
+      Logger::Instance()->Trace("Creating nested directory {}", *frame_directory);
+      FileSystemUtil::create_nested_directory(frame_directory);
+    }
+
+    Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
+    if (this->request_json->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
+    {
+      Logger::Instance()->Debug("No request_json is available, json file will not be saved along with data generation");
+    }
+    else  //save json request to file for use later
+    {
+      std::string json_file_name = *frame_directory;
+      FileSystemUtil::join_append(json_file_name, "json_request.json");
+
+      Logger::Instance()->Trace("JSon file saving to {}", json_file_name);
+      std::ofstream file(json_file_name);
+      file << *this->request_json;
+    }
+    this->save_frame_information(frame_directory);
+  }
+  catch (...) {
+    Logger::Instance()->Error("Error occurred in trying to save all image + depth + pointcloud + transform data");
+    exit(18);
+  }
+}
+
