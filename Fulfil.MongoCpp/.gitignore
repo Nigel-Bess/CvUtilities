@@ -1,0 +1,15 @@
+.vscode
+.idea
+cmake*
+build
+
+local_mongo_data
+
+
+app/CMakeFiles/
+app/Makefile
+app/CTestTestfile.cmake
+
+src/Makefile
+src/CMakeFiles
+src/CTestTestfile.cmake

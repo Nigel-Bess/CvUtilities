@@ -1,0 +1,35 @@
+# IDE settings
+.vscode
+.idea
+.clang*
+
+# Build related stuff
+cmake*
+.cmake*
+build
+CMakeFiles
+CTestTestfile.cmake
+__pycache__
+.ipynb_checkpoints
+
+# Environment set up
+depthcam_dependencies
+tray-ml
+libs
+launch_build.sh
+
+# Logs
+logs
+*.log
+rs-core-logs
+
+# Configuration
+secret
+configs
+.pioneer_connection.yaml
+
+# Temp doxygen disable
+doxygen_config
+html
+
+
