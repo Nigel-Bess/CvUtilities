@@ -1,0 +1,134 @@
+#pragma once
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+#include <queue>
+
+#include "Fulfil.CPPUtils/comm/depthCams.pb.h"
+#include "Fulfil.CPPUtils/comm/depthCams.grpc.pb.h"
+
+#include <Fulfil.CPPUtils/logging.h>
+
+using fulfil::utils::Logger;
+using namespace DepthCameras;
+
+class TaskQueue final{
+public:
+    void Clear(){
+        std::queue<std::shared_ptr<DcRequest>> emptyq;
+        std::deque<std::shared_ptr<DcResponse>> emptyd;
+        swap(_requests, emptyq);
+        swap(_responses, emptyd);
+    }
+
+    bool HasReads(){
+        return !_requests.empty(); 
+    }
+
+    void PackRead(DcRequest rx){
+        auto msg = std::make_shared<DcRequest>(rx);
+        if(msg->type() != MESSAGE_TYPE_HEARTBEAT)
+            Logger::Instance()->Info("---grpc--> {} type {}", msg->command_id(), DepthCameras::MessageType_Name(msg->type()));
+        switch(msg->type()){
+            case MESSAGE_TYPE_UNSPECIFIED:
+                switch(msg->dc_cmd_type()){
+                    case DC_COMMAND_UNSPECIFIED:
+                        Logger::Instance()->Info("Received stream break lock command");//don't ack
+                    return;
+                    default://handle in mars base
+
+                    break;
+                }
+            break;
+            case MESSAGE_TYPE_HEARTBEAT:
+                Acknowledge(*msg);
+                return;
+            case MESSAGE_TYPE_ACK_REPLY://Don't reply to ACK message!
+            return;
+            default://handle in mars machine
+            break;
+        }
+        Acknowledge(*msg);
+        std::lock_guard<std::mutex> lock(read_mu_);
+        _requests.push(msg);
+    }
+
+    std::shared_ptr<DcRequest> GetNextRequest(){
+        std::lock_guard<std::mutex> lock(read_mu_);
+        auto msg = _requests.front();
+        //debug("Handling _requests id: %d type %X\n", msg->transaction(), msg->type());
+        _requests.pop();
+        return msg;
+    }
+
+    int WritesLeft(){
+        return _responses.size(); 
+    }
+
+    DcResponse GetNextWrite(){
+        std::lock_guard<std::mutex> lock(write_mu_);
+        auto msg = *_responses.front().get();
+        //debug("<--grpc--- %s type %02X, AAPI type: %X\n", msg.id().c_str(), msg.type(), msg.aapi_type());
+        _responses.pop_front();
+        return msg;
+    }
+
+    void PackWrite(std::shared_ptr<DcResponse> msg){
+        std::lock_guard<std::mutex> lock(write_mu_);
+        _responses.push_back(msg);
+    }
+    
+    bool HasNewStatus(){
+        std::lock_guard<std::mutex> lock(status_mu_);
+        return !_statusUpdates.empty();
+    }
+
+    void CreateStatusMessage(std::string id, DcStatusCodes code, std::string function){
+        std::string msg;
+        CommandStatusUpdate cmd = {};
+        cmd.set_msg_type(MESSAGE_TYPE_COMMAND_STATUS);
+        cmd.set_command_id(id);
+        cmd.set_status_code(code);
+        cmd.SerializeToString(&msg);
+        Logger::Instance()->Info("Status update for %s [%s: %s]\n",function.c_str(), id.c_str(), DcStatusCodes_Name(code).c_str());
+
+        std::lock_guard<std::mutex> lock(status_mu_);
+        _statusUpdates.push(msg);
+    }
+
+    std::string GetStatusMessage(){
+        std::lock_guard<std::mutex> lock(status_mu_);
+        auto status = _statusUpdates.front();
+        _statusUpdates.pop();
+        return status;
+    }
+
+private:
+    void Acknowledge(DcRequest rxMsg){
+        DcResponse msg = {};
+        msg.set_command_id(rxMsg.command_id());
+        msg.set_type(MESSAGE_TYPE_ACK_REPLY);
+        DepthCameras::Acknowledge cmd;
+        cmd.set_type(MESSAGE_TYPE_ACK_REPLY);
+        cmd.set_acknowledged_type(rxMsg.type());
+        cmd.set_command_id(rxMsg.command_id());
+        char array[cmd.ByteSizeLong()];
+        cmd.SerializeToArray((void *)&array, cmd.ByteSizeLong());
+        msg.set_message_data((void *)&array, cmd.ByteSizeLong());
+        msg.set_message_size(cmd.ByteSizeLong());
+        std::lock_guard<std::mutex> lock(write_mu_);
+        _responses.push_front(std::make_shared<DcResponse>(msg));
+        
+        //debug("ACK id: %s type %02X, AAPI type: %X\n", rxMsg.id().c_str(), rxMsg.type(), rxMsg.aapi_type());
+
+    }
+    std::mutex read_mu_;
+    std::mutex write_mu_;
+    std::mutex status_mu_;
+    
+    std::queue<std::shared_ptr<DcRequest>> _requests; 
+    std::deque<std::shared_ptr<DcResponse>> _responses;  
+    std::queue<std::string> _statusUpdates; 
+};

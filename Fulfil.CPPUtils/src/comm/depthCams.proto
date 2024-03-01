@@ -1,0 +1,58 @@
+syntax = "proto3";
+package DepthCameras;
+
+enum MessageType{
+    MESSAGE_TYPE_UNSPECIFIED    = 0;
+    MESSAGE_TYPE_ACK_REPLY      = 1;
+    MESSAGE_TYPE_COMMAND_STATUS = 2;
+    MESSAGE_TYPE_GENERIC_QUERY  = 3;
+    MESSAGE_TYPE_HEARTBEAT      = 4;
+    MESSAGE_TYPE_BAG_STATE_REQUEST  = 5;
+    MESSAGE_TYPE_BAG_STATE      = 6;
+}
+
+enum DcCommandType{
+    DC_COMMAND_UNSPECIFIED    = 0;
+    DC_COMMAND_NOP            = 1;
+    DC_COMMAND_GENERIC_QUERY  = 2;
+}
+
+enum DcStatusCodes{
+    STATUS_CODE_SUCCESS     = 0;
+    STATUS_CODE_FAILED      = -1;
+
+}
+
+message Acknowledge{
+    MessageType type = 1; 
+    string command_id = 2;
+    MessageType acknowledged_type = 3;
+}
+
+message CommandStatusUpdate{
+    MessageType msg_type = 1;
+    string command_id = 2;
+    int32 status_code = 3;
+}
+
+service DcApiService {
+    rpc DcApi(stream DcRequest) returns (stream DcResponse) {}
+}
+
+message DcRequest{
+    string command_id = 1;
+    DcCommandType dc_cmd_type = 2;
+    MessageType type = 3;
+    int32 message_size = 4;
+    bytes message_data = 5;
+    bool is_acknowledge = 6;
+}
+
+message DcResponse{
+    string command_id = 1;
+    DcCommandType dc_cmd_type = 2;
+    MessageType type = 3;
+    int32 message_size = 4;
+    bytes message_data = 5;
+    bool is_acknowledge = 6;
+}
