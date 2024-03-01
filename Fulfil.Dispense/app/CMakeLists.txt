@@ -33,7 +33,7 @@ OUTPUT_STRIP_TRAILING_WHITESPACE)
 add_executable(main main.cpp)
 target_link_libraries(main Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 
-add_executable(stark_test private_test.cpp)
+add_executable(stark_test EXCLUDE_FROM_ALL test.cpp)
 target_link_libraries(stark_test Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 
 
