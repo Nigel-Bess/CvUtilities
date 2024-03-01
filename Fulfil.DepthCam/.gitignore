@@ -22,3 +22,5 @@ src/CTestTestfile.cmake
 test/CTestTestfile.cmake
 test/Makefile
 test/CMakeFiles/
+
+Testing
