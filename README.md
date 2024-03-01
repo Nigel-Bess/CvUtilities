@@ -4,6 +4,17 @@ New monorepo for Depth Cam repositories. Previously tracked as 4 individual repo
 Fulfil.Dispense, Fulfil.DepthCam, Fulfil.CPPUtils, FulfilMongoCpp. Current repo specific to Mars systems 
 (not backwards compatible with 3.1).
 
+## Building the Depth Cam API 
+Current depthcam cpp sources use CMake to generate the system. For convenience there is a 
+makefile in `Fulfil.Dispense`. To kick off cpp build:
+```angular2html
+cd Fulfil.Dispense
+make
+```
+If the build succeeds, you will find the executable at `Fulfil.Dispense/build/app/main` when navigating 
+from the `Fulfil.ComputerVision` project root.  
+
+
 ## Starting the Mars API
 
 Log on as the fulfil user (or run the command from fulfil userspace). Run the dc-startup script to cycle 
