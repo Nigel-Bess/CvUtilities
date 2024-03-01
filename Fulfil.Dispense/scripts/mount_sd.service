@@ -1,0 +1,10 @@
+[Unit]
+Description=Mount SD card on boot
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 30
+ExecStart=/bin/bash /home/fulfil/mount_sd.sh
+
+[Install]
+WantedBy=multi-user.target

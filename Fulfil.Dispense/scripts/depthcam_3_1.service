@@ -1,0 +1,16 @@
+[Unit]
+Description=depthcam
+After=tray_count.service,bg_redis_worker.service
+Requires=tray_count.service,bg_redis_worker.service
+
+[Service]
+Type=simple
+User=fulfil
+Group=fulfil
+ExecStart=/home/fulfil/code/Fulfil.Dispense/depthcam-service-startup.sh
+Restart=always
+RestartSec=5s
+RestartPreventExitStatus=33
+
+[Install]
+WantedBy=multi-user.target

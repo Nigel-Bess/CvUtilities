@@ -1,0 +1,17 @@
+[Unit]
+Description=tray_count.service
+After=network.target
+
+[Service]
+Type=simple
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.TrayCountAPI
+ExecStart=/bin/bash -c 'scripts/start_session_servers.sh tray_count run'
+ExecStop=/bin/bash -c 'scripts/start_session_servers.sh tray_count close'
+ExecRestart=/bin/bash -c 'scripts/start_session_servers.sh tray_count restart'
+Restart=always
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

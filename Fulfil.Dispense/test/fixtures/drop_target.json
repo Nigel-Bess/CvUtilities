@@ -1,0 +1,39 @@
+{"Bag_ID": "5e6fe411b901a80c5481d4e6",
+  "Bag_Item_Count":3,
+  "Lanes":[
+    {
+      "Item":{
+        "L":20.0,
+        "W":100.0,
+        "H":100.0,
+        "Mass":0.2,
+        "Rigid":0,
+        "Material":5,
+        "Fragility":2,
+        "Shiny":false
+      },
+      "Num_Items":1,
+      "Index":0
+    }
+  ],  "Limit_Back":152,
+  "Limit_Front":0,
+  "Limit_Left":20,
+  "Limit_Right":20,
+  "Primary_Key_ID":"111111111111111111111111",
+  "Remaining_Platform":158,
+  "Tray_Recipe":{
+    "Name": "13-Lane, Gen 2.0 Metal (act. 7)",
+    "Lane_Count": 7,
+    "Max_Item_Width": 76.08,
+    "Min_Item_Width": 64.87,
+    "Lane_Centers": [
+      108.71,
+      192.79,
+      276.87,
+      360.95,
+      445.03,
+      529.11,
+      613.19
+    ]
+  },
+  "Type":1}

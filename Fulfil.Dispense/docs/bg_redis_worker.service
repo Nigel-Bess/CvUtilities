@@ -1,0 +1,16 @@
+[Unit]
+Description=bg_redis_worker.service
+After=network.target redis.service tray_count.service
+
+[Service]
+Type=simple
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.TrayCountAPI
+ExecStart=/bin/sh -c 'tmux new -d "source /home/fulfil/code/Fulfil.TrayCountAPI/tray-ml/bin/activate && python3 model_app/redis/rq_spinup.py" \; rename-session rq_worker'
+#Restart=always
+#RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+

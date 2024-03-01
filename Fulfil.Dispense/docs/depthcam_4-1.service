@@ -1,0 +1,16 @@
+[Unit]
+Description=depthcam.service for mars
+After=network.target tray_count.service
+
+[Service]
+Type=simple
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.Dispense
+ExecStart=/bin/sh -c 'tmux new -d " ./build/app/main " \; rename-session depthcam'
+#Restart=always
+#RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+

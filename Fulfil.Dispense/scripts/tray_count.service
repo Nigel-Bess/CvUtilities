@@ -1,0 +1,17 @@
+[Unit]
+Description=traycount tmux session, will not restart on program exit, will on powercycle
+
+
+[Service]
+Type=oneshot
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.TrayCountAPI
+RemainAfterExit=yes
+ExecStart=/usr/bin/tmux new-session -d -s tray_count \; send-keys -t 0 "source venv/bin/activate" Enter \; send-keys -t 0 "python app_manager.py run -h 0.0.0.0 --port=5002" Enter 
+ExecStop=/usr/bin/tmux kill-session -t tray_count
+KillMode=none
+
+
+[Install]
+WantedBy=multi-user.target

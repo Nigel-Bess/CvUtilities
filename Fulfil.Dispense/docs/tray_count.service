@@ -1,0 +1,17 @@
+[Unit]
+Description=tray_count.service
+After=network.target 
+
+[Service]
+Type=forking
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.TrayCountAPI
+ExecStart=/usr/bin/tmux new-session -s tray_count -d 'source /home/fulfil/code/Fulfil.TrayCountAPI/tray-ml/bin/activate ; python3 app_manager.py run -h 0.0.0.0 --port=5002 '
+ExecStop=/usr/bin/tmux kill-session -t tray_count
+#Restart=always
+#RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
+

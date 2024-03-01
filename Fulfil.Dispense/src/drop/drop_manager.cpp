@@ -1,0 +1,479 @@
+#include <experimental/filesystem>
+#include <memory>
+
+#include <Fulfil.CPPUtils/file_system_util.h>
+#include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.CPPUtils/point_3d.h>
+#include <Fulfil.CPPUtils/timer.h>
+#include <Fulfil.DepthCam/aruco.h>
+#include <Fulfil.DepthCam/core.h>
+#include <Fulfil.DepthCam/point_cloud.h>
+#include "Fulfil.Dispense/dispense/dispense_manager.h"
+#include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include <Fulfil.Dispense/drop/drop_grid.h>
+#include "Fulfil.Dispense/drop/drop_manager.h"
+#include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/visualization/make_media.h>
+#include <Fulfil.Dispense/visualization/live_viewer.h>
+
+namespace std_filesystem = std::experimental::filesystem;
+
+using fulfil::depthcam::DepthSession;
+using fulfil::depthcam::aruco::Container;
+using fulfil::depthcam::aruco::MarkerDetector;
+using fulfil::depthcam::aruco::MarkerDetectorContainer;
+using fulfil::depthcam::data::DataGenerator;
+using fulfil::dispense::commands::PostLFRResponse;
+using fulfil::dispense::drop::DropGrid;
+using fulfil::dispense::drop::DropManager;
+using fulfil::dispense::drop::DropResult;
+using fulfil::dispense::drop::DropZoneSearcher;
+using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
+using fulfil::depthcam::pointcloud::LocalPointCloud;
+using fulfil::dispense::visualization::LiveViewer;
+using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::FileSystemUtil;
+using fulfil::utils::Logger;
+using fulfil::utils::Point3D;
+
+DropManager::DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std::shared_ptr<INIReader> dispense_man_reader,
+                         std::shared_ptr<fulfil::dispense::visualization::LiveViewer> drop_live_viewer)
+{
+  this->session = session;
+  this->drop_live_viewer = drop_live_viewer;
+
+  int debug = dispense_man_reader->GetInteger("drop_zone_searcher", "debug", -1);
+  int visualize = dispense_man_reader->GetInteger("drop_zone_searcher", "visualize", -1);
+  int force_error = dispense_man_reader->GetInteger("drop_zone_searcher", "force_error", -1);
+
+  // Parameters for drop zone searcher algorithms
+  float shadow_buffer = dispense_man_reader->GetFloat("drop_zone_searcher", "shadow_buffer", -1);
+  int item_mass_threshold = dispense_man_reader->GetInteger("drop_zone_searcher", "item_mass_threshold", 500);
+  int min_bag_filtering_threshold = dispense_man_reader->GetInteger("drop_zone_searcher", "min_bag_filtering_threshold", -1);
+  float white_region_depth_adjust_from_min = dispense_man_reader->GetFloat("drop_zone_searcher", "white_region_depth_adjust_from_min", -1);
+  int empty_bag_threshold = dispense_man_reader->GetInteger("drop_zone_searcher", "empty_bag_threshold", -1);
+
+  float interference_depth_tolerance = dispense_man_reader->GetFloat("drop_zone_searcher", "interference_depth_tolerance", -1);
+  int num_interference_points_tolerance = dispense_man_reader->GetInteger("drop_zone_searcher", "num_interference_points_tolerance", -1);
+  float interference_region_length_factor = dispense_man_reader->GetFloat("drop_zone_searcher", "interference_region_length_factor", -1);
+  bool visualize_interference_zone = dispense_man_reader->GetBoolean("drop_zone_searcher", "visualize_interference_zone", true);
+  this->acceptable_Z_above_marker_surface = dispense_man_reader->GetFloat("drop_zone_searcher", "acceptable_Z_above_marker_surface", 0);
+
+  float significant_variance_regression = dispense_man_reader->GetFloat("drop_zone_searcher", "significant_variance_regression", -1);
+  float moderate_variance_regression = dispense_man_reader->GetFloat("drop_zone_searcher", "moderate_variance_regression", -1);
+  float moderate_variance_improvement = dispense_man_reader->GetFloat("drop_zone_searcher", "moderate_variance_improvement", -1);
+  float significant_variance_improvement = dispense_man_reader->GetFloat("drop_zone_searcher", "significant_variance_improvement", -1);
+  float significant_depth_regression = dispense_man_reader->GetFloat("drop_zone_searcher", "significant_depth_regression", -1);
+  float equivalent_depth = dispense_man_reader->GetFloat("drop_zone_searcher", "equivalent_depth", -1);
+  float moderate_depth_improvement = dispense_man_reader->GetFloat("drop_zone_searcher", "moderate_depth_improvement", -1);
+  float significant_depth_improvement = dispense_man_reader->GetFloat("drop_zone_searcher", "significant_depth_improvement", -1);
+  float crazy_depth_regression = dispense_man_reader->GetFloat("drop_zone_searcher", "crazy_depth_regression", -1);
+  float crazy_depth_improvement = dispense_man_reader->GetFloat("drop_zone_searcher", "crazy_depth_improvement", -1);
+
+  this->searcher = std::make_shared<DropZoneSearcher>(this->session, visualize, force_error,
+                                                      shadow_buffer, item_mass_threshold, drop_live_viewer, debug,
+                                                      min_bag_filtering_threshold, white_region_depth_adjust_from_min, empty_bag_threshold,
+                                                      interference_depth_tolerance, num_interference_points_tolerance,
+                                                      interference_region_length_factor, visualize_interference_zone, acceptable_Z_above_marker_surface,
+                                                      significant_variance_regression,
+                                                      moderate_variance_regression, moderate_variance_improvement, significant_variance_improvement,
+                                                      significant_depth_regression,  equivalent_depth, moderate_depth_improvement,
+                                                      significant_depth_improvement, crazy_depth_regression, crazy_depth_improvement);
+
+  this->pre_post_compare = std::make_shared<PrePostCompare>(visualize, this->searcher);
+  this->cached_pre_container = nullptr;
+  this->cached_post_container = nullptr;
+  this->cached_pre_request = nullptr;
+  this->cached_post_request = nullptr;
+  this->cached_drop_target = nullptr;
+  this->cached_drop_damage_code = nullptr;
+  this->mongo_bag_state = std::make_shared<fulfil::mongo::MongoBagState>();
+}
+
+std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
+                                                             std::shared_ptr<nlohmann::json> request_json,
+                                 std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
+                                 const std::shared_ptr<std::string> &base_directory_input, const std::shared_ptr<std::string> &time_stamp,
+                                 bool generate_data, bool bot_has_already_rotated)
+{
+    Logger::Instance()->Debug("Handle_Drop_Request called in drop_manager.cpp");
+    std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
+    this->searcher->PKID = PrimaryKeyID;
+
+    std_filesystem::path base_directory = make_media::paths::join_as_path(
+      (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Drop_Target_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+
+    std::string error_code_file = base_directory.string() + "/" + *time_stamp + "/error_code";
+
+    std::string target_file =  (base_directory / *time_stamp / "target_center").string();
+
+    Logger::Instance()->Debug("about to lock session");
+    try
+    {
+        bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
+        //this->session->set_emitter(true); //turn on emitter for imaging
+        this->session->refresh();
+        //this->session->set_emitter(false); //turn off emitter after imaging
+
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
+
+        this->cached_drop_target_container = container; //cache for potential use in prepostcomparison later
+        this->cached_drop_target_request = request_json; //cache for potential use in prepostcomparison later
+        this->cached_drop_damage_code = std::make_shared<int>(details->item_damage_code);
+        this->cached_info = nullptr;
+
+        // Initiate main algorithm to find the target drop center
+        std::shared_ptr<DropResult> drop_result = this->searcher->find_drop_zone_center(container, details, LFB_config_reader,
+                                                                                        this->mongo_bag_state, bot_has_already_rotated);
+
+        //cache drop target. Target is cached in the LFB local coordinate frame (in meter units), that's why the VLS drop y result is flipped
+        this->cached_drop_target = std::make_shared<cv::Point2f>(cv::Point2f(drop_result->rover_position/1000, -1 * drop_result->dispense_position/1000));
+
+
+        if (generate_data) //this functionality is added so offline simulation does not generate data
+        {
+            Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
+
+            DataGenerator generator = DataGenerator(this->session,std::make_shared<std::string>(base_directory.string()), request_json);
+            generator.save_data(time_stamp);
+
+            Logger::Instance()->Trace("Saving error code file with code 0 at path {}", error_code_file);
+            std::ofstream error_file(error_code_file);
+            error_file << "0"; //TODO: this should represent the success code, not necessarily 0 always (e.g. case 9)
+
+            std::ofstream target_file_stream(target_file);
+            target_file_stream << drop_result->rover_position << "\n";
+            target_file_stream << -1 * drop_result->dispense_position << std::endl; //target is saved in LFB frame, requires the sign flip
+        }
+
+        this->cached_info = std::make_shared<std::vector<std::string>>();
+        this->cached_info->push_back("Target: Success");
+        if(drop_result->LFB_Currently_Rotated) this->cached_info->push_back("LFR is Rotated");
+        return drop_result;
+    }
+    catch (const rs2::unrecoverable_error& e)
+    {
+        Logger::Instance()->Fatal("Unrecoverable:\n"
+                                  "Realsense Exception {}\n"
+                                  "In function {}\n"
+                                  "With args {}",
+                                  e.what(), e.get_failed_function(), e.get_failed_args());
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError);
+    }
+    catch (const rs2::recoverable_error& e)
+    {
+        Logger::Instance()->Error("Recoverable:\n"
+                                  "Realsense Exception {}\n"
+                                  "In function {}\n"
+                                  "With args {}",
+                                  e.what(), e.get_failed_function(), e.get_failed_args());
+
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError);
+    }
+    catch (const std::invalid_argument& e)
+    {
+        Logger::Instance()->Error("Invalid Argument Exception: {}", e.what());
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected);
+    }
+    catch (drop_target_error_codes::DropTargetError & e)
+    {
+        DropTargetErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+
+        if (generate_data) //this functionality is added so offline simulation does not generate data
+        {
+            Logger::Instance()->Trace("Data generation for drop camera request started!");
+            std::shared_ptr<DataGenerator>
+                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+            generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
+            Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
+            std::ofstream error_file(error_code_file);
+            error_file << error_id;
+
+            Logger::Instance()->Trace("Saving target data as -1 at path {}", target_file);
+            std::ofstream target_file_stream(target_file);
+            target_file_stream << -1 << "\n";
+            target_file_stream << -1 << std::endl;
+
+            Logger::Instance()->Trace("Finished data generation for drop camera request!");
+        }
+        return std::make_shared<DropResult>(details->request_id, error_id);
+    }
+    catch (const std::exception & e)
+    {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+    }
+    catch (...)
+    {
+      Logger::Instance()->Error("Unspecified failure from DropManager handling drop request");
+      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+    }
+}
+
+
+std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<INIReader> LFB_config_reader,
+                                                              std::shared_ptr<nlohmann::json> request_json,
+const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::string> request_id, bool generate_data)
+{
+    std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_post_LFR for " + PrimaryKeyID);
+    auto time_stamp = make_media::paths::get_datetime_str();
+
+    std_filesystem::path base_directory = make_media::paths::join_as_path(
+        (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Post_Drop_Image");
+    std::string error_code_file = (base_directory / time_stamp / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+
+  try
+  {
+    Logger::Instance()->Trace("Refresh Session Called in Dispense Manager -> Handle Post Dispense");
+
+    //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: have separate unaligned frames class variable in depth_session
+    //this->session->set_emitter(true);
+    this->session->refresh(); //need to refresh the session to get updated frames
+
+    //get image for live viewer
+    if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
+
+    std::shared_ptr<DataGenerator> generator;
+    if(generate_data)
+    {
+      generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+      generator->save_data(time_stamp);
+    }
+
+    Logger::Instance()->Debug("Getting container for algorithm now");
+    bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
+    std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
+
+    this->cached_post_container = container; //cache container for potential use in prepostcomparison later
+    this->cached_post_request = request_json;
+
+    std::shared_ptr<PostLFRResponse> post_drop_result = this->searcher->find_max_Z(container, request_id, LFB_config_reader,
+                                                                                    this->mongo_bag_state, request_json, this->cached_info);
+
+    if (generate_data) //this functionality is added so offline simulation does not generate data
+    {
+      Logger::Instance()->Trace("Saving error code file with code 0 at path {}", error_code_file);
+      std::ofstream error_file(error_code_file);
+      error_file << "0";
+    }
+
+    return post_drop_result;
+  }
+  catch (int error_id)
+  {
+    Logger::Instance()->Info("DropManager failed handling post drop request with error id: {}", error_id);
+    if (error_id == 1 or error_id == 2)
+    {
+      if(this->cached_info != nullptr and this->drop_live_viewer != nullptr)
+      {
+        this->cached_info->push_back("Item Detect Failed");
+        this->cached_info->push_back("Not Enough Markers");
+        //use cached info from dispense to create a live visualization of the info to be displayed on FDT
+        this->drop_live_viewer->update_image(this->drop_live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, this->cached_info);
+      }
+    }
+
+    if (generate_data) //this functionality is added so offline simulation does not generate data
+    {
+      Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
+      std::ofstream error_file(error_code_file);
+      error_file << error_id;
+    }
+    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id,  error_id));
+  }
+  catch (const std::exception & e)
+  {
+    Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
+
+    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+  }
+  catch (...)
+  {
+    Logger::Instance()->Error("Unspecified failure from DropManager handling drop request ");
+
+    return  std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+  }
+}
+
+
+std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIReader> LFB_config_reader, std::string PrimaryKeyID)
+{
+  std::shared_ptr<MarkerDetectorContainer> cached_pre_container = this->cached_pre_container;
+  std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
+  std::shared_ptr<nlohmann::json> cached_pre_request_json = this->cached_pre_request;
+  std::shared_ptr<nlohmann::json> cached_post_request_json = this->cached_post_request;
+  std::shared_ptr<nlohmann::json> cached_drop_target_json = this->cached_drop_target_request;
+  std::shared_ptr<cv::Point2f> cached_drop_target = this->cached_drop_target;
+  std::shared_ptr<int> cached_drop_damage_code = this->cached_drop_damage_code;
+
+  //confirm that all inputs for pre/post comparison have been cached properly and are available for use in algorithm
+  std::string errors = "";
+  if (cached_pre_container == nullptr) errors += "pre_container \n";
+  if (cached_post_container == nullptr) errors += "post_container \n";
+  if (cached_pre_request_json == nullptr) errors += "pre request json \n";
+  if (cached_post_request_json == nullptr) errors += "post request json \n";
+  if (cached_drop_target_json == nullptr) errors += "drop target json \n";
+  if (cached_drop_target == nullptr) errors += "drop target \n";
+  if (cached_drop_damage_code == nullptr) errors += "drop damage code \n";
+  if (!errors.empty())
+  {
+    Logger::Instance()->Warn("The following inputs for pre/post comparison were not cached properly, cannot proceed: {}", errors);
+    return std::pair<int, int>{-1, -1};
+  }
+
+  try
+  {
+    Logger::Instance()->Debug("Executing Pre/Post Comparison now");
+    //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
+    std::shared_ptr<cv::Mat> result_mat = nullptr;
+    int target_item_overlap = -1;
+    int comparison_result = this->pre_post_compare->run_comparison(cached_pre_container, cached_post_container, LFB_config_reader,
+                                           cached_pre_request_json, cached_post_request_json,
+                                           cached_drop_target_json, *cached_drop_target, &result_mat, &target_item_overlap);
+
+    Logger::Instance()->Debug("Percentage of item that landed on target is: {}", target_item_overlap);
+
+    if(this->cached_info != nullptr and this->drop_live_viewer != nullptr)
+    {
+
+    if (comparison_result != 0 and comparison_result != 1) this->cached_info->push_back("Item Detect Failed");
+
+    std::string message = "Unhandled case encountered";
+
+
+    if (comparison_result == -1) message = "Undefined Failure";
+    if (comparison_result == 0) message = "Item in bag: No";
+    if (comparison_result == 1) message = "Item in bag: Yes";
+    if (comparison_result == 2) message = "Not Enough Markers";
+    if (comparison_result == 3) message = "Invalid Item Dimensions";
+    if (comparison_result == 4) message = "Invalid Platform Value";
+    if (comparison_result == 5) message = "Platform Inconsistency";
+
+    this->cached_info->push_back(message);
+
+    //use cached info from dispense to create a live visualization of the info to be displayed on FDT
+    this->drop_live_viewer->update_image(this->drop_live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, this->cached_info);
+    }
+    //send result to live_viewer for visualization purposes (comparison_result == nullptr if no items found)
+    if (drop_live_viewer != nullptr)
+    {
+      if(result_mat != nullptr)
+      {
+        drop_live_viewer->update_image(drop_live_viewer->get_item_detection_visualization(result_mat), ViewerImageType::LFB_Item_Detection, PrimaryKeyID);
+        if (comparison_result != 0 and comparison_result != 1){
+            Logger::Instance()->Info("Pre/Post Compare failed, but still updating live_viewer");
+        }
+      }
+      else
+      {
+        Logger::Instance()->Info("No result item detection visualization available. Will instead upload default");
+      }
+    }
+
+    //NOTE: comparison_result behavior kept the same because we handle case 3,4,5 by throwing exception here
+    if (comparison_result > 1){
+        throw(comparison_result);
+    }
+
+    int item_drop_damage_type = *cached_drop_damage_code;
+    if(this->mongo_bag_state == nullptr)
+    {
+      Logger::Instance()->Error("Mongo Bag State is nullptr, cannot proceed with updating the doc based on comparison results");
+      return std::pair <int, int>{-1, -1};
+    }
+    this->mongo_bag_state->update_item_map(result_mat, item_drop_damage_type);
+
+    //if the item was successfully dispensed, update the packed item volume state, based on the dropped item details
+    if(comparison_result)
+    {
+      if(this->mongo_bag_state->packing_state == nullptr)
+      {
+        Logger::Instance()->Error("Mongo Bag State->Packing_State is nullptr, cannot proceed with updating packing state");
+        return std::pair <int, int>{-1, -1};
+      }
+      else
+      {
+        this->mongo_bag_state->packing_state->update_packed_items_volume(cached_drop_target_json);
+      }
+    }
+    return std::pair <int, int>{comparison_result, target_item_overlap};
+  }
+  catch (int error_id)
+  {
+    Logger::Instance()->Info("Pre-Post Comparison failed with error id: {}", error_id);
+    return std::pair <int, int>{-1, -1};
+  }
+  catch (const std::exception & e)
+  {
+    Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling:\n{}", e.what());
+    return std::pair <int, int>{-1, -1};
+  }
+  catch (...)
+  {
+    Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling");
+    return std::pair <int, int>{-1, -1};
+  }
+}
+
+std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<nlohmann::json> request_json)
+{
+    // TODO why is this assigned a shadowing name? Why assign to a new ptr at all? It does not appear to be copied or overwritten?
+    std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
+
+    //confirm that all inputs have been cached properly and are available for use in this algorithm
+    std::string errors = "";
+    if (cached_post_container == nullptr) errors += "post_container \n";
+    if (!errors.empty())
+    {
+        Logger::Instance()->Warn("The following inputs for check_products_for_fit_in_bag were not cached properly, cannot proceed: {}", errors);
+        return std::vector<int>{};
+    }
+
+    try {
+        Logger::Instance()->Debug("DropManager: Executing Check for Remaining Products Fit In Bag Now");
+        auto products_to_check = (*request_json)["Remaining_Products_To_Pack"];
+        Logger::Instance()->Info("DropManager: Check Products for Fit in Bag: found {} products to analyze", products_to_check.size());
+        if (products_to_check.size() < 1) return std::vector<int>{}; //exit early if no products to check
+
+        float remaining_platform = ((*request_json)["Remaining_Platform"].get<float>()) / 1000; // [meter] units
+        Logger::Instance()->Debug("DropManager: Check Product Fit, creating drop grid now");
+        DropGrid drop_depth_grid = DropGrid(cached_post_container->width, cached_post_container->length, 22, 15); //TODO (SB): add grid squares to config?
+        Logger::Instance()->Debug("DropManager: Check Product Fit, getting point cloud now");
+        std::shared_ptr<LocalPointCloud> point_cloud = cached_post_container->get_point_cloud(false)->as_local_cloud();
+        Logger::Instance()->Debug("DropManager: Check Product Fit, populating depth grid now");
+        drop_depth_grid.populate_depth(point_cloud->get_data());
+
+        std::vector<int> problematic_products;
+        Logger::Instance()->Debug("DropManager: Check Product Fit, cycling through list of products now");
+        for (auto p = products_to_check.begin(); p != products_to_check.end(); ++p)
+        {
+            auto product = p.value();
+
+            int product_id = product["ProductId"].get<int>();
+            float product_length = product["L"].get<float>()/1000; // [meter] units
+            float product_width = product["W"].get<float>()/1000; // [meter] units
+            float product_height = product["H"].get<float>()/1000; // [meter] units
+
+            //product_length in tray is equivalent to shadow_height in bag (assumption) for these calculations
+            float max_item_length_percent_overflow = LFB_config_reader->GetFloat("LFB_config", "max_item_length_percent_overflow", 0.45);
+            float acceptable_height_above_marker_surface = std::min((max_item_length_percent_overflow * product_length), acceptable_Z_above_marker_surface); //[meter] units
+            float upper_depth_limit = remaining_platform - product_length + acceptable_height_above_marker_surface;
+            //note how product dimensions in tray translate to the shadow inputs for this function (width --> width, height --> shadow length)
+            bool fit_result = drop_depth_grid.check_whether_item_fits(product_width, product_height, upper_depth_limit);
+            Logger::Instance()->Debug("Bag fit check: product {}, with dimensions (L, W, H) {}, {}, {} has fit: {}", product_id, product_length, product_width, product_height, fit_result);
+            if(!fit_result) problematic_products.push_back(product_id);
+        }
+        return problematic_products;
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Unspecified failure from Check Products For Fit In Bag algo");
+        return std::vector<int>{};
+    }
+}
