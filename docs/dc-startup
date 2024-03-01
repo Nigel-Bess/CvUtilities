@@ -1,0 +1,22 @@
+#!/bin/bash
+
+
+if [[ "${1}" == "kill" ]] ; then 
+	tmux ls  2> /dev/null | grep rq_worker &> /dev/null && tmux kill-session -t rq_worker
+	tmux ls 2> /dev/null | grep tray_count &> /dev/null && tmux kill-session -t tray_count
+	tmux ls 2> /dev/null | grep depthcam &> /dev/null && tmux kill-session -t depthcam
+	echo "Live sessions:"
+	tmux ls 2> /dev/null || echo "No tmux sessions left running!"
+	exit 0
+fi
+
+rs-fw-update -l
+tmux ls 2> /dev/null | grep depthcam &> /dev/null && echo "depthcam session already exists!" || tmux new -s depthcam -d \; send-keys -t depthcam "cd ~/code/Fulfil.Dispense && ./build/app/main" Enter
+echo "Live sessions: "
+tmux ls 2> /dev/null | grep rq_worker &> /dev/null && echo "rq_worker session already exists!" || tmux new -d "source /home/fulfil/code/Fulfil.TrayCountAPI/tray-ml/bin/activate && cd /home/fulfil/code/Fulfil.TrayCountAPI && python3 model_app/redis/rq_spinup.py" \; rename-session rq_worker
+tmux ls | grep tray_count &> /dev/null && echo "tray_count session already exists!" || tmux new -d "source /home/fulfil/code/Fulfil.TrayCountAPI/tray-ml/bin/activate && cd /home/fulfil/code/Fulfil.TrayCountAPI && python3 app_manager.py run -h 0.0.0.0 --port=5002 ; sleep 40 " \; rename-session tray_count
+tmux ls
+DELAY=5
+echo "Attaching to depthcam sessions in $DELAY second(s)! API may require restart in session."
+echo; for i in $(seq 1 "$DELAY" ) ; do printf "%s..." "$i" ; sleep 1 ; done ; echo
+tmux a -t depthcam
