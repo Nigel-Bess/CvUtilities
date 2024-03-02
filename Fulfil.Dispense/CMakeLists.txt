@@ -21,13 +21,10 @@ endif()
 include(GNUInstallDirs)
 message("Using C compiler ${CMAKE_C_COMPILER} and C++ compiler ${CMAKE_CXX_COMPILER}")
 
-option(BUILD_TESTS "Enable CTesting for dispense code." OFF)
+cmake_path(GET CMAKE_SOURCE_DIR PARENT_PATH COMPUTER_VISION_MODULES_PARENT_PATH)
+message("Found project root at ${COMPUTER_VISION_MODULES_PARENT_PATH}")
 
-set(Protobuf_USE_STATIC_LIBS ON)
-find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
-message(STATUS "Using gRPC ${gRPC_VERSION}")
-message(STATUS "Using protobuf ${Protobuf_VERSION}")
+option(BUILD_TESTS "Enable CTesting for dispense code." OFF)
 
 IF(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTS)
     IF(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/googletest-src)
@@ -88,9 +85,20 @@ string(
         PROJECT_IS_TOP_LEVEL)
 
 
-add_subdirectory(../Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
-add_subdirectory(../Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
-add_subdirectory(../Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
+
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
+
+IF (NOT ${Protobuf_FOUND})
+    set(Protobuf_USE_STATIC_LIBS ON)
+    find_package(Protobuf REQUIRED)
+    message(STATUS "Using protobuf ${Protobuf_VERSION}")
+ENDIF()
+IF (NOT ${gRPC_FOUND})
+    find_package(gRPC CONFIG REQUIRED)
+    message(STATUS "Using gRPC ${gRPC_VERSION}")
+ENDIF()
 
 add_subdirectory(src)
 add_subdirectory(app)

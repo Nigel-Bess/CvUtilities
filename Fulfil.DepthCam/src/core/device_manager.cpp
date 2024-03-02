@@ -10,11 +10,11 @@
 #include "Fulfil.DepthCam/json.hpp"
 // wtf need to fix this so there is only one header
 #include <Fulfil.CPPUtils/logging.h>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <fstream>
 
 
-namespace std_filesystem = std::experimental::filesystem;
+//namespace std_filesystem = std::experimental::filesystem;
 using fulfil::utils::Logger;
 using fulfil::depthcam::DeviceManager;
 using fulfil::depthcam::DepthSession;
@@ -116,8 +116,11 @@ std::vector<std::string> DeviceManager::get_device_serials() const
 
 
 
-nlohmann::json parse_request_file_to_json(std_filesystem::path json_file_path) {
+nlohmann::json parse_request_file_to_json(std::filesystem::path json_file_path) {
   // Parse request Json
+  if (!std::filesystem::exists(json_file_path)) {
+      fulfil::utils::Logger::Instance()->Error("Unable to find json file at path {}", json_file_path.string());
+  }
   std::ifstream json_file(json_file_path);
   nlohmann::json json_obj_data;
   json_file >> json_obj_data;
@@ -151,8 +154,8 @@ std::shared_ptr<std::vector<std::shared_ptr<Session>>> DeviceManager::get_connec
                 fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for D455 device {}...", device_serial_number);
             }
             else if (name == "Intel RealSense D457"){
-              std_filesystem::path preset_base_dir = std_filesystem::path(fulfil::utils::Logger::default_logging_dir).parent_path();
-              preset_base_dir /= "libs/Fulfil.DepthCam/src/presets/d457_adjustments.json";
+              std::filesystem::path preset_base_dir = std::filesystem::path(fulfil::utils::Logger::default_logging_dir).parent_path().parent_path();
+              preset_base_dir /= "Fulfil.DepthCam/src/presets/d457_adjustments.json";
               auto presets = parse_request_file_to_json(preset_base_dir);
               fulfil::utils::Logger::Instance()->Info("D457 advance mode settings for {} at {}...", device_serial_number, preset_base_dir.string());
               advanced_mode_dev.load_json(presets.dump());
