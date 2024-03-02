@@ -96,6 +96,7 @@ else()
   # Find Protobuf installation
   # Looks for protobuf-config.cmake file installed by Protobuf's cmake installation.
   option(protobuf_MODULE_COMPATIBLE TRUE)
+  set(Protobuf_USE_STATIC_LIBS ON)
   find_package(Protobuf REQUIRED)
   message(STATUS "Using protobuf ${Protobuf_VERSION}")
 

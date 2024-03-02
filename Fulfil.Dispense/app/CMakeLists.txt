@@ -5,8 +5,8 @@ set(DIV_SECTION "===================")
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/.git)
-    message("-- Found valid .git directory. Generating version info.")
+if(EXISTS ${COMPUTER_VISION_MODULES_PARENT_PATH}/.git)
+    message("\nFound valid .git directory. Generating version info.")
     execute_process(COMMAND git rev-parse --short HEAD
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             OUTPUT_VARIABLE DISPENSE_COMMIT
@@ -15,7 +15,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/.git)
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             OUTPUT_VARIABLE LATEST_GIT_TAG)
 else()
-    message("-- Did not find valid .git directory.")
+    message(WARNING "\nDid not find valid .git directory in ${COMPUTER_VISION_MODULES_PARENT_PATH}.")
     set(LATEST_GIT_TAG  "Unknown")
     set(DISPENSE_COMMIT "Unknown")
 endif()
@@ -29,22 +29,24 @@ OUTPUT_STRIP_TRAILING_WHITESPACE)
 # Enable makefile generation for different targets
 # ----------------------------------------------------------------------------
 
+# Provide commit heads of current build for easier versioning
+message("Build information for Fulfil.ComputerVision project:")
+message(STATUS "Date Built:  ${BUILD_DATE}")
+message(STATUS "Commit Head: ${DISPENSE_COMMIT}")
+message(STATUS "Release Tag: ${LATEST_GIT_TAG}")
+message("\nSetting up targets and build generation.")
+#message("-- Current commit head for Fulfil.Dispense: ${DISPENSE_COMMIT}")
+
 # Add the executable code for your application main function
 add_executable(main main.cpp)
 target_link_libraries(main Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
-
-add_executable(stark_test EXCLUDE_FROM_ALL test.cpp)
-target_link_libraries(stark_test Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
-
-
-# Provide commit heads of current build for easier versioning
-message("-- Build initiated on ${BUILD_DATE} for branch tagged ${LATEST_GIT_TAG}")
-message("-- Current commit head for Fulfil.Dispense: ${DISPENSE_COMMIT}")
-
 target_compile_definitions(main PRIVATE BUILD_DATE="${BUILD_DATE}")
 target_compile_definitions(main PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
 target_compile_definitions(main PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
 
+
+add_executable(stark_test EXCLUDE_FROM_ALL test.cpp)
+target_link_libraries(stark_test Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 
 # testing interface that sends requests to a running API. Requires free socket connection
 add_executable(dispense_test_client dispense_test_client.cpp)
@@ -92,13 +94,13 @@ target_link_libraries(live_viewer PRIVATE
 # TODO REMOVE ONCE TESTING IN PLACE!!! Location to test out small functions in isolation.
 option(BUILD_test_exes "SHOULD ALWAYS BE OFF! Unless you have made a scratch test exe. Some may be gitignore'd" OFF)
 if(BUILD_test_exes )
-add_executable(scratch_test_private EXCLUDE_FROM_ALL
-        private_scratch_test.cpp)
-target_link_libraries(scratch_test_private)
+    add_executable(scratch_test_private EXCLUDE_FROM_ALL
+            private_scratch_test.cpp)
+    target_link_libraries(scratch_test_private)
 
-message(WARNING "Build at your own risk! Scratch test is not tracked in Git. Be sure to add your dep here!")
-#find_package(OpenCV REQUIRED)
-#target_link_libraries(test ${OpenCV_LIBS} Fulfil.DepthCam)
+    message(WARNING "Build at your own risk! Scratch test is not tracked in Git. Be sure to add your dep here!")
+    #find_package(OpenCV REQUIRED)
+    #target_link_libraries(test ${OpenCV_LIBS} Fulfil.DepthCam)
 endif()
 
 

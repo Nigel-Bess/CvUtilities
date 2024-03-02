@@ -15,9 +15,6 @@ file(GLOB SOURCES "*.cpp" "comm/*.cc" "networking/*.cpp" "eigen/*.cpp" "comm/*.h
 add_library(Fulfil.CPPUtils STATIC ${SOURCES})
 
 find_package(CURL REQUIRED)
-set(Protobuf_USE_STATIC_LIBS ON)
-find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
 target_compile_definitions(Fulfil.CPPUtils PRIVATE DEFAULT_FULFIL_LOGGING_DIR="${FULFIL_LOG_DIR}")
 target_compile_definitions(Fulfil.CPPUtils PUBLIC DEFAULT_FULFIL_INI_DIR="${FULFIL_INI_DIR}")
 
