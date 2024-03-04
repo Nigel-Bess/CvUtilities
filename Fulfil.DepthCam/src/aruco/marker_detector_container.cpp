@@ -285,12 +285,12 @@ void MarkerDetectorContainer::setup_cached_container()
     if(num_detections == 0)
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
-      throw int(1);
+      throw DropTargetError(DropTargetErrorCodes::NoMarkersDetected, "No markers detected");
     }
     else
     {
-      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB");
-      throw int(2);
+      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB")
+      throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected, "Number of markers detected: " + str(num_detections));
     }
   }
 
