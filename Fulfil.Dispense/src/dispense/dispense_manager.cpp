@@ -1,8 +1,3 @@
-//
-// Created by nkaffine on 12/10/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
-
 #include <memory>
 
 #include <Fulfil.CPPUtils/curl_control.h>
