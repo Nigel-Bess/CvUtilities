@@ -461,7 +461,10 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
   {
     Logger::Instance()->Error("Drop Target - State Bag ID Mismatch; Vars: state_bag_id = {}; Cam: LFB; PKID: {}",
                               this->bag_id, PrimaryKeyID);
-    return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::BagIdMismatch); //Todo: move to throw/catch format, log data
+    return std::make_shared<DropResult>(details->request_id,
+                                        DropTargetErrorCodes::BagIdMismatch,
+                                        "Bag ID in drop target request is: `" + str(details->bag_id) +
+                                        "` while Bag ID in the dispense manager is: `" + str(this->bag_id) + "`"); //Todo: move to throw/catch format, log data
   }
 
   std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();

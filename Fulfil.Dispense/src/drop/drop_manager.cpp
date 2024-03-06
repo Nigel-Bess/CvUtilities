@@ -156,27 +156,26 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     }
     catch (const rs2::unrecoverable_error& e)
     {
-        Logger::Instance()->Fatal("Unrecoverable:\n"
-                                  "Realsense Exception {}\n"
-                                  "In function {}\n"
-                                  "With args {}",
-                                  e.what(), e.get_failed_function(), e.get_failed_args());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError);
+        std::error_descrip = "Realsense Exception: `" + e.what() +
+                             "`\nIn function: `" + e.get_failed_function() +
+                             "`\nWith args: `" + e.get_failed_args() + "`";
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
-        Logger::Instance()->Error("Recoverable:\n"
-                                  "Realsense Exception {}\n"
-                                  "In function {}\n"
-                                  "With args {}",
-                                  e.what(), e.get_failed_function(), e.get_failed_args());
+        std::error_msg = "Realsense Exception: `" + e.what() +
+                         "`\nIn function: `" + e.get_failed_function() +
+                         "`\nWith args: `" + e.get_failed_args() + "`";
+        Logger::Instance()->Error(error_msg);
 
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
-        Logger::Instance()->Error("Invalid Argument Exception: {}", e.what());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected);
+        std::string error_description = "Invalid Argument Exception: " + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected, error_description);
     }
     catch (drop_target_error_codes::DropTargetError & e)
     {
@@ -200,17 +199,19 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
 
             Logger::Instance()->Trace("Finished data generation for drop camera request!");
         }
-        return std::make_shared<DropResult>(details->request_id, error_id);
+        return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
     }
     catch (const std::exception & e)
     {
-        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+        std::string error_desc = "Unspecified failure from DropManager handling drop request with error:\n{}" + e.what();
+        Logger::Instance()->Error(error_desc);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError,
+                                            error_desc);
     }
     catch (...)
     {
       Logger::Instance()->Error("Unspecified failure from DropManager handling drop request");
-      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError, "In `catch (...)` block in drop_manager");
     }
 }
 
