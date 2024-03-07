@@ -443,7 +443,8 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
   Logger::Instance()->Debug("Handling Drop Target Command {} for Bay: {}", PrimaryKeyID, this->vls_name);
   if (!this->LFB_session) {
     Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
-    return std::make_shared<DropResult>(details->request_id, 12);// Todo: move to throw/catch format, log data
+    return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::AlgorithmFail_Bypass,
+                                        "No LFB Session: Bouncing Drop Camera Drop Target"); // Todo: move to throw/catch format, log data
   }
   //set cached drop_target fields back to nullptr
   this->drop_manager->cached_drop_target_container = nullptr;
