@@ -83,7 +83,7 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    * See above for descriptions of the other params
    */
   DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code, float rover_position, float dispense_position,
-                     float depth_result, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::error_description);
+                     float depth_result, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::string error_description);
   /**
    * Returns the command id for the response.
    * @return pointer to string containing command id for the response.

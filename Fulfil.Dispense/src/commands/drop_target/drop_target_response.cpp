@@ -19,6 +19,7 @@ void DropTargetResponse::encode_payload()
   {
     (*result_json)["Error_Description"] = this->error_description;
   }
+  // for the success codes that do not early fail the algorithm, fill the JSON with the results
   if(this->success_code == 0 or this->success_code == 9)
   {
     (*result_json)["x"] = this->rover_position;

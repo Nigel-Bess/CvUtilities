@@ -32,7 +32,7 @@ class DropResult
    * the given request id and marks the result as a failure.
    * @param request_id pointer to string with request id.
    */
-  explicit DropResult(std::shared_ptr<std::string> request_id, int error_code, std::string error_description = "");
+  explicit DropResult(std::shared_ptr<std::string> request_id, int error_code, const std::string &error_description);
 
   /**
    * DropResult constructor that takes in the center of the drop location
@@ -44,7 +44,8 @@ class DropResult
    * @param request used to calculate the drop zone
    */
   DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated,
-             bool Swing_Collision_Expected, std::shared_ptr<std::string> request_id, int success_code = 0, std::string error_description = ""); /**
+             bool Swing_Collision_Expected, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
+  /**
    * The id of the request.
    */
   std::shared_ptr<std::string> request_id;
@@ -57,7 +58,7 @@ class DropResult
   /**
    * Description of the error code thrown. Will be empty string if code is success.
    */
-  std::string error_description = "";
+  std::string error_description;
   /**
    * The output dispense offset from the center of the LFB bag (X axis) in mm units
    */

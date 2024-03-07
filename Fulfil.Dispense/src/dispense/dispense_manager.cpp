@@ -279,9 +279,9 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
              if(raw_result->success_code == 0 || raw_result->success_code == 9){
                 response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id, raw_result->success_code,
                             raw_result->rover_position, raw_result->dispense_position, raw_result->depth_result, raw_result->max_Z,
-                            raw_result->Rotate_LFB, raw_result->LFB_Currently_Rotated, raw_result->Swing_Collision_Expected);
+                            raw_result->Rotate_LFB, raw_result->LFB_Currently_Rotated, raw_result->Swing_Collision_Expected, raw_result->error_description);
              }
-             else response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id, raw_result->success_code);
+             else response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id, raw_result->success_code, raw_result->error_description);
             break;
         }
         case DispenseCommand::pre_LFR:{
@@ -464,8 +464,8 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
                               this->bag_id, PrimaryKeyID);
     return std::make_shared<DropResult>(details->request_id,
                                         DropTargetErrorCodes::BagIdMismatch,
-                                        "Bag ID in drop target request is: `" + str(details->bag_id) +
-                                        "` while Bag ID in the dispense manager is: `" + str(this->bag_id) + "`"); //Todo: move to throw/catch format, log data
+                                        "Bag ID in drop target request is: `" + details->bag_id +
+                                        "` while Bag ID in the dispense manager is: `" + this->bag_id + "`"); //Todo: move to throw/catch format, log data
   }
 
   std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();

@@ -155,7 +155,7 @@ namespace fulfil::dispense::drop_target_error_codes {
         /**
         * Getter for the error's custom description
         */
-        DropTargetErrorCodes get_description();
+        std::string get_description();
     };
 } // namespace fulfil::dispense::drop_target_error_codes
 #endif //FULFIL_DISPENSE_DROP_ERROR_CODES_H

@@ -156,24 +156,24 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     }
     catch (const rs2::unrecoverable_error& e)
     {
-        std::error_descrip = "Realsense Exception: `" + e.what() +
-                             "`\nIn function: `" + e.get_failed_function() +
-                             "`\nWith args: `" + e.get_failed_args() + "`";
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
         return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
-        std::error_msg = "Realsense Exception: `" + e.what() +
-                         "`\nIn function: `" + e.get_failed_function() +
-                         "`\nWith args: `" + e.get_failed_args() + "`";
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
 
         return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
-        std::string error_description = "Invalid Argument Exception: " + e.what();
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
         return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected, error_description);
     }
@@ -203,7 +203,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     }
     catch (const std::exception & e)
     {
-        std::string error_desc = "Unspecified failure from DropManager handling drop request with error:\n{}" + e.what();
+        std::string error_desc = std::string("Unspecified failure from DropManager handling drop request with error:\n{}") + e.what();
         Logger::Instance()->Error(error_desc);
         return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError,
                                             error_desc);

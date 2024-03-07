@@ -18,7 +18,7 @@ DropTargetError::DropTargetError(DropTargetErrorCodes status_code,
     this->message = "Drop Target Algorithm error " + std::to_string(this->status_code) + ": " + this->status_name;
     this->description = description;
     // if the message parameter is non-empty, append
-    if (!description.empty()) this->message + " - " + this->description;
+    if (!this->description.empty()) { this->message = this->message + " - " + this->description; }
 }
 
 const char* DropTargetError::what() const noexcept { return this->message.data(); }
