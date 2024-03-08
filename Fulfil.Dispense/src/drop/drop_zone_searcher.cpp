@@ -517,7 +517,7 @@ DropZoneSearcher::Target_Region DropZoneSearcher::analyze_target_region(float sh
   /* The raw y coordinate of the center point */
   target_region.y = center.y;
   /* Use the raw Z  of the center point, not using halfway between average and max Z in target region anymore as that erroneously rejects bags for being too full */
-  target_region.z = center.z;
+  target_region.z = mean;
   /* The range of depths in the target region between the maximum and minimum depth points*/
   target_region.range_depth = target_region.max_Z - target_region.min_Z;
   /* The distance from the center point to the point with the max Z coordinate value */

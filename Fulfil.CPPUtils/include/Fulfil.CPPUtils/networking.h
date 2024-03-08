@@ -1,8 +1,3 @@
-//
-// Created by nkaffine on 12/9/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
-
 #ifndef FULFIL_UTILS_INCLUDE_FULFIL_CPPUTILS_NETWORKING_H_
 #define FULFIL_UTILS_INCLUDE_FULFIL_CPPUTILS_NETWORKING_H_
 
