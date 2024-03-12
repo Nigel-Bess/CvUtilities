@@ -75,6 +75,7 @@ std::shared_ptr<nlohmann::json> TrayResult::encode_all()
     (*this->count_result)["Error"] = this->success_code;
     if (!this->count_result->contains("First_Item_Distance")) {
         (*this->count_result)["First_Item_Distance"] = this->fed_result;
+        (*this->count_result)["First_Item_Back_Edge_Distance"] = this->back_edge_result;
     }
     return this->count_result;
 

@@ -337,16 +337,16 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
       edge_coordinates.push_back(pt);
       pixel_detections.push_back(pix);
     };
-    auto log_back_edge_detection = [&] (const Eigen::Vector3d& pt, int step) {
+    auto log_back_edge_detection = [&] (cv::Point pix, int step) {
         if (edge_coordinates.size() != 1) { return ; }
-        back_edge_coordinate = pt;
-        back_pixel = lane_center_iterator.pos();
-        Logger::Instance()->Info("BACK EDGE: Item 0 is {}. Found on iteration {}, {:0.3f}mm away from the front."
+        back_edge_coordinate = local_pix2pt.get_point_from_pixel(pix);
+        back_pixel = pix;
+        Logger::Instance()->Info("BACK EDGE: Item 0 is {}. Found on iteration {}, {:0.3f}mm away from the front.\n"
                                  "  |----> Expected length is {:0.4f}\n"
                                  "  |----> Detected length is {:0.4f}\n"
                                  "  |----> Measurement Error: {:0.4f}",
                              (current_lane.is_rigid()) ? "rigid" : "variable", step, meters_from_tray_front(pt.y())*1000,
-                             (edge_coordinates.front().y()-pt.y()), current_lane.get_item_length_in_meters(),
+                                 current_lane.get_item_length_in_meters(), (edge_coordinates.front().y()-pt.y()),
                              current_lane.get_item_length_in_meters()-(edge_coordinates.front().y()-pt.y()));
     };
 
@@ -358,7 +358,7 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
         if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, lane_center_iterator.pos(), log_dead_zone)) {
             log_front_edge_detection(depth_point, lane_center_iterator.pos(), i);
             scan_for_back_item_edge(lane_center_iterator, i, local_pix2pt, current_lane);
-            log_back_edge_detection(depth_point, i);
+            log_back_edge_detection(lane_center_iterator.pos(), i);
         }
     }
     if (edge_coordinates.size() > 0) {
