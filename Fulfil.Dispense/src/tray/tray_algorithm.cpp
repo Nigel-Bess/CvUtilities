@@ -173,16 +173,16 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
     cv::Mat result = this->combo_visualizer->get_current_base_image_state();
     this->combo_visualizer->apply_mask(mask);
     this->combo_visualizer->add_line(center_line[0], center_line[1]); // TODO This does not happen in the FED version: could make param
-
-    std::for_each(detections.cbegin(), detections.cend()-1, [&](cv::Point pix)
-      {
-        this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
-        cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
-      });
     if (!detections.empty()) {
+
+        std::for_each(detections.cbegin(), detections.cend()-1, [&](cv::Point pix)
+          {
+            this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
+            cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
+          });
         auto pix = detections.back();
-        this->combo_visualizer->add_circle(pix, 255, 255, 0, 2, 5);
-        cv::circle(result, pix, 2, cv::Scalar(255,255,0), 5);
+        this->combo_visualizer->add_circle(pix, 255, 128, 0, 2, 7);
+        cv::circle(result, pix, 2, cv::Scalar(0,128, 255), 7);
     }
 
 
