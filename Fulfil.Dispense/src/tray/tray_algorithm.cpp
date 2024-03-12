@@ -180,6 +180,7 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
         cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
       });
     if (!detections.empty()) {
+        auto pix = detections.back();
         this->combo_visualizer->add_circle(pix, 255, 255, 0, 2, 5);
         cv::circle(result, pix, 2, cv::Scalar(255,255,0), 5);
     }
@@ -346,7 +347,7 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
                                  "  |----> Measurement Error: {:0.4f}",
                              (current_lane.is_rigid()) ? "rigid" : "variable", step, meters_from_tray_front(pt.y())*1000,
                              (edge_coordinates.front().y()-pt.y()), current_lane.get_item_length_in_meters(),
-                             current_lane.get_item_length_in_meters()-(edge_coordinates.front().y()-pt.y()))
+                             current_lane.get_item_length_in_meters()-(edge_coordinates.front().y()-pt.y()));
     };
 
     Eigen::Vector3d depth_point{};

@@ -512,7 +512,7 @@ namespace results_to_vlsg {
     {
         constexpr int unknown_fed_failure_code = 5;
         j["First_Item_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_distance);
-        j["First_Item_Back_Edge_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_back_edge_distance)
+        j["First_Item_Back_Edge_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_back_edge_distance);
         j["Errors"] = (item_distance_res.m_index < 0) ? nlohmann::json::array({ unknown_fed_failure_code })
                                                       : json_parser::mongo_utils::format_obj_error_list_to_json_array(item_distance_res.m_errors);
         j.update(item_distance_res.m_index); // will there be an implicit conversion?
