@@ -174,11 +174,16 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
     this->combo_visualizer->apply_mask(mask);
     this->combo_visualizer->add_line(center_line[0], center_line[1]); // TODO This does not happen in the FED version: could make param
 
-    std::for_each(detections.cbegin(), detections.cend(), [&](cv::Point pix)
+    std::for_each(detections.cbegin(), detections.cend()-1, [&](cv::Point pix)
       {
         this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
         cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
       });
+    if (!detections.empty()) {
+        this->combo_visualizer->add_circle(pix, 255, 255, 0, 2, 5);
+        cv::circle(result, pix, 2, cv::Scalar(255,255,0), 5);
+    }
+
 
     cv::hconcat(result, this->combo_visualizer->get_current_base_image_state(), result);
     save_mask(id_sequence_step, result, "fed_results");
@@ -194,13 +199,14 @@ TrayAlgorithm::get_first_item_distance_from_coordinate_matrix(
     auto tongue_wheel_correction = (lane.has_tongue()) ? this->wheel_diameter_correction_mm + this->tongue_wheel_adjustment_mm : this->wheel_diameter_correction_mm;
 
     double item_corrected_distance = std::max(item_distance - tongue_wheel_correction, 0.0);
-    if (y_dist > this->y_distance_search_limit) { item_distance = -1; item_corrected_distance = -1; }
+    double item_length = fulfil::measure::to_rounded_millimeters(item_edge_coordinates.front().y() - item_edge_coordinates.back().y());
+    if (y_dist > this->y_distance_search_limit) { item_distance = -1; item_corrected_distance = -1; item_length = 0; }
      Logger::Instance()->Info("Distance of item using tray center reference frame {:0.3f}, where the back of tray is {:0.3f}. The item {} the lane boundary. "
                                "The distance in mm from front of tray is {}. After correcting for the wheel diameter (set to {}) the belt distance "
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
 			       (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
-    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance)};
+    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance), static_cast<float>(item_length)};
 
 }
 
@@ -314,8 +320,10 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
 
     std::vector<Eigen::Vector3d> edge_coordinates;
     std::vector<cv::Point> pixel_detections;
-    edge_coordinates.reserve(current_lane.get_num_items());
-    pixel_detections.reserve(current_lane.get_num_items());
+    Eigen::Vector3d back_edge_coordinate{};
+    cv::Point back_pixel{};
+    edge_coordinates.reserve(current_lane.get_num_items()+1);
+    pixel_detections.reserve(current_lane.get_num_items()+1);
     auto log_front_edge_detection = [&]
         (const Eigen::Vector3d& pt, const cv::Point2i& pix, int step) {
       Logger::Instance()->Info("Lane {} a tongue. Item {} found on iteration {}. It is {:0.3f}mm away and {:0.2f}mm from belt. "
@@ -328,6 +336,18 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
       edge_coordinates.push_back(pt);
       pixel_detections.push_back(pix);
     };
+    auto log_back_edge_detection = [&] (const Eigen::Vector3d& pt, int step) {
+        if (edge_coordinates.size() != 1) { return ; }
+        back_edge_coordinate = pt;
+        back_pixel = lane_center_iterator.pos();
+        Logger::Instance()->Info("BACK EDGE: Item 0 is {}. Found on iteration {}, {:0.3f}mm away from the front."
+                                 "  |----> Expected length is {:0.4f}\n"
+                                 "  |----> Detected length is {:0.4f}\n"
+                                 "  |----> Measurement Error: {:0.4f}",
+                             (current_lane.is_rigid()) ? "rigid" : "variable", step, meters_from_tray_front(pt.y())*1000,
+                             (edge_coordinates.front().y()-pt.y()), current_lane.get_item_length_in_meters(),
+                             current_lane.get_item_length_in_meters()-(edge_coordinates.front().y()-pt.y()))
+    };
 
     Eigen::Vector3d depth_point{};
     // get rid of i and just check if equals to end / y pix limit?
@@ -337,10 +357,16 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
         if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, lane_center_iterator.pos(), log_dead_zone)) {
             log_front_edge_detection(depth_point, lane_center_iterator.pos(), i);
             scan_for_back_item_edge(lane_center_iterator, i, local_pix2pt, current_lane);
+            log_back_edge_detection(depth_point, i);
         }
     }
+    if (edge_coordinates.size() > 0) {
+        edge_coordinates.push_back(back_edge_coordinate);
+        pixel_detections.push_back(back_pixel);
+    }
 
-    Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.", sum_over_tray/num_over_tray_on_line, num_over_tray_on_line, lane_center_iterator.count);
+    Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.",
+                             sum_over_tray/num_over_tray_on_line, num_over_tray_on_line, lane_center_iterator.count);
 
   return {edge_coordinates, pixel_detections };
 }
