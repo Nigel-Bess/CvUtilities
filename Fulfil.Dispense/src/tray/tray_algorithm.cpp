@@ -207,7 +207,7 @@ TrayAlgorithm::get_first_item_distance_from_coordinate_matrix(
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
 			       (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
-    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance), static_cast<float>(item_length)};
+    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance), static_cast<float>(item_corrected_distance + item_length)};
 
 }
 
