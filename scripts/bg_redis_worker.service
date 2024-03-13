@@ -1,6 +1,6 @@
 [Unit]
 Description=bg_redis_worker.service
-After=network.target redis.service tray_count.service
+After=tray_count.service multi-user.target
 
 [Service]
 Type=simple
@@ -12,5 +12,6 @@ ExecStart=/bin/sh -c 'tmux new -d "source /home/fulfil/code/Fulfil.TrayCountAPI/
 #RestartSec=5s
 
 [Install]
-WantedBy=multi-user.target
+#WantedBy=multi-user.target
+WantedBy=graphical.target
 
