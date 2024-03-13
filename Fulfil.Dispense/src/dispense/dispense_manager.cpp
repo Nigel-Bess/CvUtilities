@@ -667,7 +667,7 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     
     auto make_null_item_edge_result = [command_id]() { // by value since it's a fuckin ptr
         return std::make_shared<ItemEdgeDistanceResponse>(command_id,std::make_shared<TrayResult>(TrayResult(
-            std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, command_id)));
+            std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, -1, command_id)));
     };
     if (!this->tray_session) {
         Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->vls_name);
@@ -705,12 +705,14 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
         results_to_vlsg::TrayValidationCounts count_response = run_function(transformed_lane_center_pixels);
         count_response.update_lane_tongue_detections(tongue_detections);
         Logger::Instance()->Trace("Return body from Single Lane count api query:\n\t{}.", nlohmann::json(count_response).dump());
-        return TrayResult(std::make_shared<nlohmann::json>(count_response), fed_result.m_first_item_distance, command_id);
+        return TrayResult(std::make_shared<nlohmann::json>(count_response),
+                fed_result.m_first_item_distance, fed_result.m_first_item_length,
+                command_id);
       } catch(const std::exception & e) {
         Logger::Instance()->Error("Issue saving or uploading data from Item Edge Request: \n\t{}", e.what());
       }
       Logger::Instance()->Info("Sending nominal response in Single Lane Request");
-      return TrayResult(std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, command_id);
+      return TrayResult(std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, 0, command_id);
     };
 
     this->tray_session->refresh();

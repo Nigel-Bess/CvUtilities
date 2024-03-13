@@ -451,6 +451,7 @@ namespace results_to_vlsg {
         dimensional_info::LaneIndex m_index {};
         std::vector<int> m_errors {0};
         float m_first_item_distance{-1};// should be float?
+        float m_first_item_length{0};// should be float?
         BoundaryLimit m_range_fn {};
         static nlohmann::json& to_tray_format_json(nlohmann::json& fed_res_json);
         [[nodiscard]] dimensional_info::LaneIndex get_lane_id() const;
@@ -460,6 +461,7 @@ namespace results_to_vlsg {
         explicit LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, float firstItemDistance,
                                   BoundaryLimit clip);
         LaneItemDistance(int index, int error, float firstItemDistance);
+        LaneItemDistance(int index, int error, float firstItemDistance, float firstItemLength);
     };
 
     struct LaneCounts {
@@ -510,6 +512,7 @@ namespace results_to_vlsg {
     {
         constexpr int unknown_fed_failure_code = 5;
         j["First_Item_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_distance);
+        j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0.0F);
         j["Errors"] = (item_distance_res.m_index < 0) ? nlohmann::json::array({ unknown_fed_failure_code })
                                                       : json_parser::mongo_utils::format_obj_error_list_to_json_array(item_distance_res.m_errors);
         j.update(item_distance_res.m_index); // will there be an implicit conversion?
@@ -522,6 +525,7 @@ namespace results_to_vlsg {
         item_distance_res.m_index = j.template get<dimensional_info::LaneIndex>();
         item_distance_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         item_distance_res.m_first_item_distance = item_distance_res.m_range_fn.clip(j.value("First_Item_Distance", -1));
+        item_distance_res.m_first_item_length = j.value("First_Item_Length", 0);
     }
 
     template<typename BasicJsonType>
@@ -540,8 +544,8 @@ namespace results_to_vlsg {
     template<typename BasicJsonType>
     void from_json(const BasicJsonType &j, LaneCounts &lane_count_res)
     {
-        lane_count_res.m_index = j.template get<dimensional_info::LaneIndex>();
         lane_count_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
+        lane_count_res.m_index = j.template get<dimensional_info::LaneIndex>();
         lane_count_res.m_num_algorithm_counts = j.value("Num_Algorithm_Counts", -1);
 
         if (lane_count_res.m_num_algorithm_counts < 0) {
