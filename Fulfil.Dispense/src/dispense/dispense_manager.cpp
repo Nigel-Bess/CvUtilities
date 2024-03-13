@@ -706,13 +706,13 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
         count_response.update_lane_tongue_detections(tongue_detections);
         Logger::Instance()->Trace("Return body from Single Lane count api query:\n\t{}.", nlohmann::json(count_response).dump());
         return TrayResult(std::make_shared<nlohmann::json>(count_response),
-                fed_result.m_first_item_distance, fed_result.m_first_item_back_edge_distance,
+                fed_result.m_first_item_distance, fed_result.m_first_item_length,
                 command_id);
       } catch(const std::exception & e) {
         Logger::Instance()->Error("Issue saving or uploading data from Item Edge Request: \n\t{}", e.what());
       }
       Logger::Instance()->Info("Sending nominal response in Single Lane Request");
-      return TrayResult(std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, -1, command_id);
+      return TrayResult(std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, 0, command_id);
     };
 
     this->tray_session->refresh();

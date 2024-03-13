@@ -121,7 +121,7 @@ class TrayAlgorithm
    float tray_length; // in m, along y axis of tray (local frame)
    float dispense_arm_height;
    int num_calib_coordinates;
-   float back_tray_y_max; //offset of 0.02 is to ignore the raised bumpers at the ends of the trays
+   float back_edge_of_tray_local_y; //offset of 0.02 is to ignore the raised bumpers at the ends of the trays
    float relative_max_height;
    float relative_min_height;
    float absolute_min_search_height_cutoff;

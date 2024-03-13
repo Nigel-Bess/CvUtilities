@@ -53,7 +53,7 @@ namespace fulfil::dispense::tray{
         TrayResult(std::shared_ptr<nlohmann::json> count_result,
                    std::shared_ptr<std::string> request_id, int error_code = 0);
 
-        TrayResult(std::shared_ptr<nlohmann::json> count_result, int fed_result, int back_edge_result,
+        TrayResult(std::shared_ptr<nlohmann::json> count_result, int fed_result, int cv_detected_item_length,
                    std::shared_ptr<std::string> request_id, int error_code = 0);
 
         std::shared_ptr<nlohmann::json> encode_all();
@@ -62,7 +62,7 @@ namespace fulfil::dispense::tray{
         int get_error_code();
 
         int fed_result{-1};
-        int back_edge_result{-1};
+        int detected_item_length{-1};
         std::shared_ptr<nlohmann::json> count_result;
 
         /**
@@ -70,7 +70,7 @@ namespace fulfil::dispense::tray{
          */
         std::shared_ptr<std::string> request_id;
 
-        int get_first_item_edge_distance();
+        int get_first_item_edge_distance() const;
         /**
          * Defines success of tray algorithm
          * (outer most error for the largest issues i.e. no tray camera, bad request parse)
