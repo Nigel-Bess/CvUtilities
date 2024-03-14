@@ -85,7 +85,7 @@ string(
         PROJECT_IS_TOP_LEVEL)
 
 
-
+#add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/common ${CMAKE_CURRENT_BINARY_DIR}/libs/common)
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)

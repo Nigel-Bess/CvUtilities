@@ -41,8 +41,14 @@ namespace fulfil::dispense {
     {
         private:
             /**
+            * The id of the bay this dispense manager is managing.
+            */
+            int bay;
+
+            /**
              * The object that will manage all of the socket communication and pass along things
              * that are read from the socket.
+             *
              */
             std::shared_ptr<fulfil::utils::networking::SocketNetworkManager<std::shared_ptr<fulfil::dispense::commands::DispenseRequest>>> network_manager;
             /**
@@ -63,19 +69,14 @@ namespace fulfil::dispense {
             std::shared_ptr<fulfil::utils::processingqueue::ProcessingQueue<std::shared_ptr<fulfil::dispense::commands::DispenseRequest>, std::shared_ptr<fulfil::dispense::commands::DispenseResponse>>> processing_queue;
 
             /**
-             * The id of the bay this dispense manager is managing.
-             */
-            int bay;
-
-            /**
              * The name of the bay this dispense manager is managing.
              */
-            std::string vls_name;
+            std::string machine_name;
 
             /**
              * The mongo id of the VLS
              */
-            std::string vls_id;
+            std::string machine_id;
 
             /**
              * The name of the config section for the tray_dimensions in tray_config.ini we want to use, corresponding to 2.0, 2.1 or 3.1
@@ -89,30 +90,24 @@ namespace fulfil::dispense {
             std::shared_ptr<fulfil::depthcam::Session> LFB_session;
             std::shared_ptr<fulfil::depthcam::Session> tray_session;
 
-            //std::shared_ptr<bool> stop_lfb_video_saving;
-            //std::shared_ptr<int> stop_lfb_video_delay;
-
-            //std::shared_ptr<bool> stop_tray_video_saving;
-            //std::shared_ptr<int> stop_tray_video_delay;
 
             std::shared_ptr<fulfil::dispense::visualization::LiveViewer> live_viewer;
-
             std::shared_ptr<fulfil::depthcam::data::UploadGenerator> lfb_upload_generator;
             std::shared_ptr<fulfil::depthcam::data::UploadGenerator> tray_upload_generator;
 
             std::string store_id;
             std::string cloud_media_bucket;
 
+
+
             /**
              * dispense manager config information (mostly relating to visualization -- see main_config.ini for required info)
              * Should contain should_visualize, data_gen_image_base_dir, vid_gen_base_buffer_dir,
              */
-            std::shared_ptr<INIReader>  dispense_man_reader;
+            std::shared_ptr<INIReader>  dispense_reader;
             std::shared_ptr<INIReader>  tray_config_reader;
-            std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_conn;
+            std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
-            std::shared_ptr<INIReader>  LFB_config_reader2;
-            std::shared_ptr<INIReader>  LFB_config_reader3;
             std::shared_ptr<INIReader>  LFB_config_reader; //will store the config to be used for the current dispense
 
             /**
@@ -124,6 +119,7 @@ namespace fulfil::dispense {
              *  Mongo id for the LFB bag currently being inspected at the bay
              */
             std::string bag_id;
+
 
             /**
              * BigQuery uploader object to upload traycounts (and potentially other data) to BigQuery
@@ -182,6 +178,8 @@ namespace fulfil::dispense {
 
             //capture image and save w/ Live viewer for ABIS / visualizations
             int populate_live_viewer_frame(std::shared_ptr<cv::Mat> live_viewer_img, int live_viewer_code);
+
+
 
         public:
             /**

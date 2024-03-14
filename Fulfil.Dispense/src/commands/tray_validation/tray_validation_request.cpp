@@ -10,7 +10,6 @@
 
 using fulfil::dispense::commands::TrayValidationRequest;
 using fulfil::dispense::commands::CodeResponse;
-using fulfil::dispense::commands::TrayValidationDetails;
 using fulfil::dispense::commands::DispenseRequestDelegate;
 
 TrayValidationRequest::TrayValidationRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)

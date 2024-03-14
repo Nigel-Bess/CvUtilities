@@ -7,7 +7,6 @@
 #include <Fulfil.CPPUtils/timer.h>
 #include <Fulfil.DepthCam/data.h>
 #include <Fulfil.DepthCam/data/bigquery_upload.h>
-#include <Fulfil.DepthCam/data/matrix_mask_method.h>
 #include <Fulfil.DepthCam/mocks.h>
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/commands/content_response.h>
@@ -19,9 +18,9 @@
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
 #include <Fulfil.Dispense/mongo/mongo_tray_calibration.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
@@ -34,7 +33,6 @@
 #include <FulfilMongoCpp/mongo_objects/mongo_basic_document.h>
 #include <FulfilMongoCpp/mongo_parse/mongo_bsonxx_encoder.h>
 
-namespace std_filesystem = std::experimental::filesystem;
 using ff_mongo_cpp::MongoConnection;
 using ff_mongo_cpp::mongo_objects::MongoBasicDocument;
 using ff_mongo_cpp::mongo_parse::MongoBsonxxEncoder;
@@ -67,10 +65,10 @@ using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
-using fulfil::dispense::imagepersistence::DispenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseFileManager;
-using fulfil::dispense::imagepersistence::RealsenseTimestamper;
+//using fulfil::dispense::imagepersistence::DispenseImagePersistenceManager;
+//using fulfil::dispense::imagepersistence::RealsenseImagePersistenceManager;
+//using fulfil::dispense::imagepersistence::RealsenseFileManager;
+//using fulfil::dispense::imagepersistence::RealsenseTimestamper;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
@@ -93,55 +91,48 @@ DispenseManager::DispenseManager(
   std::shared_ptr<INIReader> dispense_man_reader,
   std::shared_ptr<INIReader> tray_config_reader,
   std::shared_ptr<MongoConnection> mongo_conn,
-  std::shared_ptr<fulfil::dispense::tray::TrayManager> tray_manager) {
+  std::shared_ptr<fulfil::dispense::tray::TrayManager> tray_manager) : bay(bay),
+        dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader), mongo_connection(mongo_conn),
+           LFB_config_reader(std::make_shared<INIReader>("LFB3_config.ini", true))
+  {
   Logger::Instance()->Trace("DispenseManager Constructor Called");
-  auto get_safe_string_val = [&](auto key, std::string default_value) {
-    return this->tray_config_reader->Get(this->tray_dimension_type, key, default_value);
-  };
+
+
 
   //setting up networking stuff
-  bool live_visualize_drop = dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "live_visualize_drop", false);
   // TODO Once needs stabilize, we should probably just add data members in reader to interface
   // This should be the final place that the reader pointer is passed!
-  this->dispense_man_reader = dispense_man_reader;
-  this->tray_config_reader =  tray_config_reader;
 
-  this->LFB_config_reader2 = std::make_shared<INIReader>("LFB2_config.ini", true);
-  this->LFB_config_reader3 = std::make_shared<INIReader>("LFB3_config.ini", true);
-
-  this->LFB_config_reader = LFB_config_reader3; //default to LFB3 at start, NOTE: THIS IS IMPORTANT FOR VISUALIZATION PURPOSES!!!
+  auto dispense_name = std::string("dispense_") + char(this->bay + 48);
+  auto safe_get_dispense_string_val = [this, dispense_name=std::string("dispense_") + char(this->bay + 48)]
+          (auto key, std::string default_value) {
+            return this->dispense_reader->Get(dispense_name, key, default_value);
+  };
+  this->machine_name = safe_get_dispense_string_val( "name", dispense_name);
+  this->machine_id = safe_get_dispense_string_val("_id", "000000000000000000000000");
+  int port = this->dispense_reader->GetInteger(dispense_name, "port", 9500);
 
   this->motion_config_reader = INIReader("motion_config.ini", true);
-  this->mongo_conn = mongo_conn;
-  std::string dispense_name{"dispense_0"};
-  dispense_name.back() = char(bay + 48);
-  this->vls_name = this->dispense_man_reader->Get(dispense_name, "name", dispense_name);
-  this->vls_id = this->dispense_man_reader->Get(dispense_name, "_id", "000000000000000000000000");
 
-  if(this->vls_id.empty())
-  {
-      fulfil::utils::Logger::Instance()->Error("Machine Mongo IDs Not Properly Defined;");
-      exit(3);
-  }
-  this->store_id = get_safe_string_val( "store_id", "f0");
-  this->cloud_media_bucket = get_safe_string_val("cloud_media_bucket", "factory-media");
 
-  int port = this->dispense_man_reader->GetInteger(dispense_name, "port", 9500);
-  Logger::Instance()->Info("Initializing socket network manager at configured port {} for machine {}", port, this->vls_name);
-  std::shared_ptr<SocketInformation> socket_info = std::make_shared<SocketInformation>(port);
-  std::shared_ptr<SocketManager> socket_manager = std::make_shared<SocketManager>(socket_info);
+  auto safe_get_tray_string_val =
+          [&tray_dim_type = this->tray_dimension_type, &tray_config=this->tray_config_reader](auto key, std::string default_value) {
+              return tray_config->Get(tray_dim_type, key, default_value); };
+  this->store_id = safe_get_tray_string_val("store_id", "f0");
+  this->cloud_media_bucket = safe_get_tray_string_val("cloud_media_bucket", "factory-media");
+
+  Logger::Instance()->Info("Initializing socket network manager at configured port {} for machine {}", port, this->machine_name);
 
   /**
    *  Initialize connection to LFB camera-on-rail motor if motion control is required
    */
-  bool motion_control_required =  this->dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(),
-                                                                        "motion_control_required", false);
-  if(motion_control_required)
+
+  if(this->dispense_reader->GetBoolean(dispense_man_reader->get_default_section(), "motion_control_required", false))
   {
-    motor_in_position = false;
+    this->motor_in_position = false;
     Logger::Instance()->Info("Motion Control IS Required to run this bay!");
     uint32_t baud = this->motion_config_reader.GetInteger("motion_parameters", "baud", -1);
-    std::string com_port = this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "trinamic_com_port", "error");
+    std::string com_port = this->dispense_reader->Get(dispense_man_reader->get_default_section(), "trinamic_com_port", "error");
     this->motion_controller = std::make_shared<fulfil::dispense::motion::Trinamic>(baud, com_port.c_str());
     this->motion_controller->TryConnectMotor();
     this->motion_controller->StopMotor();
@@ -168,11 +159,11 @@ DispenseManager::DispenseManager(
     {
       MongoTrayCalibration temp;
       this->tray_calibration_ids = temp.findLastTrayCalibration(
-          this->vls_id, this->mongo_conn, this->tray_config_reader);
+              this->machine_id, this->mongo_connection, this->tray_config_reader);
     }
 
     //read specific tray configuration
-    std::string tray_config_type = this->dispense_man_reader->Get("device_specific", "tray_config_type");
+    std::string tray_config_type = this->dispense_reader->Get("device_specific", "tray_config_type");
     this->tray_dimension_type = "tray_dimensions_" + tray_config_type;
     Logger::Instance()->Info("AGX specific ini file indicates to use tray config section {}", this->tray_dimension_type);
 
@@ -185,9 +176,9 @@ DispenseManager::DispenseManager(
       Logger::Instance()->Trace("LFB session.");
       this->LFB_session = LFB_session;
 
-      if(live_visualize_drop)
+      if(dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "live_visualize_drop", false))
       {
-          std::string live_viewer_path = this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "live_visualize_drop_path", "");
+          std::string live_viewer_path = this->dispense_reader->Get(dispense_man_reader->get_default_section(), "live_visualize_drop_path", "");
           if(live_viewer_path.empty()) {
             Logger::Instance()->Warn("Live Viewer Drop Output Path not specified. Check main.ini file");
           } else {
@@ -202,8 +193,10 @@ DispenseManager::DispenseManager(
   this->drop_manager = std::make_shared<DropManager>(this->LFB_session, dispense_man_reader, this->live_viewer);
   
   std::shared_ptr<DispenseRequestParser> parser = std::make_shared<DispenseRequestParser>(std::make_shared<DispenseJsonParser>());
+  std::shared_ptr<SocketManager> socket_manager = std::make_shared<SocketManager>(std::make_shared<SocketInformation>(port));
+
   this->network_manager = std::make_shared<SocketNetworkManager<std::shared_ptr<DispenseRequest>>>(socket_manager, parser);
-  this->bay = bay;
+
   this->processing_queue = std::make_shared<ProcessingQueue<std::shared_ptr<DispenseRequest>, std::shared_ptr<DispenseResponse>>>();
 
   // separate uploader for keeping track of if we should stop saving the LFB video
@@ -233,7 +226,7 @@ void DispenseManager::bind_delegates()
 
 void DispenseManager::start()
 {
-    Logger::Instance()->Info("Starting bay {}: {}",this->bay, this->vls_name);
+    Logger::Instance()->Info("Starting bay {}: {}",this->bay, this->machine_name);
     this->network_manager->start_listening();
     // this->processing_queue->start_processing(5);
     while(true)std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -404,7 +397,7 @@ bool DispenseManager::set_motion_params()
   }
 
   // TODO: add check that trinamic enable digital IO is ON
-  bool frozen_dispense = this->dispense_man_reader->GetBoolean("device_specific", "is_frozen", false);
+  bool frozen_dispense = this->dispense_reader->GetBoolean("device_specific", "is_frozen", false);
   if(frozen_dispense) Logger::Instance()->Info("Camera-on-rail position speeds will be set based on Frozen VLS motion config");
   int desired_rev_per_second_homing = this->motion_config_reader.GetInteger("motion_parameters", "rev_per_sec_homing", 0);
   int desired_rev_per_second_positioning = frozen_dispense ?
@@ -434,8 +427,8 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
                                                                                         std::shared_ptr<nlohmann::json> request_json)
 {
   std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
-  auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_drop_target for " + this->vls_name + " request " + PrimaryKeyID);
-  Logger::Instance()->Debug("Handling Drop Target Command {} for Bay: {}", PrimaryKeyID, this->vls_name);
+  auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_drop_target for " + this->machine_name + " request " + PrimaryKeyID);
+  Logger::Instance()->Debug("Handling Drop Target Command {} for Bay: {}", PrimaryKeyID, this->machine_name);
   if (!this->LFB_session) {
     Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
     return std::make_shared<DropResult>(details->request_id, 12);// Todo: move to throw/catch format, log data
@@ -463,7 +456,7 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
 
   std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
-  if(!this->dispense_man_reader->GetBoolean("device_specific", "use_advanced_damage_criteria", false))
+  if(!this->dispense_reader->GetBoolean("device_specific", "use_advanced_damage_criteria", false))
   {
     Logger::Instance()->Warn("Not using advanced damage criteria, check configs");
     details->item_damage_code = details->item_material;
@@ -509,14 +502,14 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
     }
   }
 
-  Logger::Instance()->Debug("Finished handling Drop Target Request for Bay: {}", this->vls_name);
+  Logger::Instance()->Debug("Finished handling Drop Target Request for Bay: {}", this->machine_name);
   return drop_result;
 }
 
 std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_ptr<std::string> PrimaryKeyID,
                                                                   std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) {
-  auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_post_LFR for " + this->vls_name + " request " + *PrimaryKeyID);
-  Logger::Instance()->Debug("Handling Post LFR Command {} for Bay: {}", *PrimaryKeyID,  this->vls_name);
+  auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_post_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
+  Logger::Instance()->Debug("Handling Post LFR Command {} for Bay: {}", *PrimaryKeyID,  this->machine_name);
   
     auto make_bounce_error = [&request_id]() {
       Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Post LFR");
@@ -539,7 +532,7 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
   }
   else
   {
-      int comparison_flag = this->dispense_man_reader->GetInteger("drop_zone_searcher", "pre_post_comparison", 0);
+      int comparison_flag = this->dispense_reader->GetInteger("drop_zone_searcher", "pre_post_comparison", 0);
       if (comparison_flag == 1)
       {
           std::pair<int,int> detection_results = this->drop_manager->handle_pre_post_compare(this->LFB_config_reader, *PrimaryKeyID);
@@ -559,9 +552,9 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
 
 void DispenseManager::handle_start_lfb_video(std::shared_ptr<std::string> PrimaryKeyID)
 {
-    std::string base_directory = this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "vid_gen_base_buffer_dir");
+    std::string base_directory = this->dispense_reader->Get(dispense_reader->get_default_section(), "vid_gen_base_buffer_dir");
     if (!this->LFB_session or !this->lfb_upload_generator) {
-      Logger::Instance()->Warn("Bouncing Bay {} Drop Camera Video; Either missing session or generator", this->vls_name);
+      Logger::Instance()->Warn("Bouncing Bay {} Drop Camera Video; Either missing session or generator", this->machine_name);
       return;
     }
 
@@ -594,9 +587,9 @@ void DispenseManager::handle_start_lfb_video(std::shared_ptr<std::string> Primar
 
 void DispenseManager::handle_start_tray_video(std::shared_ptr<std::string> PrimaryKeyID)
 {
-    std::string base_directory = this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "vid_gen_base_buffer_dir");
+    std::string base_directory = this->dispense_reader->Get(dispense_reader->get_default_section(), "vid_gen_base_buffer_dir");
     if (!this->tray_session or !this->tray_upload_generator) {
-      Logger::Instance()->Warn("Bouncing Bay {} Tray Camera Video; Either missing session or generator", this->vls_name);
+      Logger::Instance()->Warn("Bouncing Bay {} Tray Camera Video; Either missing session or generator", this->machine_name);
       return;
     }
     //check that previous tray video has already stopped, as expected by standard sequence of requests
@@ -662,15 +655,15 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
 {
 
     request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_item_edge_distance for " + this->vls_name +  " request " + single_lane_val_req.m_context.get_id_tagged_sequence_step());
-    Logger::Instance()->Debug("Handling {} Dispense Lane Processing {} for Bay: {}", single_lane_val_req.get_sequence_step(), single_lane_val_req.get_primary_key_id(), this->vls_name);
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_item_edge_distance for " + this->machine_name + " request " + single_lane_val_req.m_context.get_id_tagged_sequence_step());
+    Logger::Instance()->Debug("Handling {} Dispense Lane Processing {} for Bay: {}", single_lane_val_req.get_sequence_step(), single_lane_val_req.get_primary_key_id(), this->machine_name);
     
     auto make_null_item_edge_result = [command_id]() { // by value since it's a fuckin ptr
         return std::make_shared<ItemEdgeDistanceResponse>(command_id,std::make_shared<TrayResult>(TrayResult(
             std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, -1, command_id)));
     };
     if (!this->tray_session) {
-        Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->vls_name);
+        Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->machine_name);
         return make_null_item_edge_result();
     }
 
@@ -679,7 +672,7 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     if(this->live_viewer) {
         this->live_viewer->update_image( std::make_shared<cv::Mat>(this->tray_session->grab_color_frame()), image_code, single_lane_val_req.get_primary_key_id(), true);
     }
-    auto saved_images_base_directory = this->dispense_man_reader->Get(this->dispense_man_reader->get_default_section(), "data_gen_image_base_dir");
+    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
 
     /** Save Data from generator */
     DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
@@ -719,7 +712,7 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     auto tray_result = std::make_shared<TrayResult>(do_all_tray_processing(save_data_fn, dispatch_to_count_api));
 
     Logger::Instance()->Info("Finished handling Single Lane Dispense command. Result: "
-                              "Bay: {} PKID: {} Distance {}", this->vls_name, single_lane_val_req.get_primary_key_id(), tray_result->fed_result);
+                              "Bay: {} PKID: {} Distance {}", this->machine_name, single_lane_val_req.get_primary_key_id(), tray_result->fed_result);
     return std::make_shared<ItemEdgeDistanceResponse>(command_id, tray_result);
 }
 
@@ -735,18 +728,18 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     };
     
     request_from_vlsg::TrayRequest tray_validation_request = request_json->get<request_from_vlsg::TrayRequest>();
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_tray_validation for " + this->vls_name + " request " + tray_validation_request.get_primary_key_id());
-    Logger::Instance()->Debug("Handling Tray Validation Command {} for Bay: {}", tray_validation_request.get_primary_key_id(), this->vls_name);
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_tray_validation for " + this->machine_name + " request " + tray_validation_request.get_primary_key_id());
+    Logger::Instance()->Debug("Handling Tray Validation Command {} for Bay: {}", tray_validation_request.get_primary_key_id(), this->machine_name);
     
     if (!this->tray_session) {
         Logger::Instance()->Warn("No Tray Session: Bouncing Tray Validation Request");
         return make_null_tray_validation_result();
     }
 
-    auto saved_images_base_directory = this->dispense_man_reader->Get(this->dispense_man_reader->get_default_section(), "data_gen_image_base_dir");
+    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
     double resize_factor = 1;
     /** Send Data Function */
-    std::string local_base_path = this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "upload_file_dir", "");
+    std::string local_base_path = this->dispense_reader->Get(dispense_reader->get_default_section(), "upload_file_dir", "");
 
     auto send_color_mat = [&] (double scale_resize) {
         try {
@@ -812,7 +805,7 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     tray_result["Error"] = 0;
     std::shared_ptr<std::string> payload = std::make_shared<std::string>(tray_result.dump());
     Logger::Instance()->Debug("Finished handling Tray Validation Command for Bay: {} PKID: {} Json response:\n\t{}",
-      this->vls_name, tray_validation_request.get_primary_key_id(), *payload);
+                              this->machine_name, tray_validation_request.get_primary_key_id(), *payload);
     return std::make_shared<TrayValidationResponse>(command_id, payload);
 }
 
@@ -869,8 +862,8 @@ std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> Prima
 
 int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
 {
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->vls_name + " request " + *PrimaryKeyID);
-    Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->vls_name);
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->machine_name);
     
 
     if (!this->LFB_session) {
@@ -1160,9 +1153,9 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::DispenseMan
 }
 
 std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagenerator_basedir() {
-    std::shared_ptr<std::string> base_directory = std::make_shared<std::string>(this->dispense_man_reader->Get(dispense_man_reader->get_default_section(), "data_gen_image_base_dir", ""));
+    std::shared_ptr<std::string> base_directory = std::make_shared<std::string>(this->dispense_reader->Get(dispense_reader->get_default_section(), "data_gen_image_base_dir", ""));
     if (base_directory->length() == 0) {
-        Logger::Instance()->Fatal("Could not find data_gen_image_base_dir value in section {} of main_config.ini!", dispense_man_reader->get_default_section());
+        Logger::Instance()->Fatal("Could not find data_gen_image_base_dir value in section {} of main_config.ini!", dispense_reader->get_default_section());
         throw std::runtime_error("Issue getting config settings.");
     }
     if (base_directory->back() == '/') base_directory->pop_back();

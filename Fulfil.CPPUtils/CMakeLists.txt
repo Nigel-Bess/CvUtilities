@@ -69,8 +69,8 @@ IF(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
 endif()
 
-#set(FULFIL_LOG_DIR "/home/fulfil/code/Fulfil.Dispense/logs")
-#set(FULFIL_INI_DIR "/home/fulfil/code/Fulfil.Dispense/configs")
+#set(FULFIL_LOG_DIR "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs")
+#set(FULFIL_INI_DIR "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs")
 
 # Allow for Macro definition on cmake command line. Default is build root on current system.
 if (DEFINED FULFIL_LOG_DIR)

@@ -12,12 +12,11 @@
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
 #include <dirent.h>
 #include <experimental/filesystem>
-#include <Fulfil.DepthCam/data/null_sender.h>
 #include <Fulfil.DepthCam/data/null_sender.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>

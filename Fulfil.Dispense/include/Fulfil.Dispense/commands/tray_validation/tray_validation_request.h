@@ -7,7 +7,6 @@
 
 #include <Fulfil.Dispense/commands/dispense_request.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
-#include <Fulfil.Dispense/commands/tray_validation/tray_validation_details.h>
 
 namespace fulfil
 {

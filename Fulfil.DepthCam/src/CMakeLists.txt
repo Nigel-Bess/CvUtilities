@@ -1,17 +1,12 @@
 file(GLOB DEPTHCAM_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/depthcam/*.h")
 file(GLOB ARUCO_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/aruco/*.h")
 file(GLOB MOCK_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/mocks/*.h")
-#file(GLOB VISUALIZATION_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/visualization/*.h")
 file(GLOB POINT_CLOUD_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/point_cloud/*.h")
-#file(GLOB DATA_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/data/*.h")
-#file(GLOB DATA_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/frame/distance_freeze_frame.h")
 
 add_library(Fulfil.DepthCam STATIC
         ${DEPTHCAM_HEADER_LIST}
         ${ARUCO_HEADER_LIST}
         ${MOCK_HEADER_LIST}
-        #${DATA_HEADER_LIST}
-        #${VISUALIZATION_HEADER_LIST}
         aruco/fixed_transform_container.cpp
         aruco/kabsch_helper.cpp
         aruco/marker.cpp

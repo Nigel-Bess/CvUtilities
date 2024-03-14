@@ -1,5 +1,4 @@
 #include <memory>
-#include <cstring>
 #include <exception>
 #include <stdexcept>
 #include <Fulfil.Dispense/dispense/test_manager.h>
@@ -14,37 +13,29 @@
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.CPPUtils/logging.h>
 
-#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
 
 #include <FulfilMongoCpp/mongo_connection.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_document.h>
 
-#include <Fulfil.Dispense/version.h>
 #include "Fulfil.Dispense/mongo/mongo_tray_calibration.h"
 
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include "Fulfil.Dispense/visualization/make_media.h"
-#include <Fulfil.CPPUtils/curl_control.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
-#include <Fulfil.CPPUtils/logging.h>
-#include <Fulfil.CPPUtils/networking/socket_network_manager.h>
 #include <Fulfil.CPPUtils/timer.h>
 #include <Fulfil.DepthCam/data.h>
 #include <Fulfil.DepthCam/data/bigquery_upload.h>
-#include <Fulfil.DepthCam/data/matrix_mask_method.h>
 #include <Fulfil.DepthCam/mocks.h>
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
-#include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
-#include <Fulfil.Dispense/mongo/mongo_tray_calibration.h>
+//#include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
+//#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include <Fulfil.Dispense/tray/tray_parser.h>
 #include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <FulfilMongoCpp/mongo_filter/mongo_filters.h>
@@ -55,10 +46,8 @@
 #include <Fulfil.Dispense/commands/content_response.h>
 #include <Fulfil.Dispense/commands/dispense_command.h>
 #include <Fulfil.Dispense/mongo/lfb_config.h>
-#include <memory>
 
 using fulfil::depthcam::data::BQUpload;
-namespace std_filesystem = std::experimental::filesystem;
 using ff_mongo_cpp::MongoConnection;
 using ff_mongo_cpp::mongo_parse::MongoBsonxxEncoder;
 using ff_mongo_cpp::mongo_objects::MongoJsonDocument;
@@ -85,10 +74,6 @@ using fulfil::utils::networking::SocketNetworkManager;
 using fulfil::utils::processingqueue::ProcessingQueue;
 using fulfil::dispense::commands::ErrorResponse;
 using fulfil::utils::processingqueue::ProcessingQueuePredicate;
-using fulfil::dispense::imagepersistence::DispenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseFileManager;
-using fulfil::dispense::imagepersistence::RealsenseTimestamper;
 using fulfil::depthcam::data::DataGenerator;
 using fulfil::depthcam::data::GCSSender;
 using fulfil::depthcam::data::FileSender;

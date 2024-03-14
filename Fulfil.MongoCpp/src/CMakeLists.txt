@@ -15,6 +15,7 @@ if (FULFIL_DISABLE_JSON)
 else()
     message("-- Including build of Json functionality")
     set(MONGO_JSON_LIST "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_json/mongo_json_document.h;${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_json/json.hpp;mongo_json/mongo_json_document.cpp")
+    #set(MONGO_JSON_LIST "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_json/mongo_json_document.h;mongo_json/mongo_json_document.cpp")
     set(JSON_CODE 0)
 endif()
 
@@ -28,7 +29,7 @@ add_library(FulfilMongoCpp STATIC
         mongo_connection.cpp
         mongo_filter/mongo_filters.cpp
         mongo_objects/mongo_basic_document.cpp
-        mongo_objects/mongo_scoped_document.cpp
+        #mongo_objects/mongo_scoped_document.cpp
         #mongo_machine/mongo_machine.cpp
         mongo_objects/mongo_element.cpp
         mongo_objects/mongo_document_element.cpp
@@ -60,7 +61,6 @@ target_include_directories(
         FulfilMongoCpp PUBLIC
         ${MONGO_IMPORT_PREFIX}
         ${BSON_IMPORT_PREFIX})
-
 
 target_compile_definitions(FulfilMongoCpp PUBLIC DISABLE_JSON=${JSON_CODE})
 unset(JSON_CODE CACHE)

@@ -52,6 +52,8 @@ IF(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
         endif()
         include(CTest)
         enable_testing()
+        add_subdirectory(test)
+
     endif()
 
 
@@ -60,7 +62,6 @@ endif()
 
 add_subdirectory(app)
 add_subdirectory(src)
-add_subdirectory(test)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_subdirectory(libs/Fulfil.CPPUtils)

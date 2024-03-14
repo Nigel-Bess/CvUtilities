@@ -6,15 +6,15 @@ import datetime
 import configparser
 
 parser = configparser.ConfigParser(inline_comment_prefixes=';')
-parser.read(os.path.expanduser("~/code/Fulfil.Dispense/configs/AGX_specific_main.ini"))
+parser.read(os.path.expanduser("~/code/Fulfil.ComputerVision/Fulfil.Dispense/configs/AGX_specific_main.ini"))
 
 jpeg_folder = parser.get("device_specific", "vid_gen_base_buffer_dir")
 live_folder = parser.get("device_specific", "live_visualize_drop_path")
 images_folder = os.path.expanduser("~/Videos")
 audit_folder = os.path.expanduser("~/Videos/audit_images")
 fed_test_folder = os.path.expanduser("~/Videos/fed_testing")
-logs_folder = os.path.expanduser("~/code/Fulfil.Dispense/logs")
-core_folder = os.path.expanduser("~/code/Fulfil.Dispense/rs-core-logs")
+logs_folder = os.path.expanduser("~/code/Fulfil.ComputerVision/Fulfil.Dispense/logs")
+core_folder = os.path.expanduser("~/code/Fulfil.ComputerVision/Fulfil.Dispense/rs-core-logs")
 
 def delete_jpegs():
     for subdir, dir, files in os.walk(jpeg_folder, topdown=False):
@@ -93,7 +93,7 @@ def delete_logs(period):
 if __name__=="__main__":
 
     # crontab on Pioneer bays
-    # ~/code/Fulfil.Dispense/disk_clean_util.py 1 500 1 7 7
+    # ~/code/Fulfil.ComputerVision/Fulfil.Dispense/disk_clean_util.py 1 500 1 7 7
     # delete drop images and videos every day, FED images every week, never delete tray validation images,
     # and logs every week
 
