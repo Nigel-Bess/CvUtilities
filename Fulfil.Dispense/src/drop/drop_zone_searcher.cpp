@@ -145,7 +145,6 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   if(details->bag_item_count < 0)
   {
     Logger::Instance()->Error("Invalid Bag Item Count; Vars: count = {}; Cam: LFB", details->bag_item_count);
-    //throw(4); // error id = 4
   }
 
   Logger::Instance()->Info("Limits on target: Left = {}, Right = {}, Back = {}, Front = {}",

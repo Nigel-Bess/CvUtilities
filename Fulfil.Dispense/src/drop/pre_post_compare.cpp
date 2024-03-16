@@ -595,9 +595,10 @@ int PrePostCompare::process_depth()
   pre_drop_grid.populate_depth(pre_local_data);
   post_drop_grid.populate_depth(post_local_data);
 
-  cv::Mat pre_depth_max_grid = pre_drop_grid.depth_max_grid;
-  cv::Mat post_depth_max_grid = post_drop_grid.depth_max_grid;
-  cv::Mat difference_max_grid = post_depth_max_grid - pre_depth_max_grid - platform_difference; //factor in difference in platform heights during calculation
+  // commenting out to reduce computation, can re-comment in if the max grid is used again in the future
+  //  cv::Mat pre_depth_max_grid = pre_drop_grid.depth_max_grid;
+  //  cv::Mat post_depth_max_grid = post_drop_grid.depth_max_grid;
+  //  cv::Mat difference_max_grid = post_depth_max_grid - pre_depth_max_grid - platform_difference; //factor in difference in platform heights during calculation
 
   cv::Mat pre_depth_average_grid = pre_drop_grid.depth_average_grid;
   cv::Mat post_depth_average_grid = post_drop_grid.depth_average_grid;
@@ -614,8 +615,6 @@ int PrePostCompare::process_depth()
   cv::Mat filtered_difference_grid = (difference_average_grid > comparison_value)/255; //(or more explicitly use threshold )
   double square_count = cv::sum(filtered_difference_grid)[0];
   filtered_difference_grid.convertTo(filtered_difference_grid, CV_32F);
-
-
 
   int k = 3; //@TODO: this will depend on item size. For now change it here for easy experimenting.
   std::vector<std::tuple<float, int, int>> k_largest(k);
@@ -729,15 +728,18 @@ int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_
     this->session_visualizer11->display_image(std::make_shared<cv::Mat>(post_color_img));
   }
 
-  int result_code = -1;
+  // default result is unspecified error, will be overwritten with actual result code unless an unexpected error occurs
+  int result_code = PrePostCompareErrorCodes::UnspecifiedError;
   this->result_mat = nullptr;
 
   try
   {
+    // code will be 0 for no item detected, or 1 for item detected
     result_code = process_depth(); //will return nullptr 0 if no item detected
     if(result_code != 1)
     {
       Logger::Instance()->Debug("Depth comparison detection resulted in No Item Detected! Trying RGB processing next");
+      // result code will be 0 for no item detected, or 1 for item detected
       result_code = process_RGB();
     }
 

@@ -7,24 +7,27 @@
  * calculates the transformation to local point cloud dynamically
  * using aruco markers.
  */
-#include <Fulfil.DepthCam/aruco/marker_detector_container.h>
-#include "Fulfil.DepthCam/aruco/kabsch_helper.h"
-#include "container_matrix3xd_predicate.h"
-#include <Fulfil.CPPUtils/eigen/matrix3xd_filter.h>
-#include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
 #include <librealsense2/rsutil.h>
-#include <Fulfil.DepthCam/point_cloud.h>
+#include <Fulfil.CPPUtils/eigen/matrix3xd_filter.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include "Fulfil.DepthCam/aruco/kabsch_helper.h"
+#include <Fulfil.DepthCam/aruco/marker_detector_container.h>
+#include <Fulfil.DepthCam/point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
+#include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include "container_matrix3xd_predicate.h"
 
-using fulfil::depthcam::aruco::MarkerDetectorContainer;
-using fulfil::depthcam::aruco::MarkerDetector;
-using fulfil::depthcam::Session;
 using fulfil::depthcam::aruco::ContainerMatrix3xdPredicate;
-using fulfil::utils::eigen::Matrix3XdFilter;
-using fulfil::utils::eigen::Matrix3dPoint;
+using fulfil::depthcam::aruco::Marker;
+using fulfil::depthcam::aruco::MarkerDetector;
+using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
-using fulfil::depthcam::aruco::Marker;
+using fulfil::depthcam::Session;
+using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
+using fulfil::dispense::drop_target_error_codes::DropTargetError;
+using fulfil::utils::eigen::Matrix3XdFilter;
+using fulfil::utils::eigen::Matrix3dPoint;
 using fulfil::utils::Logger;
 
 MarkerDetectorContainer::MarkerDetectorContainer(std::shared_ptr<MarkerDetector> marker_detector,
@@ -285,12 +288,12 @@ void MarkerDetectorContainer::setup_cached_container()
     if(num_detections == 0)
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
-      throw int(1);
+      throw DropTargetError(DropTargetErrorCodes::NoMarkersDetected, "No markers detected");
     }
     else
     {
-      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB");
-      throw int(2);
+      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB")
+      throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected, "Number of markers detected: " + str(num_detections));
     }
   }
 

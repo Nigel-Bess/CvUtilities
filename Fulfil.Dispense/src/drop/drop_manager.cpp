@@ -328,6 +328,9 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     return std::pair<int, int>{-1, -1};
   }
 
+  const int item_not_detected_code = 0;
+  const int item_detected_code = 1;
+
   try
   {
     Logger::Instance()->Debug("Executing Pre/Post Comparison now");
@@ -343,18 +346,19 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     if(this->cached_info != nullptr and this->drop_live_viewer != nullptr)
     {
 
-    if (comparison_result != 0 and comparison_result != 1) this->cached_info->push_back("Item Detect Failed");
+    if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) this->cached_info->push_back("Item Detect Failed");
 
-    std::string message = "Unhandled case encountered";
-
-
-    if (comparison_result == -1) message = "Undefined Failure";
-    if (comparison_result == 0) message = "Item in bag: No";
-    if (comparison_result == 1) message = "Item in bag: Yes";
-    if (comparison_result == 2) message = "Not Enough Markers";
-    if (comparison_result == 3) message = "Invalid Item Dimensions";
-    if (comparison_result == 4) message = "Invalid Platform Value";
-    if (comparison_result == 5) message = "Platform Inconsistency";
+    std::string message;
+    switch (comparison_result) {
+      case (item_not_detected_code): message = "Item in bag: No";
+      case (item_detected_code): message = "Item in bag: Yes";
+      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers";
+      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions";
+      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value";
+      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency";
+      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure";
+      default: message = "Unhandled case encountered";
+    }
 
     this->cached_info->push_back(message);
 
@@ -367,7 +371,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
       if(result_mat != nullptr)
       {
         drop_live_viewer->update_image(drop_live_viewer->get_item_detection_visualization(result_mat), ViewerImageType::LFB_Item_Detection, PrimaryKeyID);
-        if (comparison_result != 0 and comparison_result != 1){
+        if (comparison_result != item_not_detected_code and comparison_result != item_detected_code){
             Logger::Instance()->Info("Pre/Post Compare failed, but still updating live_viewer");
         }
       }
@@ -378,7 +382,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     }
 
     //NOTE: comparison_result behavior kept the same because we handle case 3,4,5 by throwing exception here
-    if (comparison_result > 1){
+    if (comparison_result != item_not_detected_code and comparison_result != item_detected_code){
         throw(comparison_result);
     }
 
