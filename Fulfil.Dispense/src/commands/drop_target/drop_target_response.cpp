@@ -14,6 +14,12 @@ void DropTargetResponse::encode_payload()
 {
   std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
   (*result_json)["Error"] = this->success_code;
+  // only add the error description to responses that had an error to describe
+  if(this->success_code != 0)
+  {
+    (*result_json)["Error_Description"] = this->error_description;
+  }
+  // for the success codes that do not early fail the algorithm, fill the JSON with the results
   if(this->success_code == 0 or this->success_code == 9)
   {
     (*result_json)["x"] = this->rover_position;
@@ -36,15 +42,17 @@ void DropTargetResponse::encode_payload()
   delete [] response;
 }
 
-DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code)
+DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description)
 {
   this->success_code = success_code;
   this->command_id = command_id;
+  this->error_description = error_description;
 }
 
 DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code,
                                        float rover_position, float dispense_position, float depth_result, float max_Z,
-                                       bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected)
+                                       bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected,
+                                       std::string error_description)
 {
   this->success_code = success_code;
   this->command_id = command_id;
@@ -55,6 +63,7 @@ DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, 
   this->Rotate_LFB = Rotate_LFB;
   this->LFB_Currently_Rotated = LFB_Currently_Rotated;
   this->Swing_Collision_Expected = Swing_Collision_Expected;
+  this->error_description = error_description;
 }
 
 std::shared_ptr<std::string> DropTargetResponse::get_command_id()

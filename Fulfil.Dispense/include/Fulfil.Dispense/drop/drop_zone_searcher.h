@@ -241,6 +241,8 @@ class DropZoneSearcher
 
   //the dispense ID, or "PrimaryKeyID" as it is called throughout the repo
   std::string PKID;
+  /* Description of the error codes thrown during drop search algorithm */
+  std::string error_description;
 
    /**
    *  Visualize resulting target for the dispense with a rectangular box of where the item's shadow should be
