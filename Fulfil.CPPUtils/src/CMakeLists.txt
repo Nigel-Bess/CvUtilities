@@ -1,9 +1,5 @@
 # Define the library called "Fulfil.CPPUtils" and link all third party libraries needed by it
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 include_directories(include/Fulfil.CPPUitls)
 include_directories(include/Fulfil.CPPUitls/comm/)
 include_directories(include/Fulfil.CPPUitls/eigen)

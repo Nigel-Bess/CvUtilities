@@ -7,7 +7,7 @@ include(common.cmake)
 
 # Project name and settings
 project(
-        Fulfil.Utils
+        Fulfil.CPPUtils
         VERSION 2.0
         DESCRIPTION "A library of generic utils for c++ projects"
         LANGUAGES CXX

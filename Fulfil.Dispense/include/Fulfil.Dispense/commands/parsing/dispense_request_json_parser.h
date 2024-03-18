@@ -7,7 +7,7 @@
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_JSON_PARSER_H_
 #include <memory>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_details.h>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 
 namespace fulfil
 {

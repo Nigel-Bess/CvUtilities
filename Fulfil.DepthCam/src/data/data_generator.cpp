@@ -18,7 +18,7 @@
 #include <ctime>
 #include <unistd.h>
 #include <thread>
-#include <Fulfil.DepthCam/json.hpp>
+#include <json.hpp>
 #include <Fulfil.CPPUtils/timer.h>
 #include <Fulfil.CPPUtils/logging.h>
 

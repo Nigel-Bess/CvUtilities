@@ -98,6 +98,7 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         dispense/drop_error_codes.cpp)
 
 
+target_link_libraries(Fulfil.Dispense LINK_PUBLIC json)
 
 target_include_directories(Fulfil.Dispense PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
@@ -114,7 +115,6 @@ IF(HATEYOURSELF)
         #  -Wnon-virtual-dtor -Woverloaded-virtual
     )
 endif()
-
 target_link_libraries(Fulfil.Dispense
         PRIVATE Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp stdc++fs ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 

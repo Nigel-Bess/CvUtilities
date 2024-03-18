@@ -5,7 +5,7 @@
 
 #include "Fulfil.Dispense/commands/error_response.h"
 #include <string>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 
 using fulfil::dispense::commands::ErrorResponse;
 
