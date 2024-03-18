@@ -34,7 +34,8 @@ add_library(Fulfil.DepthCam STATIC
         point_cloud/depth_pixel_point_cloud.cpp
         mocks/mock_container.cpp
         #data/FTP_generator.cpp
-        data/upload_generator.cpp  ../include/Fulfil.DepthCam/data/upload_generator.h
+        data/upload_generator.cpp
+        ../include/Fulfil.DepthCam/data/upload_generator.h
         ../include/Fulfil.DepthCam/data/file_sender.h
         ../include/Fulfil.DepthCam/data/null_sender.h
         #data/ftp_sender.cpp

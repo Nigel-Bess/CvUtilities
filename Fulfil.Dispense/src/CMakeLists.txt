@@ -76,8 +76,6 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         mongo/mongo_bag_state.cpp
         mongo/mongo_tray_calibration.cpp
         visualization/live_viewer.cpp
-        #dispense/image_persistence/realsense_image_persistence_manager.cpp
-        #dispense/image_persistence/realsense_timestamper.cpp ../include/Fulfil.Dispense/dispense/image_persistence/dispense_file_manager.h dispense/image_persistence/realsense_file_manager.cpp ../include/Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h
         commands/parsing/command_parsing_errors.cpp ../include/Fulfil.Dispense/commands/parsing/command_parsing_errors.h
         ../include/Fulfil.Dispense/bays.h ../include/Fulfil.Dispense/commands.h
         ../include/Fulfil.Dispense/dispense.h tray/tray_lane.cpp ../include/Fulfil.Dispense/tray/tray_lane.h
@@ -87,9 +85,9 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         mongo/mongo_bag_state.cpp ../include/Fulfil.Dispense/mongo/mongo_bag_state.h
         commands/post_drop/post_LFR_response.cpp ../include/Fulfil.Dispense/commands/post_drop/post_LFR_response.h
         mongo/packing_state.cpp ../include/Fulfil.Dispense/mongo/packing_state.h
-        ../include/Fulfil.Dispense/tray/tray_parser.h
+        ../include/Fulfil.Dispense/commands/parsing/tray_parser.h
         ../include/Fulfil.Dispense/tray/mongo_json_utils.h
-        tray/mongo_json_utils.cpp tray/tray_parser.cpp
+        tray/mongo_json_utils.cpp commands/parsing/tray_parser.cpp
         tray/measurement_helpers.cpp
         visualization/make_media.cpp tray/tray_manager.cpp
         ../include/Fulfil.Dispense/recipes/tray_dimensional_configuration.h

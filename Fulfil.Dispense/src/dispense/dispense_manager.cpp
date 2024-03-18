@@ -1,6 +1,5 @@
 #include <memory>
 
-#include <Fulfil.CPPUtils/curl_control.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
@@ -18,26 +17,15 @@
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
-//#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
-//#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
-//#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
 #include <Fulfil.Dispense/mongo/mongo_tray_calibration.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include <Fulfil.Dispense/tray/tray_parser.h>
+#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include "Fulfil.Dispense/visualization/make_media.h"
-#include <FulfilMongoCpp/mongo_filter/mongo_filters.h>
-#include <FulfilMongoCpp/mongo_json/mongo_json_document.h>
-#include <FulfilMongoCpp/mongo_objects/mongo_basic_document.h>
-#include <FulfilMongoCpp/mongo_parse/mongo_bsonxx_encoder.h>
 
 using ff_mongo_cpp::MongoConnection;
-using ff_mongo_cpp::mongo_objects::MongoBasicDocument;
-using ff_mongo_cpp::mongo_parse::MongoBsonxxEncoder;
-using ff_mongo_cpp::mongo_filter::MongoFilter;
-using ff_mongo_cpp::mongo_objects::MongoJsonDocument;
 using ff_mongo_cpp::mongo_objects::MongoObjectID;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::pointcloud::PointCloud;
@@ -65,10 +53,6 @@ using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
-//using fulfil::dispense::imagepersistence::DispenseImagePersistenceManager;
-//using fulfil::dispense::imagepersistence::RealsenseImagePersistenceManager;
-//using fulfil::dispense::imagepersistence::RealsenseFileManager;
-//using fulfil::dispense::imagepersistence::RealsenseTimestamper;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
