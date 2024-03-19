@@ -86,8 +86,8 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         commands/post_drop/post_LFR_response.cpp ../include/Fulfil.Dispense/commands/post_drop/post_LFR_response.h
         mongo/packing_state.cpp ../include/Fulfil.Dispense/mongo/packing_state.h
         ../include/Fulfil.Dispense/commands/parsing/tray_parser.h
-        ../include/Fulfil.Dispense/tray/mongo_json_utils.h
-        tray/mongo_json_utils.cpp commands/parsing/tray_parser.cpp
+        ../include/Fulfil.Dispense/mongo/mongo_json_utils.h
+        mongo/mongo_json_utils.cpp commands/parsing/tray_parser.cpp
         tray/measurement_helpers.cpp
         visualization/make_media.cpp tray/tray_manager.cpp
         ../include/Fulfil.Dispense/recipes/tray_dimensional_configuration.h
