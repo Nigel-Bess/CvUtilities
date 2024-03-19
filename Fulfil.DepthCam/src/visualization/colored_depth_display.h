@@ -14,46 +14,40 @@
 #include <eigen3/Eigen/Geometry>
 #include <memory>
 
-namespace fulfil
+namespace fulfil::depthcam::visualization
 {
-namespace depthcam
-{
-namespace visualization
-{
-class ColoredDepthDisplay
-{
- private:
-  /**
-   * The minimum recorded depth from the point cloud
-   * being displayed.
-   */
-  float min_depth;
-  /**
-   * The maximum recorded depth from the point cloud
-   * being displayed.
-   */
-  float max_depth;
-  /**
-   * The size of one step in depth that is equal to one step
-   * in rgb color (rgb step is +-1 on the 0-255 scale for
-   * red and blue).
-   */
-  float step;
- public:
-  /**
-   * ColorDepthDisplay Constructor
-   * @param min_depth minimum depth value being displayed.
-   * @param max_depth maximum depth value being displayed.
-   */
-  ColoredDepthDisplay(float min_depth, float max_depth);
-  /**
-   * Returns a scalar for the color at the given depth.
-   * @param depth recorded by the depth sensor.
-   * @return scalar representative of that depth.
-   */
-  cv::Scalar color_at_depth(float depth);
-};
-} // namespace fulfil
-} // namespace depthcam
-} // namespace visualization
+    class ColoredDepthDisplay
+    {
+        private:
+            /**
+            * The minimum recorded depth from the point cloud
+            * being displayed.
+            */
+            float min_depth;
+            /**
+            * The maximum recorded depth from the point cloud
+            * being displayed.
+            */
+            float max_depth;
+            /**
+            * The size of one step in depth that is equal to one step
+            * in rgb color (rgb step is +-1 on the 0-255 scale for
+            * red and blue).
+            */
+            float step;
+        public:
+            /**
+            * ColorDepthDisplay Constructor
+            * @param min_depth minimum depth value being displayed.
+            * @param max_depth maximum depth value being displayed.
+            */
+            ColoredDepthDisplay(float min_depth, float max_depth);
+            /**
+            * Returns a scalar for the color at the given depth.
+            * @param depth recorded by the depth sensor.
+            * @return scalar representative of that depth.
+            */
+            cv::Scalar color_at_depth(float depth);
+    };
+} // namespace fulfil::depthcam::visualization
 #endif

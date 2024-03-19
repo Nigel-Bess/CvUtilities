@@ -7,7 +7,7 @@
 #include "../presets/device_presets.h"
 #include <iostream>
 #include <librealsense2/rs_advanced_mode.hpp>
-#include "Fulfil.DepthCam/json.hpp"
+#include "json.hpp"
 // wtf need to fix this so there is only one header
 #include <Fulfil.CPPUtils/logging.h>
 #include <filesystem>

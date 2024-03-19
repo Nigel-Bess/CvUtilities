@@ -8,8 +8,8 @@
 #include <vector>
 #include <eigen3/Eigen/Core>
 
-#include <Fulfil.Dispense/json.hpp>
-#include <Fulfil.Dispense/tray/tray_parser.h>
+#include <json.hpp>
+#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 
 
 namespace fulfil

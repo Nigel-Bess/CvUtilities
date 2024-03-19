@@ -3,21 +3,13 @@
 #include<Fulfil.DepthCam/point_cloud.h>
 #include<Fulfil.DepthCam/mocks.h>
 #include<Fulfil.DepthCam/data.h>
-#include<Fulfil.CPPUtils/eigen.h>
-
-
 #include<opencv2/opencv.hpp>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_image_persistence_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_file_manager.h>
-#include <Fulfil.Dispense/dispense/image_persistence/realsense_timestamper.h>
 #include <dirent.h>
-#include <experimental/filesystem>
-#include <Fulfil.DepthCam/data/null_sender.h>
 #include <Fulfil.DepthCam/data/null_sender.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
@@ -42,16 +34,11 @@ using fulfil::dispense::commands::DispenseJsonParser;
 using fulfil::utils::processingqueue::ProcessingQueue;
 using fulfil::dispense::commands::ErrorResponse;
 using fulfil::utils::processingqueue::ProcessingQueuePredicate;
-using fulfil::dispense::imagepersistence::DispenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseImagePersistenceManager;
-using fulfil::dispense::imagepersistence::RealsenseFileManager;
-using fulfil::dispense::imagepersistence::RealsenseTimestamper;
 using fulfil::utils::FileSystemUtil;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::depthcam::data::NullSender;
 using fulfil::depthcam::data::NullSender;
 using fulfil::dispense::commands::PostLFRResponse;
-namespace std_filesystem = std::experimental::filesystem;
 
 
 float to_meters(float millimeters)

@@ -7,7 +7,7 @@
 #define FULFIL_DISPENSE_INCLUDE_FULFnIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
 #include <Fulfil.Dispense/commands/dispense_command.h>
 #include <memory>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 
 namespace fulfil
 {

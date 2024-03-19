@@ -4,7 +4,7 @@
 
 #ifndef CODE_BIGQUERY_UPLOAD_H
 #define CODE_BIGQUERY_UPLOAD_H
-#include <Fulfil.DepthCam/json.hpp>
+#include <json.hpp>
 
 namespace fulfil {
     namespace depthcam {

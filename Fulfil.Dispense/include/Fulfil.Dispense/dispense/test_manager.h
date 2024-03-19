@@ -15,7 +15,7 @@
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <FulfilMongoCpp/mongo_connection.h>
-#include <Fulfil.Dispense/tray/tray_parser.h>
+#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>

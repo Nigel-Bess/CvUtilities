@@ -6,7 +6,7 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DROP_TARGET_JSON_ITEM_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DROP_TARGET_JSON_ITEM_H_
 #include <memory>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 
 namespace fulfil
 {

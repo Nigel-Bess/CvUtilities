@@ -4,7 +4,7 @@
 
 #ifndef FULFIL_DISPENSE_TRAY_PARSER_H
 #define FULFIL_DISPENSE_TRAY_PARSER_H
-#include <Fulfil.Dispense/tray/mongo_json_utils.h>
+#include <Fulfil.Dispense/mongo/mongo_json_utils.h>
 
 
 

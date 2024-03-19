@@ -5,7 +5,7 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TRAY_VALIDATION_DETAILS_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TRAY_VALIDATION_DETAILS_H_
 #include <memory>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 #include <Fulfil.Dispense/tray/tray_lane.h>
 
 namespace fulfil::dispense::commands

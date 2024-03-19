@@ -1,6 +1,8 @@
 [Unit]
 Description=tray_count.service
-After=network.target 
+#After=network.target ffuser_tmux.service 
+After=multi-user.target
+Before=depthcam.service
 
 [Service]
 Type=forking
@@ -13,5 +15,6 @@ ExecStop=/usr/bin/tmux kill-session -t tray_count
 #RestartSec=3s
 
 [Install]
-WantedBy=multi-user.target
+#WantedBy=multi-user.target
+WantedBy=graphical.target
 

@@ -1,17 +1,12 @@
 file(GLOB DEPTHCAM_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/depthcam/*.h")
 file(GLOB ARUCO_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/aruco/*.h")
 file(GLOB MOCK_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/mocks/*.h")
-#file(GLOB VISUALIZATION_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/visualization/*.h")
 file(GLOB POINT_CLOUD_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/point_cloud/*.h")
-#file(GLOB DATA_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/data/*.h")
-#file(GLOB DATA_HEADER_LIST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/Fulfil.DepthCam/frame/distance_freeze_frame.h")
 
 add_library(Fulfil.DepthCam STATIC
         ${DEPTHCAM_HEADER_LIST}
         ${ARUCO_HEADER_LIST}
         ${MOCK_HEADER_LIST}
-        #${DATA_HEADER_LIST}
-        #${VISUALIZATION_HEADER_LIST}
         aruco/fixed_transform_container.cpp
         aruco/kabsch_helper.cpp
         aruco/marker.cpp
@@ -39,7 +34,8 @@ add_library(Fulfil.DepthCam STATIC
         point_cloud/depth_pixel_point_cloud.cpp
         mocks/mock_container.cpp
         #data/FTP_generator.cpp
-        data/upload_generator.cpp  ../include/Fulfil.DepthCam/data/upload_generator.h
+        data/upload_generator.cpp
+        ../include/Fulfil.DepthCam/data/upload_generator.h
         ../include/Fulfil.DepthCam/data/file_sender.h
         ../include/Fulfil.DepthCam/data/null_sender.h
         #data/ftp_sender.cpp
@@ -61,6 +57,9 @@ message("-- Found OpenCV lib ${OpenCV_VERSION}!")
 #Adding realsense
 find_package(realsense2 REQUIRED)
 message("-- Found RealSense lib ${realsense2_VERSION}!")
+message("****** ${PROJECT_SOURCE_DIR}/include *****")
+
+target_link_libraries(Fulfil.DepthCam LINK_PUBLIC json)
 
 target_include_directories(Fulfil.DepthCam PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(Fulfil.DepthCam SYSTEM PUBLIC ${OpenCV_INCLUDE_DIRS})

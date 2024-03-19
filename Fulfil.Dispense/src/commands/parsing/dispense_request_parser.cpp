@@ -4,7 +4,7 @@
 //
 
 #include "Fulfil.Dispense/commands/parsing/dispense_request_parser.h"
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 #include <Fulfil.Dispense/commands/parsing/dispense_command_parser.h>
 #include "Fulfil.Dispense/commands/nop/nop_request.h"
 #include <Fulfil.Dispense/commands/get_state_request.h>
