@@ -285,6 +285,7 @@ void MarkerDetectorContainer::setup_cached_container()
     if(num_detections == 0)
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
+      //Todo: @Jess make actual DepthCam error class / cleaner fix for this so we can avoid the thrown int
       throw (1, "No markers detected");
     }
     else
