@@ -14,6 +14,7 @@
 #include "Fulfil.Dispense/drop/drop_manager.h"
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/drop/pre_post_compare.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
@@ -29,6 +30,7 @@ using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
+using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::dispense::visualization::LiveViewer;
@@ -200,6 +202,32 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
             Logger::Instance()->Trace("Finished data generation for drop camera request!");
         }
         return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        DropTargetErrorCodes error_id = (DropTargetErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
+
+        if (generate_data) //this functionality is added so offline simulation does not generate data
+        {
+            Logger::Instance()->Trace("Data generation for drop camera request started!");
+            std::shared_ptr<DataGenerator>
+                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+            generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
+            Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
+            std::ofstream error_file(error_code_file);
+            error_file << error_id;
+
+            Logger::Instance()->Trace("Saving target data as -1 at path {}", target_file);
+            std::ofstream target_file_stream(target_file);
+            target_file_stream << -1 << "\n";
+            target_file_stream << -1 << std::endl;
+
+            Logger::Instance()->Trace("Finished data generation for drop camera request!");
+        }
+        return std::make_shared<DropResult>(details->request_id, error_id, error_desc);
     }
     catch (const std::exception & e)
     {
