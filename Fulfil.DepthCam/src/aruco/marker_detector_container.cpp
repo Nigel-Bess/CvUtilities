@@ -14,7 +14,6 @@
 #include <Fulfil.DepthCam/aruco/marker_detector_container.h>
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
-#include "Fulfil.Dispense/dispense/drop_error_codes.h"
 #include "container_matrix3xd_predicate.h"
 
 using fulfil::depthcam::aruco::ContainerMatrix3xdPredicate;
@@ -24,8 +23,6 @@ using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::depthcam::Session;
-using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
-using fulfil::dispense::drop_target_error_codes::DropTargetError;
 using fulfil::utils::eigen::Matrix3XdFilter;
 using fulfil::utils::eigen::Matrix3dPoint;
 using fulfil::utils::Logger;
@@ -288,12 +285,13 @@ void MarkerDetectorContainer::setup_cached_container()
     if(num_detections == 0)
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
-      throw DropTargetError(DropTargetErrorCodes::NoMarkersDetected, "No markers detected");
+      throw (1, "No markers detected");
     }
     else
     {
-      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB")
-      throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected, "Number of markers detected: " + str(num_detections));
+      Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB");
+      std::string error_descrip = "Number of markers detected: " + std::to_string(num_detections);
+      throw (2, error_descrip);
     }
   }
 
