@@ -312,8 +312,8 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     Logger::Instance()->Info("Item mass is below threshold and no force depth adjust indicated. Will still count white points but not adjust depth values.");
   }
 
-  // forward cycle left to right if not flag
-  // backward cycle right to left if flag
+  // forward cycle left to right if not should_search_right_to_left
+  // backward cycle right to left if should_search_right_to_left
   int pixels_size = pixels->size();
   int start = (should_search_right_to_left) ? pixels->size() : 0;
   auto is_still_looping = [should_search_right_to_left, pixels_size](int i)-> bool {
@@ -326,8 +326,6 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
   for (int i = start; is_still_looping(i); step_index(i))
   {
-//    for (int i = pixels->size(); i > 0; i--) {
-//  for (int i = 0; i < pixels->size(); i++) {
       cv::Point2f pixel = *pixels->at(i);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
       float local_x = (*local_cloud_data)(0, i);
