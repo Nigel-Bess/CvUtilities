@@ -278,7 +278,7 @@ class DropZoneSearcher
   * @return See definition of Max_Z_Points struct above. Coordinates are provided in meter units, local bag coordinate system
   */
   Max_Z_Points adjust_depth_detections(std::shared_ptr<cv::Mat>, std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> input_cloud,
-                                  float item_mass, float minimum_max_depth, std::shared_ptr<INIReader> LFB_config_reader, bool visualize_flag = true,
+                                  float item_mass, float minimum_max_depth, bool should_search_right_to_left, std::shared_ptr<INIReader> LFB_config_reader, bool visualize_flag = true,
                                   bool live_viewer_flag = false, bool should_check_empty = false, bool force_adjustment = false);
 
 

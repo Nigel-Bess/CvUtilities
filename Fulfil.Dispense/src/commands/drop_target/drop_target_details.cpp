@@ -35,7 +35,7 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->limit_front = (*request_json)["Limit_Front"].get<int>();
   this->limit_back = (*request_json)["Limit_Back"].get<int>();
   this->remaining_platform = DropTargetDetails::to_meters((*request_json)["Remaining_Platform"].get<float>());
-  this->use_flipped_x_default = request_json->value("flip_x_default", false);
+  this->use_flipped_x_default = request_json->value("Flip_X_Default", false);
 
   //handling of damage code based on material and fragile properties. See bag state tracking + damage handling design doc
   this->item_material = (*request_json)["Lanes"].begin().value()["Item"]["Material"].get<int>();
