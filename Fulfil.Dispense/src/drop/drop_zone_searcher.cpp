@@ -224,6 +224,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
   float target_x;
+  Logger::Logger()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   if (details->use_flipped_x_default)
   {
     // move default drop target to front side, accounting for front edge offset
@@ -1231,6 +1232,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   bool bag_empty = (details->bag_item_count == 0);
 
+  Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default,
     LFB_config_reader, true, true, bag_empty, false);
 
