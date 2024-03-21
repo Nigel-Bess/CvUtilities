@@ -224,7 +224,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
   float target_x;
-  Logger::Logger()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
+  Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   if (details->use_flipped_x_default)
   {
     // move default drop target to front side, accounting for front edge offset
