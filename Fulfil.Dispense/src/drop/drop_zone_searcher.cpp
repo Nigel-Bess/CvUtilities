@@ -261,7 +261,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
 }
 
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
-                                                  float item_mass, float platform_in_LFB_coords, std::shared_ptr<INIReader> LFB_config_reader,
+                                                  float item_mass, float platform_in_LFB_coords, bool should_search_right_to_left, std::shared_ptr<INIReader> LFB_config_reader,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
@@ -312,11 +312,22 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     Logger::Instance()->Info("Item mass is below threshold and no force depth adjust indicated. Will still count white points but not adjust depth values.");
   }
 
+  // forward cycle left to right if not should_search_right_to_left
+  // backward cycle right to left if should_search_right_to_left
+  int pixels_size = pixels->size();
+  int start = (should_search_right_to_left) ? pixels->size() : 0;
+  auto is_still_looping = [should_search_right_to_left, pixels_size](int i)-> bool {
+    return (should_search_right_to_left) ? i > 0 : i < pixels_size;
+  };
+  auto step_index = [should_search_right_to_left](int i) -> int {
+    return (should_search_right_to_left) ? i-- : i++;
+  };
+
   //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
-  for (int i = 0; i < pixels->size(); i++) {
+  for (int i = start; is_still_looping(i); step_index(i))
+  {
       cv::Point2f pixel = *pixels->at(i);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
-
       float local_x = (*local_cloud_data)(0, i);
       float local_y = (*local_cloud_data)(1, i);
       float local_z = (*local_cloud_data)(2, i);
@@ -1220,7 +1231,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   bool bag_empty = (details->bag_item_count == 0);
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, LFB_config_reader, true, true, bag_empty, false);
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default,
+    LFB_config_reader, true, true, bag_empty, false);
 
   Point3D max_Z_point = max_Z_points.overall;
 
@@ -1598,8 +1610,9 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   float LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000; //remaining_platform in meters
+  float should_search_right_to_left = (*request_json)["Flip_X_Default"].get<bool>();
 
-  Logger::Instance()->Debug("Check MaxZ Initiated");
+    Logger::Instance()->Debug("Check MaxZ Initiated");
 
   Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
   std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
@@ -1640,7 +1653,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   //this function adjusts depths of the white parts of the bag and returns the max_Z depth detection of non-white bag areas
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, LFB_config_reader, true, false, false, false);
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, should_search_right_to_left, LFB_config_reader, true, false, false, false);
 
   Point3D max_detected_Z_point = max_Z_points.overall;
 
