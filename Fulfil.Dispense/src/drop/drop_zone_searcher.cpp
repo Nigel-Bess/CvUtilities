@@ -316,22 +316,20 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   // forward cycle left to right if not should_search_right_to_left
   // backward cycle right to left if should_search_right_to_left
   int pixels_size = pixels->size();
-  int start = (should_search_right_to_left) ? pixels->size() : 0;
-  auto is_still_looping = [should_search_right_to_left, pixels_size](int i)-> bool {
-    return (should_search_right_to_left) ? i > 0 : i < pixels_size;
+  int current_pixel_index = (should_search_right_to_left) ? pixels_size-1 : 0;
+  auto is_still_looping = [should_search_right_to_left, &pixels_size, &current_pixel_index]()-> bool {
+    return (should_search_right_to_left) ? current_pixel_index >= 0 : current_pixel_index < pixels_size;
   };
-  auto step_index = [should_search_right_to_left](int i) -> int {
-    return (should_search_right_to_left) ? i-1 : i+1;
+  auto next_step = [should_search_right_to_left, &current_pixel_index]()  {
+      (should_search_right_to_left) ? --current_pixel_index : ++current_pixel_index;
   };
-
-  //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
-  for (int i = start; is_still_looping(i); i = step_index(i))
-  {
-      cv::Point2f pixel = *pixels->at(i);
+    //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
+    for (; is_still_looping(); next_step()) {
+      cv::Point2f pixel = *pixels->at(current_pixel_index);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
-      float local_x = (*local_cloud_data)(0, i);
-      float local_y = (*local_cloud_data)(1, i);
-      float local_z = (*local_cloud_data)(2, i);
+      float local_x = (*local_cloud_data)(0, current_pixel_index);
+      float local_y = (*local_cloud_data)(1, current_pixel_index);
+      float local_z = (*local_cloud_data)(2, current_pixel_index);
 
       bool is_outer_bag = (local_x < -x_limit) or (local_x > x_limit) or (local_y < -y_limit) or (local_y > y_limit);
       // count number of white points for empty/nonempty bag analysis
