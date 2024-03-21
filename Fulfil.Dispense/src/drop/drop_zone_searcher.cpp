@@ -320,11 +320,11 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     return (should_search_right_to_left) ? i > 0 : i < pixels_size;
   };
   auto step_index = [should_search_right_to_left](int i) -> int {
-    return (should_search_right_to_left) ? i-- : i++;
+    return (should_search_right_to_left) ? i-1 : i+1;
   };
 
   //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
-  for (int i = start; is_still_looping(i); step_index(i))
+  for (int i = start; is_still_looping(i); i = step_index(i))
   {
       cv::Point2f pixel = *pixels->at(i);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
