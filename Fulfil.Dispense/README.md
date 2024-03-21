@@ -73,7 +73,7 @@ The depthcam service requires the other two services to be up and running in ord
 In addition to the three services described, there is also an automatic disk cleaning utility. This is implemented with `disk_clean_util.py`. This script is executed on an interval with a cron job on each SBC. `disk_clean_util` takes three arguments: `disk_clean_util.py <days of drop images to keep> <days of tray images to keep> <days of videos to keep>`. All MP4 files used to produce the videos are deleted immediately when the script is run. An example of a cron job is shown here, where we want to run the script once a day at 12:30pm, and delete all drop images from more than 2 days ago, all tray images from more than 5 days ago, all videos from more than 1 day ago. 
 
 ```
-30 12 * * * ~/code/Fulfil.Dispense/disk_clean_util.py 2 5 1
+30 12 * * * ~/code/Fulfil.ComputerVision/Fulfil.Dispense/disk_clean_util.py 2 5 1
 ```
 
 

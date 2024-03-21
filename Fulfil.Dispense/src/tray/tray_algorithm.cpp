@@ -42,14 +42,14 @@ typedef std::tuple<std::array<float,3>, std::array<float,3>, std::array<float,3>
 
 TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
     : tray_config_section{tray_config_reader},
-  tray_width(tray_config_reader.at<float>("tray_width")), tray_length(tray_config_reader.at<float>("tray_length")),
-  dispense_arm_height(tray_config_reader.get_value("dispense_arm_height", 0.039f)), num_calib_coordinates(tray_config_reader.get_value( "num_calib_coordinates", 4)),
-      back_tray_y_max(-1*(this->tray_length / 2 + tray_config_reader.get_value("max_y_limit_offset", 0.0f))), relative_max_height(tray_config_reader.get_value("relative_max_height", 1.2f)),
-  relative_min_height(tray_config_reader.get_value("relative_min_height", 0.8f)),
-  absolute_min_search_height_cutoff(tray_config_reader.get_value("absolute_min_search_height_cutoff", 0.07f)),
-  relative_search_height(tray_config_reader.get_value("relative_search_height",float(0.4f*this->relative_max_height + 0.6f*this->relative_min_height))),
-  y_distance_search_limit(tray_config_reader.get_value("y_distance_search_limit", 0.620f)),
-  wheel_diameter_correction_mm(tray_config_reader.get_value("wheel_diameter_correction_mm", 35.0f)),
+      tray_width(tray_config_reader.at<float>("tray_width")), tray_length(tray_config_reader.at<float>("tray_length")),
+      dispense_arm_height(tray_config_reader.get_value("dispense_arm_height", 0.039f)), num_calib_coordinates(tray_config_reader.get_value( "num_calib_coordinates", 4)),
+      back_edge_of_tray_local_y(-1 * (this->tray_length / 2 )), relative_max_height(tray_config_reader.get_value("relative_max_height", 1.2f)),
+      relative_min_height(tray_config_reader.get_value("relative_min_height", 0.8f)),
+      absolute_min_search_height_cutoff(tray_config_reader.get_value("absolute_min_search_height_cutoff", 0.07f)),
+      relative_search_height(tray_config_reader.get_value("relative_search_height",float(0.4f*this->relative_max_height + 0.6f*this->relative_min_height))),
+      y_distance_search_limit(tray_config_reader.get_value("y_distance_search_limit", 0.620f)),
+      wheel_diameter_correction_mm(tray_config_reader.get_value("wheel_diameter_correction_mm", 35.0f)),
       tongue_wheel_adjustment_mm(tray_config_reader.get_value("tongue_wheel_adjustment_mm", 8.0f)),
 
       save_tray_visualizations(tray_config_reader.get_value("flags", "save_tray_visualizations", true))
@@ -152,7 +152,7 @@ cv::Point2i log_max_height_in_tray(const PixelPointConverter &local_pix2pt,
 
 void TrayAlgorithm::add_calibration_pixels(const std::string& config_key){
   // Visualize calibration pixels
-  auto get_pixel_vector = [&](auto dim) { return this->tray_config_section.at<std::vector<int>>(config_key, dim);};
+  auto get_pixel_vector = [&config_key, this](auto dim) { return this->tray_config_section.at<std::vector<int>>(config_key, dim);};
 
   std::vector<cv::Point2i> calibration_pixels {};
   auto xpix = get_pixel_vector("x"); auto ypix = get_pixel_vector("y");
@@ -173,12 +173,18 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
     cv::Mat result = this->combo_visualizer->get_current_base_image_state();
     this->combo_visualizer->apply_mask(mask);
     this->combo_visualizer->add_line(center_line[0], center_line[1]); // TODO This does not happen in the FED version: could make param
+    if (!detections.empty()) {
 
-    std::for_each(detections.cbegin(), detections.cend(), [&](cv::Point pix)
-      {
-        this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
-        cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
-      });
+        std::for_each(detections.cbegin(), detections.cend()-1, [this, &result](cv::Point pix)
+          {
+            this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
+            cv::circle(result, pix, 3, cv::Scalar(0,255,0), 10);
+          });
+        auto pix = detections.back();
+        this->combo_visualizer->add_circle(pix, 255, 128, 0, 2, 7);
+        cv::circle(result, pix, 2, cv::Scalar(0,128, 255), 7);
+    }
+
 
     cv::hconcat(result, this->combo_visualizer->get_current_base_image_state(), result);
     save_mask(id_sequence_step, result, "fed_results");
@@ -194,13 +200,14 @@ TrayAlgorithm::get_first_item_distance_from_coordinate_matrix(
     auto tongue_wheel_correction = (lane.has_tongue()) ? this->wheel_diameter_correction_mm + this->tongue_wheel_adjustment_mm : this->wheel_diameter_correction_mm;
 
     double item_corrected_distance = std::max(item_distance - tongue_wheel_correction, 0.0);
-    if (y_dist > this->y_distance_search_limit) { item_distance = -1; item_corrected_distance = -1; }
+    double item_length = fulfil::measure::to_rounded_millimeters(item_edge_coordinates.front().y() - item_edge_coordinates.back().y());
+    if (y_dist > this->y_distance_search_limit) { item_distance = -1; item_corrected_distance = -1; item_length = 0; }
      Logger::Instance()->Info("Distance of item using tray center reference frame {:0.3f}, where the back of tray is {:0.3f}. The item {} the lane boundary. "
                                "The distance in mm from front of tray is {}. After correcting for the wheel diameter (set to {}) the belt distance "
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
 			       (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
-    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance)};
+    return {lane.lane_id(), 0, static_cast<float>(item_corrected_distance), static_cast<float>(item_length)};
 
 }
 
@@ -210,11 +217,11 @@ void TrayAlgorithm::scan_for_back_item_edge(cv::LineIterator& lane_center_iterat
                                             const TrayLane &current_lane)
 {
   Eigen::Vector3d depth_pt = local_pix2pt.get_point_from_pixel(lane_center_iterator.pos());
-  auto get_clipped_y_limits = [&] (float proportion_item_len) {
-    return std::max((double)this->back_tray_y_max,
-                              depth_pt.y() - current_lane.get_item_length_in_meters()* proportion_item_len); }; // in m
-    double init_jump = get_clipped_y_limits((current_lane.is_rigid()) ? 1.01 : 0.92);
-    double min_y = get_clipped_y_limits((current_lane.is_rigid()) ? 1.02 : 1.03);
+  auto get_clipped_y_limits = [&depth_pt, &current_lane, back_edge_of_tray=this->back_edge_of_tray_local_y] (float proportion_item_len) {
+    return std::max((double)back_edge_of_tray,
+                              depth_pt.y() - (current_lane.get_item_length_in_meters()* proportion_item_len)); }; // in m
+    double init_jump = get_clipped_y_limits((current_lane.is_rigid()) ? 0.99 : 0.92);
+    double min_y = get_clipped_y_limits((current_lane.is_rigid()) ? 1.02 : 1.035);
 
     auto height_boundaries = get_height_cut_offs(current_lane.get_item_height_in_meters());
     float min_height = height_boundaries[0]; float max_height = height_boundaries[2];
@@ -272,8 +279,8 @@ FEDParams TrayAlgorithm::get_fed_params(const fulfil::dispense::tray::TrayLane &
 
   Logger::Instance()->Debug("Item Height {}, Dispense arm height {}, Min Height {}, Search Height {}, "
       "Safe height {}, Back tray {}, Max x {}, Min x {}, Dead Zone {} - {}.",
-      current_lane.get_item_height_in_meters(), this->dispense_arm_height, min_height,
-      search_height, safe_height, this->back_tray_y_max, max_x, min_x, start_dead_zone, end_dead_zone);
+                            current_lane.get_item_height_in_meters(), this->dispense_arm_height, min_height,
+                            search_height, safe_height, this->back_edge_of_tray_local_y, max_x, min_x, start_dead_zone, end_dead_zone);
   return FEDParams{item_height, min_height, search_height, safe_height, max_height,
     min_x, max_x, start_dead_zone, end_dead_zone};
 }
@@ -314,8 +321,10 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
 
     std::vector<Eigen::Vector3d> edge_coordinates;
     std::vector<cv::Point> pixel_detections;
-    edge_coordinates.reserve(current_lane.get_num_items());
-    pixel_detections.reserve(current_lane.get_num_items());
+    Eigen::Vector3d back_edge_coordinate{};
+    cv::Point back_pixel{};
+    edge_coordinates.reserve(current_lane.get_num_items()+1);
+    pixel_detections.reserve(current_lane.get_num_items()+1);
     auto log_front_edge_detection = [&]
         (const Eigen::Vector3d& pt, const cv::Point2i& pix, int step) {
       Logger::Instance()->Info("Lane {} a tongue. Item {} found on iteration {}. It is {:0.3f}mm away and {:0.2f}mm from belt. "
@@ -328,6 +337,21 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
       edge_coordinates.push_back(pt);
       pixel_detections.push_back(pix);
     };
+    auto log_back_edge_detection = [&] (cv::Point pix, int step) {
+        if (edge_coordinates.size() != 1) { return ; }
+        back_edge_coordinate = local_pix2pt.get_point_from_pixel(pix);
+        back_pixel = pix;
+        auto detected_length = (edge_coordinates.front().y()-back_edge_coordinate.y());
+        Logger::Instance()->Info("BACK EDGE: Item 0 is {}. Found back on iteration {} between ({:0.4f}, {:0.4f}), and {:0.3f}mm away from the front.\n"
+                                 "  |----> Expected length is {:0.4f}\n"
+                                 "  |----> Detected length is {:0.4f}\n"
+                                 "  |----> Measurement Error: {:0.4f}",
+                             (current_lane.is_rigid()) ? "rigid" : "variable", step,
+                             edge_coordinates.front().y(),back_edge_coordinate.y(),
+                             meters_from_tray_front(back_edge_coordinate.y())*1000,
+                                 current_lane.get_item_length_in_meters(), detected_length,
+                                 detected_length - current_lane.get_item_length_in_meters());
+    };
 
     Eigen::Vector3d depth_point{};
     // get rid of i and just check if equals to end / y pix limit?
@@ -337,10 +361,16 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
         if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, lane_center_iterator.pos(), log_dead_zone)) {
             log_front_edge_detection(depth_point, lane_center_iterator.pos(), i);
             scan_for_back_item_edge(lane_center_iterator, i, local_pix2pt, current_lane);
+            log_back_edge_detection(lane_center_iterator.pos(), i);
         }
     }
+    if (edge_coordinates.size() > 0) {
+        edge_coordinates.push_back(back_edge_coordinate);
+        pixel_detections.push_back(back_pixel);
+    }
 
-    Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.", sum_over_tray/num_over_tray_on_line, num_over_tray_on_line, lane_center_iterator.count);
+    Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.",
+                             sum_over_tray/num_over_tray_on_line, num_over_tray_on_line, lane_center_iterator.count);
 
   return {edge_coordinates, pixel_detections };
 }

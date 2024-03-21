@@ -136,13 +136,15 @@ void DropZoneSearcher::check_inputs(float shadow_length,
     Logger::Instance()->Error("Invalid Drop Item Dimensions Provided; Vars: Length = {}, Width = {}, Height = {}; Cam: LFB",
                               shadow_height, shadow_width, shadow_length);
     this->success_code = DropTargetErrorCodes::InvalidItemDimensions;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemDimensions);
+    throw DropTargetError(DropTargetErrorCodes::InvalidItemDimensions,
+                          "Item dimensions provided: {Length = " + std::to_string(shadow_height) +
+                          ", Width = " + std::to_string(shadow_width) +
+                          ", Height = " + std::to_string(shadow_length) + "}");
   }
 
   if(details->bag_item_count < 0)
   {
     Logger::Instance()->Error("Invalid Bag Item Count; Vars: count = {}; Cam: LFB", details->bag_item_count);
-    //throw(4); // error id = 4
   }
 
   Logger::Instance()->Info("Limits on target: Left = {}, Right = {}, Back = {}, Front = {}",
@@ -151,7 +153,11 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   {
     Logger::Instance()->Error("Invalid Limit value provided in pre-dispense request input, check json file for more info");
     this->success_code = DropTargetErrorCodes::InvalidBotSideLimitValue;
-    throw DropTargetError(DropTargetErrorCodes::InvalidBotSideLimitValue);
+    throw DropTargetError(DropTargetErrorCodes::InvalidBotSideLimitValue,
+                          "Limits provided: {Left = " + std::to_string(details->limit_left) +
+                          ", Right = " + std::to_string(details->limit_right) +
+                          ", Back = " + std::to_string(details->limit_back) +
+                          ", Front = " + std::to_string(details->limit_front) + "}");
   }
 
   float half_LFB_width_mm = 1000*(LFB_width)/2.0;
@@ -165,7 +171,8 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   {
     Logger::Instance()->Error("Invalid Item Mass: {}", details->item_mass);
     this->success_code = DropTargetErrorCodes::InvalidItemMass;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemMass);
+    throw DropTargetError(DropTargetErrorCodes::InvalidItemMass,
+                          "Item mass provided: " + std::to_string(details->item_mass));
   }
 
   if(details->remaining_platform > -0.010 and details->remaining_platform < 0.0)
@@ -177,14 +184,16 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   {
     Logger::Instance()->Error("Expected remaining_platform valid value for empty bag, instead received: {}", details->remaining_platform);
     this->success_code = DropTargetErrorCodes::InvalidRemainingPlatformValue;
-    throw DropTargetError(DropTargetErrorCodes::InvalidRemainingPlatformValue);
+    throw DropTargetError(DropTargetErrorCodes::InvalidRemainingPlatformValue,
+                          "Remaining platform value provided: " + std::to_string(details->remaining_platform));
   }
 
   if(details->item_damage_code < 0 or details->item_damage_code > 25)
   {
     Logger::Instance()->Error("Invalid Item Material Code Provided in Json Request: {}", details->item_damage_code);
     this->success_code = DropTargetErrorCodes::InvalidItemMaterialCode;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemMaterialCode);
+    throw DropTargetError(DropTargetErrorCodes::InvalidItemMaterialCode,
+                          "Item material code provided: " + std::to_string(details->item_damage_code));
   }
 
   Logger::Instance()->Debug("Container width: {}. Container Length: {},  shadow_width: {}. shadow_length: {}", container_width, container_length, shadow_width, shadow_length);
@@ -192,7 +201,12 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   {
     Logger::Instance()->Error("Input item dimensions are larger than LFB container dimensions!");
     this->success_code = DropTargetErrorCodes::ItemLargerThanBag;
-    throw DropTargetError(DropTargetErrorCodes::ItemLargerThanBag);
+    throw DropTargetError(DropTargetErrorCodes::ItemLargerThanBag,
+                          "Item dimentions provided: {Width = " + std::to_string(shadow_width) +
+                          ", Height = " + std::to_string(shadow_length) +
+                          "}. Container dimensions provided: {Width = " + std::to_string(container_width) +
+                          ", Length = " + std::to_string(container_length) +
+                          "}. Keep in mind LFB width/length is flipped from FC to DCAPI.");
   }
 }
 
@@ -238,7 +252,8 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   {
     Logger::Instance()->Error("Cannot Adjust Empty Bag Target due to item dimensions and Right Limit on bot. Rejecting bot");
     this->success_code = DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits);
+    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits,
+                          "Cannot Adjust Empty Bag Target due to item dimensions and Right Limit on bot. Rejecting bot");
   }
 
   std::shared_ptr<Point3D> XYZ_result = std::make_shared<Point3D>(target_x,target_y,target_Z);  //see LFB diagram for explanation of
@@ -411,6 +426,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     {
       Logger::Instance()->Error("Bag Not Empty; Cam: LFB");
       this->success_code = DropTargetErrorCodes::EmptyBagNotEmpty;
+      this->error_description = "Percentage white = " + std::to_string(percentage_white) + ", which is < the empty bag threshold value of " + std::to_string(this->empty_bag_threshold);
     }
   }
   return max_depth_points;
@@ -440,7 +456,8 @@ std::shared_ptr<LocalPointCloud> DropZoneSearcher::apply_box_limits(std::shared_
   {
     Logger::Instance()->Error("Target limits do not appear to make sense. Check request input and algorithm calculations");
     this->success_code = DropTargetErrorCodes::InvalidRequest;
-    throw DropTargetError(DropTargetErrorCodes::InvalidRequest);
+    this->error_description ="Target limits do not appear to make sense. Check request input and algorithm calculations";
+    throw DropTargetError(DropTargetErrorCodes::InvalidRequest, this->error_description);
   }
 
   float upper_depth_limit = float(remaining_platform - shadow_height) + this->acceptable_height_above_marker_surface; //assuming item lands perfectly vertical, need to be able to lower enough to make acceptable height above marker surface
@@ -517,7 +534,7 @@ DropZoneSearcher::Target_Region DropZoneSearcher::analyze_target_region(float sh
   /* The raw y coordinate of the center point */
   target_region.y = center.y;
   /* Use the raw Z  of the center point, not using halfway between average and max Z in target region anymore as that erroneously rejects bags for being too full */
-  target_region.z = center.z;
+  target_region.z = mean;
   /* The range of depths in the target region between the maximum and minimum depth points*/
   target_region.range_depth = target_region.max_Z - target_region.min_Z;
   /* The distance from the center point to the point with the max Z coordinate value */
@@ -785,7 +802,8 @@ int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::dept
   {
     Logger::Instance()->Error("Unexpected input to Check_Bot_Rotated function: not enough markers ({})! Need at least 3", num_markers);
     this->success_code = DropTargetErrorCodes::NotEnoughMarkersDetected;
-    throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected); //This should never happen
+    throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected,
+                          "Number of markers detected: " + std::to_string(num_markers)); //This should never happen
   }
 
   Logger::Instance()->Warn("Checking orientation of bot using y pixel coordinates for LFB3: {}", use_y_coordinates);
@@ -940,7 +958,12 @@ void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std:
       Logger::Instance()->Error("Marker failed extra bound check; Marker number: {}, Value: {}, Min Bound: {}, Max Bound: {}, y_coordinate: {}",
                                 marker_id, value_to_compare, min_bound_check, max_bound_check, check_y_pixel_coordinates);
       this->success_code = DropTargetErrorCodes::UnexpectedBagPosition;
-      throw DropTargetError(DropTargetErrorCodes::UnexpectedBagPosition);
+      throw DropTargetError(DropTargetErrorCodes::UnexpectedBagPosition,
+                            "Marker failed extra bound check. Marker ID: " + std::to_string(marker_id) +
+                            ", Value: " + std::to_string(value_to_compare) +
+                            ", Min Bound: " + std::to_string(min_bound_check) +
+                            ", Max Bound: " + std::to_string(max_bound_check) +
+                            ", y_coordinate: " + std::to_string(check_y_pixel_coordinates));
     }
   }
 }
@@ -962,7 +985,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   {
     Logger::Instance()->Error("Forced Error was thrown in Drop_Zone_Searcher, check main.ini drop_zone_searcher config");
     this->success_code = DropTargetErrorCodes::AlgorithmFail_Bypass;
-    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_Bypass);
+    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_Bypass,
+                          "Error forced by `force_error` being true");
   }
 
   float LFB_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
@@ -1176,7 +1200,14 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 3); Cam: LFB");
     }
     this->success_code = DropTargetErrorCodes::NoViableTarget_BagIsFull;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull);
+    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull,
+                          std::string("Volume of bag is greater than the full check threshold. ") +
+                          "{Threshold comparison = " + std::to_string(threshold_comparison) +
+                          ", Average detected depth = " + std::to_string(avg_detected_depth) +
+                          ", Remaining platform = " + std::to_string(details->remaining_platform) +
+                          ", Bag full threshold in meters = " + std::to_string(bag_full_threshold_meters) +
+                          "} so the calculations of [Threshold comparison = Average detected depth - Remaining platform]" +
+                          " > Bag full threshold was true.");
   }
 
   //auto min_detected_Z = initial_local_data->rowwise().minCoeff()[2];
@@ -1217,7 +1248,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     Logger::Instance()->Error("All quadrants of bag could result in item - dispense conveyor collision. Bag too full");
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 4); Cam: LFB");
     this->success_code = DropTargetErrorCodes::NoViableTarget_BagIsFull;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull);
+    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull,
+                          "All quadrants of bag could result in item - dispense conveyor collision");
   }
   else
   {
@@ -1250,7 +1282,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
     Logger::Instance()->Info("Returning standard empty-bag target. Doesn't need to take into account rotated status of bot");
     return std::make_shared<DropResult>(XYZ_result, XYZ_result->z, false, bot_is_rotated,
-      false, details->request_id);
+      false, details->request_id, this->success_code, this->error_description);
   }
 
   // TODO: this conversion to pixel_depth is only necessary because the new_point_cloud function in the TranslatedPointCloud.cpp causes the new matrix to reference the same inner matrix as before, rather than creating a copy.
@@ -1281,7 +1313,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Target, this->PKID);
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 1); Cam: LFB");
     this->success_code = DropTargetErrorCodes::NoViableTarget_NoSpaceForItem;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem);
+    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem,
+                          "No remaining drop target candidates after applying the first filter based on item dimensions, container, and point cloud");
   }
 
   //apply damage risk filter on candidate targets
@@ -1300,10 +1333,15 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       {
         Logger::Instance()->Warn("Bag Reached Max Num Damage Rejections: {}; Cam: LFB", max_allowable_damage_rejections);
         this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired;
-        throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired, "No viable target, damage risk, pickup required");
+        throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired,
+                              std::string("No remaining drop target candidates after applying the second filter based on ") +
+                              "damage risk, and the bag has been rejected the max number of times: " + std::to_string(max_allowable_damage_rejections));
       }
       this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk;
-      throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk);
+      throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk,
+                            std::string("No remaining drop target candidates after applying the second filter based on ") +
+                            "damage risk. The bag has been rejected " + std::to_string(mongo_bag_state->num_damage_rejections) +
+                            " times, and the max number of rejections is " + std::to_string(max_allowable_damage_rejections));
     }
   }
 
@@ -1389,7 +1427,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
 
     current_target_region = analyze_target_region(shadow_length, shadow_width, current_point, filtered_point_cloud, max_Z_point); //Todo: test this function more thoroughly
-    current_point.z = current_target_region.z; //update z to match the target region z (which has been implemented as halfway between the average z and maxZ across the region)
+    current_point.z = current_target_region.z; // update z to match the target region z
 
     // store whether the current candidate requires 180 degree pirouette rotation (RELATIVE TO NOMINAL BOT ORIENTATION)
     current_target_region.rotation_required = must_rotate_from_nominal_to_reach_candidate;
@@ -1467,7 +1505,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 2); Cam: LFB");
     if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Target, this->PKID);
     this->success_code = DropTargetErrorCodes::NoViableTarget_NoSpaceForItem;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem);
+    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem,
+                          std::string("No valid drop target candidates remain after filtering on potential dispense arm collisions, ") +
+                          "bot travel limits, dispense conveyor reach, etc. Pirouettes are allowed for this dispense: " + std::to_string(this->LFB_rotation_allowed) +
+                          ", and this LFB has already rotated for this dispense: " + std::to_string(bot_is_rotated));
   }
 
   if (!drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (No) disagrees with main algorithm; Cam: LFB");
@@ -1523,7 +1564,11 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   {
     Logger::Instance()->Error("Error: Target or MaxZ in bag not within expected bounds! X: {}, Y: {}, Z: {}, MaxZ: {}", XYZ_result->x, XYZ_result->y, XYZ_result->z, max_Z_point.z);
     this->success_code = DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds;
-    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds);
+    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds,
+                          "TargetZ or MaxZ is not within expected bounds. Values: { X = " + std::to_string(XYZ_result->x) +
+                          ", Y = " + std::to_string(XYZ_result->y) +
+                          ", Z = " + std::to_string(XYZ_result->z) +
+                          ", MaxZ = " + std::to_string(max_Z_point.z) + " }");
   }
 
   /**
@@ -1541,7 +1586,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   Logger::Instance()->Debug("Max_Z on dispense side is: {}, alternate max_Z is: {}", max_Z_on_dispense_side, max_Z_alternate_value);
   Logger::Instance()->Debug("Drop Target Algorithm finished with success code: {}", this->success_code);
   return std::make_shared<DropResult>(XYZ_result, max_Z_result, tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
-                                                    best_target_region.interference_detected, details->request_id, this->success_code);
+                                                    best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
 }
 
 

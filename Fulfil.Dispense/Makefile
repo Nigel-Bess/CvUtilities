@@ -7,9 +7,9 @@ all:
 
 .phony : deploy
 deploy:
-	rsync -avP build/app/main root@10.10.103.83:/home/fulfil/code/Fulfil.Dispense/build/app/main
-	rsync -avP build/app/main root@10.10.103.88:/home/fulfil/code/Fulfil.Dispense/build/app/main
-	rsync -avP build/app/main root@10.10.103.62:/home/fulfil/code/Fulfil.Dispense/build/app/main
+	rsync -avP build/app/main root@10.10.103.83:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main
+	rsync -avP build/app/main root@10.10.103.88:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main
+	rsync -avP build/app/main root@10.10.103.62:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main
 	# rsync -avP build/app/main root@10.10.103.83:/usr/bin/dc-test-main
 	# rsync -avP build/app/main root@10.10.103.88:/usr/bin/dc-test-main
 	# rsync -avP build/app/main root@10.10.103.62:/usr/bin/dc-test-main
@@ -31,11 +31,11 @@ update:
 .phony : local
 local: 
 	rsync -avp build/app/main root@192.168.1.242:/usr/bin/dc-main
-	# rsync -avP src/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/src
-	# rsync -avP include/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/include
-	# rsync -avP libs/Fulfil.CPPUtils/src root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.CPPUtils/src
-	# rsync -avP libs/Fulfil.CPPUtils/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.CPPUtils/include
-	# rsync -avP libs/Fulfil.MongoCpp/src/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.MongoCpp/src
-	# rsync -avP libs/Fulfil.MongoCpp/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.MongoCpp/include
-	# rsync -avP libs/Fulfil.DepthCam/src/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.DepthCam/src
-	# rsync -avP libs/Fulfil.DepthCam/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.Dispense/libs/Fulfil.DepthCam/include
+	# rsync -avP src/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src
+	# rsync -avP include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include
+	# rsync -avP libs/Fulfil.CPPUtils/src root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.CPPUtils/src
+	# rsync -avP libs/Fulfil.CPPUtils/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.CPPUtils/include
+	# rsync -avP libs/Fulfil.MongoCpp/src/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.MongoCpp/src
+	# rsync -avP libs/Fulfil.MongoCpp/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.MongoCpp/include
+	# rsync -avP libs/Fulfil.DepthCam/src/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.DepthCam/src
+	# rsync -avP libs/Fulfil.DepthCam/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.DepthCam/include

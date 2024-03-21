@@ -14,6 +14,7 @@
 #include "Fulfil.Dispense/drop/drop_manager.h"
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/drop/pre_post_compare.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
@@ -29,6 +30,7 @@ using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
+using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::dispense::visualization::LiveViewer;
@@ -156,27 +158,26 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     }
     catch (const rs2::unrecoverable_error& e)
     {
-        Logger::Instance()->Fatal("Unrecoverable:\n"
-                                  "Realsense Exception {}\n"
-                                  "In function {}\n"
-                                  "With args {}",
-                                  e.what(), e.get_failed_function(), e.get_failed_args());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError);
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
-        Logger::Instance()->Error("Recoverable:\n"
-                                  "Realsense Exception {}\n"
-                                  "In function {}\n"
-                                  "With args {}",
-                                  e.what(), e.get_failed_function(), e.get_failed_args());
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Error(error_msg);
 
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
-        Logger::Instance()->Error("Invalid Argument Exception: {}", e.what());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected);
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected, error_description);
     }
     catch (drop_target_error_codes::DropTargetError & e)
     {
@@ -200,17 +201,45 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
 
             Logger::Instance()->Trace("Finished data generation for drop camera request!");
         }
-        return std::make_shared<DropResult>(details->request_id, error_id);
+        return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        DropTargetErrorCodes error_id = (DropTargetErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
+
+        if (generate_data) //this functionality is added so offline simulation does not generate data
+        {
+            Logger::Instance()->Trace("Data generation for drop camera request started!");
+            std::shared_ptr<DataGenerator>
+                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+            generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
+            Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
+            std::ofstream error_file(error_code_file);
+            error_file << error_id;
+
+            Logger::Instance()->Trace("Saving target data as -1 at path {}", target_file);
+            std::ofstream target_file_stream(target_file);
+            target_file_stream << -1 << "\n";
+            target_file_stream << -1 << std::endl;
+
+            Logger::Instance()->Trace("Finished data generation for drop camera request!");
+        }
+        return std::make_shared<DropResult>(details->request_id, error_id, error_desc);
     }
     catch (const std::exception & e)
     {
-        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+        std::string error_desc = std::string("Unspecified failure from DropManager handling drop request with error:\n{}") + e.what();
+        Logger::Instance()->Error(error_desc);
+        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError,
+                                            error_desc);
     }
     catch (...)
     {
       Logger::Instance()->Error("Unspecified failure from DropManager handling drop request");
-      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError);
+      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError, "In `catch (...)` block in drop_manager");
     }
 }
 
@@ -327,6 +356,9 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     return std::pair<int, int>{-1, -1};
   }
 
+  const int item_not_detected_code = 0;
+  const int item_detected_code = 1;
+
   try
   {
     Logger::Instance()->Debug("Executing Pre/Post Comparison now");
@@ -342,18 +374,19 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     if(this->cached_info != nullptr and this->drop_live_viewer != nullptr)
     {
 
-    if (comparison_result != 0 and comparison_result != 1) this->cached_info->push_back("Item Detect Failed");
+    if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) this->cached_info->push_back("Item Detect Failed");
 
-    std::string message = "Unhandled case encountered";
-
-
-    if (comparison_result == -1) message = "Undefined Failure";
-    if (comparison_result == 0) message = "Item in bag: No";
-    if (comparison_result == 1) message = "Item in bag: Yes";
-    if (comparison_result == 2) message = "Not Enough Markers";
-    if (comparison_result == 3) message = "Invalid Item Dimensions";
-    if (comparison_result == 4) message = "Invalid Platform Value";
-    if (comparison_result == 5) message = "Platform Inconsistency";
+    std::string message;
+    switch (comparison_result) {
+      case (item_not_detected_code): message = "Item in bag: No";
+      case (item_detected_code): message = "Item in bag: Yes";
+      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers";
+      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions";
+      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value";
+      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency";
+      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure";
+      default: message = "Unhandled case encountered";
+    }
 
     this->cached_info->push_back(message);
 
@@ -366,7 +399,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
       if(result_mat != nullptr)
       {
         drop_live_viewer->update_image(drop_live_viewer->get_item_detection_visualization(result_mat), ViewerImageType::LFB_Item_Detection, PrimaryKeyID);
-        if (comparison_result != 0 and comparison_result != 1){
+        if (comparison_result != item_not_detected_code and comparison_result != item_detected_code){
             Logger::Instance()->Info("Pre/Post Compare failed, but still updating live_viewer");
         }
       }
@@ -377,7 +410,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     }
 
     //NOTE: comparison_result behavior kept the same because we handle case 3,4,5 by throwing exception here
-    if (comparison_result > 1){
+    if (comparison_result != item_not_detected_code and comparison_result != item_detected_code){
         throw(comparison_result);
     }
 

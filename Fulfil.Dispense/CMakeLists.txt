@@ -68,6 +68,8 @@ IF(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
+
+
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     #This is where you should call add_subdirectory for Fulfil libraries.
     option(RESET_FULFIL_DEFAULTS "Returns Fulfil Cmake flag for project back to original state." OFF)
@@ -85,11 +87,7 @@ string(
         PROJECT_IS_TOP_LEVEL)
 
 
-
-add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
-add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
-add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
-
+# Set up third party common dependencies
 IF (NOT ${Protobuf_FOUND})
     set(Protobuf_USE_STATIC_LIBS ON)
     find_package(Protobuf REQUIRED)
@@ -99,6 +97,13 @@ IF (NOT ${gRPC_FOUND})
     find_package(gRPC CONFIG REQUIRED)
     message(STATUS "Using gRPC ${gRPC_VERSION}")
 ENDIF()
+
+#set(TARGET_JSON_TOOL "json")
+
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/third-party ${CMAKE_CURRENT_BINARY_DIR}/libs/third-party)
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
+add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
 
 add_subdirectory(src)
 add_subdirectory(app)

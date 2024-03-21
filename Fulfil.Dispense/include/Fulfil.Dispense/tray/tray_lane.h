@@ -6,8 +6,8 @@
 #define FULFIL_DISPENSE_SRC_TRAY_TRAY_LANE_H_
 
 #include <memory>
-#include <Fulfil.Dispense/json.hpp>
-#include <Fulfil.Dispense/tray/tray_parser.h>
+#include <json.hpp>
+#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 
 
 namespace fulfil

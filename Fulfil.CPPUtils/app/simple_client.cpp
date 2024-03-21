@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/9/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 // Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
 #include <sys/socket.h>

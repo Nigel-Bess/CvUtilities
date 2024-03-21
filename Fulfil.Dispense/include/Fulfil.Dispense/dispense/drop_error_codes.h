@@ -57,7 +57,9 @@ namespace fulfil::dispense::drop_target_error_codes {
         /* Recoverable RealSense Error */
         RecoverableRealSenseError = 22,
         /* UnrecoverableRealSenseError */
-        UnrecoverableRealSenseError = 255
+        UnrecoverableRealSenseError = 255,
+        /* CommandDelegateExpired */
+        CommandDelegateExpired = 256
     };
 
     /**
@@ -113,6 +115,8 @@ namespace fulfil::dispense::drop_target_error_codes {
                 return "RecoverableRealSenseError";
             case DropTargetErrorCodes::UnrecoverableRealSenseError:
                 return "UnrecoverableRealSenseError";
+            case DropTargetErrorCodes::CommandDelegateExpired:
+                return "CommandDelegateExpired";
             default:
                 return "UndefinedError - Not in DropTargetErrorCodes";
         }
@@ -127,16 +131,19 @@ namespace fulfil::dispense::drop_target_error_codes {
         DropTargetErrorCodes status_code;
         /* name corresponding to the status code */
         std::string status_name;
-        /* default is empty string, and will be appended to "Drop Target Algorithm error {STATUS CODE}: {ERROR NAME} - "*/
+        /* Longer message of form "Drop Target Algorithm error {STATUS CODE}: {ERROR NAME} - {this->description} "*/
         std::string message;
+        /* default is empty string, and will be appended to the message field */
+        std::string description;
     public:
         /**
          * DropTargetError exception to be thrown in the drop target searching algorithms
          * @param status_code denoting which error in the DropTargetErrorCodes enum is active
-         * @param message optional parameter to be APPENDED to default message, for adding more detail to the error message
+         * @param description optional parameter to be APPENDED to default message, for adding more detail to the error
+         * and will be returned in the DropTargetResponse
          */
         explicit DropTargetError(DropTargetErrorCodes status_code,
-                                 const std::string &message = "");
+                                 const std::string &description = "");
 
         [[nodiscard]] const char *what() const noexcept override;
 
@@ -144,6 +151,11 @@ namespace fulfil::dispense::drop_target_error_codes {
         * Getter for the error's status code
         */
         DropTargetErrorCodes get_status_code();
+
+        /**
+        * Getter for the error's custom description
+        */
+        std::string get_description();
     };
 } // namespace fulfil::dispense::drop_target_error_codes
 #endif //FULFIL_DISPENSE_DROP_ERROR_CODES_H

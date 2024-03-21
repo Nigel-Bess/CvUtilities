@@ -6,7 +6,7 @@
 #ifndef FULFIL_DISPENSE_TEST_FIXTURES_H_
 #define FULFIL_DISPENSE_TEST_FIXTURES_H_
 #include <memory>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_details.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_request.h>
 

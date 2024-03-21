@@ -1,0 +1,17 @@
+[Unit]
+Description=depthcam.service for mars
+#After=network.target ffuser_tmux.service  
+After=multi-user.target
+
+[Service]
+Type=simple
+User=fulfil
+Group=fulfil
+WorkingDirectory=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense
+ExecStart=/usr/bin/tmux new-session -s depthcam -d " ./build/app/main "
+#Restart=always
+#RestartSec=5s
+
+[Install]
+#WantedBy=multi-user.target
+WantedBy=graphical.target

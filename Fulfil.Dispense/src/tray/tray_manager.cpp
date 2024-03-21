@@ -88,7 +88,7 @@ results_to_vlsg::TrayValidationCounts fulfil::dispense::tray::TrayManager::dispa
     auto image_to_count =  make_media::paths::join_as_path(this->make_default_datagen_path(
                     saved_images_base_directory, tray_request_obj), tray_request_obj.get_sequence_step(), "color_image.png");
     auto count_res = this->query_item_counts(tray_request_obj, transformed_lane_center_pixels, image_to_count);
-    if (bool(count_res)) {
+    if (bool(count_res) && count_res->status == 200) {
         fulfil::utils::Logger::Instance()->Info("Return status from count algo: {}.", count_res->status);
         nlohmann::json doc = nlohmann::json::parse(count_res->body);
         doc["status"] = count_res->status;

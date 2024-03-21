@@ -22,8 +22,8 @@ BaseMongoConnection::BaseMongoConnection(const std::string& conn_string) {
   mongocxx::instance inst{};
 
   try {
-    //this->_client = mongocxx::client(mongocxx::uri{conn_string}, client_options);
-    this->_client = mongocxx::client(mongocxx::uri{conn_string});
+    this->_client = mongocxx::client(mongocxx::uri{conn_string}, client_options);
+    //this->_client = mongocxx::client(mongocxx::uri{conn_string});
 
     this->_connected = bool(this->_client);
     // Helps to verify connection

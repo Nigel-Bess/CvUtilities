@@ -7,7 +7,7 @@
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
-#include <Fulfil.Dispense/json.hpp>
+#include <json.hpp>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
 using fulfil::utils::Logger;

@@ -14,7 +14,7 @@
 #include <string>
 
 #include <Fulfil.DepthCam/core/session.h>
-#include <Fulfil.DepthCam/json.hpp>
+#include <json.hpp>
 
 namespace fulfil
 {

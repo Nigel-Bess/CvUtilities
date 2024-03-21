@@ -10,7 +10,6 @@
 #include <Fulfil.Dispense/commands/drop_target/drop_target_details.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
-#include <Fulfil.Dispense/commands/tray_validation/tray_validation_details.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 

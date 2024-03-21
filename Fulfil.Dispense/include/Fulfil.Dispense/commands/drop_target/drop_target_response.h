@@ -59,6 +59,10 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    */
   int success_code;
   /**
+   * Description of the error code thrown. Will be empty string if code is success.
+   */
+  std::string error_description;
+  /**
    * The payload to be sent in response to the request
    */
   std::shared_ptr<std::string> payload;
@@ -72,14 +76,14 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    * @param command_id the command id of the request that led to this response
    * @param success_code indicates what kind of error took place. > 0 means an error
    */
-  explicit DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code);
+  explicit DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description);
   /**
    * DropTargetResponse constructor that initializes a response including target information
    * @param command_id of the request that led to this response.
    * See above for descriptions of the other params
    */
   DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code, float rover_position, float dispense_position,
-                     float depth_result, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected);
+                     float depth_result, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::string error_description);
   /**
    * Returns the command id for the response.
    * @return pointer to string containing command id for the response.

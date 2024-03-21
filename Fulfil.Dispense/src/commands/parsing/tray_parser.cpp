@@ -2,7 +2,7 @@
 // Created by Amber on 4/8/22.
 //
 
-#include <Fulfil.Dispense/tray/tray_parser.h>
+#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 
 
 namespace predicates {
@@ -215,7 +215,13 @@ namespace results_to_vlsg {
                                                              m_first_item_distance{firstItemDistance}, m_range_fn{clip} {}
 
     LaneItemDistance::LaneItemDistance(int index, int error, float firstItemDistance) : m_index{index},
-                                                                                        m_errors{std::vector<int>{error}}, m_first_item_distance{firstItemDistance} {}
+                                                                                        m_errors{std::vector<int>{error}},
+                                                                                        m_first_item_distance{firstItemDistance} {}
+
+    LaneItemDistance::LaneItemDistance(int index, int error, float firstItemDistance, float firstItemLength) : m_index{index},
+                                                                                        m_errors{std::vector<int>{error}},
+                                                                                        m_first_item_distance{firstItemDistance},
+                                                                                        m_first_item_length{firstItemLength}{}
 
 
     dimensional_info::LaneIndex LaneItemDistance::get_lane_id() const { return m_index; }
@@ -258,7 +264,7 @@ namespace results_to_vlsg {
             j.erase(lane_index_ref);
         }
         j["Lanes"] = nlohmann::json::array({ dimensional_info::LaneIndex{ lane_index } });
-        if (lane_index < 0) { j["Errors"] = std::vector<int>(5); }
+        if (lane_index < 0) { j["Errors"] = std::vector<int>({5}); }
         return j;
     }
 

@@ -20,6 +20,7 @@ set(CMAKE_BUILD_TYPE Debug)
 # Allow for Macro definition on cmake command line. Default is build root on current system.
 option(FULFIL_DISABLE_JSON "Will not build nlohmann::json and MongoJsonDocument." OFF)
 
+
 add_subdirectory(app)
 add_subdirectory(src)
 
