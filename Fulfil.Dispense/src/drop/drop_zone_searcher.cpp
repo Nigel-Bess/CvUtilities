@@ -218,6 +218,9 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
   // TODO - do a deep rename of all orientation variables
   float port_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "port_edge_target_offset", 0);
+  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  int depth_points_above_threshold_to_count_as_item_protruding = LFB_config_reader->GetInteger("LFB_config", "depth_points_above_threshold_to_count_as_item_protruding", 5);
+  bool use_y_coordinates_orientation_check = LFB_config_reader->GetBoolean("LFB_config", "use_y_coordinates_orientation_check", false);
 
   Logger::Instance()->Debug("Bag Item Count is input as 0, target will be set at front left corner of bag");
 
@@ -290,7 +293,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
-                                Point3D(0,0,platform_in_LFB_coords)};
+                                Point3D(0,0,platform_in_LFB_coords), 0};
   int white_count = 0; //for tracking how many depth points are recognized as white bag
   int non_white_count = 0; //for tracking how many depth points are not recognized as white bag
 
@@ -298,6 +301,8 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", 0.43);
   float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", 0.30);
   bool should_filter_out_white = LFB_config_reader->GetBoolean("LFB_config", "should_filter_out_white", false);
+
+  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
 
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
@@ -312,7 +317,11 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     Logger::Instance()->Info("Item mass is below threshold and no force depth adjust indicated. Will still count white points but not adjust depth values.");
   }
 
-  //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
+    // TODO - total revamp of this function. optimize for computational speeds
+    // TODO - account for bag crumpling, and rename this function because it doesn't adjust any depths in bagless bags
+    // TODO - only set max Z outer bag if there's a confirmed item leaning out, by ensuring there's at least X# of points that are similarly heightened
+
+    //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
   for (int i = 0; i < pixels->size(); i++) {
       cv::Point2f pixel = *pixels->at(i);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
@@ -327,6 +336,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           white_count += 1;
           // only filter on whiteness if feature flag is enabled
           if (should_filter_out_white) continue;
+          // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
           //only adjust depths if item is above a certain threshold mass
           //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
       } else {
@@ -365,24 +375,36 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
                   max_depth_points.outer_front_right.x = local_x;
                   max_depth_points.outer_front_right.y = local_y;
                   max_depth_points.outer_front_right.z = local_z;
+                  if (local_z > item_protrusion_detection_threshold) {
+                      max_depth_points.number_of_points_protruding++;
+                  }
               }
           } else if (local_y >= 0 && local_x < 0) {
               if (local_z > max_depth_points.outer_front_left.z) {
                   max_depth_points.outer_front_left.x = local_x;
                   max_depth_points.outer_front_left.y = local_y;
                   max_depth_points.outer_front_left.z = local_z;
+                  if (local_z > item_protrusion_detection_threshold) {
+                      max_depth_points.number_of_points_protruding++;
+                  }
               }
           } else if (local_y < 0 && local_x >= 0) {
               if (local_z > max_depth_points.outer_back_right.z) {
                   max_depth_points.outer_back_right.x = local_x;
                   max_depth_points.outer_back_right.y = local_y;
                   max_depth_points.outer_back_right.z = local_z;
+                  if (local_z > item_protrusion_detection_threshold) {
+                      max_depth_points.number_of_points_protruding++;
+                  }
               }
           } else {
               if (local_z > max_depth_points.outer_back_left.z) {
                   max_depth_points.outer_back_left.x = local_x;
                   max_depth_points.outer_back_left.y = local_y;
                   max_depth_points.outer_back_left.z = local_z;
+                  if (local_z > item_protrusion_detection_threshold) {
+                      max_depth_points.number_of_points_protruding++;
+                  }
               }
           }
       }
@@ -405,6 +427,15 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   Logger::Instance()->Debug("Back-Right region max depth pt: ({}, {}, {})", max_depth_points.back_right.x, max_depth_points.back_right.y, max_depth_points.back_right.z );
   Logger::Instance()->Debug("Overall bag max depth pt: ({}, {}, {})", max_depth_points.overall.x, max_depth_points.overall.y, max_depth_points.overall.z );
 
+  Logger::Instance()->Debug("Outer Front region max depth pt: ({}, {}, {})", max_depth_points.outer_front.x, max_depth_points.outer_front.y, max_depth_points.outer_front.z );
+  Logger::Instance()->Debug("Outer Front-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_front_left.x, max_depth_points.outer_front_left.y, max_depth_points.outer_front_left.z );
+  Logger::Instance()->Debug("Outer Front-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_front_right.x, max_depth_points.outer_front_right.y, max_depth_points.outer_front_right.z );
+  Logger::Instance()->Debug("Outer Back region max depth pt: ({}, {}, {})", max_depth_points.outer_back.x, max_depth_points.outer_back.y, max_depth_points.outer_back.z );
+  Logger::Instance()->Debug("Outer Back-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_back_left.x, max_depth_points.outer_back_left.y, max_depth_points.outer_back_left.z );
+  Logger::Instance()->Debug("Outer Back-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_back_right.x, max_depth_points.outer_back_right.y, max_depth_points.outer_back_right.z );
+  Logger::Instance()->Debug("Outer Overall bag max depth pt: ({}, {}, {})", max_depth_points.outer_overall.x, max_depth_points.outer_overall.y, max_depth_points.outer_overall.z );
+
+    Logger::Instance()->Debug("Front region max depth pt: ({}, {}, {})", max_depth_points.front.x, max_depth_points.front.y, max_depth_points.front.z );
 
   int total_points = pixels->size();
   int percentage_white;
@@ -1577,7 +1608,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * would go more than 100mm above the marker surface, and in that case we limit it to 100mm
    * TODO: in the future, we can apply this more narrowly to just a region around the dispense target, especially when bot size increases
   */
-  float max_Z_on_dispense_side = best_target_region.rotation_required ? max_Z_points.back.z : max_Z_points.front.z;
+  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  float max_Z_on_dispense_side = get_max_z_on_dispense_side(max_Z_points, best_target_region.rotation_required, item_protrusion_detection_threshold);
   float max_Z_alternate_value = max_Z_points.overall.z - max_acceptable_Z_above_marker_surface;
   float max_Z_result = std::max(max_Z_on_dispense_side, max_Z_alternate_value);
 
@@ -1589,6 +1621,18 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                     best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
 }
 
+float DropZoneSearcher::get_max_z_on_dispense_side(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
+{
+    // nominal back side
+    if (rotation_required) {
+        // if the outer bag's max Z is greater than marker surface then use that instead
+        return (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? max_Z_points.outer_back.z : max_Z_points.back.z;
+        // nominal front side
+    } else {
+        // if the outer bag's max Z is greater than marker surface then use that instead
+        return (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? max_Z_points.outer_front.z : max_Z_points.front.z;
+    }
+}
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
