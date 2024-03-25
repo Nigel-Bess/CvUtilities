@@ -204,6 +204,7 @@ class DropZoneSearcher
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer6;
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer7;
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer8;
+  std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer8andahalf;
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer9;
 
 

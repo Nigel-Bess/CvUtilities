@@ -106,6 +106,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   std::shared_ptr<std::string> window_name_6 = std::make_shared<std::string>("Window 6: Drop Target");
   std::shared_ptr<std::string> window_name_7 = std::make_shared<std::string>("Window 7: Bag Filtering");
   std::shared_ptr<std::string> window_name_8 = std::make_shared<std::string>("Window 8: Interference Zone");
+  std::shared_ptr<std::string> window_name_8andahalf = std::make_shared<std::string>("Window 8.5: Maximum Depth Points");
   std::shared_ptr<std::string> window_name_9 = std::make_shared<std::string>("Window 9: Candidates, post Damage Risk Filter");
 
   this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
@@ -116,6 +117,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, no_wait);
   this->session_visualizer7 = std::make_shared<SessionVisualizer>(session, window_name_7, location_top_right, window_size, no_wait);
   this->session_visualizer8 = std::make_shared<SessionVisualizer>(session, window_name_8, location_bottom_right, window_size, yes_wait);
+  this->session_visualizer8andahalf = std::make_shared<SessionVisualizer>(session, window_name_8andahalf, location_bottom_right, window_size, yes_wait);
   this->session_visualizer9 = std::make_shared<SessionVisualizer>(session, window_name_9, location_bottom_left, window_size, no_wait);
 }
 
@@ -265,7 +267,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
 
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
                                                   float item_mass, float platform_in_LFB_coords, std::shared_ptr<INIReader> LFB_config_reader,
-                                                  bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
+                                                  bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment) //, bool is_bot_rotated)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
                             this->min_bag_filtering_threshold);
@@ -286,6 +288,13 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   Logger::Instance()->Trace("temporary debug log: start looping through pixels");
 
+//  Quadrant_Depth_Data front_left_data{Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
+//                                      Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
+//                                      Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords)};
+//  Quadrant_Depth_Data front_right_data{front_left_data.inner_max_depth, front_left_data.inner_front_max_depth,
+//                                       Point3D(0,0,platform_in_LFB_coords), front_left_data.outer_max_depth,
+//                                       front_left_data.outer_front_max_depth, Point3D(0,0,platform_in_LFB_coords)};
+//  Quadrant_Depth_Data back_left_data{};
   // initialize struct for max detected depth points
   Max_Z_Points max_depth_points{Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
@@ -306,6 +315,16 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
+
+//  0.2484305, -0.09540462 nominal
+// rotated:
+//  auto is_antenna_data(float local_x_coord, float local_y_coord)[bool is_bot_rotated, float antenna_x_nominal, float antenna_y_nominal, float antenna_x_rotated, float antenna_y_rotated] {
+//      if (is_bot_rotated) {
+//          return local_x_coord == antenna_x_nominal and local_y_coord == antenna_y_nominal;
+//      } else {
+//          return local_x_coord == antenna_x_rotated and local_y_coord == antenna_y_rotated;
+//      }
+//  }
 
   bool should_adjust_depth = (item_mass > this->item_mass_threshold) or force_adjustment;
   if(should_adjust_depth)
@@ -333,9 +352,10 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       bool is_outer_bag = (local_x < -x_limit) or (local_x > x_limit) or (local_y < -y_limit) or (local_y > y_limit);
       // count number of white points for empty/nonempty bag analysis
       if (white_intensity == 255) {
-          white_count += 1;
+          // only care about white count of inner bag, not if the LFB walls are white
+          if (is_outer_bag) { white_count += 1; }
           // only filter on whiteness if feature flag is enabled
-          if (should_filter_out_white) continue;
+          if (should_filter_out_white) { continue; }
           // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
           //only adjust depths if item is above a certain threshold mass
           //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
@@ -370,13 +390,26 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           }
       // if this IS outer bag
       } else {
+          // do not include antenna in max depth detections
+//          if (is_antenna_data(local_x, local_y)) { continue; }
           if (local_y >= 0 && local_x >= 0) {
+//              outer_bag_depth_processing(local_x, local_y, local_z, max_depth_points)
               if (local_z > max_depth_points.outer_front_right.z) {
+
                   max_depth_points.outer_front_right.x = local_x;
                   max_depth_points.outer_front_right.y = local_y;
                   max_depth_points.outer_front_right.z = local_z;
                   if (local_z > item_protrusion_detection_threshold) {
                       max_depth_points.number_of_points_protruding++;
+                      // if multiple points near each other are also similar depth then trust it
+                      // dict of points, z is key, value is list of nearby points that are above
+                      // or is it enough to say if enough points are that high in the quadrant then good.
+                      // or is it enough to just track the difference from max z to the next closest point and if its too large then go to closest point depth
+//                      each quadrant tracks a list of length CONFIGURABLE of tallest points. each time that local z is greater than the smallest tallest point,
+//                      insert it into the list as needed and adjust list as needed to be same length.
+
+                      // if not the antenna then trust it
+                      // exclude antenna coordinates from point cloud
                   }
               }
           } else if (local_y >= 0 && local_x < 0) {
@@ -426,16 +459,25 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   Logger::Instance()->Debug("Back-Left region max depth pt: ({}, {}, {})", max_depth_points.back_left.x, max_depth_points.back_left.y, max_depth_points.back_left.z );
   Logger::Instance()->Debug("Back-Right region max depth pt: ({}, {}, {})", max_depth_points.back_right.x, max_depth_points.back_right.y, max_depth_points.back_right.z );
   Logger::Instance()->Debug("Overall bag max depth pt: ({}, {}, {})", max_depth_points.overall.x, max_depth_points.overall.y, max_depth_points.overall.z );
+    Logger::Instance()->Debug("Outer Front region max depth pt: ({}, {}, {})", max_depth_points.outer_front.x, max_depth_points.outer_front.y, max_depth_points.outer_front.z );
+    Logger::Instance()->Debug("Outer Front-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_front_left.x, max_depth_points.outer_front_left.y, max_depth_points.outer_front_left.z );
+    Logger::Instance()->Debug("Outer Front-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_front_right.x, max_depth_points.outer_front_right.y, max_depth_points.outer_front_right.z );
+    Logger::Instance()->Debug("Outer Back region max depth pt: ({}, {}, {})", max_depth_points.outer_back.x, max_depth_points.outer_back.y, max_depth_points.outer_back.z );
+    Logger::Instance()->Debug("Outer Back-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_back_left.x, max_depth_points.outer_back_left.y, max_depth_points.outer_back_left.z );
+    Logger::Instance()->Debug("Outer Back-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_back_right.x, max_depth_points.outer_back_right.y, max_depth_points.outer_back_right.z );
+    Logger::Instance()->Debug("Outer Overall bag max depth pt: ({}, {}, {})", max_depth_points.outer_overall.x, max_depth_points.outer_overall.y, max_depth_points.outer_overall.z );
 
-  Logger::Instance()->Debug("Outer Front region max depth pt: ({}, {}, {})", max_depth_points.outer_front.x, max_depth_points.outer_front.y, max_depth_points.outer_front.z );
-  Logger::Instance()->Debug("Outer Front-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_front_left.x, max_depth_points.outer_front_left.y, max_depth_points.outer_front_left.z );
-  Logger::Instance()->Debug("Outer Front-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_front_right.x, max_depth_points.outer_front_right.y, max_depth_points.outer_front_right.z );
-  Logger::Instance()->Debug("Outer Back region max depth pt: ({}, {}, {})", max_depth_points.outer_back.x, max_depth_points.outer_back.y, max_depth_points.outer_back.z );
-  Logger::Instance()->Debug("Outer Back-Left region max depth pt: ({}, {}, {})", max_depth_points.outer_back_left.x, max_depth_points.outer_back_left.y, max_depth_points.outer_back_left.z );
-  Logger::Instance()->Debug("Outer Back-Right region max depth pt: ({}, {}, {})", max_depth_points.outer_back_right.x, max_depth_points.outer_back_right.y, max_depth_points.outer_back_right.z );
-  Logger::Instance()->Debug("Outer Overall bag max depth pt: ({}, {}, {})", max_depth_points.outer_overall.x, max_depth_points.outer_overall.y, max_depth_points.outer_overall.z );
 
-    Logger::Instance()->Debug("Front region max depth pt: ({}, {}, {})", max_depth_points.front.x, max_depth_points.front.y, max_depth_points.front.z );
+    Eigen::Matrix3Xd max_z_eigen_data (3,4);
+    max_z_eigen_data.col(0) << max_depth_points.outer_front_left.x,  max_depth_points.outer_front_left.y,  max_depth_points.outer_front_left.z;
+    max_z_eigen_data.col(1) << max_depth_points.outer_front_right.x,  max_depth_points.outer_front_right.y,  max_depth_points.outer_front_right.z;
+    max_z_eigen_data.col(2) << max_depth_points.outer_back_left.x,  max_depth_points.outer_back_left.y,  max_depth_points.outer_back_left.z;
+    max_z_eigen_data.col(3) << max_depth_points.outer_back_right.x,  max_depth_points.outer_back_right.y,  max_depth_points.outer_back_right.z;
+
+    std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> max_z_local_point_cloud = input_cloud->as_local_cloud()->new_point_cloud(std::make_shared<Eigen::Matrix3Xd>(max_z_eigen_data));
+    session_visualizer8andahalf->display_points(max_z_local_point_cloud, 0, 255, 0, 5, 3);
+    std::stringstream  max_z_data_ss ; max_z_data_ss << max_z_eigen_data;
+    Logger::Instance()->Debug("Max Z Matrix:\n{}", max_z_data_ss.str());
 
   int total_points = pixels->size();
   int percentage_white;
@@ -1251,7 +1293,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   bool bag_empty = (details->bag_item_count == 0);
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, LFB_config_reader, true, true, bag_empty, false);
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, LFB_config_reader, true, true, bag_empty, false); //, bot_is_rotated);
 
   Point3D max_Z_point = max_Z_points.overall;
 
@@ -1685,7 +1727,6 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   //this function adjusts depths of the white parts of the bag and returns the max_Z depth detection of non-white bag areas
 
   DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, LFB_config_reader, true, false, false, false);
-
   Point3D max_detected_Z_point = max_Z_points.overall;
 
   /**
