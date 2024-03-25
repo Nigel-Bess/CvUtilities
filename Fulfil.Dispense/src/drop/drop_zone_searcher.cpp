@@ -1610,7 +1610,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   float LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000; //remaining_platform in meters
-  float should_search_right_to_left = (*request_json)["Flip_X_Default"].get<bool>();
+  float should_search_right_to_left = request_json->value("Flip_X_Default", false);
 
     Logger::Instance()->Debug("Check MaxZ Initiated");
 
