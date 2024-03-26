@@ -80,8 +80,19 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
   {
     std::cout << std::endl;
     Logger::Instance()->Info("Handling request {}", *it);
-    //TODO:: ADD FUNCTIONALITY FOR INPUTTING ACTUAL SAVED JSON REQUEST HERE, RATHER THAN EMPTY JSON
-    manager->handle_drop_request(LFB_config_reader, std::make_shared<nlohmann::json>(),
+    /**
+     *  Reading .json request from file
+     */
+    Logger::Instance()->Debug("Reading json request from file now");
+    std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
+    file_path->append(*directory_path);
+    *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
+    Logger::Instance()->Debug("File location is: {}", *file_path);
+    std::ifstream ifs( *file_path);
+
+    std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs));
+    Logger::Instance()->Debug("Request JSON is: {}", *request_json);
+    manager->handle_drop_request(LFB_config_reader, request_json,
                                  requests.at(*it),
                                  directory_path, FileSystemUtil::create_datetime_string(),
                                  false); // parameters
@@ -107,7 +118,7 @@ void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std
   Logger::Instance()->Debug("Reading json request from file now");
   std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
   file_path->append(*directory_path);
-  FileSystemUtil::join_append(*file_path, "json_request.json");
+  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
 
   Logger::Instance()->Debug("File location is: {}", *file_path);
   std::ifstream ifs( *file_path);
@@ -145,7 +156,7 @@ void test_post_drop_routine(std::shared_ptr<std::string> directory_path, std::sh
 
 
   Logger::Instance()->Debug("Reading post json request from file now");
-  FileSystemUtil::join_append(*directory_path, "json_request.json");
+  *directory_path = make_media::paths::join_as_path(*directory_path, "json_request.json");
   Logger::Instance()->Info("Reading json from file location is: {}", *directory_path);
   std::ifstream ifs2( *directory_path);
   std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
@@ -190,7 +201,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
   Logger::Instance()->Debug("Reading pre json request from file now");
   std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
   file_path->append(*directory_path_pre);
-  FileSystemUtil::join_append(*file_path, "json_request.json");
+  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
   Logger::Instance()->Debug("File location is: {}", *file_path);
   std::ifstream ifs( *file_path);
   std::shared_ptr<nlohmann::json> pre_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs));
@@ -199,7 +210,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
   Logger::Instance()->Debug("Reading post json request from file now");
   file_path = std::make_shared<std::string>();  //read json from file
   file_path->append(*directory_path_post);
-  FileSystemUtil::join_append(*file_path, "json_request.json");
+  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
   Logger::Instance()->Debug("File location is: {}", *file_path);
   std::ifstream ifs2( *file_path);
   std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
@@ -208,7 +219,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
   Logger::Instance()->Debug("Reading drop target json request from file now");
   file_path = std::make_shared<std::string>();  //read json from file
   file_path->append(*directory_path_target);
-  FileSystemUtil::join_append(*file_path, "json_request.json");
+  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
   Logger::Instance()->Debug("File location is: {}", *file_path);
   std::ifstream ifs3( *file_path);
   std::shared_ptr<nlohmann::json> drop_target_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs3));
@@ -218,7 +229,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
   Logger::Instance()->Debug("Reading error code and (if available) target X and Y values now");
   file_path = std::make_shared<std::string>();  //read json from file
   file_path->append(*directory_path_pre);
-  FileSystemUtil::join_append(*file_path, "error_code");
+  *file_path = make_media::paths::join_as_path(*file_path, "error_code");
   Logger::Instance()->Debug("File location is: {}", *file_path);
   std::ifstream ifs_error( *file_path);
   std::string s;
@@ -238,7 +249,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
   {
     file_path = std::make_shared<std::string>();  //read json from file
     file_path->append(*directory_path_target);
-    FileSystemUtil::join_append(*file_path, "target_center");
+    *file_path = make_media::paths::join_as_path(*file_path, "target_center");
     Logger::Instance()->Debug("Target file location is: {}", *file_path);
     std::ifstream ifs_target( *file_path);
     std::string target_x_line;
@@ -412,8 +423,7 @@ int main(int argc, char** argv)
     while ((ent = readdir (dir)) != NULL)
     {
       if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0) continue;
-      test_data_path = test_data_dir;
-      FileSystemUtil::join_append(test_data_path, ent->d_name);
+      test_data_path = make_media::paths::join_as_path(test_data_dir, ent->d_name);
 
       try
       {
@@ -421,7 +431,7 @@ int main(int argc, char** argv)
         {
           std::cout << std::endl;
           std::cout << std::endl;
-          FileSystemUtil::join_append(test_data_path, "Drop_Target_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Drop_Target_Image");
 
           test_logger->Info("Offline Pre-Drop Test Using Saved .json requests");
 
@@ -436,7 +446,7 @@ int main(int argc, char** argv)
         {
           std::cout << std::endl;
           std::cout << std::endl;
-          FileSystemUtil::join_append(test_data_path, "Drop_Target_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Drop_Target_Image");
           test_logger->Info("Offline Pre-Drop Test Using Simulated Requests");
 
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(test_data_path);
@@ -451,7 +461,7 @@ int main(int argc, char** argv)
         {
           std::cout << std::endl;
           std::cout << std::endl;
-          FileSystemUtil::join_append(test_data_path, "Post_Drop_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(test_data_path);
           for (auto td : *timestamp_dirs) {
             test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", *td);
@@ -468,7 +478,7 @@ int main(int argc, char** argv)
           std::cout << std::endl;
 
 
-          FileSystemUtil::join_append(test_data_path, "Drop_Target_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Drop_Target_Image");
           test_logger->Info("Offline Pre-Drop Test Using Saved .json requests");
 
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(test_data_path);
@@ -478,13 +488,11 @@ int main(int argc, char** argv)
             test_pre_drop_routine_json(td, reader, LFB_config_reader);
           }
           // Back track to start before iterating over the pre drop images
-
-          test_data_path = test_data_dir;
-          FileSystemUtil::join_append(test_data_path, ent->d_name);
+          test_data_path = make_media::paths::join_as_path(test_data_dir, ent->d_name);
 
           std::cout << std::endl;
           std::cout << std::endl;
-          FileSystemUtil::join_append(test_data_path, "Post_Drop_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
           test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", test_data_path);
           //Todo: add check for color image being present before calling test_image_routine
           test_post_drop_routine(std::make_shared<std::string>(test_data_path), reader, LFB_config_reader);
@@ -497,19 +505,15 @@ int main(int argc, char** argv)
            */
           std::cout << std::endl;
           std::cout << std::endl;
-          FileSystemUtil::join_append(test_data_path, "Pre_Drop_Image");
+          test_data_path = make_media::paths::join_as_path(test_data_path, "Pre_Drop_Image");
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(test_data_path);
           test_logger->Info("Pre drop directory is: {}", *(timestamp_dirs->at(0))); //Todo: eventually we will want to cycle through each pre-image if there are multiple
 
-          std::string test_data_path_2 = test_data_dir;
-          FileSystemUtil::join_append(test_data_path_2, ent->d_name);
-          FileSystemUtil::join_append(test_data_path_2, "Post_Drop_Image");
+          std::string test_data_path_2 = make_media::paths::join_as_path(test_data_dir, ent->d_name, "Post_Drop_Image");
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs_2 = FileSystemUtil::get_subdirs_in_directory(test_data_path_2);
           test_logger->Info("Post drop directory is: {}", *(timestamp_dirs_2->at(0)));
 
-          std::string test_data_path_3 = test_data_dir;
-          FileSystemUtil::join_append(test_data_path_3, ent->d_name);
-          FileSystemUtil::join_append(test_data_path_3, "Drop_Target_Image");
+          std::string test_data_path_3 = make_media::paths::join_as_path(test_data_dir, ent->d_name, "Drop_Target_Image");
           std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs_3 = FileSystemUtil::get_subdirs_in_directory(test_data_path_3);
           test_logger->Info("Drop Target directory is: {}", *(timestamp_dirs_3->at(0)));
 
