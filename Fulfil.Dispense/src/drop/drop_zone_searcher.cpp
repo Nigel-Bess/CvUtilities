@@ -397,6 +397,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
 
+  // inner bag limits
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
 
@@ -538,7 +539,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   max_depth_points.outer_front_left = get_max_z_that_is_not_outlier(max_depth_points.outer_front_left,
                                 item_protrusion_detection_threshold,
                                 outer_front_left_depth_list,
-                                0.005,
+                                0.00,
                                 4);
   max_depth_points.outer_front_right = get_max_z_that_is_not_outlier(max_depth_points.outer_front_right,
                                 item_protrusion_detection_threshold,
