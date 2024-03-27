@@ -266,6 +266,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   return XYZ_result;
 }
 
+// generate an empty list of depth points with default coordinates
 std::shared_ptr<std::vector<Point3D>> initialize_empty_depth_list(int amount_of_max_depth_points_to_track, float default_depth)
 {
     std::vector<Point3D> empty_depth_list;
@@ -276,7 +277,7 @@ std::shared_ptr<std::vector<Point3D>> initialize_empty_depth_list(int amount_of_
     return std::make_shared<std::vector<Point3D>>(empty_depth_list);
 }
 
-
+// insert the point with the given coordinates into the given list ordered by max depth descending (0 = greatest, end = lesser)
 std::shared_ptr<std::vector<Point3D>> update_max_depth_list(std::shared_ptr<std::vector<Point3D>> depth_list, float local_x, float local_y, float local_z)
 {
     // the 0th index is greatest, last index is smallest
@@ -294,6 +295,7 @@ std::shared_ptr<std::vector<Point3D>> update_max_depth_list(std::shared_ptr<std:
     return depth_list;
 }
 
+// get the max depth point from the list that has been validated to not be noise
 fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detection_threshold,
                                                      std::shared_ptr<std::vector<fulfil::utils::Point3D>> depth_list,
                                                      float threshold_depth_distance_from_max,
@@ -304,13 +306,18 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detec
     {
         int num_within_valid_distance_threshold = 0;
         int potential_max_idx = 0;
+        // depth point to compare starts with the max depth
+        float depth_to_compare = max_depth_point.z;
         // the 0th index is greatest, last index is smallest
         for (int i = 1; i < depth_list->size(); i++)
         {
             Logger::Instance()->Debug("Depth Point is (x: {}, y: {}, z: {})", depth_list->at(i).x, depth_list->at(i).y, depth_list->at(i).z);
-            if (abs(max_depth_point.z - depth_list->at(i).z) <= threshold_depth_distance_from_max)
+            // if the current depth point is within the threshold of the depth point to compare
+            if (abs(depth_to_compare - depth_list->at(i).z) <= threshold_depth_distance_from_max)
             {
                 num_within_valid_distance_threshold++;
+                // update the depth point to compare to be a gradient analysis that no huge jumps in depth data occurred
+                depth_to_compare = depth_list->at(i).z;
             } else {
                 // update the potential max to be the first depth point encountered that is not within the valid distance threshold
                 // which will also be the max depth point that is not noise
@@ -328,6 +335,7 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detec
             return depth_list->at(potential_max_idx);
         }
     }
+    // the max depth point returned here isn't large enough to be returned in the final max Z calculations in the response
     return max_depth_point;
 }
 
@@ -1754,7 +1762,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000; //remaining_platform in meters
   float should_search_right_to_left = request_json->value("Flip_X_Default", false);
 
-    Logger::Instance()->Debug("Check MaxZ Initiated");
+  Logger::Instance()->Debug("Check MaxZ Initiated");
 
   Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
   std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
