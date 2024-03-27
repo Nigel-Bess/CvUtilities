@@ -69,7 +69,7 @@ std::shared_ptr<nlohmann::json> read_in_request_json(std::string directory_path,
     Logger::Instance()->Debug("JSON File location is: {}", file_path);
     std::ifstream ifs(file_path);
     std::shared_ptr<nlohmann::json> json_contents = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs));
-    Logger::Instance()->Debug("JSON contents is: {}", *json_contents);
+    Logger::Instance()->Debug("JSON contents is: {}", json_contents->dump());
     return json_contents;
 }
 
@@ -394,8 +394,7 @@ int main(int argc, char** argv)
     while ((ent = readdir (dir)) != NULL)
     {
       if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0) continue;
-      test_data_path = test_data_dir;
-      FileSystemUtil::join_append(test_data_path, ent->d_name);
+      test_data_path = make_media::paths::join_as_path(test_data_dir, ent->d_name);
 
       try
       {

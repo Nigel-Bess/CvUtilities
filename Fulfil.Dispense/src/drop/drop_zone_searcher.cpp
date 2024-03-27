@@ -279,48 +279,25 @@ std::shared_ptr<std::vector<Point3D>> initialize_empty_depth_list(int amount_of_
 
 std::shared_ptr<std::vector<Point3D>> update_max_depth_list(std::shared_ptr<std::vector<Point3D>> depth_list, float local_x, float local_y, float local_z)
 {
-//    bool shift_list_down = false;
-//    int idx_of_new_depth_point = -1;
-//    Point3D next_depth_point = Point3D(0,0,0);
     // the 0th index is greatest, last index is smallest
     for (int i = 0; i < depth_list->size(); i++) {
-        // if the given depth point has been inserted earlier in the list, the rest of the list must be shifted over
-//        if (shift_list_down) {
-//            // is this actually shifting them?? or are they all 0s
-////            depth_list.at(i) = next_depth_point;
-//            Logger::Instance()->Debug("Idx being shifted: {}, with value: {}", i, std::to_string(depth_list.at(i-1).z));
-//        }
         // if the depth point at curr index is smaller depth than the given depth point, the given depth point must be inserted into the list
+        // if the given depth point has been inserted earlier in the list, the rest of the list must be shifted over
         if (depth_list->at(i).z < local_z) {
             Logger::Instance()->Debug("Idx being inserted: {}, with old value: {}, and new value: {}", i, std::to_string(depth_list->at(i).z), local_z);
             depth_list->insert(depth_list->begin() + i, Point3D(local_x, local_y, local_z));
             Logger::Instance()->Debug("Next idx now: {}, with value: {}", i+1, std::to_string(depth_list->at(i+1).z));
-            Logger::Instance()->Debug("Length after insert: {}", depth_list->size());
             depth_list->pop_back();
             break;
         }
-
-//            shift_list_down = true;
-//            next_depth_point = depth_list.at(i);
-//            depth_list.at(idx_of_new_depth_point) = Point3D(local_x, local_y, local_z);
-//            idx_of_new_depth_point = i;
-        Logger::Instance()->Debug("Idx being utilized: {}, with local_z: {}", i, local_z);
     }
-//    if (idx_of_new_depth_point != -1)
-//    {
-//        Logger::Instance()->Debug("Idx being set: {}, with local_z: {}", idx_of_new_depth_point, local_z);
-//        depth_list.at(idx_of_new_depth_point) = Point3D(local_x, local_y, local_z);
-//        Logger::Instance()->Debug("NEW POINT VALUE: {}", depth_list.at(idx_of_new_depth_point).z);
-//    }
     return depth_list;
 }
 
-fulfil::utils::Point3D get_max_z_that_is_not_outlier(
-//        Point3D max_depth_point,
-                                                      float item_protrusion_detection_threshold,
-                                                      std::shared_ptr<std::vector<fulfil::utils::Point3D>> depth_list,
-                                                      float threshold_depth_distance_from_max,
-                                                      int num_points_required_within_valid_distance_to_validate_max_z)
+fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detection_threshold,
+                                                     std::shared_ptr<std::vector<fulfil::utils::Point3D>> depth_list,
+                                                     float threshold_depth_distance_from_max,
+                                                     int num_points_required_within_valid_distance_to_validate_max_z)
 {
     Point3D max_depth_point = depth_list->at(0);
     if (max_depth_point.z > item_protrusion_detection_threshold)
@@ -335,7 +312,11 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(
             {
                 num_within_valid_distance_threshold++;
             } else {
+                // update the potential max to be the first depth point encountered that is not within the valid distance threshold
+                // which will also be the max depth point that is not noise
                 potential_max_idx = i;
+                // because the list is sorted by depth, the following depths will also all be outside of the valid distance threshold from the 0th element
+                break;
             }
         }
         if (num_within_valid_distance_threshold >= num_points_required_within_valid_distance_to_validate_max_z)
@@ -345,7 +326,6 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(
         } else {
             // else return the first point not in the validation distance
             return depth_list->at(potential_max_idx);
-//            return Point3D(depth_list->at(potential_max_idx).x, depth_list->at(potential_max_idx).y, std::max(0.0F, depth_list->at(potential_max_idx).z));
         }
     }
     return max_depth_point;
@@ -561,7 +541,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   max_z_eigen_data.col(3) << max_depth_points.outer_back_right.x,  max_depth_points.outer_back_right.y,  max_depth_points.outer_back_right.z;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> max_z_local_point_cloud = input_cloud->as_local_cloud()->new_point_cloud(std::make_shared<Eigen::Matrix3Xd>(max_z_eigen_data));
-  session_visualizer8andahalf->display_points(max_z_local_point_cloud, 0, 255, 0, 5, 3);
+  if(this->visualize == 1) { session_visualizer8andahalf->display_points(max_z_local_point_cloud, 0, 255, 0, 5, 3); }
   std::stringstream  max_z_data_ss ; max_z_data_ss << max_z_eigen_data;
   Logger::Instance()->Debug("Max Z Matrix:\n{}", max_z_data_ss.str());
 
