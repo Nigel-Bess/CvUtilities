@@ -266,24 +266,24 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   return XYZ_result;
 }
 
-std::vector<Point3D> initialize_empty_depth_list(int amount_of_max_depth_points_to_track, float default_depth)
+std::shared_ptr<std::vector<Point3D>> initialize_empty_depth_list(int amount_of_max_depth_points_to_track, float default_depth)
 {
     std::vector<Point3D> empty_depth_list;
     for (int i = 0; i < amount_of_max_depth_points_to_track; i++)
     {
        empty_depth_list.push_back(Point3D(0,0,default_depth));
     }
-    return empty_depth_list;
+    return std::make_shared<std::vector<Point3D>>(empty_depth_list);
 }
 
 
-std::vector<Point3D> update_max_depth_list(std::vector<Point3D> depth_list, float local_x, float local_y, float local_z)
+std::shared_ptr<std::vector<Point3D>> update_max_depth_list(std::shared_ptr<std::vector<Point3D>> depth_list, float local_x, float local_y, float local_z)
 {
 //    bool shift_list_down = false;
 //    int idx_of_new_depth_point = -1;
 //    Point3D next_depth_point = Point3D(0,0,0);
     // the 0th index is greatest, last index is smallest
-    for (int i = 0; i < depth_list.size(); i++) {
+    for (int i = 0; i < depth_list->size(); i++) {
         // if the given depth point has been inserted earlier in the list, the rest of the list must be shifted over
 //        if (shift_list_down) {
 //            // is this actually shifting them?? or are they all 0s
@@ -291,12 +291,12 @@ std::vector<Point3D> update_max_depth_list(std::vector<Point3D> depth_list, floa
 //            Logger::Instance()->Debug("Idx being shifted: {}, with value: {}", i, std::to_string(depth_list.at(i-1).z));
 //        }
         // if the depth point at curr index is smaller depth than the given depth point, the given depth point must be inserted into the list
-        if (depth_list.at(i).z < local_z) {
-            Logger::Instance()->Debug("Idx being inserted: {}, with old value: {}, and new value: {}", i, std::to_string(depth_list.at(i).z), local_z);
-            depth_list.insert(depth_list.begin() + i, Point3D(local_x, local_y, local_z));
-            Logger::Instance()->Debug("Next idx now: {}, with value: {}", i+1, std::to_string(depth_list.at(i+1).z));
-            Logger::Instance()->Debug("Length after insert: {}", depth_list.size());
-            depth_list.pop_back();
+        if (depth_list->at(i).z < local_z) {
+            Logger::Instance()->Debug("Idx being inserted: {}, with old value: {}, and new value: {}", i, std::to_string(depth_list->at(i).z), local_z);
+            depth_list->insert(depth_list->begin() + i, Point3D(local_x, local_y, local_z));
+            Logger::Instance()->Debug("Next idx now: {}, with value: {}", i+1, std::to_string(depth_list->at(i+1).z));
+            Logger::Instance()->Debug("Length after insert: {}", depth_list->size());
+            depth_list->pop_back();
             break;
         }
 
@@ -315,36 +315,37 @@ std::vector<Point3D> update_max_depth_list(std::vector<Point3D> depth_list, floa
     return depth_list;
 }
 
-fulfil::utils::Point3D get_max_z_that_is_not_outlier(Point3D max_depth_point,
-                                                              float item_protrusion_detection_threshold,
-                                                              std::vector<fulfil::utils::Point3D> depth_list,
-                                                              float threshold_depth_distance_from_max,
-                                                              int num_points_required_within_valid_distance_to_validate_max_z)
+fulfil::utils::Point3D get_max_z_that_is_not_outlier(
+//        Point3D max_depth_point,
+                                                      float item_protrusion_detection_threshold,
+                                                      std::shared_ptr<std::vector<fulfil::utils::Point3D>> depth_list,
+                                                      float threshold_depth_distance_from_max,
+                                                      int num_points_required_within_valid_distance_to_validate_max_z)
 {
+    Point3D max_depth_point = depth_list->at(0);
     if (max_depth_point.z > item_protrusion_detection_threshold)
     {
-        // assuming that the max z is the same as 0th index of the list. if not thats crazy and error?
-//        float threshold_depth_distance_from_max = 0.005;
         int num_within_valid_distance_threshold = 0;
         int potential_max_idx = 0;
         // the 0th index is greatest, last index is smallest
-        for (int i = 1; i < depth_list.size(); i++)
+        for (int i = 1; i < depth_list->size(); i++)
         {
-            Logger::Instance()->Debug("Depth Point is (x: {}, y: {}, z: {})", depth_list.at(i).x, depth_list.at(i).y, depth_list.at(i).z);
-            if (depth_list.at(i).z - depth_list.at(potential_max_idx).z <= threshold_depth_distance_from_max)
+            Logger::Instance()->Debug("Depth Point is (x: {}, y: {}, z: {})", depth_list->at(i).x, depth_list->at(i).y, depth_list->at(i).z);
+            if (abs(max_depth_point.z - depth_list->at(i).z) <= threshold_depth_distance_from_max)
             {
                 num_within_valid_distance_threshold++;
             } else {
                 potential_max_idx = i;
             }
         }
-        if (num_within_valid_distance_threshold > num_points_required_within_valid_distance_to_validate_max_z)
+        if (num_within_valid_distance_threshold >= num_points_required_within_valid_distance_to_validate_max_z)
         {
             // if there are enough nearby depth points to validate the max depth point, return it
             return max_depth_point;
         } else {
             // else return the first point not in the validation distance
-            return Point3D(depth_list.at(potential_max_idx).x, depth_list.at(potential_max_idx).y, std::max(0.0F, depth_list.at(potential_max_idx).z));
+            return depth_list->at(potential_max_idx);
+//            return Point3D(depth_list->at(potential_max_idx).x, depth_list->at(potential_max_idx).y, std::max(0.0F, depth_list->at(potential_max_idx).z));
         }
     }
     return max_depth_point;
@@ -373,13 +374,6 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   Logger::Instance()->Trace("temporary debug log: start looping through pixels");
 
-//  Quadrant_Depth_Data front_left_data{Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
-//                                      Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
-//                                      Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords)};
-//  Quadrant_Depth_Data front_right_data{front_left_data.inner_max_depth, front_left_data.inner_front_max_depth,
-//                                       Point3D(0,0,platform_in_LFB_coords), front_left_data.outer_max_depth,
-//                                       front_left_data.outer_front_max_depth, Point3D(0,0,platform_in_LFB_coords)};
-//  Quadrant_Depth_Data back_left_data{};
   // initialize struct for max detected depth points
   Max_Z_Points max_depth_points{Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
@@ -402,26 +396,25 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
 
-  float antenna_x_coord_nominal = 0.248; //0.033604924, -0.15097117, TODO base this off of BOT itself and local point cloud
-  float antenna_y_coord_nominal = -0.095;
-  float antenna_x_coord_rotated = 0.011;
-  float antenna_y_coord_rotated = -0.120;
-  float antenna_buffer = 0.002;
-//  float antenna_x_coordinate = (is_bot_rotated) ? antenna_x_nominal : antenna_x_rotated;
-//  float antenna_y_coordinate = (is_bot_rotated) ? antenna_y_nominal : antenna_y_rotated;
+  //    antenna location is max_container_x + 15mm-20mm
+  float lfb_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
+  float antenna_x_coord_nominal = lfb_width / 2 + 0.0175;
+  //    antenna location is min_container_y + 65mm-75mm
+  float lfb_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
+
+  float antenna_y_coord_nominal = lfb_length / -2 + 0.070;
+  float antenna_buffer = 0.005;
   int amount_of_max_depth_points_to_track = 5;
 
-  auto is_antenna_data = [antenna_x_coord_nominal, antenna_y_coord_nominal, antenna_x_coord_rotated, antenna_y_coord_rotated, antenna_buffer](float local_x_coord, float local_y_coord)-> bool
+  auto is_antenna_data = [antenna_x_coord_nominal, antenna_y_coord_nominal, antenna_buffer](float local_x_coord, float local_y_coord)-> bool
   {
       // if the given coords are within antenna_buffer meters from antenna coords
-      bool is_antenna_nominal_rotation = abs(local_x_coord - antenna_x_coord_nominal) < antenna_buffer and abs(local_y_coord - antenna_y_coord_nominal) < antenna_buffer;
-      bool is_antenna_180deg_rotation = abs(local_x_coord - antenna_x_coord_rotated) < antenna_buffer and abs(local_y_coord - antenna_y_coord_rotated) < antenna_buffer;
-      return is_antenna_nominal_rotation or is_antenna_180deg_rotation;
+      return abs(local_x_coord) - antenna_x_coord_nominal < antenna_buffer and abs(local_y_coord) + antenna_y_coord_nominal < antenna_buffer;
   };
-  std::vector<Point3D> outer_front_left_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
-  std::vector<Point3D> outer_front_right_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
-  std::vector<Point3D> outer_back_left_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
-  std::vector<Point3D> outer_back_right_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
+  std::shared_ptr<std::vector<Point3D>> outer_front_left_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
+  std::shared_ptr<std::vector<Point3D>> outer_front_right_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
+  std::shared_ptr<std::vector<Point3D>> outer_back_left_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
+  std::shared_ptr<std::vector<Point3D>> outer_back_right_depth_list = initialize_empty_depth_list(amount_of_max_depth_points_to_track, platform_in_LFB_coords);
 
   bool should_adjust_depth = (item_mass > this->item_mass_threshold) or force_adjustment;
   if(should_adjust_depth)
@@ -435,7 +428,6 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
     // TODO - total revamp of this function. optimize for computational speeds
     // TODO - account for bag crumpling, and rename this function because it doesn't adjust any depths in bagless bags
-    // TODO - only set max Z outer bag if there's a confirmed item leaning out, by ensuring there's at least X# of points that are similarly heightened
 
   // forward cycle left to right if not should_search_right_to_left
   // backward cycle right to left if should_search_right_to_left
@@ -496,76 +488,49 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           }
       // if this IS outer bag
       } else {
-          // do not include antenna in max depth detections
-          if (is_antenna_data(local_x, local_y)) { continue; }
           if (local_y >= 0 && local_x >= 0) {
-//              outer_bag_depth_processing(local_x, local_y, local_z, max_depth_points)
-              if (local_z > max_depth_points.outer_front_right.z) {
-
-                  max_depth_points.outer_front_right.x = local_x;
-                  max_depth_points.outer_front_right.y = local_y;
-                  max_depth_points.outer_front_right.z = local_z;
-                  if (local_z > item_protrusion_detection_threshold) {
-                      outer_front_right_depth_list = update_max_depth_list(outer_front_right_depth_list, local_x, local_y, local_z);
-                      // if multiple points near each other are also similar depth then trust it
-                      // or is it enough to say if enough points are that high in the quadrant then good.
-                      // or is it enough to just track the difference from max z to the next closest point and if its too large then go to closest point depth
-//                      each quadrant tracks a list of length CONFIGURABLE of tallest points. each time that local z is greater than the smallest tallest point,
-//                      insert it into the list as needed and adjust list as needed to be same length.
-                  }
+              if (local_z > item_protrusion_detection_threshold) {
+                  outer_front_right_depth_list = update_max_depth_list(outer_front_right_depth_list, local_x, local_y, local_z);
               }
           } else if (local_y >= 0 && local_x < 0) {
-              if (local_z > max_depth_points.outer_front_left.z) {
-                  max_depth_points.outer_front_left.x = local_x;
-                  max_depth_points.outer_front_left.y = local_y;
-                  max_depth_points.outer_front_left.z = local_z;
-                  if (local_z > item_protrusion_detection_threshold) {
-                      outer_front_left_depth_list = update_max_depth_list(outer_front_left_depth_list, local_x, local_y, local_z);
-                  }
+              if (local_z > item_protrusion_detection_threshold) {
+                  outer_front_left_depth_list = update_max_depth_list(outer_front_left_depth_list, local_x, local_y, local_z);
               }
           } else if (local_y < 0 && local_x >= 0) {
-              if (local_z > max_depth_points.outer_back_right.z) {
-                  max_depth_points.outer_back_right.x = local_x;
-                  max_depth_points.outer_back_right.y = local_y;
-                  max_depth_points.outer_back_right.z = local_z;
+              // do not include antenna in max depth detections
+              if (is_antenna_data(local_x, local_y)) { continue; }
                   if (local_z > item_protrusion_detection_threshold) {
                       outer_back_right_depth_list = update_max_depth_list(outer_back_right_depth_list, local_x, local_y, local_z);
                   }
-              }
           } else {
-              if (local_z > max_depth_points.outer_back_left.z) {
-                  max_depth_points.outer_back_left.x = local_x;
-                  max_depth_points.outer_back_left.y = local_y;
-                  max_depth_points.outer_back_left.z = local_z;
-                  if (local_z > item_protrusion_detection_threshold) {
-                      outer_back_left_depth_list = update_max_depth_list(outer_back_left_depth_list, local_x, local_y, local_z);
-                  }
+              if (local_z > item_protrusion_detection_threshold) {
+                  outer_back_left_depth_list = update_max_depth_list(outer_back_left_depth_list, local_x, local_y, local_z);
               }
           }
       }
   }
 
   // noise filtering of outer quadrant data
-  max_depth_points.outer_front_left = get_max_z_that_is_not_outlier(max_depth_points.outer_front_left,
+  max_depth_points.outer_front_left = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_front_left_depth_list,
-                                0.00,
-                                4);
-  max_depth_points.outer_front_right = get_max_z_that_is_not_outlier(max_depth_points.outer_front_right,
+                                0.003,
+                                5);
+  max_depth_points.outer_front_right = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_front_right_depth_list,
-                                0.005,
-                                4);
-  max_depth_points.outer_back_left = get_max_z_that_is_not_outlier(max_depth_points.outer_back_left,
+                                0.003,
+                                5);
+  max_depth_points.outer_back_left = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_back_left_depth_list,
-                                0.005,
-                                4);
-  max_depth_points.outer_back_right = get_max_z_that_is_not_outlier(max_depth_points.outer_back_right,
+                                0.003,
+                                5);
+  max_depth_points.outer_back_right = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_back_right_depth_list,
-                                0.005,
-                                4);
+                                0.003,
+                                5);
 
   max_depth_points.front = max_depth_points.front_left.z >= max_depth_points.front_right.z ? max_depth_points.front_left : max_depth_points.front_right;
   max_depth_points.back = max_depth_points.back_left.z >= max_depth_points.back_right.z ? max_depth_points.back_left : max_depth_points.back_right;

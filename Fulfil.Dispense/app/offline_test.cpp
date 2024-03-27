@@ -58,6 +58,9 @@ void start_mock_session(std::shared_ptr<std::string> directory_path,
   }
 }
 
+/**
+ * Reads the JSON found at the given location into a json obj
+ */
 std::shared_ptr<nlohmann::json> read_in_request_json(std::string directory_path,
                                                      std::string json_file_name)
 {
@@ -147,8 +150,7 @@ void test_post_drop_routine(std::shared_ptr<std::string> directory_path, std::sh
   std::shared_ptr<nlohmann::json> post_request_json = read_in_request_json(*directory_path, "json_request.json");
   ff_mongo_cpp::mongo_objects::MongoObjectID bag_oid = ff_mongo_cpp::mongo_objects::MongoObjectID("5e6fe411b901a80c5481d4e5");
   std::shared_ptr<fulfil::mongo::MongoBagState> doc = std::make_shared<fulfil::mongo::MongoBagState>(bag_oid, false);
-  manager->searcher->find_max_Z(container, request_id, LFB_config_reader, doc, post_request_json, nullptr); // parameters
-
+  manager->searcher->find_max_Z(container, request_id, LFB_config_reader, doc, post_request_json, nullptr);
 
   /**
    * Add additional check for products fitting in bag
@@ -181,7 +183,7 @@ int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::
     mock_session_post = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_post, mock_serial);
   }
 
-  //load request_json files from pre and post saved data //TODO: create a separate function for reading json files from directory and storing in request_json pointer. Used above as well
+  //load request_json files from pre and post saved data
   Logger::Instance()->Debug("Reading pre json request from file now");
   std::shared_ptr<nlohmann::json> pre_request_json = read_in_request_json(*directory_path_pre, "json_request.json");
   Logger::Instance()->Debug("PRE JSON REQUEST:{}", pre_request_json->dump());
@@ -447,7 +449,6 @@ int main(int argc, char** argv)
           std::cout << std::endl;
           std::cout << std::endl;
 
-
           test_data_path = make_media::paths::join_as_path(test_data_path, "Drop_Target_Image");
           test_logger->Info("Offline Pre-Drop Test Using Saved .json requests");
 
@@ -493,7 +494,6 @@ int main(int argc, char** argv)
               reader, LFB_config_reader);
           accuracy += res;
         }
-
       }
       catch(const std::exception& e)
       {
