@@ -7,7 +7,7 @@
  * Matrix3xdCoder that encodes and decodes matrix3xd objects
  * from the eigen library.
  */
-#include "../src/coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include <eigen3/Eigen/Geometry>
 #include <gtest/gtest.h>
 #include <memory>

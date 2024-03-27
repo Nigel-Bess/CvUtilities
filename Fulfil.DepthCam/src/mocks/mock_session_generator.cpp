@@ -8,12 +8,12 @@
  * frames.
  */
 #include "Fulfil.DepthCam/mocks/mock_session_generator.h"
-#include "../coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <opencv2/opencv.hpp>
 #include <Fulfil.DepthCam/core/transform_depth_session.h>
-#include "../coders/extrinsics_coder.h"
-#include "../coders/intrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include <Fulfil.DepthCam/point_cloud.h>
 
 using fulfil::utils::FileSystemUtil;

@@ -7,7 +7,7 @@
  * extrinsics coder that encodes and decodes extrinsics from
  * the realsense library.
  */
-#include "../src/coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
 #include <gtest/gtest.h>
 #include <memory>
 

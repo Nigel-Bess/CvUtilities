@@ -28,15 +28,17 @@ class DataGenerator
   std::shared_ptr<Session> session;
   std::shared_ptr<std::string> destination_directory;
   std::shared_ptr<nlohmann::json> request_json;
+  std::shared_ptr<nlohmann::json> bag_state_json;
   int frames_per_sample;
   void save_frame_information(std::shared_ptr<std::string> frame_directory);
   void save_color_data(std::shared_ptr<std::string> filename);
   void save_aligned_depth_data(std::shared_ptr<std::string> filename);
   void save_raw_depth_data(std::shared_ptr<std::string> filename);
   void save_point_cloud(std::shared_ptr<std::string> filename);
+  void save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write);
 
 
- public:
+public:
   /**
    * Constructor
    * @param session the session which will be used to generate the data to save.
@@ -44,7 +46,8 @@ class DataGenerator
   DataGenerator(std::shared_ptr<Session> session,
                 std::shared_ptr<std::string> image_path_out,
                 std::shared_ptr<std::string> path,
-                std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>());
+                std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(),
+                std::shared_ptr<nlohmann::json> bag_state_json = std::make_shared<nlohmann::json>());
 
     /**
    * Constructor
@@ -52,7 +55,8 @@ class DataGenerator
    */
     DataGenerator(std::shared_ptr<Session> session,
                   std::shared_ptr<std::string> image_path_out,
-                  std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>());
+                  std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(),
+                  std::shared_ptr<nlohmann::json> bag_state_json = std::make_shared<nlohmann::json>());
 
   /**
    * Saves the given number of samples from the stored session in the destination directory

@@ -7,7 +7,7 @@
  * the intrinsics coder that encodes and decodes intrinsics
  * from the realsense library.
  */
-#include "../src/coders/intrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include <memory>
 #include <librealsense2/rs.h>
 #include <gtest/gtest.h>
