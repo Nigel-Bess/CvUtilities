@@ -6,23 +6,17 @@
  * This file contains the implementation for generating data
  * from sessions for saving
  */
-#include "Fulfil.DepthCam/data/data_generator.h"
-#include "../coders/matrix3xd_coder.h"
-#include <Fulfil.CPPUtils/file_system_util.h>
-#include <opencv2/opencv.hpp>
 #include <fstream>
-#include <Fulfil.DepthCam/core/transform_depth_session.h>
-#include "../coders/extrinsics_coder.h"
-#include "../coders/intrinsics_coder.h"
-#include "../../../Fulfil.Dispense/include/Fulfil.Dispense/visualization/make_media.h"
-#include <Fulfil.DepthCam/point_cloud.h>
-#include <ctime>
-#include <unistd.h>
-#include <thread>
 #include <json.hpp>
-#include <Fulfil.CPPUtils/timer.h>
+#include <thread>
+#include <opencv2/opencv.hpp>
+#include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
-
+#include <Fulfil.CPPUtils/timer.h>
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/data/data_generator.h"
+#include <Fulfil.DepthCam/core/transform_depth_session.h>
+#include <Fulfil.DepthCam/point_cloud.h>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::data::DataGenerator;
@@ -127,7 +121,8 @@ void DataGenerator::save_json_data(const std::string& dest_directory_name, const
     }
     else  //save json request to file for use later
     {
-        std::string json_file_name = make_media::paths::join_as_path(dest_directory_name, dest_file_name);
+        std::string json_file_name = std::string(dest_directory_name);
+        FileSystemUtil::join_append(json_file_name, dest_file_name);
         Logger::Instance()->Trace("JSON file saving to {}", json_file_name);
         std::ofstream file(json_file_name);
         file << json_to_write;
@@ -150,9 +145,7 @@ void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
 
     Logger::Instance()->Trace("Saving DataGenerator data at {} ", *frame_directory);
     this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
-
     this->save_json_data(*frame_directory, "bag_state.json", *this->bag_state_json);
-
     this->save_frame_information(frame_directory);
   }
   catch (...) {

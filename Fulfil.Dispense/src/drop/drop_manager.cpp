@@ -188,7 +188,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         {
             Logger::Instance()->Trace("Data generation for drop camera request started!");
             std::shared_ptr<DataGenerator>
-                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
             generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
             Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
             std::ofstream error_file(error_code_file);
@@ -214,7 +214,10 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         {
             Logger::Instance()->Trace("Data generation for drop camera request started!");
             std::shared_ptr<DataGenerator>
-                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
+                    generator = std::make_shared<DataGenerator>(this->session,
+                                                                std::make_shared<std::string>(base_directory.string()),
+                                                                request_json,
+                                                                std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
             generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
             Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
             std::ofstream error_file(error_code_file);
