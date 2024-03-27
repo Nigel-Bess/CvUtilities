@@ -79,9 +79,15 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
   for (auto it = test_items.begin() ; it != test_items.end(); ++it)
   {
     std::cout << std::endl;
-    Logger::Instance()->Info("Handling request {}", *it);
-    //TODO:: ADD FUNCTIONALITY FOR INPUTTING ACTUAL SAVED JSON REQUEST HERE, RATHER THAN EMPTY JSON
-    manager->handle_drop_request(LFB_config_reader, std::make_shared<nlohmann::json>(),
+    Logger::Instance()->Info("Handling request #{}", *it);
+    FileSystemUtil::join_append(*directory_path, "json_request.json");
+    Logger::Instance()->Info("Reading json from file location is: {}", *directory_path);
+    std::ifstream ifs2( *directory_path);
+    std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
+
+    Logger::Instance()->Debug("Request JSON content is: {}", (*request_json).dump());
+    requests.push_back(std::make_shared<DropTargetDetails>(request_json, request_id));
+    manager->handle_drop_request(LFB_config_reader, request_json,
                                  requests.at(*it),
                                  directory_path, FileSystemUtil::create_datetime_string(),
                                  false); // parameters
