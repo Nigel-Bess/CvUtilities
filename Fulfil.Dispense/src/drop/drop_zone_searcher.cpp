@@ -386,13 +386,14 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   //    antenna location is max_container_x + 15mm-20mm
   float lfb_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
+  // TODO add antenna to configs
   float antenna_x_coord_nominal = lfb_width / 2 + 0.0175;
   //    antenna location is min_container_y + 65mm-75mm
   float lfb_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
 
   float antenna_y_coord_nominal = lfb_length / -2 + 0.070;
   float antenna_buffer = 0.005;
-  int amount_of_max_depth_points_to_track = 5;
+  int amount_of_max_depth_points_to_track = LFB_config_reader->GetInteger("LFB_config", "amount_of_max_depth_points_to_track_for_noise_filtering", 8);
 
   auto is_antenna_data = [antenna_x_coord_nominal, antenna_y_coord_nominal, antenna_buffer](float local_x_coord, float local_y_coord)-> bool
   {
@@ -499,26 +500,28 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   }
 
   // noise filtering of outer quadrant data
+  float threshold_depth_difference_to_validate_max_z = LFB_config_reader->GetFloat("LFB_config", "threshold_depth_difference_to_validate_max_z", 0.003);
+  int num_points_required_within_valid_distance_to_validate_max_z = LFB_config_reader->GetFloat("LFB_config", "num_points_required_within_valid_distance_to_validate_max_z", 5);
   max_depth_points.outer_front_left = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_front_left_depth_list,
-                                0.003,
-                                5);
+                                threshold_depth_difference_to_validate_max_z,
+                                num_points_required_within_valid_distance_to_validate_max_z);
   max_depth_points.outer_front_right = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_front_right_depth_list,
-                                0.003,
-                                5);
+                                threshold_depth_difference_to_validate_max_z,
+                                num_points_required_within_valid_distance_to_validate_max_z);
   max_depth_points.outer_back_left = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_back_left_depth_list,
-                                0.003,
-                                5);
+                                threshold_depth_difference_to_validate_max_z,
+                                num_points_required_within_valid_distance_to_validate_max_z);
   max_depth_points.outer_back_right = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_back_right_depth_list,
-                                0.003,
-                                5);
+                                threshold_depth_difference_to_validate_max_z,
+                                num_points_required_within_valid_distance_to_validate_max_z);
 
   max_depth_points.front = max_depth_points.front_left.z >= max_depth_points.front_right.z ? max_depth_points.front_left : max_depth_points.front_right;
   max_depth_points.back = max_depth_points.back_left.z >= max_depth_points.back_right.z ? max_depth_points.back_left : max_depth_points.back_right;
