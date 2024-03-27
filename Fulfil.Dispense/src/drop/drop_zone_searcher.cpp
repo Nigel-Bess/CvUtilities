@@ -229,6 +229,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
   float target_x;
+  Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   if (details->use_flipped_x_default)
   {
     // move default drop target to front side, accounting for front edge offset
@@ -350,7 +351,7 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(Point3D max_depth_point,
 }
 
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
-                                                  float item_mass, float platform_in_LFB_coords, std::shared_ptr<INIReader> LFB_config_reader,
+                                                  float item_mass, float platform_in_LFB_coords, bool should_search_right_to_left, std::shared_ptr<INIReader> LFB_config_reader,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
@@ -436,14 +437,23 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     // TODO - account for bag crumpling, and rename this function because it doesn't adjust any depths in bagless bags
     // TODO - only set max Z outer bag if there's a confirmed item leaning out, by ensuring there's at least X# of points that are similarly heightened
 
+  // forward cycle left to right if not should_search_right_to_left
+  // backward cycle right to left if should_search_right_to_left
+  int pixels_size = pixels->size();
+  int current_pixel_index = (should_search_right_to_left) ? pixels_size-1 : 0;
+  auto is_still_looping = [should_search_right_to_left, &pixels_size, &current_pixel_index]()-> bool {
+    return (should_search_right_to_left) ? current_pixel_index >= 0 : current_pixel_index < pixels_size;
+  };
+  auto next_step = [should_search_right_to_left, &current_pixel_index]()  {
+      (should_search_right_to_left) ? --current_pixel_index : ++current_pixel_index;
+  };
     //cycle through all points in bag and log the max depth points in each region, while adjusting depth of white pixels
-  for (int i = 0; i < pixels->size(); i++) {
-      cv::Point2f pixel = *pixels->at(i);
+    for (; is_still_looping(); next_step()) {
+      cv::Point2f pixel = *pixels->at(current_pixel_index);
       int white_intensity = mask.at<uchar>(round(pixel.y), round(pixel.x));
-
-      float local_x = (*local_cloud_data)(0, i);
-      float local_y = (*local_cloud_data)(1, i);
-      float local_z = (*local_cloud_data)(2, i);
+      float local_x = (*local_cloud_data)(0, current_pixel_index);
+      float local_y = (*local_cloud_data)(1, current_pixel_index);
+      float local_z = (*local_cloud_data)(2, current_pixel_index);
 
       bool is_outer_bag = (local_x < -x_limit) or (local_x > x_limit) or (local_y < -y_limit) or (local_y > y_limit);
       // count number of white points for empty/nonempty bag analysis
@@ -1404,7 +1414,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   bool bag_empty = (details->bag_item_count == 0);
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, LFB_config_reader, true, true, bag_empty, false);
+  Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default,
+    LFB_config_reader, true, true, bag_empty, false);
 
   Point3D max_Z_point = max_Z_points.overall;
 
@@ -1795,8 +1807,9 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   float LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000; //remaining_platform in meters
+  float should_search_right_to_left = request_json->value("Flip_X_Default", false);
 
-  Logger::Instance()->Debug("Check MaxZ Initiated");
+    Logger::Instance()->Debug("Check MaxZ Initiated");
 
   Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
   std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
@@ -1837,7 +1850,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   //this function adjusts depths of the white parts of the bag and returns the max_Z depth detection of non-white bag areas
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, LFB_config_reader, true, false, false, false);
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, should_search_right_to_left, LFB_config_reader, true, false, false, false);
   Point3D max_detected_Z_point = max_Z_points.overall;
 
   /**
