@@ -21,7 +21,7 @@ uint32_t DropTargetDetails::to_millimeters(double meters)
 DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_json,
                                          std::shared_ptr<std::string> command_id)
 {
-  this->request_id = request_id;
+  this->request_id = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
   this->bag_id = (*request_json)["Bag_ID"].get<std::string>();
   this->bag_item_count = (*request_json)["Bag_Item_Count"].get<int>();
   // convert the item dimension from mm to meters
@@ -38,7 +38,7 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->remaining_platform = DropTargetDetails::to_meters((*request_json)["Remaining_Platform"].get<float>());
   this->use_flipped_x_default = request_json->value("Flip_X_Default", false);
 
-  // the width of the tongue in the lane being dispensed from
+  // the width of the tongue in the lane being dispensed from (this isn't directly in FC but the value sent over is a close approximation)
   this->tongue_width = DropTargetDetails::to_meters(lanes.value("Tongue_Width", 0.0F));
   if (this->tongue_width < 0.003F or this->tongue_width < this->item_width)
   {
