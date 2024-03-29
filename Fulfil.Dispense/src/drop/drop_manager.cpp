@@ -282,9 +282,9 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
 
     if (generate_data) //this functionality is added so offline simulation does not generate data
     {
-      Logger::Instance()->Trace("Saving error code file with code 0 at path {}", error_code_file);
+      Logger::Instance()->Trace("Saving error code file with code {} at path {}", post_drop_result->get_success_code(), error_code_file);
       std::ofstream error_file(error_code_file);
-      error_file << "0";
+      error_file << post_drop_result->get_success_code();
     }
 
     return post_drop_result;
