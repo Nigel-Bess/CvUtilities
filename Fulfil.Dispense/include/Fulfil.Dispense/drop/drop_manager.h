@@ -51,24 +51,35 @@ class DropManager
                        std::shared_ptr<fulfil::dispense::visualization::LiveViewer> drop_live_viewer);
 
   /**
+   * Generates the error code data
+   * @param generate_data determines whether to generate the data or not
+   * @param error_code_file destination filepath to write error code data
+   * @param error_code success or error code of the drop target algorithm
+   */
+  void generate_error_code_result_data(bool generate_data, std::string error_code_file, int error_code);
+
+    /**
    * Generates the data received before the handling of the drop target
+   * @param generate_data determines whether to generate the data or not
    * @param base_directory directory to write data to
    * @param time_stamp used in creation of the final file path to write data to
    * @param request_json JSON data to be written
    */
-  void generate_data_pre_drop_target(std_filesystem::path base_directory,
-                                                  const std::shared_ptr<std::string> &time_stamp,
-                                                  std::shared_ptr<nlohmann::json> request_json);
+  void generate_request_json_data(bool generate_data,
+                                     std_filesystem::path base_directory,
+                                     const std::shared_ptr<std::string> &time_stamp,
+                                     std::shared_ptr<nlohmann::json> request_json);
   /**
    * Generates the data resulting from the drop target handling
+   * @param generate_data determines whether to generate the data or not
    * @param target_file destination filepath to write drop target coordinate data
    * @param error_code success or error code of the drop target algorithm
    * @param error_code_file destination filepath to write error code data
    * @param rover_position drop target coordinate data to write
    * @param dispense_position drop target coordinate data to write
    */
-  void generate_drop_target_result_data(std::string target_file, std::string error_code_file, float rover_position,
-                                        float dispense_position, int error_code);
+  void generate_drop_target_result_data(bool generate_data, std::string target_file, std::string error_code_file,
+                                        float rover_position, float dispense_position, int error_code);
   /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location
