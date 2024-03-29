@@ -38,8 +38,9 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->remaining_platform = DropTargetDetails::to_meters((*request_json)["Remaining_Platform"].get<float>());
   this->use_flipped_x_default = request_json->value("Flip_X_Default", false);
 
+  nlohmann::json tray_recipe = *request_json->value("Tray_Recipe", nlohmann::json(0.0F,));
   // the width of the tongue in the lane being dispensed from (this isn't directly in FC but the value sent over is a close approximation)
-  this->tongue_width = DropTargetDetails::to_meters(lanes.value("Tongue_Width", 0.0F));
+  this->tongue_width = DropTargetDetails::to_meters(tray_recipe.value("Max_Item_Width", 0.0F));
   if (this->tongue_width < 0.003F or this->tongue_width < this->item_width)
   {
       // if tongue width isn't present or incorrectly populated, use item width as proxy
