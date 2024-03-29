@@ -1250,10 +1250,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   bool back_right_no_viable_targets = std::max(max_Z_points.outer_back_right.z, max_Z_points.back_right.z) > (remaining_platform_adjusted + allowed_item_overflow_pre_dispense);
 
   bool front_no_viable_targets = (front_left_no_viable_targets && front_right_no_viable_targets) ||
-      ( (front_left_no_viable_targets || front_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) ); // todo change to tongue witdth not item width
+      ( (front_left_no_viable_targets || front_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) );
 
   bool back_no_viable_targets =  (back_left_no_viable_targets && back_right_no_viable_targets) ||
-      ( (back_left_no_viable_targets || back_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) ); // TODO change to tongue width not item width
+      ( (back_left_no_viable_targets || back_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) );
 
   if (front_no_viable_targets && back_no_viable_targets)
   {
