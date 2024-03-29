@@ -16,8 +16,11 @@
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/mongo/mongo_bag_state.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
+#include <experimental/filesystem>
 #include "drop_zone_searcher.h"
 #include "pre_post_compare.h"
+
+namespace std_filesystem = std::experimental::filesystem;
 
 namespace fulfil::dispense::drop
 {
@@ -46,6 +49,26 @@ class DropManager
    */
   explicit DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std::shared_ptr<INIReader> dispense_man_reader,
                        std::shared_ptr<fulfil::dispense::visualization::LiveViewer> drop_live_viewer);
+
+  /**
+   * Generates the data received before the handling of the drop target
+   * @param base_directory directory to write data to
+   * @param time_stamp used in creation of the final file path to write data to
+   * @param request_json JSON data to be written
+   */
+  void generate_data_pre_drop_target(std_filesystem::path base_directory,
+                                                  const std::shared_ptr<std::string> &time_stamp,
+                                                  std::shared_ptr<nlohmann::json> request_json);
+  /**
+   * Generates the data resulting from the drop target handling
+   * @param target_file destination filepath to write drop target coordinate data
+   * @param error_code success or error code of the drop target algorithm
+   * @param error_code_file destination filepath to write error code data
+   * @param rover_position drop target coordinate data to write
+   * @param dispense_position drop target coordinate data to write
+   */
+  void generate_drop_target_result_data(std::string target_file, std::string error_code_file, float rover_position,
+                                        float dispense_position, int error_code);
   /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location
