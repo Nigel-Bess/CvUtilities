@@ -32,6 +32,7 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->item_height = DropTargetDetails::to_meters(lanes["Item"]["H"].get<float>());
   this->item_mass = lanes["Item"]["Mass"].get<float>(); // [grams]
   this->item_shiny = lanes["Item"]["Shiny"].get<bool>();
+  this->has_tongue = lanes.value("Has_Tongue", false);
   this->limit_left = (*request_json)["Limit_Left"].get<int>();
   this->limit_right = (*request_json)["Limit_Right"].get<int>();
   this->limit_front = (*request_json)["Limit_Front"].get<int>();
@@ -39,21 +40,13 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->remaining_platform = DropTargetDetails::to_meters((*request_json)["Remaining_Platform"].get<float>());
   this->use_flipped_x_default = request_json->value("Flip_X_Default", false);
 
-//  nlohmann::json tray_recipe = *request_json->value("Tray_Recipe", nlohmann::json(0.0F,));
-
-
-//  request_from_vlsg::TrayRequest tray_recipe = request_json->value("Tray_Recipe", request_from_vlsg::TrayRequest());
   dimensional_info::TrayRecipe tray_recipe = request_json->value("Tray_Recipe", dimensional_info::TrayRecipe());
   // the width of the tongue in the lane being dispensed from (this isn't directly in FC but the value sent over is a close approximation)
-  this->tongue_width = DropTargetDetails::to_meters(tray_recipe.m_max_item_width);
-  std::cout << "Tongue_width: " << this->tongue_width << std::endl;
-//  this->tongue_width = DropTargetDetails::to_meters(tray_recipe.value("Max_Item_Width", 0.0F));
+  this->tongue_width = (this->has_tongue) ? DropTargetDetails::to_meters(tray_recipe.m_max_item_width) : 0.0F;
   if (this->tongue_width < 0.003F or this->tongue_width < this->item_width)
   {
       // if tongue width isn't present or incorrectly populated or item is wider than tongue, use item width as proxy
       this->tongue_width = this->item_width;
-      std::cout << "Tongue_width after item update: " << this->tongue_width << std::endl;
-
   }
 
   //handling of damage code based on material and fragile properties. See bag state tracking + damage handling design doc

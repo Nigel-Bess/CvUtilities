@@ -113,6 +113,12 @@ class DropTargetDetails
   int limit_back;
 
   /**
+   * Presence of the tongue in the lane being dispensed from, with true = present, and defaults to false if missing
+   * from request
+   */
+  bool has_tongue;
+
+  /**
    * The width of the tongue in the lane being dispensed from in meters
    */
   float tongue_width;
