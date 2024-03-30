@@ -25,24 +25,20 @@ using fulfil::utils::Logger;
 
 DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
         std::shared_ptr<std::string> path,
-        std::shared_ptr<nlohmann::json> request_json,
-        std::shared_ptr<nlohmann::json> bag_state_json)
+        std::shared_ptr<nlohmann::json> request_json)
 {
     this->session = session;
     this->destination_directory = std::make_shared<std::string>(*image_path_out);
     FileSystemUtil::join_append(this->destination_directory, *path);
     this->request_json = request_json;
-    this->bag_state_json = bag_state_json;
 }
 
 DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
-                             std::shared_ptr<nlohmann::json> request_json,
-                             std::shared_ptr<nlohmann::json> bag_state_json)
+                             std::shared_ptr<nlohmann::json> request_json)
 {
   this->session = session;
   this->destination_directory = image_path_out;
   this->request_json = request_json;
-  this->bag_state_json = bag_state_json;
 }
 
 void DataGenerator::save_color_data(std::shared_ptr<std::string> filename)
@@ -145,7 +141,6 @@ void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
 
     Logger::Instance()->Trace("Saving DataGenerator data at {} ", *frame_directory);
     this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
-    this->save_json_data(*frame_directory, "bag_state.json", *this->bag_state_json);
     this->save_frame_information(frame_directory);
   }
   catch (...) {
@@ -167,7 +162,6 @@ void DataGenerator::save_data()
 
     Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
     this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
-    this->save_json_data(*frame_directory, "bag_state.json", *this->bag_state_json);
     this->save_frame_information(frame_directory);
   }
   catch (...) {
