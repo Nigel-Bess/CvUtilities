@@ -175,9 +175,9 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
       (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Drop_Target_Image");
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
-    std::string error_code_file = base_directory.string() + "/" + *time_stamp + "/error_code";
-
-    std::string target_file = (base_directory / *time_stamp / "target_center").string();
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    std::string target_file = make_media::paths::join_as_path(base_directory, *time_stamp, "target_center");
+    std::cout << error_code_file << std::endl;
 
     // TODO should this be places after the refresh call in the try catch or should it be here? probably doesnt make a difference
     generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
