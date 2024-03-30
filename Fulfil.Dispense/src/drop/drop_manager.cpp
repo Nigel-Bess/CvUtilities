@@ -93,7 +93,7 @@ DropManager::DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std
   this->mongo_bag_state = std::make_shared<fulfil::mongo::MongoBagState>();
 }
 
-void DropManager::generate_request_json_data(bool generate_data,
+void DropManager::generate_request_data(bool generate_data,
                                              std_filesystem::path base_directory,
                                              const std::shared_ptr<std::string> &time_stamp,
                                              std::shared_ptr<nlohmann::json> request_json)
@@ -113,11 +113,23 @@ void DropManager::generate_pre_drop_target_data(bool generate_data,
                                                 std_filesystem::path base_directory,
                                                 const std::shared_ptr<std::string> &time_stamp,
                                                 std::shared_ptr<nlohmann::json> request_json,
-                                                bag_state_json)
+                                                std::shared_ptr<nlohmann::json> bag_state_json)
 {
-    generate_request_json_data(generate_data, base_directory, time_stamp, request_json);
-    .... bag state json
-
+    generate_request_data(generate_data, base_directory, time_stamp, request_json);
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data)
+    {
+        if (bag_state_json->is_null())
+        {
+            Logger::Instance()->Debug(
+                    "No bag state JSON is available, json file will not be saved along with data generation");
+        } else {
+            std::string bag_state_file_path = make_media::paths::join_as_path(base_directory, *time_stamp, "bag_state.json");
+            std::ofstream file(bag_state_file_path);
+            file << bag_state_json;
+            Logger::Instance()->Trace("Finished bag state JSON data generation for drop camera request!");
+        }
+    }
 }
 
 void DropManager::generate_error_code_result_data(bool generate_data, std::string error_code_file, int error_code)
@@ -163,10 +175,10 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
 
     std::string error_code_file = base_directory.string() + "/" + *time_stamp + "/error_code";
 
-    std::string target_file =  (base_directory / *time_stamp / "target_center").string();
+    std::string target_file = (base_directory / *time_stamp / "target_center").string();
 
     // TODO should this be places after the refresh call in the try catch or should it be here? probably doesnt make a difference
-    generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson())));
+    generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
 
     Logger::Instance()->Debug("about to lock session");
     try
@@ -280,7 +292,7 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
 
     std::shared_ptr<DataGenerator> generator;
-    generate_request_json_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
+    generate_request_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
 
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
