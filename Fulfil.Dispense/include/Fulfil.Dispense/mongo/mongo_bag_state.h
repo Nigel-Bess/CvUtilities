@@ -169,6 +169,7 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
 
   int parse_in_values(std::shared_ptr<CvBagState> doc);
  private:
+  bool raw_mongo_doc_has_been_updated = false;
 
   int num_rows;
   int num_cols;

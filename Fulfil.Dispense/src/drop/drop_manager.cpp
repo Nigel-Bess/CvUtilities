@@ -102,8 +102,8 @@ void DropManager::generate_request_data(bool generate_data,
     if (generate_data)
     {
         Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
-
-        DataGenerator generator = DataGenerator(this->session, std::make_shared<std::string>(base_directory.string()),
+        DataGenerator generator = DataGenerator(this->session,
+                                                std::make_shared<std::string>(base_directory.string()),
                                                 request_json);
         generator.save_data(time_stamp);
     }
@@ -125,8 +125,10 @@ void DropManager::generate_pre_drop_target_data(bool generate_data,
                     "No bag state JSON is available, json file will not be saved along with data generation");
         } else {
             std::string bag_state_file_path = make_media::paths::join_as_path(base_directory, *time_stamp, "bag_state.json");
+            Logger::Instance()->Trace("Bag state JSON data generation file path: {}", bag_state_file_path);
+
             std::ofstream file(bag_state_file_path);
-            file << bag_state_json;
+            file << *bag_state_json;
             Logger::Instance()->Trace("Finished bag state JSON data generation for drop camera request!");
         }
     }
@@ -178,7 +180,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     std::string target_file = (base_directory / *time_stamp / "target_center").string();
 
     // TODO should this be places after the refresh call in the try catch or should it be here? probably doesnt make a difference
-    generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
+    generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
 
     Logger::Instance()->Debug("about to lock session");
     try

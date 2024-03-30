@@ -156,8 +156,13 @@ void MongoBagState::UpdateRawMongoDocState()
 
 nlohmann::json MongoBagState::GetStateAsJson()
 {
-  this->UpdateRawMongoDocState();
-  return raw_mongo_doc->ToJson();
+  // gating on if the bag state hasn't been generated yet for offline test backwards compatibility
+  if (!this->bag_id.is_null())
+  {
+      this->UpdateRawMongoDocState();
+      return raw_mongo_doc->ToJson();
+  }
+  return nlohmann::json();
 }
 
 std::string MongoBagState::GetStateAsString()

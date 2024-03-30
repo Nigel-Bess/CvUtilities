@@ -125,7 +125,6 @@ void DataGenerator::save_json_data(const std::string& dest_directory_name, const
     }
 }
 
-
 void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
 {
   Logger::Instance()->Trace("Data Generator save_data started");
