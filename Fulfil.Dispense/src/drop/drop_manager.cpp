@@ -381,14 +381,14 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
 
     std::string message;
     switch (comparison_result) {
-      case (item_not_detected_code): message = "Item in bag: No";
-      case (item_detected_code): message = "Item in bag: Yes";
-      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers";
-      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions";
-      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value";
-      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency";
-      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure";
-      default: message = "Unhandled case encountered";
+      case (item_not_detected_code): message = "Item in bag: No"; break;
+      case (item_detected_code): message = "Item in bag: Yes"; break;
+      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers"; break;
+      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions"; break;
+      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value"; break;
+      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency"; break;
+      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure"; break;
+      default: message = "Unhandled case encountered"; break;
     }
 
     this->cached_info->push_back(message);
