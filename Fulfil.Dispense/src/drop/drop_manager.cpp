@@ -160,6 +160,16 @@ void DropManager::generate_drop_target_result_data(bool generate_data, std::stri
     }
 }
 
+void get_min_max(cv::Mat m, std::string debugging_string_desc)
+{
+    double minVal;
+    double maxVal;
+    cv::Point minLoc;
+    cv::Point maxLoc;
+    minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
+    Logger::Instance()->Debug("{}: Number valid points found in matrix: {}\n\tMin: ({},{})={}\n\tMax: ({},{})={}\n\tMean={}",
+                              debugging_string_desc, cv::countNonZero(m), minLoc.x, minLoc.y, minVal, maxLoc.x, maxLoc.y, maxVal, cv::mean(m)[0]);
+}
 
 std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
                                                              std::shared_ptr<nlohmann::json> request_json,
@@ -184,13 +194,23 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     {
         bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
         //this->session->set_emitter(true); //turn on emitter for imaging
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, before refresh in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, before refresh in handle_drop_request");
+
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after refresh in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after refresh in handle_drop_request");
 
         generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after generate_pre_drop_target_data in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after generate_pre_drop_target_data in handle_drop_request");
 
         Logger::Instance()->Debug("Getting container for algorithm now");
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
+
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after get_container in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after get_container in handle_drop_request");
 
         this->cached_drop_target_container = container; //cache for potential use in prepostcomparison later
         this->cached_drop_target_request = request_json; //cache for potential use in prepostcomparison later
