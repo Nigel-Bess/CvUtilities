@@ -221,8 +221,14 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         std::shared_ptr<DropResult> drop_result = this->searcher->find_drop_zone_center(container, details, LFB_config_reader,
                                                                                         this->mongo_bag_state, bot_has_already_rotated);
 
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after find_drop_zone_center in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after find_drop_zone_center in handle_drop_request");
+
         generate_drop_target_result_data(generate_data, target_file, error_code_file, drop_result->rover_position,
                                              drop_result->dispense_position, drop_result->success_code);
+
+        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after generate_drop_target_result_data in handle_drop_request");
+        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after generate_drop_target_result_data in handle_drop_request");
 
         //cache drop target. Target is cached in the LFB local coordinate frame (in meter units), that's why the VLS drop y result is flipped
         this->cached_drop_target = std::make_shared<cv::Point2f>(cv::Point2f(drop_result->rover_position/1000, -1 * drop_result->dispense_position/1000));
