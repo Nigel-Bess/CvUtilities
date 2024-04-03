@@ -291,7 +291,9 @@ void MarkerDetectorContainer::setup_cached_container()
     else
     {
       Logger::Instance()->Error("Not Enough Valid Markers Found; Cam: LFB");
-      std::string error_descrip = "Number of markers detected: " + std::to_string(num_detections);
+      // TODO improve error description to take in minimum amount of markers config value (in a future PR)
+      std::string error_descrip = "Number of markers detected: " + std::to_string(num_detections) +
+              ", but minimum amount of markers needed: 3, out of total number of markers: " + std::to_string(num_markers);
       throw std::make_tuple(2, error_descrip);
     }
   }
