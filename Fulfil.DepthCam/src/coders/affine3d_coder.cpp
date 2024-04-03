@@ -7,7 +7,7 @@
  * and decoding the affine3d transformation from the
  * eigen library.
  */
-#include "affine3d_coder.h"
+#include "Fulfil.DepthCam/coders/affine3d_coder.h"
 #include <Fulfil.CPPUtils/file_system_util.h>
 
 using fulfil::depthcam::pointcloud::Affine3DCoder;

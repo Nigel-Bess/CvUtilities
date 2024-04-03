@@ -65,10 +65,16 @@ class DropManager
    * @param time_stamp used in creation of the final file path to write data to
    * @param request_json JSON data to be written
    */
-  void generate_request_json_data(bool generate_data,
+  void generate_request_data(bool generate_data,
+                                  std_filesystem::path base_directory,
+                                  const std::shared_ptr<std::string> &time_stamp,
+                                  std::shared_ptr<nlohmann::json> request_json);
+
+  void generate_pre_drop_target_data(bool generate_data,
                                      std_filesystem::path base_directory,
                                      const std::shared_ptr<std::string> &time_stamp,
-                                     std::shared_ptr<nlohmann::json> request_json);
+                                     std::shared_ptr<nlohmann::json> request_json,
+                                     std::shared_ptr<nlohmann::json> bag_state_json);
   /**
    * Generates the data resulting from the drop target handling
    * @param generate_data determines whether to generate the data or not

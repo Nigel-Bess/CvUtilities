@@ -142,15 +142,32 @@ bsoncxx::document::value MongoBagState::MakeWritableValue() {
   return final_doc;
 }
 
-std::string MongoBagState::GetStateAsString() {
+void MongoBagState::UpdateRawMongoDocState()
+{
   std::copy(std::begin(item_map_arrays[0]), std::end(item_map_arrays[0]), std::begin(raw_mongo_doc->ItemMap1));
   std::copy(std::begin(item_map_arrays[1]), std::end(item_map_arrays[1]), std::begin(raw_mongo_doc->ItemMap2));
   std::copy(std::begin(item_map_arrays[2]), std::end(item_map_arrays[2]), std::begin(raw_mongo_doc->ItemMap3));
-  
+
   raw_mongo_doc->PackedItemsVolume = this->packing_state->get_packed_items_volume_mm();
   raw_mongo_doc->PercentBagFull = this->packing_state->get_percent_bag_full();
   raw_mongo_doc->PackingEfficiency = this->packing_state->get_packing_efficiency();
   raw_mongo_doc->NumberDamageRejections = this->num_damage_rejections;
+}
+
+nlohmann::json MongoBagState::GetStateAsJson()
+{
+  // gating on if the bag state hasn't been generated yet for offline test backwards compatibility
+  if (!this->bag_id.is_null())
+  {
+      this->UpdateRawMongoDocState();
+      return raw_mongo_doc->ToJson();
+  }
+  return nlohmann::json();
+}
+
+std::string MongoBagState::GetStateAsString()
+{
+  this->UpdateRawMongoDocState();
   return raw_mongo_doc->ToString();
 }
 

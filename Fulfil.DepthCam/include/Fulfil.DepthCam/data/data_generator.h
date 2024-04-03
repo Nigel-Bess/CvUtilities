@@ -34,9 +34,10 @@ class DataGenerator
   void save_aligned_depth_data(std::shared_ptr<std::string> filename);
   void save_raw_depth_data(std::shared_ptr<std::string> filename);
   void save_point_cloud(std::shared_ptr<std::string> filename);
+  void save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write);
 
 
- public:
+public:
   /**
    * Constructor
    * @param session the session which will be used to generate the data to save.
