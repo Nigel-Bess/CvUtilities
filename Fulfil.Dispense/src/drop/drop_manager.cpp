@@ -154,8 +154,6 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
 
     std::string target_file =  (base_directory / *time_stamp / "target_center").string();
 
-    // TODO should this be places after the refresh call in the try catch or should it be here? probably doesnt make a difference
-    generate_request_json_data(generate_data, base_directory, time_stamp, request_json);
 
     Logger::Instance()->Debug("about to lock session");
     try
@@ -164,6 +162,8 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         //this->session->set_emitter(true); //turn on emitter for imaging
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
+
+        generate_request_json_data(generate_data, base_directory, time_stamp, request_json);
 
         Logger::Instance()->Debug("Getting container for algorithm now");
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
