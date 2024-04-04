@@ -1731,7 +1731,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   */
   float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
   float max_Z_on_dispense_side = get_max_z_on_dispense_side(max_Z_points, best_target_region.rotation_required, item_protrusion_detection_threshold);
-  float max_Z_alternate_value = max_Z_points.overall.z - max_acceptable_Z_above_marker_surface;
+  // TODO this function should be renamed whoops
+  float max_Z_alternate_value = get_max_z_on_dispense_side(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
   float max_Z_result = std::max(max_Z_on_dispense_side, max_Z_alternate_value);
 
   bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
