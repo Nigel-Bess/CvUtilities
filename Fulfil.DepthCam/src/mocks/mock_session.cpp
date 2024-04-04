@@ -9,9 +9,9 @@
  */
 #include "Fulfil.DepthCam/mocks/mock_session.h"
 #include <Fulfil.CPPUtils/file_system_util.h>
-#include "../coders/intrinsics_coder.h"
-#include "../coders/extrinsics_coder.h"
-#include "../coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/coders/intrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include <memory>
 #include <random>
 #include "../point_cloud/no_translation_point_cloud.h"
