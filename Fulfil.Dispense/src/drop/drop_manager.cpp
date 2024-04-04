@@ -210,13 +210,13 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
         //this->session->set_emitter(true); //turn on emitter for imaging
 //        get_min_max(*this->session->get_color_mat(), "Color Frame Data, before refresh in handle_drop_request");
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, before refresh in handle_drop_request");
-        auto camera_cloud = std::shared_ptr<Eigen::Matrix3Xd>(session->get_point_cloud(true)->as_camera_cloud()->get_data());
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
+//        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, before refresh in handle_drop_request");
+//        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
 //        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after refresh in handle_drop_request");
+        auto camera_cloud = std::shared_ptr<Eigen::Matrix3Xd>(session->get_point_cloud(true)->as_camera_cloud()->get_data());
         get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after refresh in handle_drop_request");
         Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
