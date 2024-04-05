@@ -64,6 +64,11 @@ class CvBagState final{
             json["PercentBagFull"] = PercentBagFull;
             json["PackingEfficiency"] = PackingEfficiency;
             json["NumberDamageRejections"] = NumberDamageRejections;
+//            if (include_lfb_vision_config) {
+//                nlohmann::json config_json;
+//                config_json
+//                json["LfbConfig"] = config_json;
+//            }
             return json;
         }
         std::string ToString(){

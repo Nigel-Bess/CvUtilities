@@ -154,13 +154,13 @@ void MongoBagState::UpdateRawMongoDocState()
   raw_mongo_doc->NumberDamageRejections = this->num_damage_rejections;
 }
 
-nlohmann::json MongoBagState::GetStateAsJson()
+nlohmann::json MongoBagState::GetStateAsJson(bool include_lfb_vision_config)
 {
   // gating on if the bag state hasn't been generated yet for offline test backwards compatibility
   if (!this->bag_id.is_null())
   {
       this->UpdateRawMongoDocState();
-      return raw_mongo_doc->ToJson();
+      return raw_mongo_doc->ToJson(include_lfb_vision_config);
   }
   return nlohmann::json();
 }
