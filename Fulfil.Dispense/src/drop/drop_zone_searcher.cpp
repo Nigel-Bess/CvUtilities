@@ -440,7 +440,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       // count number of white points for empty/nonempty bag analysis
       if (white_intensity == 255) {
           // only care about white count of inner bag, not if the LFB walls are white
-          if (is_outer_bag) { white_count += 1; }
+          if (!is_outer_bag) { white_count += 1; }
           // only filter on whiteness if feature flag is enabled
           if (should_filter_out_white) { continue; }
           // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
@@ -1401,7 +1401,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 4); Cam: LFB");
     this->success_code = DropTargetErrorCodes::NoViableTarget_BagIsFull;
     throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull,
-                          "All quadrants of bag could result in item - dispense conveyor collision");
+                          std::string("All quadrants of bag could result in item - dispense conveyor collision. ") +
+                          "Vars: { MaxZ inner bag: " + std::to_string(max_Z_points.overall.z) + ", MaxZ outer bag: " + std::to_string(max_Z_points.outer_overall.z) + ", Item length: " + std::to_string(details->item_length) + ", Item height: " + std::to_string(details->item_height) + ", Remaining platform: " + std::to_string(details->remaining_platform) + ", MaxProtrusionPredispense: " + std::to_string(allowed_item_overflow_pre_dispense) + " }");
   }
   else
   {

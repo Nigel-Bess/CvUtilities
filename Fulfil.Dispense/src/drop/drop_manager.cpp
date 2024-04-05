@@ -209,29 +209,14 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
     {
         bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
         //this->session->set_emitter(true); //turn on emitter for imaging
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, before refresh in handle_drop_request");
-//        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, before refresh in handle_drop_request");
-//        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after refresh in handle_drop_request");
-        auto camera_cloud = std::shared_ptr<Eigen::Matrix3Xd>(session->get_point_cloud(true)->as_camera_cloud()->get_data());
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after refresh in handle_drop_request");
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
-
 
         generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after generate_pre_drop_target_data in handle_drop_request");
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after generate_pre_drop_target_data in handle_drop_request");
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
         Logger::Instance()->Debug("Getting container for algorithm now");
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
-
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after get_container in handle_drop_request");
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after get_container in handle_drop_request");
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
         this->cached_drop_target_container = container; //cache for potential use in prepostcomparison later
         this->cached_drop_target_request = request_json; //cache for potential use in prepostcomparison later
@@ -242,16 +227,8 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         std::shared_ptr<DropResult> drop_result = this->searcher->find_drop_zone_center(container, details, LFB_config_reader,
                                                                                         this->mongo_bag_state, bot_has_already_rotated);
 
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after find_drop_zone_center in handle_drop_request");
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after find_drop_zone_center in handle_drop_request");
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
-
         generate_drop_target_result_data(generate_data, target_file, error_code_file, drop_result->rover_position,
                                              drop_result->dispense_position, drop_result->success_code);
-
-//        get_min_max(*this->session->get_color_mat(), "Color Frame Data, after generate_drop_target_result_data in handle_drop_request");
-        get_min_max(*this->session->get_depth_mat(), "Depth Frame Data, after generate_drop_target_result_data in handle_drop_request");
-        Logger::Instance()->Debug(get_eigen_stats(*camera_cloud));
 
         //cache drop target. Target is cached in the LFB local coordinate frame (in meter units), that's why the VLS drop y result is flipped
         this->cached_drop_target = std::make_shared<cv::Point2f>(cv::Point2f(drop_result->rover_position/1000, -1 * drop_result->dispense_position/1000));
