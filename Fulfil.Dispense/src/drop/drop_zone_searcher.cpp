@@ -440,7 +440,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       // count number of white points for empty/nonempty bag analysis
       if (white_intensity == 255) {
           // only care about white count of inner bag, not if the LFB walls are white
-          if (is_outer_bag) { white_count += 1; }
+          if (!is_outer_bag) { white_count += 1; }
           // only filter on whiteness if feature flag is enabled
           if (should_filter_out_white) { continue; }
           // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
