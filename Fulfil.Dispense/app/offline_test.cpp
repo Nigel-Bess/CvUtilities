@@ -95,8 +95,46 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
   {
     std::cout << std::endl;
     Logger::Instance()->Info("Handling request #{}", *it);
+    /**
+    *  Reading .json request from file
+    */
     std::shared_ptr<nlohmann::json> request_json = read_in_request_json(*directory_path, "json_request.json");
     requests.push_back(std::make_shared<DropTargetDetails>(request_json, request_id));
+
+//    Logger::Instance()->Debug("Reading json request from file now");
+//    std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
+//    file_path->append(*directory_path);
+//    *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
+//    Logger::Instance()->Debug("File location is: {}", *file_path);
+//    std::ifstream ifs( *file_path);
+//    std::string req_content((std::istreambuf_iterator<char>(ifs) ),
+//                        (std::istreambuf_iterator<char>()));
+//    Logger::Instance()->Debug("Request JSON content is: {}", req_content);
+//    std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(req_content.c_str()));
+    Logger::Instance()->Debug("Request JSON is: {}", *request_json);
+
+//      std::ifstream ifs("LFB3_bag_state_default.json");
+
+    std::shared_ptr<nlohmann::json> bag_state_json = read_in_request_json(*directory_path, "bag_state.json");
+//    std::shared_ptr<std::string> bag_state_file_path = std::make_shared<std::string>();  //read json from file
+//    bag_state_file_path->append(*directory_path);
+//    *bag_state_file_path = make_media::paths::join_as_path(*bag_state_file_path, "bag_state.json");
+////      /home/jessv/code/Fulfil.Dispense/data/apr04/660eee5f027cca9aea0c17e8/Drop_Target_Image/2024_04_04_H11_M16_S00
+//    Logger::Instance()->Debug("File location is: {}", *bag_state_file_path);
+//    std::ifstream bag( *bag_state_file_path);
+//    std::string content( (std::istreambuf_iterator<char>(bag) ),
+//                         (std::istreambuf_iterator<char>()    ) );
+////      std::string bag_state_json_str = "LFB3_bag_state_default.json";
+//    Logger::Instance()->Info("Bag state JSON: ", content);
+
+//    nlohmann::json bag_state_json = nlohmann::json::parse(content.c_str());
+    Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
+    Logger::Instance()->Debug("BagId string is: {}", (*bag_state_json)["BagId"].get<std::string>());
+    Logger::Instance()->Debug("MongoID string is: {}", (*bag_state_json)["_id"].get<std::string>());
+    auto cvbag = std::make_shared<fulfil::mongo::CvBagState>(*bag_state_json);
+    manager->mongo_bag_state->parse_in_values(cvbag);
+//            std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+
     manager->handle_drop_request(LFB_config_reader, request_json,
                                  requests.at(*it),
                                  directory_path, FileSystemUtil::create_datetime_string(),
