@@ -1817,11 +1817,10 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   //TODO: make configurable value. This value must be positive because current algo searches over bot markers as well, so expect minimum MaxZ values of ~0.0 +/- 5mm
   float allowed_item_overflow_post_dispense_check = LFB_config_reader->GetFloat("LFB_config", "allowed_item_overflow_post_dispense_check", 0.015);
   float remaining_platform_adjusted = std::max(remaining_platform, float(0.0)); //in case invalid negative values were provided from LFR
-  bool front_side_no_viable_targets = max_Z_points.front_left.z > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
-      max_Z_points.front_right.z > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check);
-  bool back_side_no_viable_targets = max_Z_points.back_left.z > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
-      max_Z_points.back_right.z > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check);
-
+  bool front_side_no_viable_targets = std::max(max_Z_points.outer_front_left.z, max_Z_points.front_left.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
+    std::max(max_Z_points.outer_front_right.z, max_Z_points.front_right.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check);
+  bool back_side_no_viable_targets = std::max(max_Z_points.outer_back_left.z, max_Z_points.back_left.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
+      std::max(max_Z_points.outer_back_right.z, max_Z_points.back_right.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check);
 
   int bag_full_result = -1;
   if (mongo_bag_state != nullptr)
