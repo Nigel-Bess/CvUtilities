@@ -264,13 +264,13 @@ class DropZoneSearcher
                                                 float LFB_cavity_height);
 
     /**
-   * Returns the value of the max Z detected on the dispense side of the LFB.
+   * Returns the value of the max Z in the LFB
    * @param max_Z_points the max Z points detected across the LFB
    * @param rotation_required whether the LFB will need to pirouette/rotate for this dispense
    * @param item_protrusion_detection_threshold amount in meters that the max Z must be detected above the marker plane (AKA the top of LFB)
    * @return float max Z detected
    */
-  float get_max_z_on_dispense_side(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold);
+  float get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold);
 
 
   std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> find_max_Z(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
