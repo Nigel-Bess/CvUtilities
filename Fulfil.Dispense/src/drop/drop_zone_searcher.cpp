@@ -1731,31 +1731,29 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * TODO: in the future, we can apply this more narrowly to just a region around the dispense target, especially when bot size increases
   */
   float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
-  float max_Z_on_dispense_side = get_max_z_on_dispense_side(max_Z_points, best_target_region.rotation_required, item_protrusion_detection_threshold);
-  // TODO this function should be renamed whoops
-  float max_Z_alternate_value = get_max_z_on_dispense_side(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
-  float max_Z_result = std::max(max_Z_on_dispense_side, max_Z_alternate_value);
+  float max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
 
   bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
 
-  Logger::Instance()->Debug("Max_Z on dispense side is: {}, alternate max_Z is: {}", max_Z_on_dispense_side, max_Z_alternate_value);
   Logger::Instance()->Debug("Drop Target Algorithm finished with success code: {}", this->success_code);
   return std::make_shared<DropResult>(XYZ_result, max_Z_result, tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
                                                     best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
 }
 
-float DropZoneSearcher::get_max_z_on_dispense_side(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
+float DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
 {
-    // nominal back side
-    if (rotation_required) {
-        // if the outer bag's max Z is greater than marker surface then use that instead
-        return (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? max_Z_points.outer_back.z : max_Z_points.back.z;
-        // nominal front side
-    } else {
-        // if the outer bag's max Z is greater than marker surface then use that instead
-        return (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? max_Z_points.outer_front.z : max_Z_points.front.z;
-    }
+    // if the outer bag's max Z is greater than marker surface then use that instead of inner bag's max Z
+    float front_max_z = (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? max_Z_points.outer_front.z : max_Z_points.front.z;
+    float back_max_z = (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? max_Z_points.outer_back.z : max_Z_points.back.z;
+    auto get_max_on_side = [front_max_z,  back_max_z](bool is_back_side) {
+        return (is_back_side) ? back_max_z : front_max_z;
+    };
+    Logger::Instance()->Debug("Max_Z on dispense side is: {}, alternate max_Z is: {}",
+                              get_max_on_side(rotation_required),
+                              get_max_on_side(!rotation_required));
+    return std::max(front_max_z, back_max_z);
 }
+
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
@@ -1799,7 +1797,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
 
   //calculate minimum expected value for maxZ detections in LFB based on reported remaining_platform in request
-  float platform_in_LFB_coords = 0.0 - (LFB_cavity_height - remaining_platform);
+  float platform_in_LFB_coords = 0.0F - (LFB_cavity_height - remaining_platform);
   if (platform_in_LFB_coords < -0.4 or platform_in_LFB_coords > -0.01)
   {
     Logger::Instance()->Error("Error with minimum max depth. Reported as {} with remaining_platform as: {}", platform_in_LFB_coords, remaining_platform);
@@ -1809,7 +1807,9 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   //this function adjusts depths of the white parts of the bag and returns the max_Z depth detection of non-white bag areas
 
   DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, should_search_right_to_left, LFB_config_reader, true, false, false, false);
-  Point3D max_detected_Z_point = max_Z_points.overall;
+  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  // true or false for rotation_required var doesn't impact output, just logging
+  float max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
 
   /**
   * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
@@ -1843,7 +1843,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     Logger::Instance()->Error("Could not update packing state because mongo_bag_state is nullptr!");
   }
 
-  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point.z * 1000));
+  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point * 1000));
 
   if (this->visualize == 1)
   {
@@ -1851,7 +1851,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     session_visualizer4->display_image(session_visualizer4->display_points_with_depth_coloring(point_cloud));
   }
 
-  float max_Z_result = max_detected_Z_point.z;
+  float max_Z_result = max_detected_Z_point;
   if (front_side_no_viable_targets && back_side_no_viable_targets)
   {
     Logger::Instance()->Warn("Both sides of LFR could result in future item - dispense conveyor collision. Will send bag to pickup");
