@@ -173,9 +173,13 @@ int PrePostCompare::check_inputs(float pre_remaining_platform, float post_remain
   return PrePostCompareErrorCodes::Success;
 }
 
-int PrePostCompare::populate_class_variables(std::shared_ptr<MarkerDetectorContainer> pre_container, std::shared_ptr<MarkerDetectorContainer> post_container, std::shared_ptr<INIReader> LFB_config_reader,
-                                              std::shared_ptr<nlohmann::json> pre_request_json, std::shared_ptr<nlohmann::json> post_request_json,
-                                              std::shared_ptr<nlohmann::json> drop_target_request_json, cv::Point2f target_center)
+int PrePostCompare::populate_class_variables(std::shared_ptr<MarkerDetectorContainer> pre_container,
+                                             std::shared_ptr<MarkerDetectorContainer> post_container,
+                                             std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                              std::shared_ptr<nlohmann::json> pre_request_json,
+                                              std::shared_ptr<nlohmann::json> post_request_json,
+                                              std::shared_ptr<nlohmann::json> drop_target_request_json,
+                                              cv::Point2f target_center)
 {
   /**
    *  Get relevant LFB dimensions and container dimensions
@@ -184,17 +188,17 @@ int PrePostCompare::populate_class_variables(std::shared_ptr<MarkerDetectorConta
 
   //Note: container_length and container_width are taken from configs here. They may be different from container dims
   //used in getting the pre or post containers, if those were extended to detect items sticking out over bag, for example
-  this->container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", -1);
-  this->container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
-  this->LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
+  this->container_length = lfb_vision_config->container_length;
+  this->container_width = lfb_vision_config->container_width;
+  this->LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
 
-  this->grid_num_rows = LFB_config_reader->GetInteger("LFB_config", "grid_rows", 8);
-  this->grid_num_cols = LFB_config_reader->GetInteger("LFB_config", "grid_cols", 6);
-  this->rotate_LFB_img = LFB_config_reader->GetBoolean("LFB_config", "rotate_LFB_viz", false);
+  this->grid_num_rows = lfb_vision_config->grid_rows;
+  this->grid_num_cols = lfb_vision_config->grid_cols;
+  this->rotate_LFB_img = lfb_vision_config->rotate_LFB_viz;
 
-  this->depth_baseline_average_threshold = LFB_config_reader->GetFloat("LFB_config", "depth_baseline_average_threshold", -1);
-  this->depth_factor_correction = LFB_config_reader->GetFloat("LFB_config", "depth_factor_correction", -1);
-  this->depth_total_threshold = LFB_config_reader->GetFloat("LFB_config", "depth_total_threshold", -1);
+  this->depth_baseline_average_threshold = lfb_vision_config->depth_baseline_average_threshold;
+  this->depth_factor_correction = lfb_vision_config->depth_factor_correction;
+  this->depth_total_threshold = lfb_vision_config->depth_total_threshold;
 
   if(depth_baseline_average_threshold == -1 or depth_factor_correction == -1 or depth_total_threshold == -1)
   {
@@ -202,22 +206,22 @@ int PrePostCompare::populate_class_variables(std::shared_ptr<MarkerDetectorConta
     throw(PrePostCompareErrorCodes::InvalidComparisonParameters);
   }
 
-  this->bgSubHistory = LFB_config_reader->GetInteger("LFB_config", "bgSubHistory", -1);
-  this->bgSubVarianceThresh = double(LFB_config_reader->GetFloat("LFB_config", "bgSubVarianceThresh", -1));
-  this->bgSubDetectShadows = LFB_config_reader->GetBoolean("LFB_config", "bgSubDetectShadows", false);
-  this->RGB_average_threshold = LFB_config_reader->GetInteger("LFB_config", "RGB_average_threshold", -1);
-  this->RGB_total_threshold = LFB_config_reader->GetInteger("LFB_config", "RGB_total_threshold", -1);
+  this->bg_sub_history = lfb_vision_config->bg_sub_history;
+  this->bg_sub_variance_threshold = lfb_vision_config->bg_sub_variance_threshold;
+  this->bg_sub_detect_shadows = lfb_vision_config->bg_sub_detect_shadows;
+  this->RGB_average_threshold = lfb_vision_config->RGB_average_threshold;
+  this->RGB_total_threshold = lfb_vision_config->RGB_total_threshold;
 
-  this->allowable_platform_difference =  LFB_config_reader->GetFloat("LFB_config", "allowable_platform_difference", 0);;
+  this->allowable_platform_difference =  lfb_vision_config->allowable_platform_difference;
 
-  this->H_low = double(LFB_config_reader->GetFloat("LFB_config", "H_low", -1));
-  this->H_high = double(LFB_config_reader->GetFloat("LFB_config", "H_high", -1));
-  this->S_low = double(LFB_config_reader->GetFloat("LFB_config", "S_low", -1));
-  this->S_high = double(LFB_config_reader->GetFloat("LFB_config", "S_high", -1));
-  this->V_low = double(LFB_config_reader->GetFloat("LFB_config", "V_low", -1));
-  this->V_high = double(LFB_config_reader->GetFloat("LFB_config", "V_high", -1));
+  this->H_low = lfb_vision_config->H_low;
+  this->H_high = lfb_vision_config->H_high;
+  this->S_low = lfb_vision_config->S_low;
+  this->S_high = lfb_vision_config->S_high;
+  this->V_low = lfb_vision_config->V_low;
+  this->V_high = lfb_vision_config->V_high;
 
-  if(bgSubHistory == -1 or bgSubVarianceThresh == -1 or RGB_average_threshold == -1 or RGB_total_threshold == -1)
+  if(bg_sub_history == -1 or bg_sub_variance_threshold == -1 or RGB_average_threshold == -1 or RGB_total_threshold == -1)
   {
     Logger::Instance()->Error("Invalid RGB Comparison Parameters; Cam: LFB");
     throw(PrePostCompareErrorCodes::InvalidComparisonParameters);
@@ -473,7 +477,7 @@ int PrePostCompare::process_RGB()
    */
   cv::Mat thresh_adj_MOG2_img;
 
-  cv::Ptr<cv::BackgroundSubtractor> bgSubtractor2 =  cv::createBackgroundSubtractorMOG2(bgSubHistory, bgSubVarianceThresh, bgSubDetectShadows);
+  cv::Ptr<cv::BackgroundSubtractor> bgSubtractor2 =  cv::createBackgroundSubtractorMOG2(bg_sub_history, bg_sub_variance_threshold, bg_sub_detect_shadows);
   bgSubtractor2->apply(pre_img_threshold, thresh_adj_MOG2_img, 1.0); //0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame
   bgSubtractor2->apply(post_img_threshold, thresh_adj_MOG2_img, 0.0);
 
@@ -578,8 +582,8 @@ int PrePostCompare::process_depth()
     session_visualizer13->display_image(image4);
   }
 
-  float pre_platform_in_LFB_coords = 0.0 - (LFB_cavity_height - pre_remaining_platform);
-  float post_platform_in_LFB_coords = 0.0 - (LFB_cavity_height - post_remaining_platform);
+  float pre_platform_in_LFB_coords = 0.0F - (LFB_cavity_height - pre_remaining_platform);
+  float post_platform_in_LFB_coords = 0.0F - (LFB_cavity_height - post_remaining_platform);
   Logger::Instance()->Debug("Pre platform level is {}, post platform level is {}", pre_platform_in_LFB_coords, post_platform_in_LFB_coords);
 
   //note: these are important even if grayed out. The function modifies the point cloud even if the returned Point3Ds are not used
@@ -713,13 +717,16 @@ int PrePostCompare::process_target(cv::Point2f target_center, cv::Mat item_resul
 
 int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_container,
                                    std::shared_ptr<MarkerDetectorContainer> post_container,
-                                   std::shared_ptr<INIReader> LFB_config_reader,
-                                   std::shared_ptr<nlohmann::json> pre_request_json, std::shared_ptr<nlohmann::json> post_request_json,
-                                   std::shared_ptr<nlohmann::json> drop_target_json, cv::Point2f target_center,
-                                   std::shared_ptr<cv::Mat> *result_mat_ptr, int *target_item_overlap_ptr)
+                                   std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                   std::shared_ptr<nlohmann::json> pre_request_json,
+                                   std::shared_ptr<nlohmann::json> post_request_json,
+                                   std::shared_ptr<nlohmann::json> drop_target_json,
+                                   cv::Point2f target_center,
+                                   std::shared_ptr<cv::Mat> *result_mat_ptr,
+                                   int *target_item_overlap_ptr)
 {
   Logger::Instance()->Debug("PrePostCompare run_comparison method called");
-  int variable_validation_check = populate_class_variables(pre_container, post_container, LFB_config_reader, pre_request_json, post_request_json, drop_target_json, target_center);
+  int variable_validation_check = populate_class_variables(pre_container, post_container, lfb_vision_config, pre_request_json, post_request_json, drop_target_json, target_center);
   if (variable_validation_check != 0) return variable_validation_check;
 
   if(visualize)

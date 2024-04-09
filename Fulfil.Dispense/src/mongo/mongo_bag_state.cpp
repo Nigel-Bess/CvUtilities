@@ -17,7 +17,7 @@ using fulfil::utils::Logger;
 
 MongoBagState::MongoBagState()
 {
-  Logger::Instance()->Error("This constructor should not currently be used!");
+  Logger::Instance()->Error("This constructor should not currently be used!"); // TODO why ? is this up to date? context needed
   this->collection_name = "BagStates";
   this->db_name = "Inventory";
   this->update_required = false;
@@ -30,9 +30,10 @@ MongoBagState::MongoBagState(MongoObjectID bag_id, bool new_doc)//default to 3.1
   this->bag_id = bag_id;
   if(new_doc) CreateDefaultMap();
   this->update_required = false;
-  this->packing_state = std::make_shared<dispense::drop::PackingState>();
+// TODO should packing state be here
 
-  //default to Bag3
+
+    //default to Bag3
   this->num_rows = 8;
   this->num_cols = 6;
   this->num_channels = 3;
@@ -79,8 +80,8 @@ void MongoBagState::SetDataBase(const std::string& new_db_name)
 
 std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument>
     MongoBagState::MakeNewMongoDocument(bsoncxx::document::view doc,
-                                                                     const std::string& collection_name,
-                                                                     const std::string& db_name)
+                                        const std::string& collection_name,
+                                        const std::string& db_name)
 {
   Logger::Instance()->Error("MakeNewMongoDocument method should currently not be used!");
   std::shared_ptr<MongoBagState> new_doc = std::make_shared<MongoBagState>();
@@ -95,27 +96,36 @@ int MongoBagState::parse_in_values(std::shared_ptr<CvBagState> bag) {
     this->oid = bag->MongoID;
     std::vector<std::vector<int>> new_arrays; //reset to empty vector
     
-    this->num_rows = bag->Config->GridRows;
-    this->num_cols = bag->Config->GridCols;
+    this->num_rows = bag->Config->grid_rows;
+    this->num_cols = bag->Config->grid_cols;
+    this->damage_buffer_width = bag->Config->damage_buffer_width;
+    this->damage_buffer_length = bag->Config->damage_buffer_length;
+    this->damage_swing_factor = bag->Config->damage_swing_factor;
 
-    if(bag->ItemMap1.size() == 0)//FC sends empty arrays
-        for(auto cr = 0; cr < num_rows * num_cols; cr++){
+
+    // if FC sends empty arrays, populate with 0s
+    if(bag->ItemMap1.size() == 0) {
+        for (auto cr = 0; cr < num_rows * num_cols; cr++) {
             bag->ItemMap1.push_back(0);
             bag->ItemMap2.push_back(0);
             bag->ItemMap3.push_back(0);
         }
+    }
 
     new_arrays.push_back(bag->ItemMap1);
     new_arrays.push_back(bag->ItemMap2);
     new_arrays.push_back(bag->ItemMap3);
-
-    this->packing_state = std::make_shared<dispense::drop::PackingState>();
     this->item_map_arrays = new_arrays;
+
+    this->packing_state = std::make_shared<dispense::drop::PackingState>(bag->Config->LFB_cavity_height,
+                                                                         bag->Config->container_width,
+                                                                         bag->Config->container_length,
+                                                                         bag->Config->max_num_depth_detections);
     this->packing_state->set_packed_items_volume_mm(bag->PackedItemsVolume);
 
     this->num_damage_rejections = bag->NumberDamageRejections;
 
-    this->num_channels = bag->Config->GridChannels;
+    this->num_channels = bag->Config->grid_channels;
   }
   catch (std::exception& e)
   { // We should start moving away from excessive catch throws
@@ -138,6 +148,7 @@ bsoncxx::document::value MongoBagState::MakeWritableValue() {
   bag_encoder.addField("PercentBagFull", this->packing_state->get_percent_bag_full());
   bag_encoder.addField("PackingEfficiency", this->packing_state->get_packing_efficiency());
   bag_encoder.addField("NumberDamageRejections", this->num_damage_rejections);
+  // TODO - do we want to add LfbVisionConfiguration? my heart says yes, but says no because it's literally already in Mongo...
   bsoncxx::document::value final_doc = bag_encoder.extract();
   return final_doc;
 }
@@ -152,15 +163,16 @@ void MongoBagState::UpdateRawMongoDocState()
   raw_mongo_doc->PercentBagFull = this->packing_state->get_percent_bag_full();
   raw_mongo_doc->PackingEfficiency = this->packing_state->get_packing_efficiency();
   raw_mongo_doc->NumberDamageRejections = this->num_damage_rejections;
+  // TODO - is LfbVisionConfig needed here
 }
 
-nlohmann::json MongoBagState::GetStateAsJson(bool include_lfb_vision_config)
+nlohmann::json MongoBagState::GetStateAsJson() //bool include_lfb_vision_config)
 {
   // gating on if the bag state hasn't been generated yet for offline test backwards compatibility
   if (!this->bag_id.is_null())
   {
       this->UpdateRawMongoDocState();
-      return raw_mongo_doc->ToJson(include_lfb_vision_config);
+      return raw_mongo_doc->ToJson(); //include_lfb_vision_config);
   }
   return nlohmann::json();
 }
@@ -348,24 +360,19 @@ std::shared_ptr<cv::Mat> MongoBagState::get_risk_map(bool avoid_all_items, std::
 
 // drop target wall off
 std::shared_ptr<cv::Mat> MongoBagState::expand_risk_map(std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
-                                       float shadow_width, float shadow_height, std::shared_ptr<INIReader> LFB_config_reader)
+                                       float shadow_width, float shadow_height)
 {
   float cell_width = grid_width / num_rows;    //in line with rows (vertical edge)
   float cell_length = grid_length / num_cols;  //in line with columns (horizontal edge)
 
   // IMPORTANT damage configs
-  int damage_buffer_width = LFB_config_reader->GetInteger("LFB_config", "damage_buffer_width");
-  int damage_buffer_length = LFB_config_reader->GetInteger("LFB_config", "damage_buffer_length");
-  float damage_swing_factor = LFB_config_reader->GetFloat("LFB_config", "damage_swing_factor");
-
-
   int num_width_squares = ceil((shadow_width/2) / cell_width) + damage_buffer_width; //number of squares on either side of risk squares that will be ineligible
 
   //TODO: refactor code so swing is only taken into account depending on grid square relation to limit line (whether LFB will rotate or not).
   //TODO: for now this will be kept simple and always assume swing risk, which is a reasonable assumption if dispensing on either side of an item already in bag
   //int num_length_squares = ceil((shadow_length/2) / cell_length) + damage_buffer_length; //in direction away from VLS (no swing)
   float swing_expansion_amount = std::max((shadow_length/2), damage_swing_factor * shadow_height);
-  int num_length_squares = ceil(swing_expansion_amount / cell_length) + damage_buffer_length; //in direction toward from VLS (yes swing)
+  int num_length_squares = ceil(swing_expansion_amount / cell_length) + this->damage_buffer_length; //in direction toward from VLS (yes swing)
 
   //update risk map in place
   for(int row=0; row < num_rows; row++)

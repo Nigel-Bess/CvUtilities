@@ -17,15 +17,19 @@
 #include<opencv2/opencv.hpp>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.Dispense/mongo/packing_state.h>
-#include <Fulfil.Dispense/mongo/lfb_config.h>
+#include "Fulfil.Dispense/recipes/lfb_vision_configuration.h"
 
 using ff_mongo_cpp::mongo_objects::MongoObjectID;
+using fulfil::configuration::lfb::LfbVisionConfiguration;
 
 namespace fulfil::mongo
 {
-class CvBagState final{  
+class CvBagState final
+{
     public:
-        CvBagState(nlohmann::json json){
+        CvBagState(nlohmann::json json)
+        {
+            std::cout << "In CvBagState constructor" << std::endl;
             _bag_id_string = json["BagId"].get<std::string>();
             _id_string = json["MongoID"].get<std::string>();
             BagId = MongoObjectID(bsoncxx::oid(_bag_id_string));
@@ -37,8 +41,9 @@ class CvBagState final{
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            Config = std::make_shared<fulfil::lfb::LfbConfig>(json["LfbConfig"]);
-            std::cout << "CvBagState updated: LFB Gen is " << Config->LfbGeneration << std::endl;
+            std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
+            Config = std::make_shared<LfbVisionConfiguration>(json["LfbConfig"]);
+            std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
         }
         CvBagState(){  }
         ff_mongo_cpp::mongo_objects::MongoObjectID BagId;
@@ -50,7 +55,7 @@ class CvBagState final{
         int PackingEfficiency = -1;
         int NumberDamageRejections= -1;
         ff_mongo_cpp::mongo_objects::MongoObjectID MongoID;
-        std::shared_ptr<fulfil::lfb::LfbConfig> Config;
+        std::shared_ptr<LfbVisionConfiguration> Config;
 
         nlohmann::json ToJson()
         {
@@ -155,7 +160,7 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
     * @return
     */
    std::shared_ptr<cv::Mat> expand_risk_map(std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
-                           float shadow_width, float shadow_height, std::shared_ptr<INIReader> LFB_config_reader);
+                           float shadow_width, float shadow_height);
 
    /**
    *  width = in line with grid rows (bag coordinate axis: x)
@@ -179,6 +184,9 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
   int num_rows;
   int num_cols;
   int num_channels;
+  int damage_buffer_width;
+  float damage_buffer_length;
+  float damage_swing_factor;
 
   // General base info
   std::string collection_name;

@@ -92,22 +92,21 @@ class DropManager
    * @return a pointer to drop result which contains details about where to
    * drop an item based on the request.
    */
-  std::shared_ptr<fulfil::dispense::drop::DropResult> handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
-                                                                          std::shared_ptr<nlohmann::json> request_json,
+  std::shared_ptr<fulfil::dispense::drop::DropResult> handle_drop_request(std::shared_ptr<nlohmann::json> request_json,
                                                                           std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
                                                                           const std::shared_ptr<std::string> &base_directory,
                                                                           const std::shared_ptr<std::string> &time_stamp,
-                                                                          bool generate_data=true, bool bot_has_already_rotated = false);
+                                                                          bool generate_data=true,
+                                                                          bool bot_has_already_rotated = false);
 
-  std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> handle_post_LFR(std::shared_ptr<INIReader> LFB_config_reader,
-                                                                               std::shared_ptr<nlohmann::json> request_json,
+  std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> handle_post_LFR(std::shared_ptr<nlohmann::json> request_json,
                                                                           const std::shared_ptr<std::string> &base_directory_input,
                                                                                std::shared_ptr<std::string> request_id,
                                                                           bool generate_data=true);
 
-  std::pair<int, int> handle_pre_post_compare(std::shared_ptr<INIReader> LFB_config_reader, std::string PrimaryKeyID);
+  std::pair<int, int> handle_pre_post_compare(std::string PrimaryKeyID);
 
-  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<nlohmann::json> request_json);
+  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json);
 
   /**
    * Delegate to receive information from the drop manager.
