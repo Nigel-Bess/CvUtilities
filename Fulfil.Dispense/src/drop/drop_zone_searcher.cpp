@@ -447,7 +447,8 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           //only adjust depths if item is above a certain threshold mass
           //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
       } else {
-          non_white_count += 1;
+          // only care about white/non-whiteness of inner bag, not the LFB walls
+          if (!is_outer_bag) { non_white_count += 1; }
       }
       if (!is_outer_bag) {
           if (local_y >= 0 && local_x >= 0) {
