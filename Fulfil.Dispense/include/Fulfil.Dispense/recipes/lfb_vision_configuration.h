@@ -299,7 +299,7 @@ namespace fulfil::configuration::lfb {
         double V_high {255};
 
         LfbVisionConfiguration() = default;
-        LfbVisionConfiguration(const nlohmann::json &input_json);
+        LfbVisionConfiguration(const std::shared_ptr<nlohmann::json>& input_json);
     };
 
 } // namespace fulfil::configuration::lfb

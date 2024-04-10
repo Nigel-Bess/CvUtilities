@@ -88,14 +88,14 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
   // Creating the requests
   std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
 
-  std::ifstream ifs("LFB3_bag_state_default.json");
-  std::string content( (std::istreambuf_iterator<char>(ifs) ),
-                       (std::istreambuf_iterator<char>()    ) );
-  std::string bag_state_json_str = "LFB3_bag_state_default.json";
-  nlohmann::json bag_state_json = nlohmann::json::parse(bag_state_json_str);
-  Logger::Instance()->Info("Bag state JSON: ", bag_state_json["LfbConfig"]);
-  auto cvbag = fulfil::mongo::CvBagState(bag_state_json);
-  manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+//  std::ifstream ifs("LFB3_bag_state_default.json");
+//  std::string content( (std::istreambuf_iterator<char>(ifs) ),
+//                       (std::istreambuf_iterator<char>()    ) );
+//  std::string bag_state_json_str = "LFB3_bag_state_default.json";
+//  nlohmann::json bag_state_json = nlohmann::json::parse(bag_state_json_str);
+//  Logger::Instance()->Info("Bag state JSON: ", bag_state_json["LfbConfig"]);
+//  auto cvbag = fulfil::mongo::CvBagState(bag_state_json);
+//  manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
 
   std::vector<std::shared_ptr<fulfil::dispense::commands::DropTargetDetails>> requests;
   // id numbers for request on right
@@ -139,8 +139,21 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 //    nlohmann::json bag_state_json = nlohmann::json::parse(content.c_str());
     Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
     Logger::Instance()->Debug("BagId string is: {}", (*bag_state_json)["BagId"].get<std::string>());
-    Logger::Instance()->Debug("MongoID string is: {}", (*bag_state_json)["_id"].get<std::string>());
+//    Logger::Instance()->Debug("MongoID string is: {}", (*bag_state_json)["MongoID"].get<std::string>());
+//    nlohmann::json empty = nlohmann::json({});
+//    (*bag_state_json)["LfbConfig"] = empty;
+//    Logger::Instance()->Debug("LfbConfig string is: {}", std::string((*bag_state_json)));
+
     auto cvbag = std::make_shared<fulfil::mongo::CvBagState>(*bag_state_json);
+    // read in default lfb vision config json
+    // pass in!
+    /**
+     * LFB Vision config json default :cry: but also is the default file even needed bc tecnically it should work without any file
+     */
+//      std::string prefix = DEFAULT_FULFIL_INI_DIR;
+//      if (prefix.back() != '/') prefix.append("/");
+//      filename = (filename.front() == '/') ? prefix.append(&filename[1]) : prefix.append(filename);
+//    cvbag->Config =
     manager->mongo_bag_state->parse_in_values(cvbag);
 //            std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
 
