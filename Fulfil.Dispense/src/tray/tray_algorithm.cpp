@@ -10,6 +10,7 @@
 #include <Fulfil.DepthCam/frame/pixel_point_converter.h>
 #include <Fulfil.Dispense/tray/measurement_helpers.h>
 #include <Fulfil.Dispense/tray/tray.h>
+#include <opencv2/cudaarithm.hpp>
 
 #include <cmath>
 #include <numeric>
@@ -521,6 +522,34 @@ cv::LineIterator make_requested_center_iterator( const std::vector<cv::Point2i>&
   return lane_center_iterator;
 }
 
+std::vector<cv::Point2i> TrayAlgorithm::get_center_pixels(const std::shared_ptr<fulfil::depthcam::Session> &session,
+                                           Tray &current_tray, const request_from_vlsg::TrayRequest &tray_vlsg_request){
+    std::string config_prefix = *(session)->get_serial_number() + tray_vlsg_request.m_context.get_calibration_mode_key();
+    Eigen::Affine3d camera_to_mm_transform = create_camera_to_local_transform(config_prefix);
+    PixelPointConverter local_pix2pt = PixelPointConverter(session, std::make_shared<Eigen::Affine3d>(camera_to_mm_transform), 10);
+
+    // get lane spatial info
+    return this->get_all_lane_center_pixels(current_tray, local_pix2pt, 0);
+}
+
+std::vector<cv::Point2i> TrayAlgorithm::get_center_pixels(
+        PixelPointConverter local_pix2pt, const std::vector<TrayLane>& tray_lanes,
+                                                          Tray &current_tray,
+                                                          Eigen::Matrix3Xd& lane_center_coordinates){
+    // get lane spatial info
+    // TODO, this should just be an index return function. get_all_lane_center_pixels does almost the same thing
+    auto center_pixels = this->get_all_lane_center_pixels(local_pix2pt, lane_center_coordinates, tray_lanes,current_tray.get_lane_count());
+    Eigen::Matrix3Xd single_lane(3, 2);
+    for (auto current_lane : tray_lanes) {// iterate over lanes instead
+        single_lane << lane_center_coordinates.col(current_lane.lane_id()),
+                lane_center_coordinates.col(current_lane.lane_id() + current_tray.get_lane_count());
+        single_lane.row(2) =
+                Eigen::RowVectorXd::Constant(single_lane.cols(), -1.0 * static_cast<double>(this->dispense_arm_height));
+    }
+    lane_center_coordinates = single_lane;
+    return center_pixels;
+}
+
 std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongue_detections(
     const std::shared_ptr<fulfil::depthcam::Session> &session,
     Tray &current_tray,
@@ -529,13 +558,14 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     cv::Mat tongue_color_mask)
 {
   initialize_visualizers(session);
-  bool tvr_request = (tray_vlsg_request.m_context.m_request_type == 5);
 
   std::string config_prefix = *(session)->get_serial_number() + tray_vlsg_request.m_context.get_calibration_mode_key();
   Eigen::Affine3d camera_to_mm_transform = create_camera_to_local_transform(config_prefix);
   PixelPointConverter local_pix2pt = PixelPointConverter(session, std::make_shared<Eigen::Affine3d>(camera_to_mm_transform), 10);
 
       // get lane spatial info
+    bool tvr_request = (tray_vlsg_request.m_context.m_request_type == 5);
+
   Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
   std::vector<cv::Point2i> pixel_centers = [&]() {
     if (tvr_request) {
@@ -544,9 +574,6 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     return this->get_all_lane_center_pixels(local_pix2pt, lane_center_coordinates, tray_lanes,current_tray.get_lane_count());
   }();
   if (!tvr_request) {
-    std::vector<int> indices_of_interest; indices_of_interest.reserve(tray_lanes.size()*2);
-    auto lane_indices = std::transform (tray_lanes.cbegin(), tray_lanes.cend(), std::back_inserter(indices_of_interest),
-        [&] (const TrayLane lane) { return lane.lane_id();});
     Eigen::Matrix3Xd single_lane(3, 2);
     for (auto current_lane : tray_lanes) {// iterate over lanes instead
       single_lane << lane_center_coordinates.col(current_lane.lane_id()),
@@ -556,11 +583,13 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     }
     lane_center_coordinates = single_lane;
   }
+
+  std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
+
   std::vector<bool> tongue_in_lane = validate_tongues_in_lane_on_tray(tongue_color_mask,
-      tray_lanes,
-      local_pix2pt,
-      lane_center_coordinates,
-      current_tray.get_max_item_width(), tray_vlsg_request.get_primary_key_id());
+                                                                      lane_bounds,
+                                                                      tray_lanes,
+                                                                      tray_vlsg_request.get_primary_key_id());
   return {pixel_centers, tongue_in_lane};
 
 }
@@ -663,6 +692,31 @@ void visualize_height(cv::Mat& result_image,
 
   };
 
+FloatPoints max_height_op_window(Eigen::Matrix3Xd local_pc){
+    constexpr int vis_window = 10;
+    fulfil::dispense::tray_processing::min_coeff_visitor<Eigen::MatrixXd, vis_window> min_vis{};
+    local_pc.row(2).visit(min_vis);
+    std::stringstream  mvs ; mvs << min_vis;
+    auto diff_btwn = min_vis.res.back() - min_vis.res.front();
+    std::vector<double> diffs{};
+    std::adjacent_difference(min_vis.res.cbegin(), min_vis.res.cend(), std::back_inserter(diffs));
+    std::stringstream diff_out;
+    std::for_each(diffs.cbegin()+1, diffs.cend(), [&diff_out](const auto& n) {diff_out << std::fixed << std::setprecision(5) << n << ' ';}) ;
+    auto max_diff = std::max_element(diffs.cbegin() + 1, diffs.cend());
+    auto max_diff_idx = std::distance(diffs.cbegin(), max_diff);
+    Logger::Instance()->Info("Max Idx={}, Value={:0.5f}, Min Idx={}, Value={:0.5f}, diff={:0.5f}, max diff=({}, {:0.5f}, {:0.5f})\nDif={}\n{}",
+                             min_vis.col[0], min_vis.res[0],  min_vis.col.back(), min_vis.res.back(), diff_btwn, max_diff_idx,  *max_diff, min_vis.res[max_diff_idx], diff_out.str(), mvs.str());
+    if (min_vis.col.back() == -1) {
+        return FloatPoints({std::array<float,3>{0,0,0}, std::array<float,3>{0,0,0},std::array<float,3>{0,0,0}});
+    }
+    auto index_float = [&local_pc](int index) {
+        auto p = local_pc.col(index).cast<float>();
+        return std::array<float, 3>{p.x(), p.y(), p.z()};
+    };
+
+    return FloatPoints({index_float(min_vis.col.front()), index_float(min_vis.col[max_diff_idx]), index_float(min_vis.col.back())});
+}
+
 std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>, float>
     TrayAlgorithm::get_pixel_lane_centers_and_tongue_detections(
         const std::shared_ptr<fulfil::depthcam::Session> &session,
@@ -709,30 +763,6 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     // get max dimension point
     auto tray_point_cloud =
         generate_local_traycloud(session, camera_to_mm_transform, max_height);
-    constexpr int vis_window = 10;
-    auto max_height_op_window = [&vis_window] (Eigen::Matrix3Xd local_pc) {
-      min_coeff_visitor<Eigen::MatrixXd, vis_window> min_vis{};
-      local_pc.row(2).visit(min_vis);
-      std::stringstream  mvs ; mvs << min_vis;
-      auto diff_btwn = min_vis.res.back() - min_vis.res.front();
-      std::vector<double> diffs{};
-      std::adjacent_difference(min_vis.res.cbegin(), min_vis.res.cend(), std::back_inserter(diffs));
-      std::stringstream diff_out;
-      std::for_each(diffs.cbegin()+1, diffs.cend(), [&diff_out](const auto& n) {diff_out << std::fixed << std::setprecision(5) << n << ' ';}) ;
-      auto max_diff = std::max_element(diffs.cbegin() + 1, diffs.cend());
-      auto max_diff_idx = std::distance(diffs.cbegin(), max_diff);
-      Logger::Instance()->Info("Max Idx={}, Value={:0.5f}, Min Idx={}, Value={:0.5f}, diff={:0.5f}, max diff=({}, {:0.5f}, {:0.5f})\nDif={}\n{}",
-          min_vis.col[0], min_vis.res[0],  min_vis.col.back(), min_vis.res.back(), diff_btwn, max_diff_idx,  *max_diff, min_vis.res[max_diff_idx], diff_out.str(), mvs.str());
-      if (min_vis.col.back() == -1) {
-        return FloatPoints({std::array<float,3>{0,0,0}, std::array<float,3>{0,0,0},std::array<float,3>{0,0,0}});
-      }
-      auto index_float = [&local_pc](int index) {
-        auto p = local_pc.col(index).cast<float>();
-        return std::array<float, 3>{p.x(), p.y(), p.z()};
-      };
-
-      return FloatPoints({index_float(min_vis.col.front()), index_float(min_vis.col[max_diff_idx]), index_float(min_vis.col.back())});
-    };
 
     auto [front_pt, space_pt, back_pt] = max_height_op_window(*(tray_point_cloud->get_data()));
     auto absolute_max = log_max_height_in_tray(local_pix2pt, front_pt, tray_vlsg_request.expected_max_height());
@@ -753,7 +783,6 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     save_mask(tray_vlsg_request.m_context.get_id_tagged_sequence_step(), result, "tvr_results");
     return std::make_tuple(center_line_objs, tongue_detections, fulfil::measure::to_rounded_millimeters(std::max(-1*space_pt[2], 0.0f)));
 }
-
 
 
 std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>>
@@ -785,15 +814,22 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   filterUtils::filter_out_selection( tongue_color_mask, safe_distance_selection);
 
   // evaluate tongues
-  auto [pixel_lane_centers, tongue_detections] =
-      get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
+  //auto [pixel_lane_centers, tongue_detections] =
+  //    get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
+    Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
+    auto pixel_lane_centers =  get_center_pixels(local_pix2pt, tray_lanes, current_tray, lane_center_coordinates);
+    std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
+
+    std::vector<bool> tongue_detections = validate_tongues_in_lane_on_tray(tongue_color_mask, lane_bounds, tray_lanes, tray_vlsg_request.get_primary_key_id());
 
   // Create the lane center lines that will get sent to the count api
+
   std::vector<tray_count_api_comms::LaneCenterLine> center_line_objs {};
   std::transform(pixel_lane_centers.begin(), pixel_lane_centers.begin() + current_tray.get_lane_count(),
       pixel_lane_centers.begin() + current_tray.get_lane_count(), std::back_inserter(center_line_objs),
       [&](cv::Point2f front, cv::Point2f back ) {
-        return tray_count_api_comms::LaneCenterLine{front.y, front.x, back.y, back.x}; });
+        return tray_count_api_comms::LaneCenterLine{front.y, front.x, back.y, back.x};
+  });
 
 
   /*****************/
@@ -801,12 +837,16 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   /*** mutates depth frame ***/
   cv::Mat invalid_depth_selection = mark_distance_thresholds(local_distance_frame,
       -1 * this->dispense_arm_height, false);
-  filterUtils::merge_selection( tongue_color_mask, invalid_depth_selection);
+  filterUtils::merge_selection( tongue_color_mask, invalid_depth_selection); // flip order here ?
   filterUtils::merge_selection(invalid_depth_selection, filterUtils::make_invalid_depth_selection(*(session->get_depth_mat(true)))); // may want to push below
-    smooth_selection(tongue_color_mask, true);
+    smooth_selection(tongue_color_mask, true); // or flip this up
 
   // TODO test over the local aligned frame directly instead
-  filterUtils::filter_out_selection(*(session->get_depth_mat()), tongue_color_mask);
+  Logger::Instance()->Info("Pre Mask: The depth frame as {} valid points and the mask has {}",
+                           cv::cuda::countNonZero(*(session->get_depth_mat())), cv::cuda::countNonZero(tongue_color_mask));
+  filterUtils::filter_out_selection(*(session->get_depth_mat()), tongue_color_mask); //defaults to aligned = true
+  Logger::Instance()->Info("Post Mask: The depth frame as {} valid points",
+                             cv::cuda::countNonZero(*(session->get_depth_mat())));
   cv::LineIterator lane_center_iterator = make_requested_center_iterator(
       pixel_lane_centers, current_lane.lane_id(), current_tray.get_lane_count());
 
@@ -837,6 +877,8 @@ tray_vlsg_request.m_context.get_id_tagged_sequence_step(),
   {pixel_lane_centers.at(current_lane.lane_id()),
       pixel_lane_centers.at(current_lane.lane_id() + current_tray.get_lane_count())});
 
+    std::transform(lane_bounds.front().begin(), lane_bounds.front().end(), std::back_inserter(lane_result.m_roi_points),
+                   [&](cv::Point2f pix) { return std::array<float, 2>{pix.y, pix.x}; });
 
   return std::make_tuple(lane_result, center_line_objs, tongue_detections);
 }
@@ -859,13 +901,11 @@ high_tongue_mask=131 255 255
 // TODO break out as free function
 // TODO move to caller
 std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
-    const std::vector<TrayLane> &tray_lanes,
-    const PixelPointConverter &local_pix2pt,
-    const Eigen::Matrix3Xd &lane_center_coordinates,
-    float max_item_width,
-    const std::string &pkid)
+                                                                  const std::vector<std::vector<cv::Point2i>>& lane_bounds,
+                                                                  const std::vector<TrayLane> &tray_lanes,
+                                                                  const std::string &pkid)
 {
-    std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, max_item_width);
+    //std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, max_item_width);
     std::vector<bool> tongue_check_res; tongue_check_res.reserve(tray_lanes.size());
     float bead_mask_rate_limit = this->tray_config_section.get_value( "bead_tongue_color_limit", 0.08f);
     //todo add check for 13 lane
@@ -898,4 +938,6 @@ void TrayAlgorithm::load_eigen_matrix(Eigen::Matrix3Xd &matrix, const std::strin
   std::stringstream matrix_string; matrix_string << matrix;
   Logger::Instance()->Trace("Loading the {} matrix:\n{}", section, matrix_string.str());
 }
+
+
 

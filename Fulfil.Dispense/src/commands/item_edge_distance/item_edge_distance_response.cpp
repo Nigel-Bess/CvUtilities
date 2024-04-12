@@ -3,53 +3,33 @@
 //
 
 #include "Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h"
-#include <cmath>
 #include <json.hpp>
 #include <iostream>
+#include <utility>
 
-using fulfil::dispense::tray::TrayResult;
 using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::utils::Logger;
 
 void ItemEdgeDistanceResponse::encode_payload()
 {
-  std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
-  if(this->success_code != 0)
-  {
-    (*result_json)["Error"] = 0;
-    (*result_json)["Errors"] = {success_code};
-    (*result_json)["First_Item_Distance"] = -1;
-    (*result_json)["Lanes"] = nlohmann::json::array({});
-
-    std::string final_string = result_json->dump();
-    Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", final_string);
-    this->payload = std::make_shared<std::string>(final_string);
-  }
-  else
-  {
-    if (this->tray_result != nullptr) {
-      result_json = this->tray_result->encode_all();
-    }
-    (*result_json)["Error"] = 0;
-    (*result_json)["First_Item_Distance"] = this->tray_result->get_first_item_edge_distance();
-
-    std::string final_string = this->tray_result->encode_all()->dump();
-    Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", final_string);
-    this->payload = std::make_shared<std::string>(final_string);
-  }
+  nlohmann::json result_json(count_result);
+  result_json["Error"] = 0;
+  result_json["Errors"] = {success_code};
+  result_json["First_Item_Distance"] = this->fed_result;
+  result_json["First_Item_Length"] = this->detected_item_length;
+  result_json["Centers"] = this->transformed_lane_center_pixels;
+  this->payload = std::make_shared<std::string>(result_json);
+  Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", *this->payload);
 }
 
 ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code)
 {
   this->success_code = success_code;
   this->command_id = command_id;
-}
+  this->transformed_lane_center_pixels = std::vector<tray_count_api_comms::LaneCenterLine> {};
+  this->count_result = results_to_vlsg::TrayValidationCounts{};
 
-ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<TrayResult> tray_result)
-{
-  this->success_code = tray_result->success_code;
-  this->command_id = command_id;
-  this->tray_result = tray_result;
+
 }
 
 std::shared_ptr<std::string> ItemEdgeDistanceResponse::get_command_id()
@@ -73,6 +53,18 @@ std::shared_ptr<std::string> ItemEdgeDistanceResponse::dispense_payload()
     this->encode_payload();
   }
   return this->payload;
+}
+
+ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
+        std::vector<tray_count_api_comms::LaneCenterLine> transformed_pixel_centers,
+        int fed_result, int cv_detected_item_length,
+        results_to_vlsg::TrayValidationCounts lane_count_result,
+        std::shared_ptr<std::string> command_id, int success_code) :
+        command_id{std::move(command_id)},  transformed_lane_center_pixels{std::move(transformed_pixel_centers)}, count_result{std::move(lane_count_result)},
+        fed_result{fed_result}, detected_item_length{cv_detected_item_length}, success_code{success_code} {}
+
+int fulfil::dispense::commands::ItemEdgeDistanceResponse::get_fed_value() const {
+    return fed_result;
 }
 
 

@@ -452,6 +452,7 @@ namespace results_to_vlsg {
         std::vector<int> m_errors {0};
         float m_first_item_distance{-1};// should be float?
         float m_first_item_length{0};// should be float?
+        std::vector<std::array<float, 2>> m_roi_points{};
         BoundaryLimit m_range_fn {};
         static nlohmann::json& to_tray_format_json(nlohmann::json& fed_res_json);
         [[nodiscard]] dimensional_info::LaneIndex get_lane_id() const;
@@ -513,6 +514,7 @@ namespace results_to_vlsg {
         constexpr int unknown_fed_failure_code = 5;
         j["First_Item_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_distance);
         j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0.0F);
+        j["Lane_ROI"] = item_distance_res.m_roi_points;
         j["Errors"] = (item_distance_res.m_index < 0) ? nlohmann::json::array({ unknown_fed_failure_code })
                                                       : json_parser::mongo_utils::format_obj_error_list_to_json_array(item_distance_res.m_errors);
         j.update(item_distance_res.m_index); // will there be an implicit conversion?
@@ -526,6 +528,8 @@ namespace results_to_vlsg {
         item_distance_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         item_distance_res.m_first_item_distance = item_distance_res.m_range_fn.clip(j.value("First_Item_Distance", -1));
         item_distance_res.m_first_item_length = j.value("First_Item_Length", 0);
+        item_distance_res.m_roi_points = j.value("Lane_ROI", std::vector<std::array<float, 2>>{});
+
     }
 
     template<typename BasicJsonType>

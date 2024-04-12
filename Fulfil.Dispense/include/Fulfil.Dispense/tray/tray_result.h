@@ -53,8 +53,12 @@ namespace fulfil::dispense::tray{
         TrayResult(std::shared_ptr<nlohmann::json> count_result,
                    std::shared_ptr<std::string> request_id, int error_code = 0);
 
+        TrayResult(std::vector<tray_count_api_comms::LaneCenterLine> transformed_pixel_centers,
+                   std::shared_ptr<nlohmann::json> count_result, int fed_result, int cv_detected_item_length,
+                   std::shared_ptr<std::string> request_id, int error_code);
+
         TrayResult(std::shared_ptr<nlohmann::json> count_result, int fed_result, int cv_detected_item_length,
-                   std::shared_ptr<std::string> request_id, int error_code = 0);
+                   std::shared_ptr<std::string> request_id, int error_code);
 
         std::shared_ptr<nlohmann::json> encode_all();
 
@@ -64,6 +68,7 @@ namespace fulfil::dispense::tray{
         int fed_result{-1};
         int detected_item_length{-1};
         std::shared_ptr<nlohmann::json> count_result;
+        std::vector<tray_count_api_comms::LaneCenterLine> transformed_lane_center_pixels{};
 
         /**
          * The id of the request.

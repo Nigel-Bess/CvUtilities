@@ -636,6 +636,23 @@ void DispenseManager::handle_stop_request(std::shared_ptr<std::string> command_i
     this->processing_queue->purge_queue(predicate);
 }
 
+results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_ptr<fulfil::dispense::tray::TrayManager>& tray_manager,
+                            std::string& saved_images_base_directory, const request_from_vlsg::TrayRequest& tray_req,
+                            std::vector<tray_count_api_comms::LaneCenterLine>& center_pixels, std::vector<bool>& tongue_detections){
+    if (center_pixels.empty()) { return results_to_vlsg::TrayValidationCounts{}; }
+    try {
+        results_to_vlsg::TrayValidationCounts count_response = tray_manager->dispatch_request_to_count_api(tray_req,
+                                                                                                           center_pixels, saved_images_base_directory);
+        count_response.update_lane_tongue_detections(tongue_detections);
+        Logger::Instance()->Trace("Return body from {} count api query:\n\t{}.", tray_req.get_sequence_step(),
+                                  nlohmann::json(count_response).dump());
+        return count_response;
+    } catch(const std::exception & e) {
+        Logger::Instance()->Error("Issue getting count response for {} Request: \n\t{}",  tray_req.get_sequence_step(), e.what());
+        return results_to_vlsg::TrayValidationCounts{};
+    }
+}
+
 
 //template<typename SaveFN, typename SendFN, typename RunFN>
 std::shared_ptr<ItemEdgeDistanceResponse>
@@ -645,14 +662,10 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_item_edge_distance for " + this->machine_name + " request " + single_lane_val_req.m_context.get_id_tagged_sequence_step());
     Logger::Instance()->Debug("Handling {} Dispense Lane Processing {} for Bay: {}", single_lane_val_req.get_sequence_step(), single_lane_val_req.get_primary_key_id(), this->machine_name);
-    
-    auto make_null_item_edge_result = [command_id]() { // by value since it's a fuckin ptr
-        return std::make_shared<ItemEdgeDistanceResponse>(command_id,std::make_shared<TrayResult>(TrayResult(
-            std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, -1, command_id)));
-    };
+
     if (!this->tray_session) {
         Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->machine_name);
-        return make_null_item_edge_result();
+        return std::make_shared<ItemEdgeDistanceResponse>(command_id, 12);
     }
 
     auto is_pre_dispense = single_lane_val_req.get_sequence_step().at(2) == 'e';
@@ -661,47 +674,45 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
         this->live_viewer->update_image( std::make_shared<cv::Mat>(this->tray_session->grab_color_frame()), image_code, single_lane_val_req.get_primary_key_id(), true);
     }
     auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
-
-    /** Save Data from generator */
-    DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
-      request_json, tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
-    auto save_data_fn = [&single_lane_tray_data_generator, seq_step=single_lane_val_req.get_sequence_step()]() {
-        single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
-    };
-
     IniSectionReader section_reader {*this->tray_config_reader, this->tray_dimension_type};
-    std::shared_ptr<TrayAlgorithm> tray_algorithm = std::make_shared<TrayAlgorithm>(section_reader);
+    //TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
     Tray tray = this->tray_manager->create_tray(single_lane_val_req.m_tray_recipe);
 
     /** run algorithms **/
-    auto dispatch_to_count_api = [&single_lane_val_req, &saved_images_base_directory, tm=tray_manager](auto center_pixels) {
-        return tm->dispatch_request_to_count_api(single_lane_val_req, center_pixels, saved_images_base_directory);
+    auto run_fed_processing = [&tray_cam=this->tray_session,
+            &section_reader, &tray](request_from_vlsg::TrayRequest& lane_req) {
+        try{
+            TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
+            return tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
+        } catch(const std::exception & e) {
+            return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
+                    results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
+        }
     };
 
-    auto do_all_tray_processing = [&](auto save_function, auto run_function) {
-      try {
-        save_function();
-        auto [fed_result, transformed_lane_center_pixels, tongue_detections] =
-            tray_algorithm->run_tray_algorithm(this->tray_session, single_lane_val_req, tray);
-        results_to_vlsg::TrayValidationCounts count_response = run_function(transformed_lane_center_pixels);
-        count_response.update_lane_tongue_detections(tongue_detections);
-        Logger::Instance()->Trace("Return body from Single Lane count api query:\n\t{}.", nlohmann::json(count_response).dump());
-        return TrayResult(std::make_shared<nlohmann::json>(count_response),
-                fed_result.m_first_item_distance, fed_result.m_first_item_length,
-                command_id);
-      } catch(const std::exception & e) {
-        Logger::Instance()->Error("Issue saving or uploading data from Item Edge Request: \n\t{}", e.what());
-      }
-      Logger::Instance()->Info("Sending nominal response in Single Lane Request");
-      return TrayResult(std::make_shared<nlohmann::json>(results_to_vlsg::TrayValidationCounts{}), -1, 0, command_id);
+    auto do_all_tray_processing = [&tm=tray_manager, &single_lane_val_req,
+                                   &command_id, &saved_images_base_directory](auto fed_process) {
+        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = fed_process(single_lane_val_req);
+        //results_to_vlsg::TrayValidationCounts count_response = count_dispatch(single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
+        results_to_vlsg::TrayValidationCounts count_response = dispatch_to_count_api(tm, saved_images_base_directory,
+                                                                  single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
+        return ItemEdgeDistanceResponse(transformed_lane_center_pixels,
+                                        fed_result.m_first_item_distance, fed_result.m_first_item_length,
+                                        count_response, command_id, 0);
+
     };
 
     this->tray_session->refresh();
-    auto tray_result = std::make_shared<TrayResult>(do_all_tray_processing(save_data_fn, dispatch_to_count_api));
+    /** Save Data from generator */
+    DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
+            request_json, tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
+    single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
+
+    auto tray_result = std::make_shared<ItemEdgeDistanceResponse>(do_all_tray_processing(run_fed_processing));
 
     Logger::Instance()->Info("Finished handling Single Lane Dispense command. Result: "
-                              "Bay: {} PKID: {} Distance {}", this->machine_name, single_lane_val_req.get_primary_key_id(), tray_result->fed_result);
-    return std::make_shared<ItemEdgeDistanceResponse>(command_id, tray_result);
+                              "Bay: {} PKID: {} Distance {}", this->machine_name, single_lane_val_req.get_primary_key_id(), tray_result->get_fed_value());
+    return  tray_result;
 }
 
 

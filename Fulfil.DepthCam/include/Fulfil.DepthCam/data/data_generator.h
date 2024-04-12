@@ -29,12 +29,14 @@ class DataGenerator
   std::shared_ptr<std::string> destination_directory;
   std::shared_ptr<nlohmann::json> request_json;
   int frames_per_sample;
+  bool disable_save_call{false};
   void save_frame_information(std::shared_ptr<std::string> frame_directory);
   void save_color_data(std::shared_ptr<std::string> filename);
   void save_aligned_depth_data(std::shared_ptr<std::string> filename);
   void save_raw_depth_data(std::shared_ptr<std::string> filename);
   void save_point_cloud(std::shared_ptr<std::string> filename);
   void save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write);
+  bool do_session_save(std::string frame_directory );
 
 
 public:
@@ -42,18 +44,20 @@ public:
    * Constructor
    * @param session the session which will be used to generate the data to save.
    */
-  DataGenerator(std::shared_ptr<Session> session,
+  DataGenerator(std::shared_ptr<Session> session_to_save,
                 std::shared_ptr<std::string> image_path_out,
                 std::shared_ptr<std::string> path,
-                std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>());
+                std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(),
+                bool cancel_save_requests=false);
 
     /**
    * Constructor
    * @param session the session which will be used to generate the data to save.
    */
-    DataGenerator(std::shared_ptr<Session> session,
+    DataGenerator(std::shared_ptr<Session> session_to_save,
                   std::shared_ptr<std::string> image_path_out,
-                  std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>());
+                  std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(),
+                  bool cancel_save_requests=false);
 
   /**
    * Saves the given number of samples from the stored session in the destination directory
@@ -61,7 +65,7 @@ public:
    * (this directory should be one that does not exist already).
    * @param num_samples the number of samples that will be taken.
    */
-  void save_data(std::shared_ptr<std::string> file_prefix);
+  void save_data(const std::shared_ptr<std::string>& file_prefix);
   void save_data(const std::string& file_prefix);
 
   void save_data();
@@ -69,9 +73,9 @@ public:
   /**
    *
    * Saves reduces size frames to local disk for duration seconds at frequency fps
-   *
+   * void save_many_frames(int seconds, int fps);
    */
-  void save_many_frames(int seconds, int fps);
+
 };
 }  // namespace mocks
 }  // namespace core
