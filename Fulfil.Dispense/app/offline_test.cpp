@@ -137,10 +137,16 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 //    Logger::Instance()->Info("Bag state JSON: ", content);
 
 //    nlohmann::json bag_state_json = nlohmann::json::parse(content.c_str());
-    Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
+//      nlohmann::json empty = nlohmann::json({});
+
+//      *bag_state_json = bag_state_json->value("Bag_State", empty);
+      //    Logger::Instance()->Info("Bag state JSON: ", content);
+//      Logger::Instance()->Debug("JSON contents is: {}", bag_state_json->dump());
+
+
+      Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
     Logger::Instance()->Debug("BagId string is: {}", (*bag_state_json)["BagId"].get<std::string>());
 //    Logger::Instance()->Debug("MongoID string is: {}", (*bag_state_json)["MongoID"].get<std::string>());
-//    nlohmann::json empty = nlohmann::json({});
 //    (*bag_state_json)["LfbConfig"] = empty;
 //    Logger::Instance()->Debug("LfbConfig string is: {}", std::string((*bag_state_json)));
 

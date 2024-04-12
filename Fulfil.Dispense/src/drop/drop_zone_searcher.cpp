@@ -780,15 +780,15 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
   float average_diff = best_target_region->average_depth - current_target_region->average_depth;
   float variance_diff = best_target_region->variance_depth - current_target_region->variance_depth;
   float range_diff = best_target_region->range_depth - current_target_region->range_depth;
-  float distance_to_max_LFB_Z_diff = best_target_region->distance_to_max_LFB_Z - current_target_region->distance_to_max_LFB_Z;
+  float distance_to_max_LFB_Z_diff = best_target_region->distance_to_max_LFB_Z - current_target_region->distance_to_max_LFB_Z;range_diff
 
-  bool significant_variance_regression = variance_diff < this->significant_variance_regression;
+  bool significant_variance_regression = variance_diff < this->significant_variance_regression;range_diff
   bool moderate_variance_regression = variance_diff < this->moderate_variance_regression;
-  bool moderate_variance_improvement = variance_diff > this->moderate_variance_improvement;
+  bool moderate_variance_improvement = variance_diff > this->moderate_variance_improvement;range_diff
   bool significant_variance_improvement = variance_diff > this->significant_variance_improvement;
 
-  bool crazy_depth_regression = (average_diff < this->crazy_depth_regression);
-  bool significant_depth_regression = (average_diff < this->significant_depth_regression); // significantly worse depth
+  bool crazy_depth_regression = (average_diff < this->crazy_depth_regression);range_diff
+  bool significant_depth_regression = (average_diff < this->significant_depth_regression); // significantly worse depthrange_diff
   bool equivalent_depth = (average_diff > this->equivalent_depth); // equivalent or better average depth
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
@@ -1331,7 +1331,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   /**
   *  Check initial container point cloud for bag-too-full for any item condition --> should be sent directly to pickup
-  */
+  *
 
   float avg_detected_depth = initial_local_data->rowwise().mean()[2];
   float bag_full_threshold_meters = lfb_vision_config->bag_full_threshold_meters;
@@ -1437,8 +1437,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   std::shared_ptr<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>> pixel_depth_data = point_cloud->as_pixel_cloud()->get_data_with_depth();
   Logger::Instance()->Trace("temporary debug: get filtered point cloud");
   std::shared_ptr<LocalPointCloud> filtered_point_cloud = point_cloud->as_pixel_cloud()->new_point_cloud(pixel_depth_data)->as_local_cloud();
-
-  if(this->visualize) session_visualizer4->display_image(session_visualizer4->display_points_with_depth_coloring(point_cloud));
+// issue HERE
+  if(this->visualize) session_visualizer4->display_image(session_visualizer4->display_points_with_depth_coloring(filtered_point_cloud));
 
 
   /**

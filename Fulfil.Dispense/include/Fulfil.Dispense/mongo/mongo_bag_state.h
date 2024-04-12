@@ -32,7 +32,7 @@ class CvBagState final
             std::cout << "In CvBagState constructor" << std::endl;
             _bag_id_string = json["BagId"].get<std::string>();
             // for offline test compatibility - the key is MongoID in prod but _id in offline data
-            _id_string = json.value("Primary_Key_ID", "NOT FOUND");
+            _id_string = json.value("MongoID", "NOT FOUND");
             if (_id_string == "NOT FOUND") {
                 _id_string = json["_id"].get<std::string>();
             }
