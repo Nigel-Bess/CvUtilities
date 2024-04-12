@@ -12,12 +12,17 @@ using fulfil::utils::Logger;
 
 void ItemEdgeDistanceResponse::encode_payload()
 {
-  nlohmann::json result_json(count_result);
+
+  nlohmann::json result_json(lane_distance_info);
+  result_json.update(nlohmann::json(count_result));
   result_json["Error"] = 0;
-  result_json["Errors"] = {success_code};
-  result_json["First_Item_Distance"] = this->fed_result;
-  result_json["First_Item_Length"] = this->detected_item_length;
-  result_json["Centers"] = this->transformed_lane_center_pixels;
+  if (success_code < 0) {
+      result_json["Errors"] = {success_code};
+  }
+  //result_json["First_Item_Distance"] = this->fed_result;
+  //result_json["First_Item_Length"] = this->detected_item_length;
+  //result_json["Centers"] = this->transformed_lane_center_pixels;
+
   this->payload = std::make_shared<std::string>(result_json);
   Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", *this->payload);
 }
@@ -26,7 +31,6 @@ ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> 
 {
   this->success_code = success_code;
   this->command_id = command_id;
-  this->transformed_lane_center_pixels = std::vector<tray_count_api_comms::LaneCenterLine> {};
   this->count_result = results_to_vlsg::TrayValidationCounts{};
 
 
@@ -60,11 +64,16 @@ ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
         int fed_result, int cv_detected_item_length,
         results_to_vlsg::TrayValidationCounts lane_count_result,
         std::shared_ptr<std::string> command_id, int success_code) :
-        command_id{std::move(command_id)},  transformed_lane_center_pixels{std::move(transformed_pixel_centers)}, count_result{std::move(lane_count_result)},
-        fed_result{fed_result}, detected_item_length{cv_detected_item_length}, success_code{success_code} {}
+        command_id{std::move(command_id)}, count_result{std::move(lane_count_result)},
+        lane_distance_info(success_code, fed_result, cv_detected_item_length), success_code{success_code} {}
 
 int fulfil::dispense::commands::ItemEdgeDistanceResponse::get_fed_value() const {
-    return fed_result;
+    return lane_distance_info.m_first_item_distance;
 }
+
+fulfil::dispense::commands::ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
+        results_to_vlsg::LaneItemDistance lane_item_distance, results_to_vlsg::TrayValidationCounts lane_count_result,
+        std::shared_ptr<std::string> command_id) :
+        command_id{std::move(command_id)}, count_result(std::move(lane_count_result)), lane_distance_info(lane_item_distance) {}
 
 

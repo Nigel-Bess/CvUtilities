@@ -25,18 +25,16 @@ namespace fulfil::dispense::commands
                 /**
                  *  success_code = 0 if successful, > 0 if there was an error
                  */
-                int success_code {5};
+                int success_code {0};
 
                 /**
                  * The payload to be sent in response to the request
                  */
                 std::shared_ptr<std::string> payload;
 
-                int fed_result{-1};
-                int detected_item_length{-1};
 
-                std::vector<tray_count_api_comms::LaneCenterLine> transformed_lane_center_pixels{};
                 results_to_vlsg::TrayValidationCounts count_result{};
+                results_to_vlsg::LaneItemDistance lane_distance_info{};
                 /**
                  * Encodes the payload in the payload string variable on this object.
                  */
