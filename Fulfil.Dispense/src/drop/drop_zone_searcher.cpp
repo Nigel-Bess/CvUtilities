@@ -1559,11 +1559,16 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     //See if nominal bot rotation will allow for dispense to the given candidate target or if pirouette is needed
     // TODO: default is to always dispense in nominal orientation if possible. This is potentially sub-optimal
     bool must_rotate_from_nominal_to_reach_candidate = false;
+    // if bot is already rotated and rotation isn't allowed again
     if( (bot_is_rotated && !this->LFB_rotation_allowed) ||
+        // if there's an extend collision risk detected in the front of the bot
         front_no_viable_targets ||
-        (front_left_no_viable_targets && current_point.x < 0) ||
-        (front_right_no_viable_targets && current_point.x > 0) ||
+        // if the tongue will reach into the quadrant with an extend collision risk detected
+        (front_left_no_viable_targets && (current_point.x - details->tongue_width/2) < 0) ||
+        (front_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
+        // if the target is on the far side of the bot (back side)
         (current_point.y < this->rotation_limit_line) ||
+        // if the target is beyond the width limitations of this dispense
         (current_point.x > (LFB_width/2 - ((float)details->limit_right)/1000) ) ||
         (current_point.x < (-LFB_width/2 + ((float)details->limit_left)/1000) ))
       must_rotate_from_nominal_to_reach_candidate = true; //candidate is not viable when in nominal orientation
@@ -1572,8 +1577,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       candidates_that_require_rotation++;
       if ( (!bot_is_rotated && !this->LFB_rotation_allowed) ||
            back_no_viable_targets ||
-           (back_left_no_viable_targets && current_point.x < 0) ||
-           (back_right_no_viable_targets && current_point.x > 0) ||
+           (back_left_no_viable_targets && (current_point.x - details->tongue_width/2) < 0) ||
+           (back_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
            (current_point.y > (-1.0 * this->rotation_limit_line)) ||
            (-1.0 * current_point.x > (LFB_width / 2 - ((float)details->limit_right) / 1000)) ||
            (-1.0 * current_point.x < (-LFB_width / 2 + ((float)details->limit_left) / 1000)))
