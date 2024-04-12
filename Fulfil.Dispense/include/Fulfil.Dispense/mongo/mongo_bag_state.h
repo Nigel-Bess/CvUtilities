@@ -52,7 +52,8 @@ class CvBagState final{
         ff_mongo_cpp::mongo_objects::MongoObjectID MongoID;
         std::shared_ptr<fulfil::lfb::LfbConfig> Config;
 
-        std::string ToString(){
+        nlohmann::json ToJson()
+        {
             nlohmann::json json;
             json["BagId"] = _bag_id_string;
             json["_id"] = _id_string;
@@ -63,8 +64,12 @@ class CvBagState final{
             json["PercentBagFull"] = PercentBagFull;
             json["PackingEfficiency"] = PackingEfficiency;
             json["NumberDamageRejections"] = NumberDamageRejections;
-            return nlohmann::to_string(json);
+            return json;
         }
+        std::string ToString(){
+            return nlohmann::to_string(this->ToJson());
+        }
+
         
     private:
         std::string _bag_id_string;
@@ -99,6 +104,8 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
   void set_item_map_arrays_from_mat(std::shared_ptr<std::vector<cv::Mat>> item_map_ptr);
 
   bsoncxx::document::value MakeWritableValue();
+  void UpdateRawMongoDocState();
+  nlohmann::json GetStateAsJson();
   std::string GetStateAsString();
 
   std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument> MakeNewMongoDocument(bsoncxx::document::view doc,
@@ -162,6 +169,7 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
 
   int parse_in_values(std::shared_ptr<CvBagState> doc);
  private:
+  bool raw_mongo_doc_has_been_updated = false;
 
   int num_rows;
   int num_cols;

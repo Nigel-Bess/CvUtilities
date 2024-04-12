@@ -6,22 +6,17 @@
  * This file contains the implementation for generating data
  * from sessions for saving
  */
-#include "Fulfil.DepthCam/data/data_generator.h"
-#include "../coders/matrix3xd_coder.h"
-#include <Fulfil.CPPUtils/file_system_util.h>
-#include <opencv2/opencv.hpp>
 #include <fstream>
-#include <Fulfil.DepthCam/core/transform_depth_session.h>
-#include "../coders/extrinsics_coder.h"
-#include "../coders/intrinsics_coder.h"
-#include <Fulfil.DepthCam/point_cloud.h>
-#include <ctime>
-#include <unistd.h>
-#include <thread>
 #include <json.hpp>
-#include <Fulfil.CPPUtils/timer.h>
+#include <thread>
+#include <opencv2/opencv.hpp>
+#include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
-
+#include <Fulfil.CPPUtils/timer.h>
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/data/data_generator.h"
+#include <Fulfil.DepthCam/core/transform_depth_session.h>
+#include <Fulfil.DepthCam/point_cloud.h>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::data::DataGenerator;
@@ -32,19 +27,15 @@ DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<s
         std::shared_ptr<std::string> path,
         std::shared_ptr<nlohmann::json> request_json)
 {
-
     this->session = session;
     this->destination_directory = std::make_shared<std::string>(*image_path_out);
     FileSystemUtil::join_append(this->destination_directory, *path);
-
-
     this->request_json = request_json;
 }
 
 DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
                              std::shared_ptr<nlohmann::json> request_json)
 {
-
   this->session = session;
   this->destination_directory = image_path_out;
   this->request_json = request_json;
@@ -117,6 +108,22 @@ void DataGenerator::save_data(const std::string& file_prefix) {
     save_data(std::make_shared<std::string> (file_prefix));
 }
 
+void DataGenerator::save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write)
+{
+    if (json_to_write.is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
+    {
+        std::string json_file_name_prefix = dest_file_name.substr(0,dest_file_name.length()-5);
+        Logger::Instance()->Debug("No {} is available, json file will not be saved along with data generation", json_file_name_prefix);
+    }
+    else  //save json request to file for use later
+    {
+        std::string json_file_name = std::string(dest_directory_name);
+        FileSystemUtil::join_append(json_file_name, dest_file_name);
+        Logger::Instance()->Trace("JSON file saving to {}", json_file_name);
+        std::ofstream file(json_file_name);
+        file << json_to_write;
+    }
+}
 
 void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
 {
@@ -132,19 +139,7 @@ void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
     }
 
     Logger::Instance()->Trace("Saving DataGenerator data at {} ", *frame_directory);
-    if (this->request_json->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
-    {
-      Logger::Instance()->Debug("No request_json is available, json file will not be saved along with data generation");
-    }
-    else  //save json request to file for use later
-    {
-      std::string json_file_name = *frame_directory;
-      FileSystemUtil::join_append(json_file_name, "json_request.json");
-
-      Logger::Instance()->Trace("JSon file saving to {}", json_file_name);
-      std::ofstream file(json_file_name);
-      file << *this->request_json;
-    }
+    this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
   }
   catch (...) {
@@ -165,19 +160,7 @@ void DataGenerator::save_data()
     }
 
     Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
-    if (this->request_json->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
-    {
-      Logger::Instance()->Debug("No request_json is available, json file will not be saved along with data generation");
-    }
-    else  //save json request to file for use later
-    {
-      std::string json_file_name = *frame_directory;
-      FileSystemUtil::join_append(json_file_name, "json_request.json");
-
-      Logger::Instance()->Trace("JSon file saving to {}", json_file_name);
-      std::ofstream file(json_file_name);
-      file << *this->request_json;
-    }
+    this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
   }
   catch (...) {
