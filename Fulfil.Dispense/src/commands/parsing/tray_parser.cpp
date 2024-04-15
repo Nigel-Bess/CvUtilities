@@ -280,6 +280,18 @@ namespace tray_count_api_comms {
               m_ymin{ymin}, m_class_idx{classIdx}, m_error{error}
     {}
 
+    LaneImageRegion::LaneImageRegion(std::vector<cv::Point2i> roi, float yscale, float xscale)
+    : m_yscale(yscale), m_xscale(xscale){
+        if (roi.size() == 4) {
+            for (int i = 0 ; i < 4; i++) {
+                vertices[2*i] = roi[i].y/m_yscale;
+                vertices[2*i + 1] = roi[i].x/m_xscale;
+            }
+        } else {
+            m_yscale = m_xscale = 0;
+        }
+
+    }
 }// namespace tray_count_api_comms
 
 

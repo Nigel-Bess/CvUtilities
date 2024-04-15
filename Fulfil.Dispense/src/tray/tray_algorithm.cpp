@@ -877,11 +877,14 @@ tray_vlsg_request.m_context.get_id_tagged_sequence_step(),
   {pixel_lane_centers.at(current_lane.lane_id()),
       pixel_lane_centers.at(current_lane.lane_id() + current_tray.get_lane_count())});
 
-    std::transform(lane_bounds.front().begin(), lane_bounds.front().end(), std::back_inserter(lane_result.m_roi_points),
-                   [&](cv::Point2f pix) { return std::array<float, 2>{pix.y, pix.x}; });
+    lane_result.m_roi_points = tray_count_api_comms::LaneImageRegion(lane_bounds[0], 720.0F, 1280.0F);
+    /*std::transform(lane_bounds.front().begin(), lane_bounds.front().end(), std::back_inserter(lane_result.m_roi_points),
+                   [&](cv::Point2f pix) { return std::array<float, 2>{pix.y, pix.x}; });*/
 
   return std::make_tuple(lane_result, center_line_objs, tongue_detections);
 }
+
+
 
 
 
