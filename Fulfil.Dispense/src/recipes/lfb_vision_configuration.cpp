@@ -22,12 +22,12 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
 
     // metadata
     mongo_id{input_json->value("MongoID", std::string("999999999999999999999999"))},
-    lfb_generation{input_json->value("LfbGeneration", lfb_generation)},
+    lfb_generation{input_json->value("LfbGeneration", "LFB-3.1")},
 
     // physical dimensions
-    LFB_width{input_json->value("LfbWidthMeters", LFB_width)},
-    LFB_length{input_json->value("LfbLengthMeters", LFB_length)},
-    LFB_bag_width{input_json->value("LfbBagWidthMeters",   LFB_bag_width)},
+    LFB_width{input_json->value("LfbWidthMeters", 0.53F)},
+    LFB_length{input_json->value("LfbLengthMeters", 0.4F)},
+    LFB_bag_width{input_json->value("LfbBagWidthMeters",   0.45F)},
     LFB_bag_length{input_json->value("LfbBagLengthMeters", (float)0.32)},
     LFB_cavity_height{input_json->value("LfbCavityHeightMeters", (float)0.30)},
     container_width{input_json->value("ContainerWidthMeters", (float)0.43)},
@@ -59,8 +59,8 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     item_protrusion_detection_threshold{input_json->value("ItemProtrusionDetectionThresholdMeters", 0.005F)},
     depth_points_above_threshold_to_count_as_item_protruding{input_json->value("DepthPointsAboveThresholdToCountAsItemProtruding", 5)},
     amount_of_max_depth_points_to_track_for_noise_filtering{input_json->value("AmountOfMaxDepthPointsToTrackForNoiseFiltering", 8)},
-    threshold_depth_difference_to_validate_max_z{input_json->value("ThresholdDepthDifferenceToValidateMaxZMeters", threshold_depth_difference_to_validate_max_z)},
-    num_points_required_within_valid_distance_to_validate_max_z{input_json->value("NumPointsRequiredWithinValidDistanceToValidateMaxZ", num_points_required_within_valid_distance_to_validate_max_z)},
+    threshold_depth_difference_to_validate_max_z{input_json->value("ThresholdDepthDifferenceToValidateMaxZMeters", 0.003F)},
+    num_points_required_within_valid_distance_to_validate_max_z{input_json->value("NumPointsRequiredWithinValidDistanceToValidateMaxZ", 5)},
 
     // physical marker variables
     num_markers{input_json->value("NumMarkers", 8)}, // TODO - this isn't fully configurable just by changing this
@@ -89,14 +89,14 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     num_cols_in_drop_depth_grid{input_json->value("NumColumnsInDropDepthGrid", 15)},
 
     // Drop Grid and Mongo Bag State
-    grid_rows{input_json->value("GridRows", grid_rows)},
-    grid_cols{input_json->value("GridCols", grid_cols)},
-    grid_channels{input_json->value("GridChannels", grid_channels)}, // TODO Should this be the same as damage_layers_to_include? also this var seems super under-utilized in general
-    max_num_depth_detections{input_json->value("MaxNumberOfDepthDetections", max_num_depth_detections)},
+    grid_rows{input_json->value("GridRows", 8)},
+    grid_cols{input_json->value("GridCols", 6)},
+    grid_channels{input_json->value("GridChannels", 3)}, // TODO Should this be the same as damage_layers_to_include? also this var seems super under-utilized in general
+    max_num_depth_detections{input_json->value("MaxNumberOfDepthDetections", 1250)},
 
     // drop target damage risk assessment
-    avoid_metal_on_metal{input_json->value("AvoidMetalOnMetal", avoid_metal_on_metal)},
-    max_allowable_damage_rejections{input_json->value("MaxAllowableDamageRejections", max_allowable_damage_rejections)},
+    avoid_metal_on_metal{input_json->value("AvoidMetalOnMetal", true)},
+    max_allowable_damage_rejections{input_json->value("MaxAllowableDamageRejections", 2)},
     mass_threshold_extra_fragile{input_json->value("MassThresholdExtraFragileGrams", (float)150.0)},
     damage_buffer_width{input_json->value("DamageBufferWidth", 1)}, // TODO is int?
     damage_buffer_length{input_json->value("DamageBufferLength", 0.0F)}, // TODO is float?

@@ -120,7 +120,6 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 //                        (std::istreambuf_iterator<char>()));
 //    Logger::Instance()->Debug("Request JSON content is: {}", req_content);
 //    std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(req_content.c_str()));
-    Logger::Instance()->Debug("Request JSON is: {}", *request_json);
 
 //      std::ifstream ifs("LFB3_bag_state_default.json");
 
