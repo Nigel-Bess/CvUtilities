@@ -2,7 +2,7 @@
 // Created by nkaffine on 12/18/19.
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
-#include "../libs/Fulfil.CPPUtils/src/comm/SbcClient.h"
+#include <Fulfil.CPPUtils/comm/SbcClient.h>
 #include <Fulfil.CPPUtils/networking.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
