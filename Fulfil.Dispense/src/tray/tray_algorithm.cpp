@@ -558,14 +558,13 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     cv::Mat tongue_color_mask)
 {
   initialize_visualizers(session);
+  bool tvr_request = (tray_vlsg_request.m_context.m_request_type == 5);
 
   std::string config_prefix = *(session)->get_serial_number() + tray_vlsg_request.m_context.get_calibration_mode_key();
   Eigen::Affine3d camera_to_mm_transform = create_camera_to_local_transform(config_prefix);
   PixelPointConverter local_pix2pt = PixelPointConverter(session, std::make_shared<Eigen::Affine3d>(camera_to_mm_transform), 10);
 
       // get lane spatial info
-    bool tvr_request = (tray_vlsg_request.m_context.m_request_type == 5);
-
   Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
   std::vector<cv::Point2i> pixel_centers = [&]() {
     if (tvr_request) {
@@ -574,6 +573,9 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     return this->get_all_lane_center_pixels(local_pix2pt, lane_center_coordinates, tray_lanes,current_tray.get_lane_count());
   }();
   if (!tvr_request) {
+    std::vector<int> indices_of_interest; indices_of_interest.reserve(tray_lanes.size()*2);
+    auto lane_indices = std::transform (tray_lanes.cbegin(), tray_lanes.cend(), std::back_inserter(indices_of_interest),
+        [&] (const TrayLane lane) { return lane.lane_id();});
     Eigen::Matrix3Xd single_lane(3, 2);
     for (auto current_lane : tray_lanes) {// iterate over lanes instead
       single_lane << lane_center_coordinates.col(current_lane.lane_id()),
@@ -583,13 +585,11 @@ std::tuple<std::vector<cv::Point2i>, std::vector<bool>> TrayAlgorithm::get_tongu
     }
     lane_center_coordinates = single_lane;
   }
-
-  std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
-
   std::vector<bool> tongue_in_lane = validate_tongues_in_lane_on_tray(tongue_color_mask,
-                                                                      lane_bounds,
-                                                                      tray_lanes,
-                                                                      tray_vlsg_request.get_primary_key_id());
+      tray_lanes,
+      local_pix2pt,
+      lane_center_coordinates,
+      current_tray.get_max_item_width(), tray_vlsg_request.get_primary_key_id());
   return {pixel_centers, tongue_in_lane};
 
 }
@@ -813,16 +813,20 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   cv::Mat tongue_color_mask = make_tongue_color_selection(*session->get_color_mat());
   filterUtils::filter_out_selection( tongue_color_mask, safe_distance_selection);
 
-  // evaluate tongues
+    auto [pixel_lane_centers, tongue_detections] =
+            get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
+
+
+    // evaluate tongues
   //auto [pixel_lane_centers, tongue_detections] =
   //    get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
     Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
     std::cout << "LANE CENTERS 1:\n" << lane_center_coordinates << '\n';
-    auto pixel_lane_centers =  get_center_pixels(local_pix2pt, tray_lanes, current_tray, lane_center_coordinates);
+    pixel_lane_centers =  get_center_pixels(local_pix2pt, tray_lanes, current_tray, lane_center_coordinates);
     std::cout << "LANE CENTERS 2:\n" << lane_center_coordinates << '\n';
     std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
 
-    std::vector<bool> tongue_detections = validate_tongues_in_lane_on_tray(tongue_color_mask, lane_bounds, tray_lanes, tray_vlsg_request.get_primary_key_id());
+    tongue_detections = validate_tongues_in_lane_on_tray(tongue_color_mask, lane_bounds, tray_lanes, tray_vlsg_request.get_primary_key_id());
 
   // Create the lane center lines that will get sent to the count api
 
@@ -844,11 +848,7 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
     smooth_selection(tongue_color_mask, true); // or flip this up
 
   // TODO test over the local aligned frame directly instead
-  Logger::Instance()->Info("Pre Mask: The depth frame as {} valid points and the mask has {}",
-                           cv::cuda::countNonZero(*(session->get_depth_mat())), cv::cuda::countNonZero(tongue_color_mask));
-  filterUtils::filter_out_selection(*(session->get_depth_mat()), tongue_color_mask); //defaults to aligned = true
-  Logger::Instance()->Info("Post Mask: The depth frame as {} valid points",
-                             cv::cuda::countNonZero(*(session->get_depth_mat())));
+  filterUtils::filter_out_selection(*(session->get_depth_mat()), tongue_color_mask);
   cv::LineIterator lane_center_iterator = make_requested_center_iterator(
       pixel_lane_centers, current_lane.lane_id(), current_tray.get_lane_count());
 
@@ -933,6 +933,26 @@ std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat 
     return tongue_check_res;
 }
 
+
+std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
+                                                                  const std::vector<TrayLane> &tray_lanes,
+                                                                  const PixelPointConverter &local_pix2pt,
+                                                                  const Eigen::Matrix3Xd &lane_center_coordinates,
+                                                                  float max_item_width,
+                                                                  const std::string &pkid)
+{
+    std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, max_item_width);
+    std::vector<bool> tongue_check_res; tongue_check_res.reserve(tray_lanes.size());
+    float bead_mask_rate_limit = this->tray_config_section.get_value( "bead_tongue_color_limit", 0.08f);
+    //todo add check for 13 lane
+    std::transform(tray_lanes.cbegin(), tray_lanes.cend(), lane_bounds.cbegin(),
+                   std::back_inserter(tongue_check_res), [&]
+                           (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) {
+                Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead");
+                return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
+            });
+    return tongue_check_res;
+}
 
 
 void TrayAlgorithm::load_eigen_matrix(Eigen::Matrix3Xd &matrix, const std::string &section){

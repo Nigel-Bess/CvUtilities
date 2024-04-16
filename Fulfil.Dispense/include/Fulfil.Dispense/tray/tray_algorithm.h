@@ -201,7 +201,14 @@ class TrayAlgorithm
                                                       const std::vector<tray::TrayLane> &tray_lanes,
                                                       const std::string &pkid);
 
-   // Above calls below
+    std::vector<bool> validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
+                                     const std::vector<tray::TrayLane> &tray_lanes,
+                                     const depthcam::PixelPointConverter &local_pix2pt,
+                                     const Eigen::Matrix3Xd &lane_center_coordinates,
+                                     float max_item_width,
+                                     const std::string &pkid);
+
+    // Above calls below
    bool check_roi_for_tongue(const cv::Mat &tongue_color_mask,
        const std::vector<cv::Point2i> &roi_vertices,
        bool has_tongue,
