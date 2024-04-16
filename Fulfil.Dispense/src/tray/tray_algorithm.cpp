@@ -817,7 +817,9 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   //auto [pixel_lane_centers, tongue_detections] =
   //    get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
     Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
+    std::cout << "LANE CENTERS 1:\n" << lane_center_coordinates << '\n';
     auto pixel_lane_centers =  get_center_pixels(local_pix2pt, tray_lanes, current_tray, lane_center_coordinates);
+    std::cout << "LANE CENTERS 2:\n" << lane_center_coordinates << '\n';
     std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
 
     std::vector<bool> tongue_detections = validate_tongues_in_lane_on_tray(tongue_color_mask, lane_bounds, tray_lanes, tray_vlsg_request.get_primary_key_id());
@@ -903,6 +905,14 @@ high_tongue_mask=131 255 255
  * */
 // TODO break out as free function
 // TODO move to caller
+std::string polygon_print(const std::vector<cv::Point2i>& lane_outline) {
+    std::stringstream printout; printout << "ROI vertices: ";
+    for (auto v: lane_outline) {
+        printout << "\n    (" << v.y << ", " << v.x <<")";
+    }
+    return printout.str();
+}
+
 std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
                                                                   const std::vector<std::vector<cv::Point2i>>& lane_bounds,
                                                                   const std::vector<TrayLane> &tray_lanes,
@@ -911,11 +921,13 @@ std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat 
     //std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, max_item_width);
     std::vector<bool> tongue_check_res; tongue_check_res.reserve(tray_lanes.size());
     float bead_mask_rate_limit = this->tray_config_section.get_value( "bead_tongue_color_limit", 0.08f);
+    Logger::Instance()->Debug("Analyzing {} lane ROIs and {} tray lanes", lane_bounds.size(), tray_lanes.size());
     //todo add check for 13 lane
     std::transform(tray_lanes.cbegin(), tray_lanes.cend(), lane_bounds.cbegin(),
                     std::back_inserter(tongue_check_res), [&]
                    (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) {
-          Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead");
+          Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}. {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead",
+                                    polygon_print(lane_outline));
            return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
     });
     return tongue_check_res;
