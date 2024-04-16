@@ -35,6 +35,10 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
    */
   int success_code;
   /**
+   * Description of the error code thrown. Will be empty string if code is success.
+   */
+  std::string error_description;
+  /**
    *  code for the amount of dispensed items detected in bag. Valid values: -1 (error), 0, or 1 (>= 0)
    * */
   int items_dispensed;

@@ -10,12 +10,12 @@
 #include "untranslated_point_cloud.h"
 #include "translated_point_cloud.h"
 #include <Fulfil.CPPUtils/file_system_util.h>
-#include "../coders/matrix3xd_coder.h"
-#include "../coders/affine3d_coder.h"
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
+#include "Fulfil.DepthCam/coders/affine3d_coder.h"
 #include <vector>
 #include <iostream>
-#include "../coders/intrinsics_coder.h"
-#include "../coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/intrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
 #include "depth_pixel_point_cloud.h"
 
 using fulfil::depthcam::pointcloud::UntranslatedPointCloud;

@@ -93,7 +93,7 @@ DropManager::DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std
   this->mongo_bag_state = std::make_shared<fulfil::mongo::MongoBagState>();
 }
 
-void DropManager::generate_request_json_data(bool generate_data,
+void DropManager::generate_request_data(bool generate_data,
                                              std_filesystem::path base_directory,
                                              const std::shared_ptr<std::string> &time_stamp,
                                              std::shared_ptr<nlohmann::json> request_json)
@@ -102,10 +102,35 @@ void DropManager::generate_request_json_data(bool generate_data,
     if (generate_data)
     {
         Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
-
-        DataGenerator generator = DataGenerator(this->session, std::make_shared<std::string>(base_directory.string()),
+        DataGenerator generator = DataGenerator(this->session,
+                                                std::make_shared<std::string>(base_directory.string()),
                                                 request_json);
         generator.save_data(time_stamp);
+    }
+}
+
+void DropManager::generate_pre_drop_target_data(bool generate_data,
+                                                std_filesystem::path base_directory,
+                                                const std::shared_ptr<std::string> &time_stamp,
+                                                std::shared_ptr<nlohmann::json> request_json,
+                                                std::shared_ptr<nlohmann::json> bag_state_json)
+{
+    generate_request_data(generate_data, base_directory, time_stamp, request_json);
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data)
+    {
+        if (bag_state_json->is_null())
+        {
+            Logger::Instance()->Debug(
+                    "No bag state JSON is available, json file will not be saved along with data generation");
+        } else {
+            std::string bag_state_file_path = make_media::paths::join_as_path(base_directory, *time_stamp, "bag_state.json");
+            Logger::Instance()->Trace("Bag state JSON data generation file path: {}", bag_state_file_path);
+
+            std::ofstream file(bag_state_file_path);
+            file << *bag_state_json;
+            Logger::Instance()->Trace("Finished bag state JSON data generation for drop camera request!");
+        }
     }
 }
 
@@ -135,6 +160,31 @@ void DropManager::generate_drop_target_result_data(bool generate_data, std::stri
     }
 }
 
+void get_min_max(cv::Mat m, std::string debugging_string_desc)
+{
+    double minVal;
+    double maxVal;
+    cv::Point minLoc;
+    cv::Point maxLoc;
+    minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
+    Logger::Instance()->Debug("{}: Number valid points found in matrix: {}\n\tMin: ({},{})={}\n\tMax: ({},{})={}\n\tMean={}",
+                              debugging_string_desc, cv::countNonZero(m), minLoc.x, minLoc.y, minVal, maxLoc.x, maxLoc.y, maxVal, cv::mean(m)[0]);
+}
+
+std::string get_eigen_stats(Eigen::Matrix3Xd point_cloud){
+    Eigen::Matrix3Xd::Index max_index;
+    auto max_res = point_cloud.rowwise().sum().maxCoeff(&max_index);
+    Eigen::Matrix3Xd::Index min_index;
+    auto min_res = point_cloud.rowwise().sum().minCoeff(&min_index);
+    std::stringstream out_msg;
+    out_msg << "There are " << (point_cloud.array().row(2) == 0).count() << " points at 0 depth out of " << point_cloud.cols()
+            << " total. The cloud has a max point sum of " << max_res << " at point " << max_index
+            << " and a min point sum of " << min_res << " at " << min_index
+            << ".\nMin value across rows is \n" << point_cloud.rowwise().minCoeff()
+            << "\nMean value across rows is \n" << point_cloud.rowwise().mean()
+            << "\nMax value across rows is \n" << point_cloud.rowwise().maxCoeff();
+    return out_msg.str();
+}
 
 std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
                                                              std::shared_ptr<nlohmann::json> request_json,
@@ -150,20 +200,20 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
       (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Drop_Target_Image");
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
-    std::string error_code_file = base_directory.string() + "/" + *time_stamp + "/error_code";
-
-    std::string target_file =  (base_directory / *time_stamp / "target_center").string();
-
-    // TODO should this be places after the refresh call in the try catch or should it be here? probably doesnt make a difference
-    generate_request_json_data(generate_data, base_directory, time_stamp, request_json);
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    std::string target_file = make_media::paths::join_as_path(base_directory, *time_stamp, "target_center");
+    std::cout << error_code_file << std::endl;
 
     Logger::Instance()->Debug("about to lock session");
     try
     {
         bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
         //this->session->set_emitter(true); //turn on emitter for imaging
+
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
+
+        generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
 
         Logger::Instance()->Debug("Getting container for algorithm now");
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
@@ -269,7 +319,7 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
 
     std::shared_ptr<DataGenerator> generator;
-    generate_request_json_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
+    generate_request_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
 
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
