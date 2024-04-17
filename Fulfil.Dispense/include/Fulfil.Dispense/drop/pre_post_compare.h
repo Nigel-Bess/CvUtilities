@@ -83,9 +83,9 @@ class PrePostCompare
   float depth_total_threshold;
 
   //RGB comparison parameters
-  int bgSubHistory; //length of history
-  double bgSubVarianceThresh; //Threshold on the squared distance between the pixel and the sample to decide whether a pixel is close to that sample
-  bool bgSubDetectShadows; //If true, the algorithm will detect shadows and mark them. It decreases the speed a bit, so if you do not need this feature, set the parameter to false.
+  int bg_sub_history; //length of history
+  double bg_sub_variance_threshold; //Threshold on the squared distance between the pixel and the sample to decide whether a pixel is close to that sample
+  bool bg_sub_detect_shadows; //If true, the algorithm will detect shadows and mark them. It decreases the speed a bit, so if you do not need this feature, set the parameter to false.
   int RGB_average_threshold;
   int RGB_total_threshold;
 
@@ -104,9 +104,13 @@ class PrePostCompare
    * Returns status code from check_inputs which is called within the function:
    * status code mapping defined in PrePostCompareErrorCodes
    */
-  int populate_class_variables(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container, std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container, std::shared_ptr<INIReader> LFB_config_reader,
-                                          std::shared_ptr<nlohmann::json> pre_request_json, std::shared_ptr<nlohmann::json> post_request_json,
-                                std::shared_ptr<nlohmann::json> drop_target_json, cv::Point2f target_center);
+  int populate_class_variables(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
+                               std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
+                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                               std::shared_ptr<nlohmann::json> pre_request_json,
+                               std::shared_ptr<nlohmann::json> post_request_json,
+                               std::shared_ptr<nlohmann::json> drop_target_json,
+                               cv::Point2f target_center);
 
   int process_depth();
   int process_RGB();
@@ -134,7 +138,7 @@ class PrePostCompare
    *
    * @param pre_session
    * @param post_session
-   * @param LFB_config_reader
+   * @param lfb_vision_config
    * @param pre_request_json
    * @param post_request_json
    * @param target_center:  X,Y coordinates must be in meters (local bag coordinate system)
@@ -150,10 +154,14 @@ class PrePostCompare
    * 5: Pre/Post Comparison: Platform Inconsistency
    */
   int run_comparison(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
-                      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container, std::shared_ptr<INIReader> LFB_config_reader,
-                      std::shared_ptr<nlohmann::json> pre_request_json, std::shared_ptr<nlohmann::json> post_request_json,
-                      std::shared_ptr<nlohmann::json> drop_target_json, cv::Point2f target_center,
-                      std::shared_ptr<cv::Mat> *result_mat, int *item_target_overlap_ptr);
+                     std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
+                     std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                     std::shared_ptr<nlohmann::json> pre_request_json,
+                     std::shared_ptr<nlohmann::json> post_request_json,
+                     std::shared_ptr<nlohmann::json> drop_target_json,
+                     cv::Point2f target_center,
+                     std::shared_ptr<cv::Mat> *result_mat,
+                     int *item_target_overlap_ptr);
 };
   namespace pre_post_compare_error_codes {
     enum PrePostCompareErrorCodes {
