@@ -13,17 +13,25 @@ using fulfil::utils::Logger;
 void ItemEdgeDistanceResponse::encode_payload()
 {
 
-  nlohmann::json result_json(lane_distance_info);
-  result_json.update(nlohmann::json(count_result));
+  nlohmann::json result_json(count_result);
+  std::cout << "COUNT OUT:\n" << result_json << '\n';
+    std::cout << "SIZE OF ROI, FIRST LAST:\n" << lane_distance_info.m_roi_points.vertices.size()
+    << ", " << lane_distance_info.m_roi_points.vertices.front() << ", " << lane_distance_info.m_roi_points.vertices.back() << '\n';
+    auto dist = nlohmann::json(lane_distance_info);
+  std::cout << "DISTANCE OUT:\n" << dist << '\n';
+    std::cout << "Updating...\n";
+  result_json.update(dist);
+  std::cout << "Result OUT:\n" << result_json << '\n';
+
   result_json["Error"] = 0;
-  if (success_code < 0) {
-      result_json["Errors"] = {success_code};
+  if (success_code > 0) {
+      result_json["Errors"] = std::vector<int>{success_code};
   }
   //result_json["First_Item_Distance"] = this->fed_result;
   //result_json["First_Item_Length"] = this->detected_item_length;
   //result_json["Centers"] = this->transformed_lane_center_pixels;
 
-  this->payload = std::make_shared<std::string>(result_json);
+  this->payload = std::make_shared<std::string>(result_json.dump());
   Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", *this->payload);
 }
 

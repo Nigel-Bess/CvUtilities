@@ -552,7 +552,7 @@ namespace results_to_vlsg {
         item_distance_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         item_distance_res.m_first_item_distance = item_distance_res.m_range_fn.clip(j.value("First_Item_Distance", -1));
         item_distance_res.m_first_item_length = j.value("First_Item_Length", 0);
-        item_distance_res.m_roi_points =j.template get<dimensional_info::LaneIndex>();
+        item_distance_res.m_roi_points = j.value("Lane_Image_Region", tray_count_api_comms::LaneImageRegion{});
 
     }
 

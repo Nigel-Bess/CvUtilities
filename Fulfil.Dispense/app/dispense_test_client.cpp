@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
     test_logger->Info("JSON REQUEST:{}", json.dump());
 
-    // test->ReadReponse();
+     client->ReadReponse();
   }
   test_logger->Info("Ending program");
   return 0;
