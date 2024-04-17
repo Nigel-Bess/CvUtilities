@@ -218,10 +218,10 @@ namespace results_to_vlsg {
                                                                                         m_errors{std::vector<int>{error}},
                                                                                         m_first_item_distance{firstItemDistance} {}
 
-    LaneItemDistance::LaneItemDistance(int index, int error, float firstItemDistance, float firstItemLength) : m_index{index},
-                                                                                        m_errors{std::vector<int>{error}},
-                                                                                        m_first_item_distance{firstItemDistance},
-                                                                                        m_first_item_length{firstItemLength}{}
+    LaneItemDistance::LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength) : m_index{index},
+                                                                                                           m_errors{std::vector<int>{error}},
+                                                                                                           m_first_item_distance{firstItemDistance},
+                                                                                                           m_first_item_length{firstItemLength}{}
 
 
     dimensional_info::LaneIndex LaneItemDistance::get_lane_id() const { return m_index; }

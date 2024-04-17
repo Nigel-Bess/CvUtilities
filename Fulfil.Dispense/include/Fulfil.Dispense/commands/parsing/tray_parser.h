@@ -486,7 +486,7 @@ namespace results_to_vlsg {
         explicit LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, float firstItemDistance,
                                   BoundaryLimit clip);
         LaneItemDistance(int index, int error, float firstItemDistance);
-        LaneItemDistance(int index, int error, float firstItemDistance, float firstItemLength);
+        LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength);
     };
 
     struct LaneCounts {
