@@ -474,8 +474,8 @@ namespace results_to_vlsg {
     {
         dimensional_info::LaneIndex m_index {};
         std::vector<int> m_errors {0};
-        float m_first_item_distance{-1};// should be float?
-        float m_first_item_length{0};// should be float?
+        int m_first_item_distance{-1};// should be float?
+        int m_first_item_length{0};// should be float?
         tray_count_api_comms::LaneImageRegion m_roi_points{};
         BoundaryLimit m_range_fn {};
         static nlohmann::json& to_tray_format_json(nlohmann::json& fed_res_json);
@@ -537,7 +537,7 @@ namespace results_to_vlsg {
     {
         constexpr int unknown_fed_failure_code = 5;
         j["First_Item_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_distance);
-        j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0.0F);
+        j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0);
         j["Lane_Image_Region"] = item_distance_res.m_roi_points;
         j["Errors"] = (item_distance_res.m_index < 0) ? nlohmann::json::array({ unknown_fed_failure_code })
                                                       : json_parser::mongo_utils::format_obj_error_list_to_json_array(item_distance_res.m_errors);
