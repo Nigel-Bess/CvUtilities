@@ -483,15 +483,15 @@ namespace results_to_vlsg {
 
         LaneItemDistance()=default;
         //TODO make template predicate
-        explicit LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, float firstItemDistance,
+        LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, int firstItemDistance,
                                   BoundaryLimit clip);
-        LaneItemDistance(int index, int error, float firstItemDistance);
+        LaneItemDistance(int index, int error, int firstItemDistance);
         LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength);
     };
 
     struct LaneCounts {
         dimensional_info::LaneIndex m_index{};
-        std::vector<int> m_errors {{0}};
+        std::vector<int> m_errors {0};
         int m_num_algorithm_counts {0};
         bool m_has_tongue{false};
         // TODO (int m_has_tongue{-1}) 0 is false, 1 is true and <0 don't report
