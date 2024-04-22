@@ -205,7 +205,7 @@ namespace results_to_vlsg {
     BoundaryLimit::BoundaryLimit(float min_distance, float max_distance) :
             m_min_distance{min_distance}, m_max_distance{max_distance} {}
 
-    float BoundaryLimit::clip(float distance) const
+    int BoundaryLimit::clip(int distance) const
     {
         return (distance < m_max_distance && distance > m_min_distance) ? distance : -1;
     }

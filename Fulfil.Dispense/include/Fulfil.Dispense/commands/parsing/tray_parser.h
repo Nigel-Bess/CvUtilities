@@ -466,7 +466,7 @@ namespace results_to_vlsg {
         float m_max_distance {680};
         BoundaryLimit() = default;
         explicit BoundaryLimit(float min_distance, float max_distance);
-        [[nodiscard]] float clip(float distance) const;
+        [[nodiscard]] int clip(int distance) const;
     };
 
 //TODO template clip strategy -> template<typename BoundaryCheck>
