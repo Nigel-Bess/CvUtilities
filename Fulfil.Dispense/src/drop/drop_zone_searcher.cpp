@@ -1559,6 +1559,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
         (front_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
         // if the target is on the far side of the bot (back side)
         (current_point.y < this->rotation_limit_line) ||
+        // if the arm may attempt to travel over the quadrant with no viable target to get to the point
+        (front_left_no_viable_targets && (current_point.x < 0 && current_point.y < 0)) ||
+        (front_right_no_viable_targets && (current_point.x > 0 && current_point.y < 0)) ||
         // if the target is beyond the width limitations of this dispense
         (current_point.x > (LFB_width/2 - ((float)details->limit_right)/1000) ) ||
         (current_point.x < (-LFB_width/2 + ((float)details->limit_left)/1000) ))
@@ -1571,6 +1574,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
            (back_left_no_viable_targets && (current_point.x - details->tongue_width/2) < 0) ||
            (back_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
            (current_point.y > (-1.0 * this->rotation_limit_line)) ||
+
+           // TODO - check this logic
+           (back_left_no_viable_targets && (current_point.x < 0 && current_point.y > 0)) ||
+           (back_right_no_viable_targets && (current_point.x > 0 && current_point.y > 0)) ||
            (-1.0 * current_point.x > (LFB_width / 2 - ((float)details->limit_right) / 1000)) ||
            (-1.0 * current_point.x < (-LFB_width / 2 + ((float)details->limit_left) / 1000)))
         continue; //candidate is not viable for dispense when in rotated 180 degree state from nominal orientation, cannot be reached
