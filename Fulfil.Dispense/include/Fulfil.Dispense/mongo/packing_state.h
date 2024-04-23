@@ -60,7 +60,7 @@ class PackingState
   /**
    * PackingState constructor
    */
-  PackingState();
+  PackingState(float LFB_cavity_height, float container_width, float container_length, int max_num_depth_detections);
 
   void set_packed_items_volume_mm(float value);
 

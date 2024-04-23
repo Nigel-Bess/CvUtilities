@@ -40,7 +40,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
                                    int item_mass_threshold,
                                    std::shared_ptr<LiveViewer> drop_live_viewer,
                                    int debug, int min_bag_filtering_threshold, float white_region_depth_adjust_from_min,
-                                    int empty_bag_threshold,
+                                   int empty_bag_threshold,
                                    float interference_depth_tolerance, int num_interference_points_tolerance,
                                   float interference_region_length_factor,
                                    bool visualize_interference_zone, float max_acceptable_Z_above_marker_surface,
@@ -124,14 +124,14 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
 void DropZoneSearcher::check_inputs(float shadow_length,
                                     float shadow_width,
                                     float shadow_height,
-                                    std::shared_ptr<INIReader> LFB_config_reader,
+                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
                                     std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details)
 {
-  float LFB_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
-  float LFB_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
+  float LFB_width = lfb_vision_config->LFB_width;
+  float LFB_length = lfb_vision_config->LFB_length;
 
-  float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", -1);
-  float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
+  float container_length = lfb_vision_config->container_length;
+  float container_width = lfb_vision_config->container_width;
 
   if(shadow_length <= 0 || shadow_width <= 0 || shadow_height <= 0 )
   {
@@ -213,36 +213,34 @@ void DropZoneSearcher::check_inputs(float shadow_length,
 }
 
 std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                                std::shared_ptr<INIReader> LFB_config_reader, float shadow_length, float shadow_width,
+                                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
                                                                    float LFB_cavity_height)
 {
-  float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", -1);
-  float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
+  float container_length = lfb_vision_config->container_length;
+  float container_width = lfb_vision_config->container_width;
   // TODO - do a deep rename of all orientation variables
-  float port_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "port_edge_target_offset", 0);
-  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
-  int depth_points_above_threshold_to_count_as_item_protruding = LFB_config_reader->GetInteger("LFB_config", "depth_points_above_threshold_to_count_as_item_protruding", 5);
-  bool use_y_coordinates_orientation_check = LFB_config_reader->GetBoolean("LFB_config", "use_y_coordinates_orientation_check", false);
+  float port_edge_target_offset = lfb_vision_config->port_edge_target_offset;
+  float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
+  int depth_points_above_threshold_to_count_as_item_protruding = lfb_vision_config->depth_points_above_threshold_to_count_as_item_protruding;
+  bool use_y_coordinates_orientation_check = lfb_vision_config->use_y_coordinates_orientation_check;
 
   Logger::Instance()->Debug("Bag Item Count is input as 0, target will be set at front left corner of bag");
 
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
   float target_x;
+  float wide_side_target_offset = lfb_vision_config->front_edge_target_offset; // TODO
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   if (details->use_flipped_x_default)
   {
-    // move default drop target to front side, accounting for front edge offset
-    float front_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "front_edge_target_offset", 0);
-    target_x = (container_width/2) - shadow_width/2 - front_edge_target_offset;
+    // move default drop target to front side, accounting for edge offset
+    target_x = (container_width/2) - shadow_width/2 - wide_side_target_offset;
   } else {
-    // move default drop target to rear side, accounting for rear edge offset
-    float rear_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "rear_edge_target_offset", 0);
-    target_x = -(container_width/2) + shadow_width/2 + rear_edge_target_offset;
+    // move default drop target to rear side, accounting for edge offset
+    target_x = -(container_width/2) + shadow_width/2 + wide_side_target_offset;
   }
   // port edge is on y-axis, must offset it
   float target_y = (container_length/2) - shadow_length/2 - port_edge_target_offset;
-  //TODO: consider applying edge target offset to general dispense targets as well if needed. Change other offset to only apply in X
 
   //adjust default target if there are limits on LFB travel
   float min_allowable_x = -(container_width/2) + float(details->limit_left)/1000;
@@ -340,7 +338,9 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detec
 }
 
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
-                                                  float item_mass, float platform_in_LFB_coords, bool should_search_right_to_left, std::shared_ptr<INIReader> LFB_config_reader,
+                                                  float item_mass, float platform_in_LFB_coords,
+                                                  bool should_search_right_to_left,
+                                                  std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
@@ -358,7 +358,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
 
   if(this->visualize == 1 and visualize_flag == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(mask));
   Logger::Instance()->Trace("temporary debug log: update live viewer image #7");
-  if (this->drop_live_viewer != nullptr and live_viewer_flag == true) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(mask), ViewerImageType::LFB_Filter, this->PKID);
+  if (this->drop_live_viewer != nullptr and live_viewer_flag) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(mask), ViewerImageType::LFB_Filter, this->PKID);
 
   Logger::Instance()->Trace("temporary debug log: start looping through pixels");
 
@@ -373,27 +373,28 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   int white_count = 0; //for tracking how many depth points are recognized as white bag
   int non_white_count = 0; //for tracking how many depth points are not recognized as white bag
 
-  float adjustment = LFB_config_reader->GetFloat("LFB_config", "fraction_of_bag_dims_considered_inner_bag", 0);
-  float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", 0.43);
-  float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", 0.30);
-  bool should_filter_out_white = LFB_config_reader->GetBoolean("LFB_config", "should_filter_out_white", false);
+  float adjustment = lfb_vision_config->fraction_of_bag_dims_considered_inner_bag;
+  float container_width = lfb_vision_config->container_width;
+  float container_length = lfb_vision_config->container_length;
+  int empty_bag_threshold = lfb_vision_config->empty_bag_threshold;
+  bool should_filter_out_white = lfb_vision_config->should_filter_out_white;
 
-  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
 
   // inner bag limits
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
 
   //    antenna location is max_container_x + 15mm-20mm
-  float lfb_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
+  float lfb_width = lfb_vision_config->LFB_width;
   // TODO add antenna to configs
   float antenna_x_coord_nominal = lfb_width / 2 + 0.0175;
   //    antenna location is min_container_y + 65mm-75mm
-  float lfb_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
+  float lfb_length = lfb_vision_config->LFB_length;
 
   float antenna_y_coord_nominal = lfb_length / -2 + 0.070;
   float antenna_buffer = 0.005;
-  int amount_of_max_depth_points_to_track = LFB_config_reader->GetInteger("LFB_config", "amount_of_max_depth_points_to_track_for_noise_filtering", 8);
+  int amount_of_max_depth_points_to_track = lfb_vision_config->amount_of_max_depth_points_to_track_for_noise_filtering;
 
   auto is_antenna_data = [antenna_x_coord_nominal, antenna_y_coord_nominal, antenna_buffer](float local_x_coord, float local_y_coord)-> bool
   {
@@ -437,20 +438,18 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       float local_z = (*local_cloud_data)(2, current_pixel_index);
 
       bool is_outer_bag = (local_x < -x_limit) or (local_x > x_limit) or (local_y < -y_limit) or (local_y > y_limit);
-      // count number of white points for empty/nonempty bag analysis
-      if (white_intensity == 255) {
-          // only care about white count of inner bag, not if the LFB walls are white
-          if (!is_outer_bag) { white_count += 1; }
-          // only filter on whiteness if feature flag is enabled
-          if (should_filter_out_white) { continue; }
-          // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
-          //only adjust depths if item is above a certain threshold mass
-          //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
-      } else {
-          // only care about white/non-whiteness of inner bag, not the LFB walls
-          if (!is_outer_bag) { non_white_count += 1; }
-      }
+
       if (!is_outer_bag) {
+          // count number of white points for empty/nonempty bag analysis
+          if (white_intensity == 255) {
+              // only care about white count of inner bag, not if the LFB walls are white
+              white_count += 1;
+              // only filter on whiteness if feature flag is enabled
+              if (should_filter_out_white) { continue; }
+              // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
+              //only adjust depths if item is above a certain threshold mass
+              //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
+          }
           if (local_y >= 0 && local_x >= 0) {
               if (local_z > max_depth_points.front_right.z) {
                   max_depth_points.front_right.x = local_x;
@@ -478,6 +477,13 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           }
       // if this IS outer bag
       } else {
+          if (white_intensity == 255) {
+              // only filter on whiteness if feature flag is enabled
+              if (should_filter_out_white) { continue; }
+              // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
+              //only adjust depths if item is above a certain threshold mass
+              //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
+          }
           if (local_y >= 0 && local_x >= 0) {
               if (local_z > item_protrusion_detection_threshold) {
                   outer_front_right_depth_list = update_max_depth_list(outer_front_right_depth_list, local_x, local_y, local_z);
@@ -501,8 +507,8 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   }
 
   // noise filtering of outer quadrant data
-  float threshold_depth_difference_to_validate_max_z = LFB_config_reader->GetFloat("LFB_config", "threshold_depth_difference_to_validate_max_z", 0.003);
-  int num_points_required_within_valid_distance_to_validate_max_z = LFB_config_reader->GetFloat("LFB_config", "num_points_required_within_valid_distance_to_validate_max_z", 5);
+  float threshold_depth_difference_to_validate_max_z = lfb_vision_config->threshold_depth_difference_to_validate_max_z;
+  int num_points_required_within_valid_distance_to_validate_max_z = lfb_vision_config->num_points_required_within_valid_distance_to_validate_max_z;
   max_depth_points.outer_front_left = get_max_z_that_is_not_outlier(
                                 item_protrusion_detection_threshold,
                                 outer_front_left_depth_list,
@@ -565,19 +571,19 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   }
   else
   {
-    percentage_white = int(100 * white_count / float(total_points));
+    percentage_white = int(100 * white_count / float(white_count + non_white_count));
   }
   Logger::Instance()->Debug("{}% of points are white, or {} out of a total of {} points", percentage_white, white_count, total_points);
 
   if(should_check_empty)
   {
     Logger::Instance()->Warn("Checking that bag is actually empty, as indicated during Drop Target Request");
-    Logger::Instance()->Debug("Over {}% of points need to be white for bag to be indicated as empty", this->empty_bag_threshold);
-    if(percentage_white < this->empty_bag_threshold) //TODO: move this to configs if needed long term. Probably not necessary
+    Logger::Instance()->Debug("Over {}% of points need to be white for bag to be indicated as empty", empty_bag_threshold);
+    if(percentage_white < empty_bag_threshold)
     {
       Logger::Instance()->Error("Bag Not Empty; Cam: LFB");
       this->success_code = DropTargetErrorCodes::EmptyBagNotEmpty;
-      this->error_description = "Percentage white = " + std::to_string(percentage_white) + ", which is < the empty bag threshold value of " + std::to_string(this->empty_bag_threshold);
+      this->error_description = "Percentage white = " + std::to_string(percentage_white) + ", which is < the empty bag threshold value of " + std::to_string(empty_bag_threshold);
     }
   }
   return max_depth_points;
@@ -899,38 +905,34 @@ void eigen_sort_columns_by_y(std::shared_ptr<Eigen::Matrix3Xd> matrix)
   }
 };
 
-std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<Session> session, bool extend_region_over_markers)
+std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                                                         std::shared_ptr<Session> session,
+                                                                         bool extend_region_over_markers)
 {
-  int region_max_x = LFB_config_reader->GetInteger("LFB_config", "region_max_x", -1);
-  int region_min_x = LFB_config_reader->GetInteger("LFB_config", "region_min_x", -1);
-  int region_max_y = LFB_config_reader->GetInteger("LFB_config", "region_max_y", -1);
-  int region_min_y = LFB_config_reader->GetInteger("LFB_config", "region_min_y", -1);
+  int region_max_x = lfb_vision_config->region_max_x;
+  int region_min_x = lfb_vision_config->region_min_x;
+  int region_max_y = lfb_vision_config->region_max_y;
+  int region_min_y = lfb_vision_config->region_min_y;
 
-  float marker_adjust_amount = LFB_config_reader->GetFloat("LFB_config", "marker_adjust_amount", 0.0);
+  int num_markers = lfb_vision_config->num_markers;
+  int marker_size = lfb_vision_config->marker_size;
+  int min_marker_count_for_validation = lfb_vision_config->min_marker_count_for_validation;
 
-  int num_markers = LFB_config_reader->GetInteger("LFB_config", "num_markers", -1);
-  int marker_size = LFB_config_reader->GetInteger("LFB_config", "marker_size", -1);
+  float marker_depth = lfb_vision_config->marker_depth;
+  float marker_depth_tolerance = lfb_vision_config->marker_depth_tolerance;
 
-  float marker_depth = LFB_config_reader->GetFloat("LFB_config", "marker_depth", -1);
-  float marker_depth_tolerance = LFB_config_reader->GetFloat("LFB_config", "marker_depth_tolerance", -1);
+  float container_length = lfb_vision_config->container_length;
+  float container_width = lfb_vision_config->container_width;
+  float lfb_width = lfb_vision_config->LFB_width;
+  float lfb_length = lfb_vision_config->LFB_length;
 
-  float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", -1);
-  float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
-  float lfb_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
-  float lfb_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
+//  bool extend_region_over_markers = lfb_vision_config->extend_depth_analysis_over_markers; // TODO remove from constructor?
 
-  std::shared_ptr<Eigen::Matrix3Xd> marker_coordinates = std::shared_ptr<Eigen::Matrix3Xd>(new Eigen::Matrix3Xd(3,8));
-  std::vector<float> dims; // num_calib_coordinates x height x width x depth
-  std::string section = "LFB_config";
-  LFB_config_reader->FillFloatVector(section, "marker_coordinates_x", dims);
-  for (int i = 0; i < 8; i++) (*marker_coordinates)(0, i) = dims[i];
-  dims.clear();
-  LFB_config_reader->FillFloatVector(section, "marker_coordinates_y", dims);
-  for (int i = 0; i < 8; i++) (*marker_coordinates)(1, i) = dims[i];
-  dims.clear();
-  LFB_config_reader->FillFloatVector(section, "marker_coordinates_z", dims);
-  for (int i = 0; i < 8; i++) (*marker_coordinates)(2, i) = dims[i];
-
+  std::shared_ptr<Eigen::Matrix3Xd> marker_coordinates = std::make_shared<Eigen::Matrix3Xd>(3,8);
+  // num_calib_coordinates x height x width x depth
+  for (int i = 0; i < lfb_vision_config->num_markers; i++) (*marker_coordinates)(0, i) = lfb_vision_config->marker_coordinates_x[i];
+  for (int i = 0; i < lfb_vision_config->num_markers; i++) (*marker_coordinates)(1, i) = lfb_vision_config->marker_coordinates_y[i];
+  for (int i = 0; i < lfb_vision_config->num_markers; i++) (*marker_coordinates)(2, i) = lfb_vision_config->marker_coordinates_z[i];
 
   Logger::Instance()->Trace("Drop Zone Searcher: marker detector constructor called");
   std::shared_ptr<MarkerDetector> marker_detector = std::make_shared<MarkerDetector>(num_markers, marker_size);
@@ -939,17 +941,19 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
   std::shared_ptr<MarkerDetectorContainer> container = std::make_shared<MarkerDetectorContainer>(
       marker_detector, session, true, extend_region_over_markers,
       container_width, container_length, lfb_width, lfb_length,
-      MarkerDetectorContainer::centers_and_sides(), marker_coordinates,
-      num_markers, marker_depth, marker_depth_tolerance,
-      region_max_x, region_min_x, region_max_y, region_min_y, marker_adjust_amount);
+      MarkerDetectorContainer::centers_and_sides(num_markers), marker_coordinates,
+      num_markers, marker_depth, marker_depth_tolerance, min_marker_count_for_validation,
+      region_max_x, region_min_x, region_max_y, region_min_y);
 
   return container;
 }
 
-int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers, bool use_y_coordinates)
+int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
+                                        bool use_y_coordinates,
+                                        int min_marker_count_for_validation)
 {
   int num_markers = markers.size();
-  if(num_markers < 3)
+  if(num_markers < min_marker_count_for_validation)
   {
     Logger::Instance()->Error("Unexpected input to Check_Bot_Rotated function: not enough markers ({})! Need at least 3", num_markers);
     this->success_code = DropTargetErrorCodes::NotEnoughMarkersDetected;
@@ -1071,14 +1075,14 @@ int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::dept
 }
 
 void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
-                               std::shared_ptr<INIReader> LFB_config_reader)
+                                                 std::shared_ptr<LfbVisionConfiguration> lfb_vision_config)
 {
   Logger::Instance()->Debug("Conducting second round validation check on marker locations");
-  int min_dim_1 = LFB_config_reader->GetInteger("LFB_config", "min_dim_1", -1);
-  int max_dim_1 = LFB_config_reader->GetInteger("LFB_config", "max_dim_1", -1);
-  int min_dim_2 = LFB_config_reader->GetInteger("LFB_config", "min_dim_2", -1);
-  int max_dim_2 = LFB_config_reader->GetInteger("LFB_config", "max_dim_2", -1);
-  bool check_y_pixel_coordinates = LFB_config_reader->GetBoolean("LFB_config", "extra_check_in_y_coordinates", false);
+  int min_dim_1 = lfb_vision_config->min_dim_1;
+  int max_dim_1 = lfb_vision_config->max_dim_1;
+  int min_dim_2 = lfb_vision_config->min_dim_2;
+  int max_dim_2 = lfb_vision_config->max_dim_2;
+  bool check_y_pixel_coordinates = lfb_vision_config->extra_check_in_y_coordinates;
 
   std::set<int> marker_set_1 = {1, 2, 3, 4};
   std::set<int> marker_set_2 = {0, 5, 6, 7};
@@ -1121,7 +1125,7 @@ void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std:
 
 std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_ptr<MarkerDetectorContainer> container,
                                                                std::shared_ptr<DropTargetDetails> details,
-                                                               std::shared_ptr<INIReader> LFB_config_reader,
+                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
                                                                std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                bool bot_has_already_rotated)
 
@@ -1140,19 +1144,16 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                           "Error forced by `force_error` being true");
   }
 
-  float LFB_width = LFB_config_reader->GetFloat("LFB_config", "LFB_width", -1);
-  float LFB_length = LFB_config_reader->GetFloat("LFB_config", "LFB_length", -1);
-  float LFB_bag_width = LFB_config_reader->GetFloat("LFB_config", "LFB_bag_width", -1);
-  float LFB_bag_length = LFB_config_reader->GetFloat("LFB_config", "LFB_bag_length", -1);
-  float container_width = LFB_config_reader->GetFloat("LFB_config", "container_width", -1);
-  float container_length = LFB_config_reader->GetFloat("LFB_config", "container_length", -1);
-  float front_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "front_edge_target_offset", 0);
-  float port_edge_target_offset = LFB_config_reader->GetFloat("LFB_config", "port_edge_target_offset", 0);
-  bool prefer_targets_farther_from_max_depth = LFB_config_reader->GetBoolean("LFB_config", "prefer_targets_farther_from_max_depth", false);
-
-  bool use_y_coordinates_orientation_check =  LFB_config_reader->GetBoolean("LFB_config", "use_y_coordinates_orientation_check", false);
-
-  float LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
+  float LFB_width = lfb_vision_config->LFB_width;
+  float LFB_length = lfb_vision_config->LFB_length;
+  float LFB_bag_width = lfb_vision_config->LFB_bag_width;
+  float LFB_bag_length = lfb_vision_config->LFB_bag_length;
+  float LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
+  float container_width = lfb_vision_config->container_width;
+  float container_length = lfb_vision_config->container_length;
+  float front_edge_target_offset = lfb_vision_config->front_edge_target_offset;
+  float port_edge_target_offset = lfb_vision_config->port_edge_target_offset;
+  bool use_y_coordinates_orientation_check = lfb_vision_config->use_y_coordinates_orientation_check;
 
   Logger::Instance()->Trace("Drop Zone Search Algorithm Initiated");
 
@@ -1160,12 +1161,12 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   float shadow_width = details->item_width;
   float shadow_height = details->item_length;
 
-  check_inputs(shadow_length, shadow_width, shadow_height, LFB_config_reader, details);
+  check_inputs(shadow_length, shadow_width, shadow_height, lfb_vision_config, details);
 
   /**
    * Establish if bot rotation is allowed when considering drop target candidates. TODO: move into separate function
    */
-  bool rotation_allowed_by_configs = LFB_config_reader->GetBoolean("LFB_config", "rotation_allowed", false);
+  bool rotation_allowed_by_configs = lfb_vision_config->rotation_allowed;
   if(rotation_allowed_by_configs)
   {
     if(!bot_has_already_rotated)
@@ -1186,7 +1187,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   }
 
   //define amount that items can stick out above marker surface (AFTER DISPENSE) as minimum of 45% of item length and the max allowable by config setting). Values are in meters
-  float max_item_length_percent_overflow = LFB_config_reader->GetFloat("LFB_config", "max_item_length_percent_overflow", 0.45);
+  float max_item_length_percent_overflow = lfb_vision_config->max_item_length_percent_overflow;
   this->acceptable_height_above_marker_surface = std::min((max_item_length_percent_overflow * shadow_height), this->max_acceptable_Z_above_marker_surface);
   Logger::Instance()->Debug("Shadow height is {} and acceptable height above marker surface is {}", shadow_height, this->acceptable_height_above_marker_surface);
 
@@ -1216,7 +1217,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * is this. For now I am going to use the input param to validate the rotation check
    * next major time this is used is near `Visualize and find best target from the valid candidates` comment
    */
-  int bot_is_rotated = check_bot_rotated(*markers, use_y_coordinates_orientation_check);
+  int bot_is_rotated = check_bot_rotated(*markers, use_y_coordinates_orientation_check, lfb_vision_config->min_marker_count_for_validation);
   if(bot_is_rotated == -1) {
       this->success_code = DropTargetErrorCodes::CouldNotDetermineBotRotationStatus;
       throw DropTargetError(DropTargetErrorCodes::CouldNotDetermineBotRotationStatus);
@@ -1225,10 +1226,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   /**
    *  Additional check on marker positions for bot being centered under camera, if indicated by configs
    */
-  const float extra_marker_validation_check = LFB_config_reader->GetBoolean("LFB_config", "extra_marker_validation_required", false);
-  if(extra_marker_validation_check) { validate_marker_positions(!bot_is_rotated, *markers, LFB_config_reader); }
-  const float mass_threshold_extra_fragile = LFB_config_reader->GetFloat("LFB_config", "mass_threshold_extra_fragile", 150.0);
-
+  const float extra_marker_validation_check = lfb_vision_config->extra_marker_validation_required;
+  if(extra_marker_validation_check) { validate_marker_positions(!bot_is_rotated, *markers, lfb_vision_config); }
+  const float mass_threshold_extra_fragile = lfb_vision_config->mass_threshold_extra_fragile;
 
   /**
    *  Mongo bag state functionality starts here //TODO: refactor into standalone function(s) once tested
@@ -1255,7 +1255,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
         if (details->item_mass < mass_threshold_extra_fragile) {
             Logger::Instance()->Debug(
               "Dispense allowed onto ExtraFragile items because item mass is: {}", details->item_mass);
-        } else{
+        } else {
             risk_materials.push_back(21); // cannot drop onto ExtraFragile items
         }
         // Add items to damage risk group based on damage types
@@ -1265,7 +1265,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
             risk_materials.push_back(4);    // cannot drop glass items onto glass items
             break;
           case 3:
-            if (LFB_config_reader->GetBoolean("LFB_config", "avoid_metal_on_metal", true)) {
+            if (lfb_vision_config->avoid_metal_on_metal) {
                 risk_materials.push_back(3);    // can't allow metal on metal...? I think?
             } else {
                 Logger::Instance()->Info("Skip running damage avoidance for metal on metal");
@@ -1280,9 +1280,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
         Logger::Instance()->Info("Will not drop on items of damage type: {}", risk_material);
       }
 
-      int layers_to_include = LFB_config_reader->GetInteger("LFB_config", "damage_layers_to_include");
+      int layers_to_include = lfb_vision_config->damage_layers_to_include;
 
-      if( (risk_materials.size() != 0 or avoid_all_items) and details->bag_item_count > 0)
+      if( (!risk_materials.empty() or avoid_all_items) and details->bag_item_count > 0)
       {
           Logger::Instance()->Debug("Drop contains damage risk for certain materials! Getting risk map now");
           risk_map_ptr = mongo_bag_state->get_risk_map(avoid_all_items, risk_materials, layers_to_include);
@@ -1290,7 +1290,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
           {
             Logger::Instance()->Warn("Potential risk regions detected in current bag state. Expanding risk map now.");
             risk_map_ptr = mongo_bag_state->expand_risk_map(risk_map_ptr, container->width, container->length, shadow_length,
-                                                                 shadow_width, shadow_height, LFB_config_reader);
+                                                                 shadow_width, shadow_height);
             risk_map_flag = true;
           }
           else
@@ -1340,7 +1340,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   */
 
   float avg_detected_depth = initial_local_data->rowwise().mean()[2];
-  float bag_full_threshold_meters = LFB_config_reader->GetFloat("LFB_config", "bag_full_threshold_meters", 0.0);
+  float bag_full_threshold_meters = lfb_vision_config->bag_full_threshold_meters;
   float threshold_comparison = avg_detected_depth - details->remaining_platform;
   Logger::Instance()->Debug("Bag too full check: avg_detected_depth: {}, remaining_platform: {}, threshold: {}, comparison: {}",
                            avg_detected_depth, details->remaining_platform, bag_full_threshold_meters, threshold_comparison);
@@ -1372,16 +1372,14 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   bool bag_empty = (details->bag_item_count == 0);
 
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default,
-    LFB_config_reader, true, true, bag_empty, false);
-
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default, lfb_vision_config, true, true, bag_empty, false);
   Point3D max_Z_point = max_Z_points.overall;
 
   /**
    * Secondary check for bag too full, must be able to lower platform enough so tallest point in quadrant of bag of bag is low enough
    * TODO: names can be improved. These are all defined by x-y local bag coordinate quadrants, with "front" "back" etc. assuming bag is in nominal rotation state!
    */
-  float allowed_item_overflow_pre_dispense = LFB_config_reader->GetFloat("LFB_config", "allowed_item_overflow_pre_dispense", 0.015); //meters TODO: make configurable value. Match VLSG recipe and post MaxZ check?
+  float allowed_item_overflow_pre_dispense = lfb_vision_config->allowed_item_overflow_pre_dispense;
   float remaining_platform_adjusted = std::max(details->remaining_platform, 0.0F); //in case invalid negative values were provided from LFR
 
   bool front_left_no_viable_targets = std::max(max_Z_points.outer_front_left.z, max_Z_points.front_left.z) > (remaining_platform_adjusted + allowed_item_overflow_pre_dispense);
@@ -1391,10 +1389,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   bool back_right_no_viable_targets = std::max(max_Z_points.outer_back_right.z, max_Z_points.back_right.z) > (remaining_platform_adjusted + allowed_item_overflow_pre_dispense);
 
   bool front_no_viable_targets = (front_left_no_viable_targets && front_right_no_viable_targets) ||
-      ( (front_left_no_viable_targets || front_right_no_viable_targets) && (details->item_width > LFB_bag_width/2.0) ); // todo change to tongue witdth not item width
+      ( (front_left_no_viable_targets || front_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) );
 
   bool back_no_viable_targets =  (back_left_no_viable_targets && back_right_no_viable_targets) ||
-      ( (back_left_no_viable_targets || back_right_no_viable_targets) && (details->item_width > LFB_bag_width/2.0) ); // TODO change to tongue width not item width
+      ( (back_left_no_viable_targets || back_right_no_viable_targets) && (details->tongue_width > LFB_bag_width/2.0) );
 
   if (front_no_viable_targets && back_no_viable_targets)
   {
@@ -1420,7 +1418,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   // note: this function is placed here after the adjust_depth_detections function so there are no missing visualizations and to allow for sanity checks that the bag is really empty.
   if (bag_empty and this->success_code != DropTargetErrorCodes::EmptyBagNotEmpty)
   {
-    std::shared_ptr<Point3D> XYZ_result = get_empty_bag_target(details, LFB_config_reader, shadow_length, shadow_width, LFB_cavity_height);
+    std::shared_ptr<Point3D> XYZ_result = get_empty_bag_target(details, lfb_vision_config, shadow_length, shadow_width, LFB_cavity_height);
 
     std::shared_ptr<cv::Mat> target_image = visualize_target(XYZ_result, container, shadow_length, shadow_width, RGB_matrix, 1, 3);
     if (this->visualize == 1) session_visualizer8->display_image(target_image);
@@ -1482,20 +1480,19 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       Logger::Instance()->Error("No Viable Drop Candidates, Damage Risk; Cam: LFB");
       if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Target, this->PKID);
       mongo_bag_state->num_damage_rejections += 1;
-      int max_allowable_damage_rejections = 2; //TODO: consider making this configurable
-      if(mongo_bag_state->num_damage_rejections >= max_allowable_damage_rejections)
+      if(mongo_bag_state->num_damage_rejections >= lfb_vision_config->max_allowable_damage_rejections)
       {
-        Logger::Instance()->Warn("Bag Reached Max Num Damage Rejections: {}; Cam: LFB", max_allowable_damage_rejections);
+        Logger::Instance()->Warn("Bag Reached Max Num Damage Rejections: {}; Cam: LFB", lfb_vision_config->max_allowable_damage_rejections);
         this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired;
         throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired,
                               std::string("No remaining drop target candidates after applying the second filter based on ") +
-                              "damage risk, and the bag has been rejected the max number of times: " + std::to_string(max_allowable_damage_rejections));
+                              "damage risk, and the bag has been rejected the max number of times: " + std::to_string(lfb_vision_config->max_allowable_damage_rejections));
       }
       this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk;
       throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk,
                             std::string("No remaining drop target candidates after applying the second filter based on ") +
                             "damage risk. The bag has been rejected " + std::to_string(mongo_bag_state->num_damage_rejections) +
-                            " times, and the max number of rejections is " + std::to_string(max_allowable_damage_rejections));
+                            " times, and the max number of rejections is " + std::to_string(lfb_vision_config->max_allowable_damage_rejections));
     }
   }
 
@@ -1505,7 +1502,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    */
 
   // Can't we just do this with loop step size instead
-  int reduction_modulo_value = LFB_config_reader->GetInteger("LFB_config", "only_consider_every_Xth_target_candidate", 1);
+  int reduction_modulo_value = lfb_vision_config->only_consider_every_Xth_target_candidate;
   if(valid_drop_center_data->cols() < 100 || reduction_modulo_value == 1)
   {
     Logger::Instance()->Debug("Valid target candidate count is already under 100 in quantity or modulo config set to 1, will not remove further candidates");
@@ -1555,15 +1552,19 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     Point3D current_point = valid_drop_center_data->col(i);
 
     //TODO: these checks can potentially be applied earlier during the apply_box_limit function but would require redesign of that method
-    //Applies a series of checks (potential item collisions w/ dispense conveyors, bot travel limits, dispense conveyor reach) to
-    //See if nominal bot rotation will allow for dispense to the given candidate target or if pirouette is needed
-    // TODO: default is to always dispense in nominal orientation if possible. This is potentially sub-optimal
+    // Applies a series of checks (potential item collisions w/ dispense conveyors, bot travel limits, dispense conveyor reach) to
+    // See if nominal bot rotation will allow for dispense to the given candidate target or if pirouette is needed
     bool must_rotate_from_nominal_to_reach_candidate = false;
+    // if bot is already rotated and rotation isn't allowed again
     if( (bot_is_rotated && !this->LFB_rotation_allowed) ||
+        // if there's an extend collision risk detected in the front of the bot
         front_no_viable_targets ||
-        (front_left_no_viable_targets && current_point.x < 0) ||
-        (front_right_no_viable_targets && current_point.x > 0) ||
+        // if the tongue will reach into the quadrant with an extend collision risk detected
+        (front_left_no_viable_targets && (current_point.x - details->tongue_width/2) < 0) ||
+        (front_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
+        // if the target is on the far side of the bot (back side)
         (current_point.y < this->rotation_limit_line) ||
+        // if the target is beyond the width limitations of this dispense
         (current_point.x > (LFB_width/2 - ((float)details->limit_right)/1000) ) ||
         (current_point.x < (-LFB_width/2 + ((float)details->limit_left)/1000) ))
       must_rotate_from_nominal_to_reach_candidate = true; //candidate is not viable when in nominal orientation
@@ -1572,8 +1573,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       candidates_that_require_rotation++;
       if ( (!bot_is_rotated && !this->LFB_rotation_allowed) ||
            back_no_viable_targets ||
-           (back_left_no_viable_targets && current_point.x < 0) ||
-           (back_right_no_viable_targets && current_point.x > 0) ||
+           (back_left_no_viable_targets && (current_point.x - details->tongue_width/2) < 0) ||
+           (back_right_no_viable_targets && (current_point.x + details->tongue_width/2) > 0) ||
            (current_point.y > (-1.0 * this->rotation_limit_line)) ||
            (-1.0 * current_point.x > (LFB_width / 2 - ((float)details->limit_right) / 1000)) ||
            (-1.0 * current_point.x < (-LFB_width / 2 + ((float)details->limit_left) / 1000)))
@@ -1595,7 +1596,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
     // Check if candidate point will result in item sticking out too far above bag (collision and non-collision cases). if so, continue on to next candidate
     float dispensed_item_expected_max_Z_collision = -1;
-    if(current_target_ptr->interference_detected == true) //if current point involves interference, check that item won't go above allowable Z
+    // if current point involves interference, check that item won't go above allowable Z
+    if(current_target_ptr->interference_detected)
     {
       //Note: this calculation currently makes use of the average Z in the interference region, not the max Z in that region
       dispensed_item_expected_max_Z_collision = current_target_region.interference_average_z + details->item_height;
@@ -1615,17 +1617,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
 
     //compare current candidate to best candidate up to this point, as long as the interference state would not worsen with the new candidate
-    bool update_flag = false;
-    if(candidate_found == false) //if this is first acceptable candidate, set update flag to be true. Will be set to best candidate
-    {
-      update_flag = true;
-    }
-    else
-    {
-      update_flag = compare_candidates(std::make_shared<Target_Region>(best_target_region), current_target_ptr);
-    }
+    bool update_flag = !candidate_found || compare_candidates(std::make_shared<Target_Region>(best_target_region), current_target_ptr);
 
-    if (update_flag == true)
+    if (update_flag)
     {
       candidate_found = true;
       best_target_region = *current_target_ptr;
@@ -1731,7 +1725,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * would go more than 100mm above the marker surface, and in that case we limit it to 100mm
    * TODO: in the future, we can apply this more narrowly to just a region around the dispense target, especially when bot size increases
   */
-  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
   float max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
 
   bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
@@ -1757,13 +1751,14 @@ float DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points
 
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
-                                                               std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
+                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info)
 {
   Logger::Instance()->Trace("find_drop_zone_center called in drop_zone_searcher");
 
-  float LFB_cavity_height = LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", -1);
-  float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000; //remaining_platform in meters
+  float LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
+  /* remaining platform in meters from request */
+  float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000;
   float should_search_right_to_left = request_json->value("Flip_X_Default", false);
 
   Logger::Instance()->Debug("Check MaxZ Initiated");
@@ -1806,9 +1801,9 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   Logger::Instance()->Debug("Minimum max depth to be used for maxZ calculation in adjustment is: {}", platform_in_LFB_coords);
 
   //this function adjusts depths of the white parts of the bag and returns the max_Z depth detection of non-white bag areas
+  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, should_search_right_to_left, lfb_vision_config, true, false, false, false);
 
-  DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, 1000, platform_in_LFB_coords, should_search_right_to_left, LFB_config_reader, true, false, false, false);
-  float item_protrusion_detection_threshold = LFB_config_reader->GetFloat("LFB_config", "item_protrusion_detection_threshold", 0.005);
+  float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
   // true or false for rotation_required var doesn't impact output, just logging
   float max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
 
@@ -1816,7 +1811,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
   */
   //TODO: make configurable value. This value must be positive because current algo searches over bot markers as well, so expect minimum MaxZ values of ~0.0 +/- 5mm
-  float allowed_item_overflow_post_dispense_check = LFB_config_reader->GetFloat("LFB_config", "allowed_item_overflow_post_dispense_check", 0.015);
+  float allowed_item_overflow_post_dispense_check = lfb_vision_config->allowed_item_overflow_post_dispense_check;
   float remaining_platform_adjusted = std::max(remaining_platform, float(0.0)); //in case invalid negative values were provided from LFR
   bool front_side_no_viable_targets = std::max(max_Z_points.outer_front_left.z, max_Z_points.front_left.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
     std::max(max_Z_points.outer_front_right.z, max_Z_points.front_right.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check);

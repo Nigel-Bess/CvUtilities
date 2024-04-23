@@ -93,10 +93,13 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         ../include/Fulfil.Dispense/recipes/tray_dimensional_configuration.h
         ../include/Fulfil.Dispense/recipes/visualization_presets.h
         ../include/Fulfil.Dispense/recipes/tray_item_distance_calculation_settings.h
-        recipes/tray_dimensional_configuration.cpp recipes/tray_calibration_manager.cpp
-        recipes/tray_item_distance_calculation_settings.cpp tray/tray_process_logging_messages.cpp
-        dispense/drop_error_codes.cpp)
-
+        recipes/tray_dimensional_configuration.cpp
+        recipes/tray_calibration_manager.cpp
+        recipes/tray_item_distance_calculation_settings.cpp
+        tray/tray_process_logging_messages.cpp
+        dispense/drop_error_codes.cpp
+        recipes/lfb_vision_configuration.cpp
+        recipes/lfb_vision_configuration.cpp)
 
 target_link_libraries(Fulfil.Dispense LINK_PUBLIC json)
 
