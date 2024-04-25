@@ -108,8 +108,6 @@ namespace fulfil::dispense {
             std::shared_ptr<INIReader>  tray_config_reader;
             std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
-            std::shared_ptr<INIReader>  LFB_config_reader; //will store the config to be used for the current dispense
-
             /**
              *  Mongo ids for the last calibration entries in mongo for dispense, hover, and tongue engage
              *  used for linking tray count entry to a calibration

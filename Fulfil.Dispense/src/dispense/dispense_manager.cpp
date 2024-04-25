@@ -76,17 +76,17 @@ DispenseManager::DispenseManager(
   std::shared_ptr<INIReader> tray_config_reader,
   std::shared_ptr<MongoConnection> mongo_conn,
   std::shared_ptr<fulfil::dispense::tray::TrayManager> tray_manager) : bay(bay),
-        dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader), mongo_connection(mongo_conn),
-           LFB_config_reader(std::make_shared<INIReader>("LFB3_config.ini", true))
+        dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader), mongo_connection(mongo_conn)
   {
   Logger::Instance()->Trace("DispenseManager Constructor Called");
 
-
+  // TODO was this a weird merge conflict or can we get rid of these
+//      this->dispense_man_reader = dispense_man_reader;
+//      this->tray_config_reader =  tray_config_reader;
 
   //setting up networking stuff
   // TODO Once needs stabilize, we should probably just add data members in reader to interface
   // This should be the final place that the reader pointer is passed!
-
   auto dispense_name = std::string("dispense_") + char(this->bay + 48);
   auto safe_get_dispense_string_val = [this, dispense_name=std::string("dispense_") + char(this->bay + 48)]
           (auto key, std::string default_value) {
@@ -461,7 +461,7 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
 
   //call drop target algorithm
   std::shared_ptr<fulfil::dispense::drop::DropResult>
-    drop_result = this->drop_manager->handle_drop_request(this->LFB_config_reader, request_json, details, base_directory, time_stamp_string,
+    drop_result = this->drop_manager->handle_drop_request(request_json, details, base_directory, time_stamp_string,
                                                             true, this->bot_already_rotated_for_current_dispense);
 
   //if algorithm failed with no drop target, upload available visualizations immediately
@@ -495,14 +495,14 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
 }
 
 std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_ptr<std::string> PrimaryKeyID,
-                                                                  std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) {
+                                                                  std::shared_ptr<std::string> request_id,
+                                                                  std::shared_ptr<nlohmann::json> request_json) {
   auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_post_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
   Logger::Instance()->Debug("Handling Post LFR Command {} for Bay: {}", *PrimaryKeyID,  this->machine_name);
-  
-    auto make_bounce_error = [&request_id]() {
-      Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Post LFR");
-      return std::make_shared<PostLFRResponse>(request_id, 12);
-    };
+  auto make_bounce_error = [&request_id]() {
+    Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Post LFR");
+    return std::make_shared<PostLFRResponse>(request_id, 12);
+  };
 
     //set cached post_drop fields back to nullptr
   this->drop_manager->cached_post_container = nullptr; //reset to nullptr before processing begins, in case encounter errors and prepostcomparison is not possible
@@ -512,7 +512,8 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
   std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
   //call post-drop algorithm
   std::shared_ptr<PostLFRResponse> response = (this->LFB_session) ? this->drop_manager->handle_post_LFR(
-        this->LFB_config_reader, request_json, base_directory, request_id, true) : make_bounce_error();
+          request_json,
+          base_directory, request_id, true) : make_bounce_error();
   //pre-post compare (if applicable)
   if (response->get_success_code() != DropTargetErrorCodes::Success)
   {
@@ -523,12 +524,12 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
       int comparison_flag = this->dispense_reader->GetInteger("drop_zone_searcher", "pre_post_comparison", 0);
       if (comparison_flag == 1)
       {
-          std::pair<int,int> detection_results = this->drop_manager->handle_pre_post_compare(this->LFB_config_reader, *PrimaryKeyID);
+          std::pair<int,int> detection_results = this->drop_manager->handle_pre_post_compare(*PrimaryKeyID);
           response->set_items_dispensed(detection_results);
 
           //if pre/post comparison failed, there may have been request input issues, we do not do product fit check in this case
           if (detection_results.first != -1){
-              std::vector<int> products_to_overflow = this->drop_manager->check_products_for_fit_in_bag(this->LFB_config_reader, request_json);
+              std::vector<int> products_to_overflow = this->drop_manager->check_products_for_fit_in_bag(request_json);
               Logger::Instance()->Debug("Bag fit check: found {} products of interest that will no longer fit in this bag", products_to_overflow.size());
               response->set_products_to_overflow(products_to_overflow);
           }
@@ -857,7 +858,8 @@ std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> Prima
     }
 }
 
-int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
+int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
+                                    std::shared_ptr<nlohmann::json> request_json)
 {
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
     Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->machine_name);
@@ -879,8 +881,9 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, s
 
         Logger::Instance()->Debug("Getting container for caching now");
         std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->LFB_session);
-        bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
-        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->LFB_config_reader, mock_session_pre, extend_depth_analysis_over_markers);
+        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->drop_manager->mongo_bag_state->raw_mongo_doc->Config,
+                                                                                                         mock_session_pre,
+                                                                                                         this->drop_manager->mongo_bag_state->raw_mongo_doc->Config->extend_depth_analysis_over_markers);
 
         this->drop_manager->cached_pre_container = container; //cache for potential use in prepostcomparison later
         this->drop_manager->cached_pre_request = request_json; //cache for potential use in prepostcomparison later
