@@ -41,6 +41,8 @@ class DeviceManager
    */
   [[nodiscard]] std::vector<rs2::device> get_managed_device_list(std::vector<std::string> greenlit_devices) const;
   [[nodiscard]] std::vector<rs2::device> get_managed_device_list() const;
+  [[nodiscard]] std::string get_preset_by_camera_type(std::string_view camera_name) const;
+
   void reset_context_list();
 
 
@@ -74,6 +76,7 @@ class DeviceManager
     * @return a vector of sessions.
     */
   std::shared_ptr<std::vector<std::shared_ptr<Session>>> get_connected_sessions();
+
 
 
 

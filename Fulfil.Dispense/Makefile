@@ -5,6 +5,12 @@ all:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build
 	cmake --build build --target main -- -j 6
 
+.phony : calibrate
+calibrate:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake --build build --target auto_tray_calibration -- -j 6
+
+
 .phony : deploy
 deploy:
 	rsync -avP build/app/main root@10.10.103.83:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main

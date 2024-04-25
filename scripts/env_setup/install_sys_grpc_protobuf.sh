@@ -21,10 +21,11 @@ ARCH_ALIAS="$( arch_alias )"
 
 BAZEL_VERSION=1.16.0
 
-GRPC_INSTALL_DIR="${HOME}/.local"
+GRPC_INSTALL_DIR="/opt"
 GRPC_VERSION=1.54.0
 
-PROTOBUF_ASSET_TYPE="python"
+#PROTOBUF_ASSET_TYPE="python"
+PROTOBUF_ASSET_TYPE="cpp"
 PROTOBUF_RELEASE_TAG="21.12"
 PROTOBUF_VERSION_CPP="3.21.12"
 PROTOBUF_VERSION_PY="4.21.12"
@@ -90,6 +91,9 @@ echo "Test protoc installation"
 protoc --version || exit
 
 # Install gRPC
+
+echo -e "\n${CYN}Do you want to install gRPC system wide?${NC}"
+continue_or_skip || exit 0
 
 cd "$WORKDIR" || exit
 export LD_LIBRARY_PATH="/usr/lib:$LD_LIBRARY_PATH"
