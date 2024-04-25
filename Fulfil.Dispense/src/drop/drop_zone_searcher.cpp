@@ -438,18 +438,18 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       float local_z = (*local_cloud_data)(2, current_pixel_index);
 
       bool is_outer_bag = (local_x < -x_limit) or (local_x > x_limit) or (local_y < -y_limit) or (local_y > y_limit);
-
+      // count number of white points for empty/nonempty bag analysis
+      if (white_intensity == 255) {
+          white_count += 1;
+          // only filter on whiteness if feature flag is enabled
+          if (should_filter_out_white) { continue; }
+          // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
+          //only adjust depths if item is above a certain threshold mass
+          //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
+      } else {
+          non_white_count += 1;
+      }
       if (!is_outer_bag) {
-          // count number of white points for empty/nonempty bag analysis
-          if (white_intensity == 255) {
-              // only care about white count of inner bag, not if the LFB walls are white
-              white_count += 1;
-              // only filter on whiteness if feature flag is enabled
-              if (should_filter_out_white) { continue; }
-              // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
-              //only adjust depths if item is above a certain threshold mass
-              //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
-          }
           if (local_y >= 0 && local_x >= 0) {
               if (local_z > max_depth_points.front_right.z) {
                   max_depth_points.front_right.x = local_x;
@@ -477,13 +477,6 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
           }
       // if this IS outer bag
       } else {
-          if (white_intensity == 255) {
-              // only filter on whiteness if feature flag is enabled
-              if (should_filter_out_white) { continue; }
-              // TODO - this is disabled from adjusting the white points in a bag to platform height. needs to be refactored for different bags vs bagless.
-              //only adjust depths if item is above a certain threshold mass
-              //if(should_adjust_depth and is_outer_bag) input_cloud->set_depth_value(i, platform_in_LFB_coords + this->white_region_depth_adjust_from_min);
-          }
           if (local_y >= 0 && local_x >= 0) {
               if (local_z > item_protrusion_detection_threshold) {
                   outer_front_right_depth_list = update_max_depth_list(outer_front_right_depth_list, local_x, local_y, local_z);
@@ -571,7 +564,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   }
   else
   {
-    percentage_white = int(100 * white_count / float(white_count + non_white_count));
+    percentage_white = int(100 * white_count / float(total_points));
   }
   Logger::Instance()->Debug("{}% of points are white, or {} out of a total of {} points", percentage_white, white_count, total_points);
 
