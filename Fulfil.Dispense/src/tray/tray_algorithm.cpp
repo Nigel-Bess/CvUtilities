@@ -10,7 +10,6 @@
 #include <Fulfil.DepthCam/frame/pixel_point_converter.h>
 #include <Fulfil.Dispense/tray/measurement_helpers.h>
 #include <Fulfil.Dispense/tray/tray.h>
-#include <opencv2/cudaarithm.hpp>
 
 #include <cmath>
 #include <numeric>
