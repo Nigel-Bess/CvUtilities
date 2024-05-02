@@ -286,7 +286,7 @@ void MarkerDetectorContainer::setup_cached_container()
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
       //Todo: @Jess make actual DepthCam error class / cleaner fix for this so we can avoid the thrown int
-      throw std::make_tuple(1, "No markers detected");
+      throw std::make_tuple(1, std::string("No markers detected"));
     }
     else
     {
