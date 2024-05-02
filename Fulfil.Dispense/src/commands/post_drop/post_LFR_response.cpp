@@ -30,55 +30,56 @@ void PostLFRResponse::encode_payload()
   delete [] response;
 }
 
+
 PostLFRResponse::PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<fulfil::utils::Point3D> max_Z,
-                               int items_dispensed, int Bag_Full_Percent, int Item_On_Target_Percent)
+                                 int items_dispensed, int Bag_Full_Percent, int Item_On_Target_Percent)
 {
-this->command_id = command_id;
-this->success_code = success_code;
-this->max_depth_point_X = std::round(max_Z->x * 1000);
-this->max_depth_point_Y = std::round(max_Z->y * 1000);
-this->max_Z = std::round(max_Z->z * 1000); //conversion from meters to mm for VLSG response
-this->items_dispensed = items_dispensed;
-this->Bag_Full_Percent = Bag_Full_Percent;
-this->Item_On_Target_Percent = Item_On_Target_Percent;
-this->Products_To_Overflow = std::vector<int>();
+  this->command_id = command_id;
+  this->success_code = success_code;
+  this->max_depth_point_X = std::round(max_Z->x * 1000);
+  this->max_depth_point_Y = std::round(max_Z->y * 1000);
+  this->max_Z = std::round(max_Z->z * 1000); //conversion from meters to mm for VLSG response
+  this->items_dispensed = items_dispensed;
+  this->Bag_Full_Percent = Bag_Full_Percent;
+  this->Item_On_Target_Percent = Item_On_Target_Percent;
+  this->Products_To_Overflow = std::vector<int>();
 }
 
 std::shared_ptr<std::string> PostLFRResponse::get_command_id()
 {
-return this->command_id;
+  return this->command_id;
 }
 
 int PostLFRResponse::get_success_code()
 {
-return this->success_code;
+  return this->success_code;
 }
 
 void PostLFRResponse::set_items_dispensed(std::pair<int, int> values)
 {
-this->items_dispensed = values.first;
-this->Item_On_Target_Percent = values.second;
+  this->items_dispensed = values.first;
+  this->Item_On_Target_Percent = values.second;
 }
 
 void PostLFRResponse::set_products_to_overflow(std::vector<int> products)
 {
-  this->Products_To_Overflow = products;
+    this->Products_To_Overflow = products;
 }
 
 int PostLFRResponse::dispense_payload_size()
 {
-if(!(this->payload))
-{
-  this->encode_payload();
-}
-return this->payload->length() + 1;
+  if(!(this->payload))
+  {
+    this->encode_payload();
+  }
+  return this->payload->length() + 1;
 }
 
 std::shared_ptr<std::string> PostLFRResponse::dispense_payload()
 {
-if(!(this->payload))
-{
-  this->encode_payload();
-}
-return this->payload;
+  if(!(this->payload))
+  {
+    this->encode_payload();
+  }
+  return this->payload;
 }
