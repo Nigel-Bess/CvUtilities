@@ -43,7 +43,7 @@ class DropResult
    * @param drop_center pointer to center of the drop zone.
    * @param request used to calculate the drop zone
    */
-  DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated,
+  DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, std::shared_ptr<fulfil::utils::Point3D> max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated,
              bool Swing_Collision_Expected, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
   /**
    * The id of the request.
@@ -69,8 +69,16 @@ class DropResult
   float dispense_position;
 
   /**
- * The depth of the tallest detected item in the bag in mm units, as measured from the top surface of the LFB bag (negative = below top of LFB)
- */
+   * The Y-coordinate of the tallest detected item in the bag in mm units
+   */
+  float max_depth_point_X;
+  /**
+  * The Y-coordinate of the tallest detected item in the bag in mm units
+  */
+  float max_depth_point_Y;
+  /**
+  * The depth of the tallest detected item in the bag in mm units, as measured from the top surface of the LFB bag (negative = below top of LFB)
+  */
   float max_Z;
 
   /**

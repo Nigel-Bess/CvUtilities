@@ -39,9 +39,17 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    */
   float depth_result;
   /**
-   * depth of tallest item in LFB bag, in mm, relative to the top surface of the bag
-   */
+  * depth of tallest item in LFB bag, in mm, relative to the top surface of the bag
+  */
   float max_Z;
+  /**
+   * X-coordinate of tallest item in LFB bag, in mm
+   */
+  float max_depth_point_X;
+  /**
+   * Y-coordinate of tallest item in LFB bag, in mm
+   */
+  float max_depth_point_Y;
   /**
    * Indicates that target is being sent to VLSG with understanding that LFB should be rotated 180 degrees FROM IT'S CURRENT STATE before the dispense
    */
@@ -82,8 +90,10 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    * @param command_id of the request that led to this response.
    * See above for descriptions of the other params
    */
-  DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code, float rover_position, float dispense_position,
-                     float depth_result, float max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::string error_description);
+  DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code,
+                     float rover_position, float dispense_position, float depth_result,
+                     float max_depth_point_X, float max_depth_point_Y, float max_Z,
+                     bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::string error_description);
   /**
    * Returns the command id for the response.
    * @return pointer to string containing command id for the response.

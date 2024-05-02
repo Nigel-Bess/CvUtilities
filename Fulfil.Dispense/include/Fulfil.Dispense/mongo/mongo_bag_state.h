@@ -57,7 +57,7 @@ class CvBagState final
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
             std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
-            Config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+            Config = std::make_shared<LfbVisionConfiguration>(); //std::make_shared<nlohmann::json>()); //json["LfbConfig"]));
             std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
         }
         CvBagState(){  }

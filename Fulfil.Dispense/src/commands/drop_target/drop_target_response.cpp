@@ -25,6 +25,8 @@ void DropTargetResponse::encode_payload()
     (*result_json)["x"] = this->rover_position;
     (*result_json)["y"] = this->dispense_position;
     (*result_json)["z"] = this->depth_result;
+    (*result_json)["Max_Depth_X"] = this->depth_result;
+    (*result_json)["Max_Depth_Y"] = this->depth_result;
     (*result_json)["Max_Z"] = this->max_Z;
     (*result_json)["Rotate_LFB"] = this->Rotate_LFB;
     (*result_json)["LFB_Currently_Rotated"] = this->LFB_Currently_Rotated;
@@ -50,7 +52,8 @@ DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, 
 }
 
 DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code,
-                                       float rover_position, float dispense_position, float depth_result, float max_Z,
+                                       float rover_position, float dispense_position, float depth_result,
+                                       float max_depth_point_X, float max_depth_point_Y, float max_Z,
                                        bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected,
                                        std::string error_description)
 {
@@ -59,6 +62,8 @@ DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, 
   this->rover_position = rover_position;
   this->dispense_position = dispense_position;
   this->depth_result = depth_result;
+  this->max_depth_point_X = max_depth_point_X;
+  this->max_depth_point_Y = max_depth_point_Y;
   this->max_Z = max_Z;
   this->Rotate_LFB = Rotate_LFB;
   this->LFB_Currently_Rotated = LFB_Currently_Rotated;
