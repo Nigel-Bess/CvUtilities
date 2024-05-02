@@ -33,7 +33,9 @@ class CvBagState final
             _bag_id_string = json["BagId"].get<std::string>();
             // for offline test compatibility - the key is MongoID in prod but _id in offline data
             _id_string = json.value("MongoID", "NOT FOUND");
+            bool is_offline_test_run = false;
             if (_id_string == "NOT FOUND") {
+                is_offline_test_run = true;
                 _id_string = json["_id"].get<std::string>();
             }
             std::cout << "id string: " << _id_string << std::endl;
@@ -57,7 +59,11 @@ class CvBagState final
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
             std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
-            Config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+            if (is_offline_test_run) {
+                Config = std::make_shared<LfbVisionConfiguration>();
+            } else {
+                Config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+            }
             std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
         }
         CvBagState(){  }
