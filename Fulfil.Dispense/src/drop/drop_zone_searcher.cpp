@@ -793,50 +793,22 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
 
+  // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
   if(rotation_worsened)
   {
-    if(crazy_depth_improvement)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+      return crazy_depth_improvement;
   }
+  // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
   else if (rotation_improved)
   {
-    if(!crazy_depth_regression)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return !crazy_depth_regression;
   }
   else //rotation of candidates is the same
   {
-    if (interference_improved and !significant_depth_regression)
-    {
-      return true;
-    }
-    else if (significant_depth_improvement and !significant_variance_regression)
-    {
-      return true;
-    }
-    else if (moderate_depth_improvement and !moderate_variance_regression)
-    {
-      return true;
-    }
-    else if (equivalent_depth and moderate_variance_improvement)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return (interference_improved and !significant_depth_regression) or
+        (significant_depth_improvement and !significant_variance_regression) or
+        (moderate_depth_improvement and !moderate_variance_regression) or
+        (equivalent_depth and moderate_variance_improvement);
   }
 }
 
