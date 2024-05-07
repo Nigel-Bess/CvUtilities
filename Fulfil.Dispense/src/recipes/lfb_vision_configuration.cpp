@@ -48,7 +48,7 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     // drop target performance
     fraction_of_bag_dims_considered_inner_bag{input_json->value("FractionOfBagDimsConsideredInnerBag", (float)0.85)},
     only_consider_every_Xth_target_candidate{input_json->value("OnlyConsiderEveryXthTargetCandidate", 5)},
-    should_filter_out_white{input_json->value("ShouldFilterOutWhite", true)},
+    should_filter_out_white{input_json->value("ShouldFilterOutWhite", false)},
     extend_depth_analysis_over_markers{input_json->value("ExtendDepthAnalysisOverMarkers", true)},
 
     // pirouettes
