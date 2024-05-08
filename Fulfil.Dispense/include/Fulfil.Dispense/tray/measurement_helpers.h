@@ -18,8 +18,24 @@ namespace fulfil::measure {
         return std::all_of(std::begin(lane_locations), std::end(lane_locations), [](auto i){return i < 0; });
     }
 
-    float to_rounded_millimeters(float meters);
-    float scale_and_round(float value, float scale);
+    // was float scale_and_round(float value, float scale);
+
+
+    // lessgo
+    template<typename T>
+    constexpr auto scale_and_round(T value, float scale) -> T
+    {
+        static_assert( std::is_floating_point_v<T>, "fulfil::measure::scale_and_round expects floating point value." );
+        return std::round(value * scale);
+    }
+
+    template<typename T>
+    constexpr auto to_rounded_millimeters(T meters) -> T
+    {
+        constexpr float scale = 1000;
+        return fulfil::measure::scale_and_round(meters, scale);
+    }
+
     float to_meters(float millimeters);
     double tray_origin_xoffset_from_edge(float tray_width, float fiducial_width_offset) ;
 

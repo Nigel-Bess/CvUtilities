@@ -205,18 +205,18 @@ namespace results_to_vlsg {
     BoundaryLimit::BoundaryLimit(float min_distance, float max_distance) :
             m_min_distance{min_distance}, m_max_distance{max_distance} {}
 
-    float BoundaryLimit::clip(float distance) const
+    int BoundaryLimit::clip(int distance) const
     {
         return (distance < m_max_distance && distance > m_min_distance) ? distance : -1;
     }
     LaneItemDistance::LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors,
-                                       float firstItemDistance,
-                                       BoundaryLimit clip) : m_index{index}, m_errors{errors},
+                                       int firstItemDistance,
+                                       BoundaryLimit clip) : m_index{index}, m_errors{std::move(errors)},
                                                              m_first_item_distance{firstItemDistance}, m_range_fn{clip} {}
 
-    LaneItemDistance::LaneItemDistance(int index, int error, float firstItemDistance) : m_index{index},
-                                                                                        m_errors{std::vector<int>{error}},
-                                                                                        m_first_item_distance{firstItemDistance} {}
+    LaneItemDistance::LaneItemDistance(int index, int error, int firstItemDistance) : m_index{index},
+                                                                                      m_errors{std::vector<int>{error}},
+                                                                                      m_first_item_distance{firstItemDistance} {}
 
     LaneItemDistance::LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength) : m_index{index},
                                                                                                            m_errors{std::vector<int>{error}},
@@ -227,11 +227,10 @@ namespace results_to_vlsg {
     dimensional_info::LaneIndex LaneItemDistance::get_lane_id() const { return m_index; }
 
     LaneCounts::LaneCounts(dimensional_info::LaneIndex index, std::vector<int> errors, int laneCounts, bool has_tongue)
-        : m_index{index}, m_errors{errors}, m_num_algorithm_counts{laneCounts} {}
+        : m_index{index}, m_errors{std::move(errors)}, m_num_algorithm_counts{laneCounts} {}
 
     LaneCounts::LaneCounts(int index, int error, int laneCounts, bool has_tongue)
-        : m_index{index},
-                                                                   m_errors{std::vector<int>{error}},  m_num_algorithm_counts{laneCounts} {}
+        : m_index{index}, m_errors{std::vector<int>{error}},  m_num_algorithm_counts{laneCounts} {}
 
     dimensional_info::LaneIndex LaneCounts::get_lane_id() const { return m_index; }
 

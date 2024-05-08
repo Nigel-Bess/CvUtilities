@@ -199,15 +199,15 @@ TrayAlgorithm::get_first_item_distance_from_coordinate_matrix(
     double item_distance = fulfil::measure::to_rounded_millimeters(y_dist);
     auto tongue_wheel_correction = (lane.has_tongue()) ? this->wheel_diameter_correction_mm + this->tongue_wheel_adjustment_mm : this->wheel_diameter_correction_mm;
 
-    double item_corrected_distance = std::max(item_distance - tongue_wheel_correction, 0.0);
-    double item_length = fulfil::measure::to_rounded_millimeters(item_edge_coordinates.front().y() - item_edge_coordinates.back().y());
-    if (y_dist > this->y_distance_search_limit) { item_distance = -1; item_corrected_distance = -1; item_length = 0; }
+    int item_corrected_distance = static_cast<int>(std::max(item_distance - tongue_wheel_correction, 0.0));
+    int item_length = static_cast<int>(fulfil::measure::to_rounded_millimeters(item_edge_coordinates.front().y() - item_edge_coordinates.back().y()));
+    if (y_dist > this->y_distance_search_limit) {  item_corrected_distance = -1; item_length = 0; }
      Logger::Instance()->Info("Distance of item using tray center reference frame {:0.3f}, where the back of tray is {:0.3f}. The item {} the lane boundary. "
                                "The distance in mm from front of tray is {}. After correcting for the wheel diameter (set to {}) the belt distance "
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
 			       (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
-    return {lane.lane_id(), 0, static_cast<int>(item_corrected_distance), static_cast<int>(item_length)};
+    return {lane.lane_id(), 0, item_corrected_distance, item_length};
 
 }
 
@@ -364,7 +364,7 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
             log_back_edge_detection(lane_center_iterator.pos(), i);
         }
     }
-    if (edge_coordinates.size() > 0) {
+    if (!edge_coordinates.empty()) {
         edge_coordinates.push_back(back_edge_coordinate);
         pixel_detections.push_back(back_pixel);
     }
@@ -385,8 +385,7 @@ Eigen::Affine3d
     Eigen::Matrix3Xd camera_fiducial_coordinates (3,num_calib_coordinates);
     load_eigen_matrix(camera_fiducial_coordinates, coordinate_config_prefix + "_camera_coordinates");
     fulfil::depthcam::KabschHelper helper;
-    Eigen::Affine3d camera_to_mm_transform = helper.fit_transform_between_points(camera_fiducial_coordinates, mm_fiducial_coordinates);
-    return camera_to_mm_transform;
+    return helper.fit_transform_between_points(camera_fiducial_coordinates, mm_fiducial_coordinates);
 }
 
 // Should take in the lane_center_coordinates, the transform, and a point of delta in the 3 dimensions
@@ -402,7 +401,7 @@ TrayAlgorithm::get_width_boundaries(Eigen::Matrix3Xd lane_center_coordinates,
     std::vector<cv::Point2i> upper_width_bounds {local_pix2pt.get_pixel_space_contour(lane_center_coordinates)};
     
     // TODO I think this can be cleaned with new lane gutter output
-    int num_lanes = upper_width_bounds.size() / 2;
+    auto num_lanes = upper_width_bounds.size() / 2;
     std::vector<std::vector<cv::Point2i>> bounds{};
     bounds.reserve(lane_center_coordinates.cols());
     
@@ -732,7 +731,7 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
 
     // get spatial transform params
     std::string config_prefix = *(session)->get_serial_number() + tray_vlsg_request.m_context.get_calibration_mode_key();
-    Eigen::Affine3d camera_to_mm_transform = create_camera_to_local_transform(config_prefix);
+    Eigen::Affine3d camera_to_mm_transform { create_camera_to_local_transform(config_prefix) };
     PixelPointConverter local_pix2pt = PixelPointConverter(session, std::make_shared<Eigen::Affine3d>(camera_to_mm_transform), 10);
 
 

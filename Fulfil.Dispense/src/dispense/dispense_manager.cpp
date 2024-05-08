@@ -687,8 +687,10 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
             TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
             return tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
         } catch(const std::exception & e) {
-            return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
-                    results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
+            return std::make_tuple(results_to_vlsg::LaneItemDistance{},
+                                   std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
+            //return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
+            //        results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
         }
     };
 

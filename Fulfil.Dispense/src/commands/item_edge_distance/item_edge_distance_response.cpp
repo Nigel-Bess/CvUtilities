@@ -35,15 +35,6 @@ void ItemEdgeDistanceResponse::encode_payload()
   Logger::Instance()->Info("Encoding TrayDispenseLane Response: {}", *this->payload);
 }
 
-ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code)
-{
-  this->success_code = success_code;
-  this->command_id = command_id;
-  this->count_result = results_to_vlsg::TrayValidationCounts{};
-
-
-}
-
 std::shared_ptr<std::string> ItemEdgeDistanceResponse::get_command_id()
 {
   return this->command_id;
@@ -67,21 +58,18 @@ std::shared_ptr<std::string> ItemEdgeDistanceResponse::dispense_payload()
   return this->payload;
 }
 
-ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
-        std::vector<tray_count_api_comms::LaneCenterLine> transformed_pixel_centers,
-        int fed_result, int cv_detected_item_length,
-        results_to_vlsg::TrayValidationCounts lane_count_result,
-        std::shared_ptr<std::string> command_id, int success_code) :
-        command_id{std::move(command_id)}, count_result{std::move(lane_count_result)},
-        lane_distance_info(success_code, fed_result, cv_detected_item_length), success_code{success_code} {}
 
 int fulfil::dispense::commands::ItemEdgeDistanceResponse::get_fed_value() const {
     return lane_distance_info.m_first_item_distance;
 }
 
+
+ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code)
+    : command_id{std::move(command_id)}, success_code{success_code} {}
+
+
 fulfil::dispense::commands::ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
         results_to_vlsg::LaneItemDistance lane_item_distance, results_to_vlsg::TrayValidationCounts lane_count_result,
         std::shared_ptr<std::string> command_id) :
-        command_id{std::move(command_id)}, count_result(std::move(lane_count_result)), lane_distance_info(lane_item_distance) {}
-
+        command_id{std::move(command_id)}, count_result(std::move(lane_count_result)), lane_distance_info(std::move(lane_item_distance)) {}
 

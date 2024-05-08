@@ -43,11 +43,6 @@ namespace fulfil::dispense::commands
 
                 explicit ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code);
 
-                ItemEdgeDistanceResponse(std::vector<tray_count_api_comms::LaneCenterLine> transformed_pixel_centers,
-                                         int fed_result, int cv_detected_item_length,
-                                         results_to_vlsg::TrayValidationCounts lane_count_result,
-                                         std::shared_ptr<std::string> command_id, int success_code = 0);
-
                 ItemEdgeDistanceResponse(results_to_vlsg::LaneItemDistance lane_item_distance,
                                          results_to_vlsg::TrayValidationCounts lane_count_result,
                                          std::shared_ptr<std::string> command_id);
