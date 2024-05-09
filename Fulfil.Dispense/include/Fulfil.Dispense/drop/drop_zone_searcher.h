@@ -134,7 +134,10 @@ class DropZoneSearcher
   /**
    * Returns true if the current candidate is better than the best candidate up to that point
    */
-  bool compare_candidates(std::shared_ptr<Target_Region> best_target_region, std::shared_ptr<Target_Region> current_target_region);
+  bool compare_candidates(std::shared_ptr<Target_Region> best_target_region,
+                          std::shared_ptr<Target_Region> current_target_region,
+                          bool use_quadrant_preference_order,
+                          std::shared_ptr<std::vector<std::string>> quadrant_preference_order);
 
   /**
    * Uses bag state info and current dispense item damage details to

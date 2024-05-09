@@ -132,6 +132,15 @@ class DropTargetDetails
    *  Enables flipping the default side for the drop target, from Rear to Bow
    */
   bool use_flipped_x_default;
+
+  /**
+   * Enables using the quadrant preference order to impact how drop targets are selected
+   */
+  bool use_quadrant_preference_order;
+  /**
+   * Ordered list of the quadrants in the LFB to consider for drop target selection, from most preferred to least.
+   */
+  std::shared_ptr<std::vector<std::string>> quadrant_preference_order;
 };
 } // namespace commands
 } // namespace dispense

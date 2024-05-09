@@ -767,15 +767,19 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   }
 }
 
-std::shared_ptr<std::string> DropZoneSearcher::get_quadrant_of_point(std::shared_ptr<DropZoneSearcher::Target_Region> target_region)
+// get the quadrant that the given x,y target coordinates are in for nominal orientation
+std::shared_ptr<std::string> get_quadrant_of_point(float target_region_x, float target_region_y)
 {
     std::shared_ptr<std::string> quadrant_name = std::make_shared<std::string>("");
-    *quadrant_name = (target_region->y < 0) ? *quadrant_name + "back" : *quadrant_name + "front";
-    *quadrant_name = (target_region->x < 0) ? *quadrant_name + "left" : *quadrant_name + "right";
+    *quadrant_name = (target_region_y < 0) ? *quadrant_name + "back" : *quadrant_name + "front";
+    *quadrant_name = (target_region_x < 0) ? *quadrant_name + "left" : *quadrant_name + "right";
     return quadrant_name;
 }
 
-bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadrant, std::shared_ptr<std::string> current_quadrant, std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
+// determine if the current target region is preferred by the quadrant it is located in compared to the best target region so far's quadrant
+bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadrant,
+                                       std::shared_ptr<std::string> current_quadrant,
+                                       std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
 {
     // get location of  both quadrants in list, if before then
     auto best_quad = std::find(quadrant_preference_order->begin(), quadrant_preference_order->end(), *best_quadrant);
@@ -789,7 +793,10 @@ bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadran
         (current_quad < best_quad));
 }
 
-bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region, std::shared_ptr<DropZoneSearcher::Target_Region> current_target_region)
+bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region,
+                                          std::shared_ptr<DropZoneSearcher::Target_Region> current_target_region,
+                                          bool use_quadrant_preference_order,
+                                          std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
 {
   bool interference_improved = ((best_target_region->interference_detected == true) and (current_target_region->interference_detected == false));
   bool rotation_improved = ((best_target_region->rotation_required == true) and (current_target_region->rotation_required == false));
@@ -830,7 +837,10 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
         (significant_depth_improvement and !significant_variance_regression) or
         (moderate_depth_improvement and !moderate_variance_regression) or
         (equivalent_depth and moderate_variance_improvement) or
-        (current_target_quadrant_preferred(get_quadrant_of_point(best_target_region), get_quadrant_of_point((current_target_region), quadrant_preference_order)));
+        (use_quadrant_preference_order and
+        current_target_quadrant_preferred(get_quadrant_of_point(best_target_region->x, best_target_region->y),
+                                          get_quadrant_of_point(current_target_region->x, current_target_region->y),
+                                          quadrant_preference_order));
   }
 }
 
@@ -1611,7 +1621,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
 
     //compare current candidate to best candidate up to this point, as long as the interference state would not worsen with the new candidate
-    bool update_flag = !candidate_found || compare_candidates(std::make_shared<Target_Region>(best_target_region), current_target_ptr);
+    bool update_flag = !candidate_found || compare_candidates(std::make_shared<Target_Region>(best_target_region),
+                                                              current_target_ptr,
+                                                              details->use_quadrant_preference_order,
+                                                              details->quadrant_preference_order);
 
     if (update_flag)
     {
