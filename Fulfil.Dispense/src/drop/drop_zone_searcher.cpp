@@ -767,6 +767,27 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   }
 }
 
+std::shared_ptr<std::string> DropZoneSearcher::get_quadrant_of_point(std::shared_ptr<DropZoneSearcher::Target_Region> target_region)
+{
+    std::shared_ptr<std::string> quadrant_name = std::make_shared<std::string>("");
+    *quadrant_name = (target_region->y < 0) ? *quadrant_name + "back" : *quadrant_name + "front";
+    *quadrant_name = (target_region->x < 0) ? *quadrant_name + "left" : *quadrant_name + "right";
+    return quadrant_name;
+}
+
+bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadrant, std::shared_ptr<std::string> current_quadrant, std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
+{
+    // get location of  both quadrants in list, if before then
+    auto best_quad = std::find(quadrant_preference_order->begin(), quadrant_preference_order->end(), *best_quadrant);
+    auto current_quad = std::find(quadrant_preference_order->begin(), quadrant_preference_order->end(), *current_quadrant);
+
+    // default false if a quadrant isn't in the preference list, or if the quadrants are the same
+    // true if the current quadrant is higher in the priority list than the current quadrant
+    return (!(best_quad == quadrant_preference_order->end()) and
+        !(current_quad == quadrant_preference_order->end()) and
+        !(best_quad == current_quad) and
+        (current_quad < best_quad));
+}
 
 bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region, std::shared_ptr<DropZoneSearcher::Target_Region> current_target_region)
 {
@@ -808,7 +829,8 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
     return (interference_improved and !significant_depth_regression) or
         (significant_depth_improvement and !significant_variance_regression) or
         (moderate_depth_improvement and !moderate_variance_regression) or
-        (equivalent_depth and moderate_variance_improvement);
+        (equivalent_depth and moderate_variance_improvement) or
+        (current_target_quadrant_preferred(get_quadrant_of_point(best_target_region), get_quadrant_of_point((current_target_region), quadrant_preference_order)));
   }
 }
 
