@@ -40,11 +40,11 @@ MarkerDetectorContainer::MarkerDetectorContainer(std::shared_ptr<MarkerDetector>
                                                  int num_markers,
                                                  float marker_depth,
                                                  float marker_depth_tolerance,
+                                                 int min_marker_count_for_validation,
                                                  int region_max_x,
                                                  int region_min_x,
                                                  int region_max_y,
-                                                 int region_min_y,
-                                                 float marker_adjust_amount)
+                                                 int region_min_y)
 {
   this->marker_detector = marker_detector;
   this->session = session;
@@ -59,11 +59,11 @@ MarkerDetectorContainer::MarkerDetectorContainer(std::shared_ptr<MarkerDetector>
   this->num_markers = num_markers;
   this->marker_depth = marker_depth;
   this->marker_depth_tolerance = marker_depth_tolerance;
+  this->min_marker_count_for_validation = min_marker_count_for_validation;
   this->region_min_x = region_min_x;
   this->region_max_x = region_max_x;
   this->region_min_y = region_min_y;
   this->region_max_y = region_max_y;
-  this->marker_adjust_amount = marker_adjust_amount;
 }
 
 /**
@@ -225,7 +225,7 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::v
   get_record(final_markers, "After removing overlapping markers");
 
   Logger::Instance()->Debug("Number of valid markers after second round of checks: {}", final_markers.size());
-  if (final_markers.size() > 8)  Logger::Instance()->Error("Too many valid markers! Something went wrong");
+  if (final_markers.size() > num_markers)  Logger::Instance()->Error("Too many valid markers! Something went wrong");
   Logger::Instance()->Trace("returning valid markers");
   return std::make_shared<std::vector<std::shared_ptr<Marker>>>(final_markers);
 }
@@ -238,7 +238,7 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::v
  * marker determines where in the array it is placed.
  * @param marker_detector the marker detector to use when search for detectors
  * @param depth_session the depth session to use for detecting markers.
- * @return a list of 8 either nullptr or markers representing the spots on the bag with the markers.
+ * @return a list of length(num_markers) either nullptr or markers representing the spots on the bag with the markers.
  */
 std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::get_markers(bool bot_in_nominal_orientation)
 {
@@ -280,7 +280,7 @@ void MarkerDetectorContainer::setup_cached_container()
   int num_detections = valid_markers->size();
   Logger::Instance()->Debug("Detected number of valid markers: {}", num_detections);
 
-  if(num_detections < 3) // must have at least 3 detected markers in order for coordinate transform to work properly.
+  if(num_detections < this->min_marker_count_for_validation) // must have at least 3 detected markers in order for coordinate transform to work properly.
   {
     if(num_detections == 0)
     {

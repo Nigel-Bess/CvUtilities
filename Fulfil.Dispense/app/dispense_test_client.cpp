@@ -2,7 +2,7 @@
 // Created by nkaffine on 12/18/19.
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
-#include "../libs/Fulfil.CPPUtils/src/comm/SbcClient.h"
+#include <Fulfil.CPPUtils/comm/SbcClient.h>
 #include <Fulfil.CPPUtils/networking.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
     test_logger->Info("JSON REQUEST:{}", json.dump());
 
-    // test->ReadReponse();
+     client->ReadReponse();
   }
   test_logger->Info("Ending program");
   return 0;

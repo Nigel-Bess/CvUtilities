@@ -23,6 +23,8 @@ namespace fulfil::dispense::tray_processing {
  * struct defining depth pixel and depth
  */
 
+
+
 struct FEDParams {
   float item_height{};
   float min_height{};
@@ -178,6 +180,13 @@ class TrayAlgorithm
 
    cv::Mat make_tongue_color_selection(cv::Mat rgb_selection);
 
+    std::vector<cv::Point2i> get_center_pixels(const std::shared_ptr<fulfil::depthcam::Session> &session,
+                                               tray::Tray &current_tray, const request_from_vlsg::TrayRequest &tray_vlsg_request);
+    std::vector<cv::Point2i> get_center_pixels(depthcam::PixelPointConverter local_pix2pt,
+                                               const std::vector<tray::TrayLane>& tray_lanes,
+                                               tray::Tray &current_tray,
+                                               Eigen::Matrix3Xd& lane_center_coordinates);
+
    std::tuple<std::vector<cv::Point2i>, std::vector<bool>> get_tongue_detections(
        const std::shared_ptr<fulfil::depthcam::Session> &session,
        tray::Tray &current_tray,
@@ -185,15 +194,21 @@ class TrayAlgorithm
        std::vector<tray::TrayLane> tray_lanes,
        cv::Mat tongue_color_mask);
 
-   // Above calls below
-   std::vector<bool> validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
-       const std::vector<tray::TrayLane> &tray_lanes,
-       const depthcam::PixelPointConverter &local_pix2pt,
-       const Eigen::Matrix3Xd &lane_center_coordinates,
-       float max_item_width,
-       const std::string &pkid);
 
    // Above calls below
+   std::vector<bool> validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
+                                                      const std::vector<std::vector<cv::Point2i>>& lane_bounds,
+                                                      const std::vector<tray::TrayLane> &tray_lanes,
+                                                      const std::string &pkid);
+
+    std::vector<bool> validate_tongues_in_lane_on_tray(const cv::Mat &tongue_color_mask,
+                                     const std::vector<tray::TrayLane> &tray_lanes,
+                                     const depthcam::PixelPointConverter &local_pix2pt,
+                                     const Eigen::Matrix3Xd &lane_center_coordinates,
+                                     float max_item_width,
+                                     const std::string &pkid);
+
+    // Above calls below
    bool check_roi_for_tongue(const cv::Mat &tongue_color_mask,
        const std::vector<cv::Point2i> &roi_vertices,
        bool has_tongue,

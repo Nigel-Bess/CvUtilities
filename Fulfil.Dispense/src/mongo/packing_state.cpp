@@ -7,19 +7,14 @@
 using fulfil::dispense::drop::PackingState;
 using fulfil::utils::Logger;
 
-PackingState::PackingState()//default to 3.1
+PackingState::PackingState(float LFB_cavity_height, float container_width, float container_length, int max_num_depth_detections)//default to 3.1
 {
-  float bag_cavity = 0.30;//LFB_config_reader->GetFloat("LFB_config", "LFB_cavity_height", 0);
-  float container_width = 0.43;//LFB_config_reader->GetFloat("LFB_config", "container_width", 0);
-  float container_length = 0.30;//LFB_config_reader->GetFloat("LFB_config", "container_length", 0);
-
-
   // the max number of depth detections in the LFB container by the point cloud, when there are no missing depth data points (will vary some from image/image, bay/bay, etc.)
-  this->max_num_depth_detections = 1250; // = 25 x 35 //TODO: move this to LFB_Config reader in future, or mongo recipe config
-  this->bag_cavity = bag_cavity;
+  this->max_num_depth_detections = max_num_depth_detections; //1250; // = 25 x 35
+  this->bag_cavity = LFB_cavity_height;
 
-  this->empty_bag_volume_points = bag_cavity * this->max_num_depth_detections;
-  this->empty_bag_volume_mm = (bag_cavity*1000) * (container_width *1000) * (container_length*1000);
+  this->empty_bag_volume_points = this->bag_cavity * this->max_num_depth_detections;
+  this->empty_bag_volume_mm = (this->bag_cavity*1000) * (container_width *1000) * (container_length*1000);
 
   this->packed_items_volume_mm = 0; //this is 0 so new bags will be initialized with this value
   this->percent_bag_full = 0;

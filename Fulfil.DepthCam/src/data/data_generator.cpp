@@ -17,29 +17,29 @@
 #include "Fulfil.DepthCam/data/data_generator.h"
 #include <Fulfil.DepthCam/core/transform_depth_session.h>
 #include <Fulfil.DepthCam/point_cloud.h>
+#include <filesystem>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::data::DataGenerator;
 using fulfil::utils::Logger;
 
 
-DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
+DataGenerator::DataGenerator(std::shared_ptr<Session> session_to_save, std::shared_ptr<std::string> image_path_out,
         std::shared_ptr<std::string> path,
-        std::shared_ptr<nlohmann::json> request_json)
+        std::shared_ptr<nlohmann::json> request_json, bool cancel_save_requests)
 {
-    this->session = session;
+    this->session = session_to_save;
     this->destination_directory = std::make_shared<std::string>(*image_path_out);
     FileSystemUtil::join_append(this->destination_directory, *path);
     this->request_json = request_json;
 }
 
-DataGenerator::DataGenerator(std::shared_ptr<Session> session, std::shared_ptr<std::string> image_path_out,
-                             std::shared_ptr<nlohmann::json> request_json)
-{
-  this->session = session;
-  this->destination_directory = image_path_out;
-  this->request_json = request_json;
-}
+DataGenerator::DataGenerator(std::shared_ptr<Session> session_to_save, std::shared_ptr<std::string> image_path_out,
+                             std::shared_ptr<nlohmann::json> request_json, bool cancel_save_requests)
+                             : session(session_to_save), destination_directory(image_path_out),
+                             request_json(request_json), disable_save_call(cancel_save_requests)
+
+{}
 
 void DataGenerator::save_color_data(std::shared_ptr<std::string> filename)
 {
@@ -80,6 +80,7 @@ void DataGenerator::save_point_cloud(std::shared_ptr<std::string> directory_path
   point_cloud->encode_to_directory(directory_path);
 }
 
+// TODO for the love of god banish these pointers
 void DataGenerator::save_frame_information(std::shared_ptr<std::string> frame_directory)
 {
     auto timer = fulfil::utils::timing::Timer("DataGenerator::save_frame_information " + *frame_directory );
@@ -105,7 +106,9 @@ void DataGenerator::save_frame_information(std::shared_ptr<std::string> frame_di
 
 void DataGenerator::save_data(const std::string& file_prefix) {
     // TODO honestly too busy to keep dealing with interface overhaul. deferring for now.
-    save_data(std::make_shared<std::string> (file_prefix));
+    auto frame_directory = std::filesystem::path{ *destination_directory };
+    frame_directory /=  file_prefix;
+    do_session_save(frame_directory);
 }
 
 void DataGenerator::save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write)
@@ -125,7 +128,10 @@ void DataGenerator::save_json_data(const std::string& dest_directory_name, const
     }
 }
 
-void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
+
+
+
+void DataGenerator::save_data(const std::shared_ptr<std::string>& file_prefix)
 {
   Logger::Instance()->Trace("Data Generator save_data started");
   std::shared_ptr<std::string> frame_directory = std::make_shared<std::string>(*destination_directory);
@@ -138,13 +144,14 @@ void DataGenerator::save_data(std::shared_ptr<std::string> file_prefix)
       FileSystemUtil::create_nested_directory(frame_directory);
     }
 
-    Logger::Instance()->Trace("Saving DataGenerator data at {} ", *frame_directory);
+    Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
     this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
-  }
-  catch (...) {
-    Logger::Instance()->Error("Error occurred in trying to save all image + depth + pointcloud + transform data");
-    exit(18);
+  } catch (const std::exception& ex) {
+      Logger::Instance()->Error("Error '{}' occurred in trying to save all image + depth + pointcloud + transform data", ex.what());
+  } catch (...) {
+    Logger::Instance()->Error("Non-Catchable Error occurred while trying to save all image + depth + pointcloud + transform data");
+    //exit(18);
   }
 }
 
@@ -162,10 +169,35 @@ void DataGenerator::save_data()
     Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
     this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
+  } catch (const std::exception& ex) {
+      Logger::Instance()->Error("Error '{}' occurred in trying to save all image + depth + pointcloud + transform data", ex.what());
+  } catch (...) {
+  Logger::Instance()->Error("Non-Catchable Error occurred while trying to save all image + depth + pointcloud + transform data");
+  //exit(18);
   }
-  catch (...) {
-    Logger::Instance()->Error("Error occurred in trying to save all image + depth + pointcloud + transform data");
-    exit(18);
-  }
+}
+
+bool fulfil::depthcam::data::DataGenerator::do_session_save(std::string frame_directory) {
+    Logger::Instance()->Debug("Saving DataGenerator data at {} ", frame_directory);
+    if (this->disable_save_call) {
+        Logger::Instance()->Warn("DataGenerator saving was disabled. `.save_data()` is not permitted.");
+        return false;
+    }
+    try {
+        if (!FileSystemUtil::directory_exists(frame_directory.c_str())) {
+            Logger::Instance()->Trace("Creating nested directory {}", frame_directory);
+            FileSystemUtil::create_nested_directory(frame_directory);
+        }
+
+        this->save_json_data(frame_directory, "json_request.json", *this->request_json);
+        this->save_frame_information(std::make_shared<std::string>(frame_directory));
+        return true;
+    } catch (const std::exception& ex) {
+        Logger::Instance()->Error("Error '{}' occurred in trying to save all image + depth + pointcloud + transform data", ex.what());
+    } catch (...) {
+        Logger::Instance()->Error("Non-Catchable Error occurred while trying to save all image + depth + pointcloud + transform data");
+        //exit(18);
+    }
+    return false;
 }
 

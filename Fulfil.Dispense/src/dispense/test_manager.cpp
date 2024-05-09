@@ -38,7 +38,7 @@
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/commands/content_response.h>
 #include <Fulfil.Dispense/commands/dispense_command.h>
-#include <Fulfil.Dispense/mongo/lfb_config.h>
+#include <memory>
 
 using fulfil::depthcam::data::BQUpload;
 using ff_mongo_cpp::MongoConnection;
