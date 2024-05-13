@@ -75,9 +75,9 @@ namespace fulfil::configuration::lfb {
         /** Percentage of dispensed item length that is allowed to stick out above marker surface after dispense (predicted) */
         float max_item_length_percent_overflow {0.5};
         /** Maximum amount of protrusion in meters that any item can stick out of the bag above marker plane, for items already in the bag */
-        float allowed_item_overflow_pre_dispense {0.16};
+        float allowed_item_overflow_pre_dispense {0.016};
         /** Maximum amount of protrusion in meters that any item can stick out of the bag above marker plane, for the item to be dispensed */
-        float allowed_item_overflow_post_dispense_check {0.16};
+        float allowed_item_overflow_post_dispense_check {0.016};
 
         // empty bag handling
         // TODO - need to move out of main.ini
@@ -105,7 +105,7 @@ namespace fulfil::configuration::lfb {
          * shadows being detected as lots of items. The main motivation for disabling this is to not ignore white large
          * items that are otherwise ignored.
          */
-        bool should_filter_out_white {true};
+        bool should_filter_out_white {false};
         /**
          * Feature flag for expanding the area around the LFB for depth analysis. If true, the point cloud will be
          * expanded over the LFB walls to include the
