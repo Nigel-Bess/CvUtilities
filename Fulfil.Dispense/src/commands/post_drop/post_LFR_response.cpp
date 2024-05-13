@@ -13,6 +13,8 @@ void PostLFRResponse::encode_payload()
 {
   std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
   (*result_json)["Error"] = this->success_code;
+  (*result_json)["Max_Depth_X"] = this->max_depth_point_X;
+  (*result_json)["Max_Depth_Y"] = this->max_depth_point_Y;
   (*result_json)["Max_Z"] = this->max_Z;
   (*result_json)["Items_Dispensed"] = this->items_dispensed;
   (*result_json)["Bag_Full_Percent"] = this->Bag_Full_Percent;

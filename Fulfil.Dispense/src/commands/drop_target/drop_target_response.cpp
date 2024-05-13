@@ -25,8 +25,8 @@ void DropTargetResponse::encode_payload()
     (*result_json)["x"] = this->rover_position;
     (*result_json)["y"] = this->dispense_position;
     (*result_json)["z"] = this->depth_result;
-    (*result_json)["Max_Depth_X"] = this->depth_result;
-    (*result_json)["Max_Depth_Y"] = this->depth_result;
+    (*result_json)["Max_Depth_X"] = this->max_depth_point_X;
+    (*result_json)["Max_Depth_Y"] = this->max_depth_point_Y;
     (*result_json)["Max_Z"] = this->max_Z;
     (*result_json)["Rotate_LFB"] = this->Rotate_LFB;
     (*result_json)["LFB_Currently_Rotated"] = this->LFB_Currently_Rotated;
