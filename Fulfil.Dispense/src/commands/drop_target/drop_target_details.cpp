@@ -39,9 +39,9 @@ DropTargetDetails::DropTargetDetails(std::shared_ptr<nlohmann::json> request_jso
   this->limit_back = (*request_json)["Limit_Back"].get<int>();
   this->remaining_platform = DropTargetDetails::to_meters((*request_json)["Remaining_Platform"].get<float>());
   this->use_flipped_x_default = request_json->value("Flip_X_Default", false);
-  this->use_quadrant_preference_order = request_json->value("Use_Preferred_Quadrant_Order", false);
+  this->use_quadrant_preference_order = request_json->contains("Preferred_Quadrant_Order");
   std::vector<std::string> quadrant_order = request_json->value("Preferred_Quadrant_Order",
-                  std::vector<std::string>({ "frontleft", "frontright", "bottomleft", "bottomright"}));
+                  std::vector<std::string>({ "FrontLeft", "FrontRight", "BackLeft", "BackRight"}));
   this->quadrant_preference_order = std::make_shared<std::vector<std::string>>(quadrant_order);
 
   dimensional_info::TrayRecipe tray_recipe = request_json->value("Tray_Recipe", dimensional_info::TrayRecipe());

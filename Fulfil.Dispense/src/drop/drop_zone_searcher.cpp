@@ -771,8 +771,8 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
 std::shared_ptr<std::string> get_quadrant_of_point(float target_region_x, float target_region_y)
 {
     std::shared_ptr<std::string> quadrant_name = std::make_shared<std::string>("");
-    *quadrant_name = (target_region_y < 0) ? *quadrant_name + "back" : *quadrant_name + "front";
-    *quadrant_name = (target_region_x < 0) ? *quadrant_name + "left" : *quadrant_name + "right";
+    *quadrant_name = (target_region_y < 0) ? *quadrant_name + "Back" : *quadrant_name + "Front";
+    *quadrant_name = (target_region_x < 0) ? *quadrant_name + "Left" : *quadrant_name + "Right";
     return quadrant_name;
 }
 
@@ -787,10 +787,13 @@ bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadran
 
     // default false if a quadrant isn't in the preference list, or if the quadrants are the same
     // true if the current quadrant is higher in the priority list than the current quadrant
-    return (!(best_quad == quadrant_preference_order->end()) and
+    bool better = (!(best_quad == quadrant_preference_order->end()) and
         !(current_quad == quadrant_preference_order->end()) and
         !(best_quad == current_quad) and
         (current_quad < best_quad));
+    // this is a little too verbose. leaving commented for easy re-enabling of log
+//    Logger::Instance()->Trace("Best quad: {} and current quad: {} was an improvement: {}",*best_quadrant, *current_quadrant, better);
+    return better;
 }
 
 bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region,
