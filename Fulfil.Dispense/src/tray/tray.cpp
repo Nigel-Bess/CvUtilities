@@ -14,19 +14,19 @@ using fulfil::utils::Logger;
 Tray::Tray(const nlohmann::json &tray_recipe, float tray_width, float fiducial_width_offset)
 {
   double origin_x_shift = fulfil::measure::tray_origin_xoffset_from_edge(tray_width, fiducial_width_offset);
-  this->valid_tray = (min_item_width != 0 && max_item_width != 0 && !this->lane_centers.empty()
-                      && lane_count == this->lane_centers.size());
-        this->tray_type_name = tray_recipe["Name"].get<std::string>();
-        this->lane_count = tray_recipe["Lane_Count"].get<int>();
-        this->max_item_width = fulfil::measure::to_meters(tray_recipe["Max_Item_Width"].get<float>());
-        this->min_item_width = fulfil::measure::to_meters(tray_recipe["Min_Item_Width"].get<float>());
-        auto get_centers = [&origin_x_shift](const std::vector<double>& lane_iterable) {
-          if (fulfil::measure::recipe_centers_left_of_reference_edge(lane_iterable)) {
-            return fulfil::measure::disp_gen3_recipe_centers_to_tray_frame(lane_iterable, origin_x_shift);
-          }
-          return fulfil::measure::disp_gen2_recipe_centers_to_tray_frame(lane_iterable, origin_x_shift);
-        };
-        this->lane_centers=get_centers(tray_recipe["Lane_Centers"].get<std::vector<double>>());
+  this->tray_type_name = tray_recipe["Name"].get<std::string>();
+  this->lane_count = tray_recipe["Lane_Count"].get<int>();
+  this->max_item_width = fulfil::measure::to_meters(tray_recipe["Max_Item_Width"].get<float>());
+  this->min_item_width = fulfil::measure::to_meters(tray_recipe["Min_Item_Width"].get<float>());
+  auto get_centers = [&origin_x_shift](const std::vector<double>& lane_iterable) {
+    if (fulfil::measure::recipe_centers_left_of_reference_edge(lane_iterable)) {
+      return fulfil::measure::disp_gen3_recipe_centers_to_tray_frame(lane_iterable, origin_x_shift);
+    }
+    return fulfil::measure::disp_gen2_recipe_centers_to_tray_frame(lane_iterable, origin_x_shift);
+  };
+  this->lane_centers = get_centers(tray_recipe["Lane_Centers"].get<std::vector<double>>());
+  this->valid_tray = (min_item_width != 0 && max_item_width != 0 &&
+          !this->lane_centers.empty() && lane_count == this->lane_centers.size());
 }
 
 

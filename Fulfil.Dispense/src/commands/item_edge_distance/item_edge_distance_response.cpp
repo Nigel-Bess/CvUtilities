@@ -12,21 +12,16 @@ using fulfil::utils::Logger;
 
 void ItemEdgeDistanceResponse::encode_payload()
 {
-
-  nlohmann::json result_json(count_result);
-  std::cout << "COUNT OUT:\n" << result_json << '\n';
-    std::cout << "SIZE OF ROI, FIRST LAST:\n" << lane_distance_info.m_roi_points.vertices.size()
-    << ", " << lane_distance_info.m_roi_points.vertices.front() << ", " << lane_distance_info.m_roi_points.vertices.back() << '\n';
+    nlohmann::json result_json(count_result);
     auto dist = nlohmann::json(lane_distance_info);
-  std::cout << "DISTANCE OUT:\n" << dist << '\n';
-    std::cout << "Updating...\n";
-  result_json.update(dist);
-  std::cout << "Result OUT:\n" << result_json << '\n';
+    json_parser::mongo_utils::array_extend(dist["Errors"], result_json["Errors"]);
+    result_json.update(dist);
+    std::cout << "Result OUT:\n" << result_json << '\n';
 
-  result_json["Error"] = 0;
-  if (success_code > 0) {
-      result_json["Errors"] = std::vector<int>{success_code};
-  }
+    result_json["Error"] = 0;
+    if (success_code > 0) {
+        result_json["Errors"] = std::vector<int>{success_code};
+    }
   //result_json["First_Item_Distance"] = this->fed_result;
   //result_json["First_Item_Length"] = this->detected_item_length;
   //result_json["Centers"] = this->transformed_lane_center_pixels;

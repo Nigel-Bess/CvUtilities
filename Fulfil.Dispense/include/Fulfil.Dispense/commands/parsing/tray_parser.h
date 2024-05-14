@@ -423,14 +423,6 @@ namespace tray_count_api_comms {
     struct LaneImageRegion {
         // Order of numbers Front:(y, x), Back:(y,x) float b/c may be reported to img scale
         // TODO change to vec if we add more calibration pts
-        /*float m_y0{0.0};
-        float m_x0{0.0};
-        float m_y1{0.0};
-        float m_x1{0.0};
-        float m_y2{0.0};
-        float m_x2{0.0};
-        float m_y3{0.0};
-        float m_x3{0.0};*/
         std::array<float, 8> vertices{};
         float m_yscale{720};
         float m_xscale{1280};

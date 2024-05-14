@@ -258,7 +258,7 @@ bool get_calibration(std::shared_ptr<fulfil::depthcam::Session> session,
     //TODO: adjust path based on hover vs. dispense calibration
     std::string write_path = ini_base_path + "/" + position + "_calibration_image.jpg";
     cv::imwrite(write_path, image_to_save);
-    MarkerDetector detector = MarkerDetector(12, 4);
+    MarkerDetector detector = MarkerDetector(12, 5);
 
     Logger::Instance()->Info("Captured and wrote image to local device. Running marker detector now.");
 

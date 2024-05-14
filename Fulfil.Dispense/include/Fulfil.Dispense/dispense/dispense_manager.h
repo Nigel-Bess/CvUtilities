@@ -233,7 +233,7 @@ namespace fulfil::dispense {
             std::shared_ptr<fulfil::dispense::drop::DropResult> handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
                     std::shared_ptr<nlohmann::json> request_json) override;
 
-            std::shared_ptr<fulfil::dispense::commands::ItemEdgeDistanceResponse> handle_item_edge_distance(std::shared_ptr<std::string> count_dispatch,
+            std::shared_ptr<fulfil::dispense::commands::ItemEdgeDistanceResponse> handle_item_edge_distance(std::shared_ptr<std::string> command_id,
                                                                                 std::shared_ptr<nlohmann::json> request_json) override;
 
             /// Mark: Post-Dispense Command Delegate Function
