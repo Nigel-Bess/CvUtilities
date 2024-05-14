@@ -823,27 +823,32 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
+  bool current_quadrant_preferred = current_target_quadrant_preferred(
+          get_quadrant_of_point(best_target_region->x, best_target_region->y),
+          get_quadrant_of_point(current_target_region->x, current_target_region->y),
+          quadrant_preference_order);
 
-  // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-  if(rotation_worsened)
+  if (use_quadrant_preference_order)
   {
-      return crazy_depth_improvement;
-  }
-  // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-  else if (rotation_improved)
-  {
-    return !crazy_depth_regression;
-  }
-  else //rotation of candidates is the same
-  {
-    return (interference_improved and !significant_depth_regression) or
-        (significant_depth_improvement and !significant_variance_regression) or
-        (moderate_depth_improvement and !moderate_variance_regression) or
-        (equivalent_depth and moderate_variance_improvement) or
-        (use_quadrant_preference_order and
-        current_target_quadrant_preferred(get_quadrant_of_point(best_target_region->x, best_target_region->y),
-                                          get_quadrant_of_point(current_target_region->x, current_target_region->y),
-                                          quadrant_preference_order));
+      return current_quadrant_preferred and ((interference_improved and !significant_depth_regression) or
+                                             (significant_depth_improvement and !significant_variance_regression) or
+                                             (moderate_depth_improvement and !moderate_variance_regression) or
+                                             (equivalent_depth and moderate_variance_improvement));
+  } else {
+      // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
+      if (rotation_worsened) {
+          return crazy_depth_improvement;
+      }
+          // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
+      else if (rotation_improved) {
+          return !crazy_depth_regression;
+      } else //rotation of candidates is the same
+      {
+          return (interference_improved and !significant_depth_regression) or
+                 (significant_depth_improvement and !significant_variance_regression) or
+                 (moderate_depth_improvement and !moderate_variance_regression) or
+                 (equivalent_depth and moderate_variance_improvement);
+      }
   }
 }
 
