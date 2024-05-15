@@ -792,7 +792,7 @@ bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadran
         !(best_quad == current_quad) and
         (current_quad < best_quad));
     // this is a little too verbose. leaving commented for easy re-enabling of log
-    Logger::Instance()->Trace("Best quad: {} and current quad: {} was an improvement: {}",*best_quadrant, *current_quadrant, better);
+//    Logger::Instance()->Trace("Best quad: {} and current quad: {} was an improvement: {}",*best_quadrant, *current_quadrant, better);
     return better;
 }
 
