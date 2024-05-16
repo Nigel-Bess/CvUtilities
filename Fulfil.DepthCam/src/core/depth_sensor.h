@@ -47,6 +47,11 @@ class DepthSensor
     std::chrono::system_clock::time_point print_time;
     void manage_pipe();
 
+    inline void print_framestats(){
+        printf("%s:[%s] Avg frame: %.01fms, total frames: %ld [good: %ld, unrecov exc: %ld, recov exc: %ld, std exc: %ld]\n", name_.c_str(),
+               serial_number->c_str(), average_frame_time, total_frames, good_frames, unrecoverable_exc, recoverable_exc, std_exceptions);
+    }
+
     inline bool frame_is_good(){
         return ms_elapsed(last_frame_time) < 500;
     }

@@ -114,7 +114,7 @@ nlohmann::json parse_request_file_to_json(std::filesystem::path json_file_path) 
 
 std::shared_ptr<Session> DeviceManager::session_by_serial_number(const std::string &serial_number)
 {   //Checks to see if the specified device is connected.
-    for(rs2::device const device : this->context.query_devices()) {
+    for(rs2::device const device : this->managed_devices) {
         if(std::string_view{device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)} == serial_number){
             fulfil::utils::Logger::Instance()->Debug("Found specified device {}", serial_number);
             if(device.is<rs400::advanced_mode>()) {

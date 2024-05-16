@@ -105,8 +105,10 @@ void calibration_args::parse_args(int argc, char **argv) {
         std::string serialstr = std::string(serial);
         Logger::Instance()->Info("Attempting to get specified camera: {}", serialstr);
         std::shared_ptr<fulfil::depthcam::DeviceManager> manager = std::make_shared<fulfil::depthcam::DeviceManager>(std::vector{serialstr}, false);
-        this->session = manager->session_by_serial_number(std::string(serial));
+        this->session = manager->session_by_serial_number(serialstr);
     }
+    this->session->set_sensor_name("Calibration_DAB");
+
 
 }
 
@@ -441,7 +443,5 @@ int main(int argc, char** argv)
         Logger::Instance()->Error("Exception thrown during routine!\n{}", ex.what());
     }
 
-
-    cv::destroyAllWindows();
     return 0;
 }
