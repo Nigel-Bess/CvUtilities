@@ -23,6 +23,10 @@
 #include <Fulfil.Dispense/commands/position_motor_request.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
+#include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
+#include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
+#include "Fulfil.Dispense/commands/pre_side_dispense_request.h"
+
 
 using fulfil::utils::Logger;
 
@@ -43,6 +47,10 @@ using fulfil::dispense::commands::StartTrayVideoRequest;
 using fulfil::dispense::commands::StopTrayVideoRequest;
 using fulfil::dispense::commands::TrayValidationRequest;
 using fulfil::dispense::commands::errors::InvalidCommandFormatException;
+using fulfil::dispense::commands::SideDispenseTargetRequest;
+using fulfil::dispense::commands::PostSideDispenseRequest;
+using fulfil::dispense::commands::PreSideDispenseRequest;
+
 
 DispenseRequestParser::DispenseRequestParser(std::shared_ptr<DispenseRequestJsonParser> parser)
 {
@@ -116,7 +124,7 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       Logger::Instance()->Info("Received Position Motor Request, PKID: {}", *PrimaryKeyID);
       return std::make_shared<PositionMotorRequest>(request_id, PrimaryKeyID, request_json);
 
-    case DispenseCommand::drop_target_side_dispense:
+    case DispenseCommand::side_dispense_target:
       Logger::Instance()->Info("Received Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
       return std::make_shared<SideDispenseTargetRequest>(request_id, PrimaryKeyID, request_json);
   case DispenseCommand::post_side_dispense:

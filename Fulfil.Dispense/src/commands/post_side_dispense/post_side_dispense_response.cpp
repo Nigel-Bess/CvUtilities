@@ -3,6 +3,8 @@
 //
 
 #include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_response.h"
+#include <Fulfil.CPPUtils/logging.h>
+
 #include <json.hpp>
 #include <iostream>
 
@@ -11,7 +13,7 @@ using fulfil::utils::Logger;
 
 void PostSideDispenseResponse::encode_payload()
 {
-    nlohmann::json result_json = std::make_shared<nlohmann::json>();
+    nlohmann::json result_json{};
     result_json["Error"] = this->success_code;
     result_json["Items_Dispensed"] = this->items_dispensed;
     result_json["Bag_Full_Percent"] = this->bag_full_percent;
@@ -31,17 +33,11 @@ void PostSideDispenseResponse::encode_payload()
 
 
 PostSideDispenseResponse::PostSideDispenseResponse(
-        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id);
-{}
+        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id){}
 
 std::shared_ptr<std::string> PostSideDispenseResponse::get_command_id()
 {
     return this->command_id;
-}
-
-int PostSideDispenseResponse::get_success_code()
-{
-    return this->success_code;
 }
 
 int PostSideDispenseResponse::dispense_payload_size()

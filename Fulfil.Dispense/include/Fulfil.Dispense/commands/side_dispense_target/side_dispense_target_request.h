@@ -4,6 +4,9 @@
 
 #ifndef FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_REQUEST_H
 #define FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_REQUEST_H
+#include <Fulfil.Dispense/commands/dispense_request.h>
+#include <Fulfil.Dispense/commands/dispense_response.h>
+
 namespace fulfil::dispense::commands {
     class SideDispenseTargetRequest : public fulfil::dispense::commands::DispenseRequest
     {

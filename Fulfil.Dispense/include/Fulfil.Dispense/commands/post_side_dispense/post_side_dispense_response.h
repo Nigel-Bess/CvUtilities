@@ -4,6 +4,8 @@
 
 #ifndef FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
 #define FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
+#include <Fulfil.Dispense/commands/dispense_response.h>
+
 namespace fulfil::dispense::commands {
     /**
      *
@@ -32,7 +34,7 @@ namespace fulfil::dispense::commands {
         /**
          * The payload to be sent in response to the request
          */
-        std::string payload;
+        std::shared_ptr<std::string> payload;
         /**
          * Encodes the payload in the payload string variable on this object.
          */

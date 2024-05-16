@@ -2,8 +2,8 @@
 // Created by steve on 12/31/20.
 //
 
-#ifndef FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_REQUEST_H
-#define FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_REQUEST_H
+#ifndef FULFIL_COMPUTERVISION_PRE_SIDE_DISPENSE_REQUEST_H
+#define FULFIL_COMPUTERVISION_PRE_SIDE_DISPENSE_REQUEST_H
 
 #include <Fulfil.Dispense/commands/dispense_request.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
@@ -23,5 +23,5 @@ class PreSideDispenseRequest : public fulfil::dispense::commands::DispenseReques
 } // namespace fulfil::dispense::commands 
 
 
-#endif //FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_REQUEST_H
+#endif //FULFIL_COMPUTERVISION_PRE_SIDE_DISPENSE_REQUEST_H
 

@@ -31,7 +31,7 @@ namespace fulfil::dispense::commands {
         /**
          * The payload to be sent in response to the request
          */
-        std::string payload;
+        std::shared_ptr<std::string> payload;
         /**
          * Encodes the payload in the payload string variable on this object.
          */

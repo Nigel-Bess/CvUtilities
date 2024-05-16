@@ -8,7 +8,9 @@
 
 
 using fulfil::utils::Logger;
+using fulfil::dispense::commands::SideDispenseTargetRequest;
 using fulfil::dispense::commands::SideDispenseTargetResponse;
+
 using fulfil::dispense::commands::DispenseResponse;
 
 
@@ -31,7 +33,7 @@ std::shared_ptr<DispenseResponse> SideDispenseTargetRequest::execute()
         Logger::Instance()->Debug("SideDispenseTargetRequest execution now");
         std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
-        std::shared_ptr<SideDispenseTargetResponse> response = tmp_delegate->handle_side_dispense_target(this->PrimaryKeyID,
+        std::shared_ptr<SideDispenseTargetResponse> response = tmp_delegate->handle_side_dispense_target(
                                                                                                      this->command_id,
                                                                                                      this->request_json);
         return response;
@@ -39,6 +41,6 @@ std::shared_ptr<DispenseResponse> SideDispenseTargetRequest::execute()
     else
     {
         std::cout << "SideDispenseTarget Command Delegate Expired" << std::endl;
-        return std::make_shared<SideDispenseTargetResponse>(this->command_id, 9); //TODO: change error code here
+        return std::make_shared<SideDispenseTargetResponse>(this->command_id); //TODO: change error code here
     }
 }

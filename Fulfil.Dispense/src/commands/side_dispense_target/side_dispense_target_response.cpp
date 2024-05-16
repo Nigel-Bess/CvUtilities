@@ -11,10 +11,10 @@ using fulfil::utils::Logger;
 
 void SideDispenseTargetResponse::encode_payload()
 {
-    nlohmann::json result_json = std::make_shared<nlohmann::json>();
+    nlohmann::json result_json {};
     result_json["Error"] = this->success_code;
-    result_json["X"] = this->items_dispensed;
-    result_json["Y"] = this->bag_full_percent;
+    result_json["X"] = this->x;
+    result_json["Y"] = this->y;
     result_json["Extend_Contact_Distance"] = this->extend_contact_distance;
     std::string json_string = result_json.dump();
     Logger::Instance()->Info("Encoding SideDispenseTargetResponse as: {}", json_string);
@@ -29,17 +29,11 @@ void SideDispenseTargetResponse::encode_payload()
 
 
 SideDispenseTargetResponse::SideDispenseTargetResponse(
-        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id);
-{}
+        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id){}
 
 std::shared_ptr<std::string> SideDispenseTargetResponse::get_command_id()
 {
     return this->command_id;
-}
-
-int SideDispenseTargetResponse::get_success_code()
-{
-    return this->success_code;
 }
 
 int SideDispenseTargetResponse::dispense_payload_size()
