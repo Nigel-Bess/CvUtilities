@@ -43,7 +43,7 @@ class DropResult
    * @param drop_center pointer to center of the drop zone.
    * @param request used to calculate the drop zone
    */
-  DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, std::shared_ptr<fulfil::utils::Point3D> max_Z, bool Rotate_LFB, bool LFB_Currently_Rotated,
+  DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, std::shared_ptr<fulfil::utils::Point3D> max_depth_point, bool Rotate_LFB, bool LFB_Currently_Rotated,
              bool Swing_Collision_Expected, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
   /**
    * The id of the request.

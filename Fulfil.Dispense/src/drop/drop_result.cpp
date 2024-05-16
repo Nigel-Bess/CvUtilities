@@ -28,7 +28,7 @@ DropResult::DropResult(std::shared_ptr<Point3D> drop_center, std::shared_ptr<Poi
     this->rover_position = this->to_rounded_millimeters(drop_center->x);
     this->max_depth_point_X = this->to_rounded_millimeters(max_depth_point->x);
     this->max_depth_point_Y = this->to_rounded_millimeters(max_depth_point->y);
-    this->max_Z = this->to_rounded_millimeters(max_Z);
+    this->max_Z = this->to_rounded_millimeters(max_depth_point->z);
     this->Rotate_LFB = Rotate_LFB;
     this->LFB_Currently_Rotated = LFB_Currently_Rotated;
     this->Swing_Collision_Expected = Swing_Collision_Expected;

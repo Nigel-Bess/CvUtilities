@@ -1741,27 +1741,29 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * TODO: in the future, we can apply this more narrowly to just a region around the dispense target, especially when bot size increases
   */
   float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
-  Point3D max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
+  std::shared_ptr<Point3D> max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
 
-  bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
+    Logger::Instance()->Debug("Drop Target Max_z on either side: {}", max_Z_result->z);
+
+    bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
 
   Logger::Instance()->Debug("Drop Target Algorithm finished with success code: {}", this->success_code);
-  return std::make_shared<DropResult>(XYZ_result, std::make_shared<Point3D>(max_Z_result), tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
+  return std::make_shared<DropResult>(XYZ_result, max_Z_result, tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
                                                     best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
 }
 
-Point3D DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
+std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
 {
     // if the outer bag's max Z is greater than marker surface then use that instead of inner bag's max Z
-    Point3D front_max_z = (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? max_Z_points.outer_front : max_Z_points.front;
-    Point3D back_max_z = (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? max_Z_points.outer_back : max_Z_points.back;
+    std::shared_ptr<Point3D> front_max_z = (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? std::make_shared<Point3D>(max_Z_points.outer_front) : std::make_shared<Point3D>(max_Z_points.front);
+    std::shared_ptr<Point3D> back_max_z = (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? std::make_shared<Point3D>(max_Z_points.outer_back) : std::make_shared<Point3D>(max_Z_points.back);
     auto get_max_on_side = [front_max_z,  back_max_z](bool is_back_side) {
         return (is_back_side) ? back_max_z : front_max_z;
     };
     Logger::Instance()->Debug("Max_Z on dispense side is: {}, alternate max_Z is: {}",
-                              get_max_on_side(rotation_required).z,
-                              get_max_on_side(!rotation_required).z);
-    return (front_max_z.z > back_max_z.z) ? front_max_z : back_max_z;
+                              get_max_on_side(rotation_required)->z,
+                              get_max_on_side(!rotation_required)->z);
+    return (front_max_z->z > back_max_z->z) ? front_max_z : back_max_z;
 }
 
 
@@ -1820,11 +1822,13 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
   // true or false for rotation_required var doesn't impact output, just logging
-  Point3D max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
+  std::shared_ptr<Point3D> max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
 
-  /**
-  * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
-  */
+    Logger::Instance()->Debug("Drop Target Max_z on either side: {}", max_detected_Z_point->z);
+
+    /**
+    * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
+    */
   float allowed_item_overflow_post_dispense_check = lfb_vision_config->allowed_item_overflow_post_dispense_check;
   float remaining_platform_adjusted = std::max(remaining_platform, float(0.0)); //in case invalid negative values were provided from LFR
   bool front_side_no_viable_targets = std::max(max_Z_points.outer_front_left.z, max_Z_points.front_left.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
@@ -1852,7 +1856,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     Logger::Instance()->Error("Could not update packing state because mongo_bag_state is nullptr!");
   }
 
-  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point.z * 1000));
+  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point->z * 1000));
 
   if (this->visualize == 1)
   {
@@ -1860,14 +1864,14 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     session_visualizer4->display_image(session_visualizer4->display_points_with_depth_coloring(point_cloud));
   }
 
-  float max_Z_result = max_detected_Z_point.z;
+  float max_Z_result = max_detected_Z_point->z;
   if (front_side_no_viable_targets && back_side_no_viable_targets)
   {
     Logger::Instance()->Warn("Both sides of LFR could result in future item - dispense conveyor collision. Will send bag to pickup");
     max_Z_result = 1.0; //returning such a large value will automatically lead to bag sent to pickup. //TODO: could handle more elegantly w/ additional output
   }
 
-  return std::make_unique<commands::PostLFRResponse>(request_id, 0, std::make_shared<Point3D>(max_detected_Z_point), -1, bag_full_result);
+  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result);
 }
 
 
