@@ -1378,7 +1378,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default, lfb_vision_config, true, true, bag_empty, false);
-  Point3D max_Z_point = max_Z_points.overall;
+  Point3D max_Z_point = (max_Z_points.outer_overall.z > lfb_vision_config->item_protrusion_detection_threshold and
+          max_Z_points.outer_overall.z > max_Z_points.overall.z) ? max_Z_points.outer_overall : max_Z_points.overall;
 
   /**
    * Secondary check for bag too full, must be able to lower platform enough so tallest point in quadrant of bag of bag is low enough
