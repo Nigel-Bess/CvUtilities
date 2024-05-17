@@ -14,10 +14,15 @@ if(EXISTS ${COMPUTER_VISION_MODULES_PARENT_PATH}/.git)
     execute_process(COMMAND bash -c "eval $(git for-each-ref --count 1 --merged=HEAD --sort=-committerdate --shell --format='printf %(refname:short); ' refs/tags)"
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             OUTPUT_VARIABLE LATEST_GIT_TAG)
+    execute_process(COMMAND bash -c "git diff --quiet && echo 'clean' || echo 'dirty'"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            OUTPUT_VARIABLE IS_SOURCE_REPO_CLEAN
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
 else()
     message(WARNING "\nDid not find valid .git directory in ${COMPUTER_VISION_MODULES_PARENT_PATH}.")
     set(LATEST_GIT_TAG  "Unknown")
     set(DISPENSE_COMMIT "Unknown")
+    set(IS_SOURCE_REPO_CLEAN "Unknown")
 endif()
 execute_process(COMMAND date -u "+%b. %0d, %Y at %H:%M:%S %Z"
 OUTPUT_VARIABLE BUILD_DATE
@@ -34,6 +39,7 @@ message("Build information for Fulfil.ComputerVision project:")
 message(STATUS "Date Built:  ${BUILD_DATE}")
 message(STATUS "Commit Head: ${DISPENSE_COMMIT}")
 message(STATUS "Release Tag: ${LATEST_GIT_TAG}")
+message(STATUS "Git Repo State: ${IS_SOURCE_REPO_CLEAN}")
 message("\nSetting up targets and build generation.")
 #message("-- Current commit head for Fulfil.Dispense: ${DISPENSE_COMMIT}")
 
@@ -43,7 +49,7 @@ target_link_libraries(main Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils Fulfi
 target_compile_definitions(main PRIVATE BUILD_DATE="${BUILD_DATE}")
 target_compile_definitions(main PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
 target_compile_definitions(main PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
-
+target_compile_definitions(main PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
 
 add_executable(stark_test EXCLUDE_FROM_ALL test.cpp)
 target_link_libraries(stark_test Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
@@ -61,6 +67,10 @@ target_link_libraries(tray_offline_simulation PRIVATE
 add_executable(offline_test offline_test.cpp)
 target_link_libraries(offline_test PRIVATE
     Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
+target_compile_definitions(offline_test PRIVATE BUILD_DATE="${BUILD_DATE}")
+target_compile_definitions(offline_test PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
+target_compile_definitions(offline_test PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
+target_compile_definitions(offline_test PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
 
 # Remove exclusion once better targeting definitions in place
 # YOU NEED TO SPECIFICALLY TARGET THESE TO TRIGGER A BUILD!

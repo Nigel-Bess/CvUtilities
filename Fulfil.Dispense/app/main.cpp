@@ -59,6 +59,7 @@ int main(int argc, char** argv)
   reader->set_default_section(config_section);
   logger->SetConsoleLogLevel(reader->Get(config_section, "console_log_level", "DEBUG"));
   logger->SetFileLogLevel(reader->Get(config_section, "file_log_level", "TURN_OFF"));
+  logger->Info("Latest FW Tag found: {}. Build generated on {}.\nDispense API commit details: {} ({})", FW_VERSION, BUILD_DATE, DISPENSE_COMMIT, IS_SOURCE_REPO_CLEAN);
   logger->Info("Run Fulfil.Dispense::main\n********Dispense application starting********");
 
 
