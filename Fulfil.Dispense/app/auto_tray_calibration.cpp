@@ -2,11 +2,7 @@
 #include <Fulfil.DepthCam/aruco/marker.h>
 #include <eigen3/Eigen/Geometry>
 #include <memory>
-#include <Fulfil.DepthCam/visualization.h>
 #include <iostream>
-#include <unistd.h>
-#include <cstring>
-#include <ctime>
 #include <filesystem>
 #include <algorithm>
 #include <Fulfil.CPPUtils/logging.h>
@@ -23,7 +19,6 @@ using ff_mongo_cpp::mongo_objects::MongoObjectID;
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::Logger;
-using fulfil::depthcam::visualization::SessionVisualizer;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PixelPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
@@ -32,10 +27,18 @@ using fulfil::mongo::MongoTrayCalibration;
 
 
 enum calibration_type {hover, dispense};
-std::array<const char*, 3> CalibrationFileName{"new_tray_calibration_data_hover.ini", "new_tray_calibration_data_dispense.ini"};
-std::array<const char*, 3> TrayPositionNames {"Hover", "Dispense"};
+std::array<const char*, 2> CalibrationFileName{"new_tray_calibration_data_hover.ini", "new_tray_calibration_data_dispense.ini"};
+std::array<const char*, 2> TrayPositionNames {"hover", "dispense"};
 std::string ini_base_path;
-int min_markers_required;
+int min_markers_required{16};
+
+
+//                       0        1        2        3        4        5        6        7        8        9        10       11       12       13       14       15
+float markers_x[16] = { -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180 };
+float markers_y[16] = { -0.3180, -0.3180, -0.3180, -0.3180, -0.1230, -0.1230, -0.1230, -0.1230,  0.0720,  0.0720,  0.0720,  0.0720,  0.2670,  0.2670,  0.2670,  0.2670 };
+float markers_z[16] = {  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150 };
+
+
 
 std::string_view get_option_value( const std::vector<std::string_view>& args,
                                    const std::string_view& option_name, const std::string_view& defaultval="") {
@@ -58,8 +61,7 @@ bool has_option_flag(const std::vector<std::string_view>& args,
 }
 
 struct calibration_args {
-    //std::string camera_serial{"000000000000"};
-    std::shared_ptr<fulfil::depthcam::Session> session{nullptr};
+    std::shared_ptr<fulfil::depthcam::Session> session{};
     std::filesystem::path output_dir {INIReader::get_compiled_default_dir_prefix()};
     size_t min_tags{12};
     calibration_type lift_height{hover};
@@ -77,22 +79,22 @@ void calibration_args::parse_args(int argc, char **argv) {
             Logger::Instance()->Error("Entered invalid lift calibration position {}!\n  Valid Options for -p: [Hover|Dispense]", position);
             exit(1);
         }
-        Logger::Instance()->Info("Height {}", height);
+        Logger::Instance()->Info("Position Code: {}", height);
         this->lift_height = static_cast<calibration_type>(height);
     }
 
-    Logger::Instance()->Info("Height {}", TrayPositionNames[lift_height]);
+    Logger::Instance()->Info("Height: {}", TrayPositionNames[lift_height]);
 
 
     // MIN TAGS
     if (auto tags = get_option_value(args, "-m") ; !tags.empty()) {
         min_tags = std::stoul(std::string(tags));
     }
-    Logger::Instance()->Info("Tags {}", min_tags);
+    Logger::Instance()->Info("Min Tags: {}", min_tags);
 
     // OUTPUT DIRECTORY
     this->output_dir = get_option_value(args, "-o", INIReader::get_compiled_default_dir_prefix());
-    Logger::Instance()->Info("Dir {}", output_dir.string());
+    Logger::Instance()->Info("Output Dir: {}", output_dir.string());
 
 
     // SESSION CAMERA SERIAL
@@ -111,27 +113,6 @@ void calibration_args::parse_args(int argc, char **argv) {
 
 
 }
-
-/*
-    int ntags = 16;
-    std::string lift_position="Hover";
-    std::string camera_serial_01="220422303162";
-    std::string output_dir="/home/fulfil/code/Fulfil.Dispense/logs/getoptpp";
-    */
-
-
-//                      0         1        2        3         4         5         6         7         8         9         10        11
-/* Old points
-float markers_x[12] = {-0.40225, -0.23497, 0.09800, 0.40225, -0.43375,  0.43375, -0.43375,  0.43375, -0.40225, -0.23442,  0.26248,  0.40225};
-float markers_y[12] = {-0.40025, -0.40025,-0.40025,-0.40025, -0.28800, -0.20865,  0.10800,  0.19619,  0.40025,  0.40025,  0.40025,  0.40025};
-float markers_z[12] = {-0.002,   -0.012,  -0.022,  -0.002,   -0.002,   -0.022,   -0.012,   -0.002,   -0.002,   -0.012,   -0.022,   -0.002};
-*/
-
-
-float markers_x[16] = { -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180 };
-float markers_y[16] = { -0.3180, -0.3180, -0.3180, -0.3180, -0.1230, -0.1230, -0.1230, -0.1230,  0.0720,  0.0720,  0.0720,  0.0720,  0.2670,  0.2670,  0.2670,  0.2670 };
-float markers_z[16] = {  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150,  0.0150 };
-
 
 
 

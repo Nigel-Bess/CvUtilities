@@ -68,7 +68,7 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         drop/drop_grid.cpp
         tray/tray_algorithm.cpp
         tray/tray.cpp
-        tray/tray_result.cpp
+        #tray/tray_result.cpp
         tray/item_edge_distance_result.cpp
         motion/trinamic.cpp
         motion/serial.cpp

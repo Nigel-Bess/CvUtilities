@@ -17,7 +17,6 @@
 #include <FulfilMongoCpp/mongo_connection.h>
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>
 #include <Fulfil.Dispense/motion/trinamic.h>
 #include <Fulfil.DepthCam/data/upload_generator.h>

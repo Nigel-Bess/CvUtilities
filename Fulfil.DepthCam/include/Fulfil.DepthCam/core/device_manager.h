@@ -81,7 +81,6 @@ class DeviceManager
 
 
 
-
   /**
    * @purpose Attempts to return the first connected sensor and will retry a
    * specified number of times.

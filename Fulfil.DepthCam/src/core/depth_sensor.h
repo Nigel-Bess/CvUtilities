@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/2/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 /**
  * This file outlines the functionality of a realsense depth sensor
  * that is used inside of the depth session. It wraps around
@@ -15,15 +11,11 @@
 #include<eigen3/Eigen/Dense>
 #include<opencv2/opencv.hpp>
 #include<librealsense2/rs.hpp>
-using namespace std::chrono;
-using namespace fulfil::utils::timing;
-namespace fulfil
-{
-namespace depthcam
-{
+
+namespace fulfil::depthcam {
 class DepthSensor
 {
- private:
+    private:
     /**
      * Realsense pipeline object which is used to get rgb and depth data from the sensor.
      */
@@ -58,35 +50,35 @@ class DepthSensor
 
     std::mutex _lock;
 
- public:
-  /**
-   * Initializes the depth sensor with the given serial number.
-   * Note:
-   *  An error will be thrown if the given serial number does not correspond
-   *  to a device that is connected but it will take a long time to throw the error.
-   *  It is recommended that you use the device manager to instantiate the depth
-   *  sensor as it performs a check before calling the initializer to check that there
-   *  is a connected device with the serial number.
-   *
-   * @param serial number the serial number of the desired device.
-   */
-  DepthSensor(const std::string &serial_number);
+    public:
+    /**
+    * Initializes the depth sensor with the given serial number.
+    * Note:
+    *  An error will be thrown if the given serial number does not correspond
+    *  to a device that is connected but it will take a long time to throw the error.
+    *  It is recommended that you use the device manager to instantiate the depth
+    *  sensor as it performs a check before calling the initializer to check that there
+    *  is a connected device with the serial number.
+    *
+    * @param serial number the serial number of the desired device.
+    */
+    DepthSensor(const std::string &serial_number);
     rs2::frameset get_latest_frame();
-  /**
-   * Returns a matrix of points that are in the depth sensor's coordinate system
-   * for the given set of frames.
-   *
-   * @param frameset the set of frames that will be used to create the matrix of points.
-   *
-   * @return a 3xN matrix of points in the depth sensor's coordinate system (in meters).
-   */
-  std::shared_ptr<Eigen::Matrix3Xd> get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data);
+    /**
+    * Returns a matrix of points that are in the depth sensor's coordinate system
+    * for the given set of frames.
+    *
+    * @param frameset the set of frames that will be used to create the matrix of points.
+    *
+    * @return a 3xN matrix of points in the depth sensor's coordinate system (in meters).
+    */
+    std::shared_ptr<Eigen::Matrix3Xd> get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data);
 
-  /**
-   * Gets the current frameset from the sensor
-   * returns a pair: the unaligned depth frame, and the color+depth frameset (aligned if align_frames = true, unaligned otherwise)
-   */
-  void get_frameset(bool align_frames, std::shared_ptr<rs2::depth_frame> *raw_depth_frame,
+    /**
+    * Gets the current frameset from the sensor
+    * returns a pair: the unaligned depth frame, and the color+depth frameset (aligned if align_frames = true, unaligned otherwise)
+    */
+    void get_frameset(bool align_frames, std::shared_ptr<rs2::depth_frame> *raw_depth_frame,
                     std::shared_ptr<rs2::depth_frame> *aligned_depth_frame, std::shared_ptr<rs2::video_frame> *raw_color_frame);
 
 
@@ -152,5 +144,4 @@ class DepthSensor
     std::string name_ = "D";
 };
 } // namespace fulfil
-} // namespace depthcam
 #endif

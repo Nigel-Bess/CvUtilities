@@ -3,15 +3,11 @@
 //
 
 #include "Fulfil.Dispense/mongo/mongo_bag_state.h"
-#include <FulfilMongoCpp/mongo_parse/mongo_bsonxx_parser.h>
-#include <FulfilMongoCpp/mongo_parse/mongo_bsonxx_encoder.h>
 #include <Fulfil.CPPUtils/logging.h>
 
 using fulfil::mongo::MongoBagState;
-using ff_mongo_cpp::mongo_objects::MongoObjectID;
-using ff_mongo_cpp::mongo_parse::MongoBsonxxParser;
-using ff_mongo_cpp::mongo_parse::MongoBsonxxEncoder;
 using fulfil::utils::Logger;
+using ff_mongo_cpp::mongo_objects::MongoObjectID;
 
 
 
@@ -78,6 +74,7 @@ void MongoBagState::SetDataBase(const std::string& new_db_name)
   this->db_name = new_db_name;
 }
 
+/*
 std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument>
     MongoBagState::MakeNewMongoDocument(bsoncxx::document::view doc,
                                         const std::string& collection_name,
@@ -87,6 +84,7 @@ std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument>
   std::shared_ptr<MongoBagState> new_doc = std::make_shared<MongoBagState>();
   return new_doc;
 }
+*/
 
 int MongoBagState::parse_in_values(std::shared_ptr<CvBagState> bag) {
   try
@@ -135,7 +133,7 @@ int MongoBagState::parse_in_values(std::shared_ptr<CvBagState> bag) {
   return 0;
 }
 
-
+/*
 bsoncxx::document::value MongoBagState::MakeWritableValue() {
   //TODO: add check that all fields are populated and available!
   Logger::Instance()->Debug("Making Writable Value in BagState MongoDoc now");
@@ -152,6 +150,7 @@ bsoncxx::document::value MongoBagState::MakeWritableValue() {
   bsoncxx::document::value final_doc = bag_encoder.extract();
   return final_doc;
 }
+*/
 
 void MongoBagState::UpdateRawMongoDocState()
 {

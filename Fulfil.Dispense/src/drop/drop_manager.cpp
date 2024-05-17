@@ -21,6 +21,7 @@
 namespace std_filesystem = std::experimental::filesystem;
 
 using fulfil::depthcam::DepthSession;
+using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;

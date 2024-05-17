@@ -21,7 +21,6 @@
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
-#include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include "Fulfil.Dispense/visualization/make_media.h"
 
@@ -56,7 +55,6 @@ using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
-using fulfil::dispense::tray::TrayResult;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::mongo::MongoTrayCalibration;

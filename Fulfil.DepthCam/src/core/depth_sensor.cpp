@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/2/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 /**
  * This file contains the implementation of the depth sensor
  * that wraps around the realsense sensor and sdk. It also
