@@ -651,51 +651,50 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
         return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
     }
 
-    if(this->live_viewer) {
-        this->live_viewer->update_image( std::make_shared<cv::Mat>(
-                this->LFB_session->grab_color_frame()),
-                ViewerImageType::LFB_Floor_View,
-                *PrimaryKeyID,
-                true);
-    }
-    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
-    IniSectionReader section_reader {*this->tray_config_reader, this->tray_dimension_type};
-    //TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
-    Tray tray = this->tray_manager->create_tray(single_lane_val_req.m_tray_recipe);
-
-    /** run algorithms **/
-    auto run_fed_processing = [&tray_cam=this->tray_session,
-            &section_reader, &tray](request_from_vlsg::TrayRequest& lane_req) {
-        try{
-            TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
-            return tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
-        } catch(const std::exception & e) {
-            return std::make_tuple(results_to_vlsg::LaneItemDistance{},
-                                   std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
-            //return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
-            //        results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
-        }
-    };
-
-    auto do_all_img_processing = [&tm=tray_manager, &single_lane_val_req,
-            &command_id, &saved_images_base_directory](auto fed_process) {
-        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = fed_process(single_lane_val_req);
-        //results_to_vlsg::TrayValidationCounts count_response = count_dispatch(single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
-        return fvr;
-
-    };
+    float remaining_platform = (*request_json)["Remaining_Platform"].get<float>();
+    Logger::Instance()->Debug("Remaining_Platform: {}", remaining_platform);
 
     this->LFB_session->refresh();
-    /** Save Data from generator */
-    DataGenerator single_lane_tray_data_generator = drop_manager->build_tray_data_generator(
-            request_json, drop_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
-    single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
 
-    auto floor_result = std::make_shared<FloorViewResponse>(do_all_img_processing(run_fed_processing));
+    std::shared_ptr<MockSession> mock_session_floor = std::make_shared<MockSession>(this->LFB_session);
+
+    // send images to LiveViewer
+    if(this->live_viewer) {
+        this->live_viewer->update_image(std::make_shared<cv::Mat>(
+                                                this->LFB_session->grab_color_frame()),
+                                        ViewerImageType::LFB_Floor_View,
+                                        *PrimaryKeyID,
+                                        true);
+    }
+
+    // initial data generation
+    std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+    std_filesystem::path base_directory = make_media::paths::join_as_path(*this->create_datagenerator_basedir(),
+                                                                          "Drop_Camera",
+                                                                          *PrimaryKeyID,
+                                                                          "Floor_View_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
+                                                                               std::make_shared<std::string>(base_directory.string()),
+                                                                               request_json);
+    generator->save_data(time_stamp);
+
+    // TODO: run floor view analysis and save result. for now use these defaults
+    int error_code = 0;
+    std::string error_description = "";
+    bool anomaly_detected = false;
+    bool item_on_ground = false;
+    int bots_in_image = 0;
+    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id, error_code, error_description, anomaly_detected, item_on_ground, bots_in_image);
+
+    // generate results data
+    std::string floor_view_file = make_media::paths::join_as_path(base_directory, *time_stamp, "floor_view_result");
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    this->drop_manager->generate_floor_view_result_data(true, floor_view_file, error_code_file, anomaly_detected, item_on_ground, bots_in_image, error_code);
 
     Logger::Instance()->Info("Finished handling Floor View command. Result: "
-                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, single_lane_val_req.get_primary_key_id(), floor_result->get_anomaly_present(), floor_result->get_item_on_ground(), floor_result->get_bots_in_image());
-    return  floor_result;
+                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, *PrimaryKeyID, anomaly_detected, item_on_ground, bots_in_image);
+    return floor_result;
 }
 
 results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_ptr<fulfil::dispense::tray::TrayManager>& tray_manager,
