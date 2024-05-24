@@ -6,18 +6,17 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_DELEGATE_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_DELEGATE_H_
 
-#include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_details.h>
-#include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
+#include <Fulfil.Dispense/commands/floor_view/floor_view_response.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
+#include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
+#include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 
-namespace fulfil
+namespace fulfil::dispense::commands
 {
-namespace dispense {
-namespace commands
-{
+
 /**
  * The purpose of this class is to separate the implementation for handling commands from the class that parses commands.
  */
@@ -37,6 +36,13 @@ class DispenseRequestDelegate
    * performs image data logging in response to a post-dispense request
    */
   virtual std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> handle_post_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
+
+  /**
+   * performs image data logging in response to a floor-view request
+   */
+  virtual std::shared_ptr<fulfil::dispense::commands::FloorViewResponse> handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID,
+                                                                                           std::shared_ptr<std::string> command_id,
+                                                                                           std::shared_ptr<nlohmann::json> request_json) = 0;
 
   /**
    * Begins image data logging in response to a request for LFB sessions
@@ -81,8 +87,6 @@ class DispenseRequestDelegate
   virtual bool check_motor_in_position() = 0;
 
 };
-} // namespace commands
-} // namespace dispense
-} // namespace fulfil
+} // namespace fulfil::dispense::commands
 
 #endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_DELEGATE_H_

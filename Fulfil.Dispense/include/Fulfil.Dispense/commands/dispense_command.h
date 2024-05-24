@@ -45,9 +45,11 @@ enum class DispenseCommand
   home_motor = 20,
   /// Command sent to control rail motor for positioning the LFB camera (absolute position relative to home)
   position_motor = 21,
-  // FC requests the current bag state
+  /// Command sent to view the floor between dispenses using LFB camera processing
+  floor_view = 22,
+  /// FC requests the current bag state
   request_bag_state = 30,
-  // FC is sending the new bag state
+  /// FC is sending the new bag state
   send_bag_state    = 31,
 
 };

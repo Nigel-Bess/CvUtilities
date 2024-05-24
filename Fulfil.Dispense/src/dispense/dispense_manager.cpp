@@ -45,6 +45,7 @@ using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseRequestParser;
 using fulfil::dispense::commands::DispenseResponse;
 using fulfil::dispense::commands::ErrorResponse;
+using fulfil::dispense::commands::FloorViewResponse;
 using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
@@ -79,10 +80,6 @@ DispenseManager::DispenseManager(
         dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader), mongo_connection(mongo_conn)
   {
   Logger::Instance()->Trace("DispenseManager Constructor Called");
-
-  // TODO was this a weird merge conflict or can we get rid of these
-//      this->dispense_man_reader = dispense_man_reader;
-//      this->tray_config_reader =  tray_config_reader;
 
   //setting up networking stuff
   // TODO Once needs stabilize, we should probably just add data members in reader to interface
@@ -157,7 +154,7 @@ DispenseManager::DispenseManager(
   if(LFB_session)
   {
       //Sensor is connected
-      Logger::Instance()->Trace("LFB session.");
+      Logger::Instance()->Trace("LFB session is connected");
       this->LFB_session = LFB_session;
 
       if(dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "live_visualize_drop", false))
@@ -266,6 +263,11 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         case DispenseCommand::post_LFR:{
             Logger::Instance()->Info("Received Post Drop Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
             response =  handle_post_LFR(pkid, command_id, request_json);
+            break;
+        }
+        case DispenseCommand::floor_view:{
+            Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+            response = handle_floor_view(pkid, command_id, request_json);
             break;
         }
         case DispenseCommand::start_lfb_video:{
@@ -636,6 +638,64 @@ void DispenseManager::handle_stop_request(std::shared_ptr<std::string> command_i
 {
     std::shared_ptr<ProcessingQueuePredicate<std::shared_ptr<DispenseRequest>>> predicate = std::make_shared<DispenseProcessingQueuePredicate>(command_id);
     this->processing_queue->purge_queue(predicate);
+}
+
+std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
+{
+
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_floor_view for " + this->machine_name + " with PKID " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Floor View Processing {} for Bay: {}", *command_id, this->machine_name);
+
+    if (!this->LFB_session) {
+        Logger::Instance()->Warn("No LFB Session on Bay {}: Bouncing Floor View!", this->machine_name);
+        return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
+    }
+
+    if(this->live_viewer) {
+        this->live_viewer->update_image( std::make_shared<cv::Mat>(
+                this->LFB_session->grab_color_frame()),
+                ViewerImageType::LFB_Floor_View,
+                *PrimaryKeyID,
+                true);
+    }
+    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
+    IniSectionReader section_reader {*this->tray_config_reader, this->tray_dimension_type};
+    //TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
+    Tray tray = this->tray_manager->create_tray(single_lane_val_req.m_tray_recipe);
+
+    /** run algorithms **/
+    auto run_fed_processing = [&tray_cam=this->tray_session,
+            &section_reader, &tray](request_from_vlsg::TrayRequest& lane_req) {
+        try{
+            TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
+            return tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
+        } catch(const std::exception & e) {
+            return std::make_tuple(results_to_vlsg::LaneItemDistance{},
+                                   std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
+            //return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
+            //        results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
+        }
+    };
+
+    auto do_all_img_processing = [&tm=tray_manager, &single_lane_val_req,
+            &command_id, &saved_images_base_directory](auto fed_process) {
+        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = fed_process(single_lane_val_req);
+        //results_to_vlsg::TrayValidationCounts count_response = count_dispatch(single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
+        return fvr;
+
+    };
+
+    this->LFB_session->refresh();
+    /** Save Data from generator */
+    DataGenerator single_lane_tray_data_generator = drop_manager->build_tray_data_generator(
+            request_json, drop_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
+    single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
+
+    auto floor_result = std::make_shared<FloorViewResponse>(do_all_img_processing(run_fed_processing));
+
+    Logger::Instance()->Info("Finished handling Floor View command. Result: "
+                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, single_lane_val_req.get_primary_key_id(), floor_result->get_anomaly_present(), floor_result->get_item_on_ground(), floor_result->get_bots_in_image());
+    return  floor_result;
 }
 
 results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_ptr<fulfil::dispense::tray::TrayManager>& tray_manager,
