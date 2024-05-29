@@ -29,7 +29,6 @@ class CvBagState final
     public:
         CvBagState(nlohmann::json json)
         {
-            std::cout << "In CvBagState constructor" << std::endl;
             _bag_id_string = json["BagId"].get<std::string>();
             // for offline test compatibility - the key is MongoID in prod but _id in offline data
             _id_string = json.value("MongoID", "NOT FOUND");
@@ -38,27 +37,21 @@ class CvBagState final
                 is_offline_test_run = true;
                 _id_string = json["_id"].get<std::string>();
             }
-            std::cout << "id string: " << _id_string << std::endl;
-            std::cout << "bag id string: " << _bag_id_string << std::endl;
 
             BagId = MongoObjectID(bsoncxx::oid(_bag_id_string));
             MongoID = MongoObjectID(bsoncxx::oid(_id_string));
             std::cout << "item map 1 json " << json["ItemMap1"] << std::endl;
 
             ItemMap1 = json["ItemMap1"].get<std::vector<int>>();
-            std::cout << "after item map 1" << std::endl;
 
             ItemMap2 = json["ItemMap2"].get<std::vector<int>>();
-            std::cout << "after item map 2" << std::endl;
 
             ItemMap3 = json["ItemMap3"].get<std::vector<int>>();
-            std::cout << "after item map 3" << std::endl;
 
             PackedItemsVolume = json["PackedItemsVolume"].get<int>();
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
             if (is_offline_test_run) {
                 Config = std::make_shared<LfbVisionConfiguration>();
             } else {
