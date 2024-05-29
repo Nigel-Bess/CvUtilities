@@ -27,11 +27,12 @@ using fulfil::mongo::MongoTrayCalibration;
 
 
 enum calibration_type {hover, dispense};
-std::array<const char*, 2> CalibrationFileName{"new_tray_calibration_data_hover.ini", "new_tray_calibration_data_dispense.ini"};
+//std::array<const char*, 2> CalibrationFileName{"new_tray_calibration_data_hover.ini", "new_tray_calibration_data_dispense.ini"};
 std::array<const char*, 2> TrayPositionNames {"hover", "dispense"};
-std::string ini_base_path;
+std::string ini_base_path{};
 int min_markers_required{16};
 
+std::string calibration_filename(std::string_view position) { return std::string("new_tray_calibration_data_").append(position) + ".ini" ; }
 
 //                       0        1        2        3        4        5        6        7        8        9        10       11       12       13       14       15
 float markers_x[16] = { -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180 };
@@ -412,7 +413,7 @@ int main(int argc, char** argv)
     std::cout << "Calibration will be performed on tray camera" << std::endl;
 
     try {
-        std::string ini = calibration_params.output_dir / CalibrationFileName[calibration_params.lift_height];
+        std::string ini = calibration_params.output_dir / calibration_filename(TrayPositionNames[calibration_params.lift_height]);
         Logger::Instance()->Info("Wiping file: {}", ini);
         wipe_file(ini);
 

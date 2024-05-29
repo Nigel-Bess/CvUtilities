@@ -3,7 +3,7 @@
 // Copyright (c) 2021 Fulfil Solutions, Inc. All rights reserved.
 //
 
-#include "Fulfil.Dispense/commands/home_motor_request.h"
+#include "Fulfil.Dispense/commands/motion/home_motor_request.h"
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.CPPUtils/logging.h>
 

@@ -19,8 +19,8 @@
 #include <Fulfil.Dispense/commands/stop_tray_video_request.h>
 #include <Fulfil.Dispense/commands/stop_lfb_video_request.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_request.h>
-#include <Fulfil.Dispense/commands/home_motor_request.h>
-#include <Fulfil.Dispense/commands/position_motor_request.h>
+//#include <Fulfil.Dispense/commands/home_motor_request.h>
+//#include <Fulfil.Dispense/commands/position_motor_request.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
@@ -110,11 +110,13 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       Logger::Instance()->Info("Received Update State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
       return std::make_shared<UpdateStateRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::home_motor:
-      Logger::Instance()->Info("Received Home Motor Request, PKID: {}", *PrimaryKeyID);
-      return std::make_shared<HomeMotorRequest>(request_id, PrimaryKeyID, request_json);
+      Logger::Instance()->Error("Received Defunct Home Motor Request, PKID: {}", *PrimaryKeyID);
+      //return std::make_shared<HomeMotorRequest>(request_id, PrimaryKeyID, request_json);
+      throw InvalidCommandFormatException(request_id);
     case DispenseCommand::position_motor:
-      Logger::Instance()->Info("Received Position Motor Request, PKID: {}", *PrimaryKeyID);
-      return std::make_shared<PositionMotorRequest>(request_id, PrimaryKeyID, request_json);
+      Logger::Instance()->Error("Received Defunct Position Motor Request, PKID: {}", *PrimaryKeyID);
+      //return std::make_shared<PositionMotorRequest>(request_id, PrimaryKeyID, request_json);
+      throw InvalidCommandFormatException(request_id);
 
     default:
       throw InvalidCommandFormatException(request_id);

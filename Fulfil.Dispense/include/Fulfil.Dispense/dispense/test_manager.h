@@ -18,7 +18,6 @@
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>
-#include <Fulfil.Dispense/motion/trinamic.h>
 #include <Fulfil.DepthCam/data/upload_generator.h>
 #include <Fulfil.DepthCam/data/bigquery_upload.h>
 
@@ -85,9 +84,9 @@ namespace fulfil::dispense {
             inline std::shared_ptr<fulfil::dispense::commands::TrayValidationResponse>
             handle_tray_validation(std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json) override { return nullptr;}
 
-            inline int handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override {return 1;}
+            //inline int handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override {return 1;}
 
-           inline int handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override {return 1;}
+           //inline int handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override {return 1;}
 
             /**
             *  Returns true if rail motor is stationary after a position or home motion
