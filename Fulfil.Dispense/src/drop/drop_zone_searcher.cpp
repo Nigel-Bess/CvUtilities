@@ -1880,7 +1880,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   {
       // TODO: apply item on ground detection algorithm
       // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
-      // run algo & get output 
+      // run algo & get output
       items_on_ground = false;
   }
 
