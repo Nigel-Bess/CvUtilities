@@ -1777,7 +1777,8 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   float LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
   /* remaining platform in meters from request */
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000;
-  float should_search_right_to_left = request_json->value("Flip_X_Default", false);
+  bool should_search_right_to_left = request_json->value("Flip_X_Default", false);
+  bool check_for_items_on_ground = request_json->value("Check_For_Items_On_Ground", false);
 
   Logger::Instance()->Debug("Check MaxZ Initiated");
 
@@ -1872,7 +1873,18 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     max_Z_result = 1.0; //returning such a large value will automatically lead to bag sent to pickup. //TODO: could handle more elegantly w/ additional output
   }
 
-  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result);
+  bool anomaly_present = false;
+  bool items_on_ground = false;
+  float floor_analysis_confidence_score = 0.0;
+  if (check_for_items_on_ground)
+  {
+      // TODO: apply item on ground detection algorithm
+      // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
+      // run algo & get output 
+      items_on_ground = false;
+  }
+
+  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
 }
 
 
