@@ -111,8 +111,12 @@ void calibration_args::parse_args(int argc, char **argv) {
         this->session = manager->session_by_serial_number(serialstr);
     }
     this->session->set_sensor_name("Calibration_DAB");
+}
 
-
+template<typename BasicJsonType>
+void to_json(BasicJsonType &j, const calibration_args& params)
+{
+    j = { { "serial_num", *params.session->get_serial_number() }, { "position", TrayPositionNames[params.lift_height] }, {"min_tags", params.min_tags} };
 }
 
 
