@@ -25,14 +25,16 @@ namespace fulfil::dispense::commands
                 /**
                  *  success_code = 0 if successful, > 0 if there was an error
                  */
-                int success_code;
+                int success_code {0};
 
                 /**
                  * The payload to be sent in response to the request
                  */
                 std::shared_ptr<std::string> payload;
 
-                std::shared_ptr<fulfil::dispense::tray::TrayResult> tray_result;
+
+                results_to_vlsg::TrayValidationCounts count_result{};
+                results_to_vlsg::LaneItemDistance lane_distance_info{};
                 /**
                  * Encodes the payload in the payload string variable on this object.
                  */
@@ -41,13 +43,17 @@ namespace fulfil::dispense::commands
 
                 explicit ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code);
 
-                ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<fulfil::dispense::tray::TrayResult> tray_result);
+                ItemEdgeDistanceResponse(results_to_vlsg::LaneItemDistance lane_item_distance,
+                                         results_to_vlsg::TrayValidationCounts lane_count_result,
+                                         std::shared_ptr<std::string> command_id);
 
                 std::shared_ptr<std::string> get_command_id() override;
 
                 int dispense_payload_size() override;
 
                 std::shared_ptr<std::string> dispense_payload() override;
+
+                [[nodiscard]] int get_fed_value() const;
             };
         } // namespace fulfil
 #endif //FULFIL_DISPENSE_ITEM_EDGE_DISTANCE_RESPONSE_H

@@ -5,6 +5,7 @@
 #ifndef FULFIL_DISPENSE_TRAY_PARSER_H
 #define FULFIL_DISPENSE_TRAY_PARSER_H
 #include <Fulfil.Dispense/mongo/mongo_json_utils.h>
+#include <opencv2/core/types.hpp>
 
 
 
@@ -418,6 +419,22 @@ namespace request_from_vlsg {
 } // namespace request_from_vlsg
 
 
+namespace tray_count_api_comms {
+    struct LaneImageRegion {
+        // Order of numbers Front:(y, x), Back:(y,x) float b/c may be reported to img scale
+        // TODO change to vec if we add more calibration pts
+        std::array<float, 8> vertices{};
+        float m_yscale{720};
+        float m_xscale{1280};
+
+        LaneImageRegion() = default;
+
+        //LaneImageRegion(float y0, float x0, float y1, float x1, float y2, float x2, float y3, float x3);
+        //LaneImageRegion(int y0, int x0, int y1, int x1, int y2, int x2, int y3, int x3, float yscale, float xscale);
+        explicit LaneImageRegion(std::vector<cv::Point2i> roi, float yscale, float xscale);
+    };
+}
+
 
 /**
  * results_to_vlsg:
@@ -441,32 +458,32 @@ namespace results_to_vlsg {
         float m_max_distance {680};
         BoundaryLimit() = default;
         explicit BoundaryLimit(float min_distance, float max_distance);
-        [[nodiscard]] float clip(float distance) const;
+        [[nodiscard]] int clip(int distance) const;
     };
-
 
 //TODO template clip strategy -> template<typename BoundaryCheck>
     struct LaneItemDistance
     {
         dimensional_info::LaneIndex m_index {};
         std::vector<int> m_errors {0};
-        float m_first_item_distance{-1};// should be float?
-        float m_first_item_length{0};// should be float?
+        int m_first_item_distance{-1};// should be float?
+        int m_first_item_length{0};// should be float?
+        tray_count_api_comms::LaneImageRegion m_roi_points{};
         BoundaryLimit m_range_fn {};
         static nlohmann::json& to_tray_format_json(nlohmann::json& fed_res_json);
         [[nodiscard]] dimensional_info::LaneIndex get_lane_id() const;
 
         LaneItemDistance()=default;
         //TODO make template predicate
-        explicit LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, float firstItemDistance,
+        LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, int firstItemDistance,
                                   BoundaryLimit clip);
-        LaneItemDistance(int index, int error, float firstItemDistance);
-        LaneItemDistance(int index, int error, float firstItemDistance, float firstItemLength);
+        LaneItemDistance(int index, int error, int firstItemDistance);
+        LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength);
     };
 
     struct LaneCounts {
         dimensional_info::LaneIndex m_index{};
-        std::vector<int> m_errors {{0}};
+        std::vector<int> m_errors {0};
         int m_num_algorithm_counts {0};
         bool m_has_tongue{false};
         // TODO (int m_has_tongue{-1}) 0 is false, 1 is true and <0 don't report
@@ -512,7 +529,8 @@ namespace results_to_vlsg {
     {
         constexpr int unknown_fed_failure_code = 5;
         j["First_Item_Distance"] = item_distance_res.m_range_fn.clip(item_distance_res.m_first_item_distance);
-        j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0.0F);
+        j["First_Item_Length"] = std::max(item_distance_res.m_first_item_length, 0);
+        j["Lane_Image_Region"] = item_distance_res.m_roi_points;
         j["Errors"] = (item_distance_res.m_index < 0) ? nlohmann::json::array({ unknown_fed_failure_code })
                                                       : json_parser::mongo_utils::format_obj_error_list_to_json_array(item_distance_res.m_errors);
         j.update(item_distance_res.m_index); // will there be an implicit conversion?
@@ -526,6 +544,8 @@ namespace results_to_vlsg {
         item_distance_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         item_distance_res.m_first_item_distance = item_distance_res.m_range_fn.clip(j.value("First_Item_Distance", -1));
         item_distance_res.m_first_item_length = j.value("First_Item_Length", 0);
+        item_distance_res.m_roi_points = j.value("Lane_Image_Region", tray_count_api_comms::LaneImageRegion{});
+
     }
 
     template<typename BasicJsonType>
@@ -615,6 +635,7 @@ namespace results_to_vlsg {
  * */
 
 namespace tray_count_api_comms {
+
 //TODO some how didn't seem to make the 'To TrayCount' Connection
     struct LaneCenterLine
     {
@@ -690,6 +711,31 @@ namespace tray_count_api_comms {
             line.m_back_x = center_bk.value()[1];
         }
     }
+
+    template<typename BasicJsonType>
+    void to_json(BasicJsonType &j, const LaneImageRegion &roi)
+    {
+        for (int i =0 ; i < 4 ; i ++ ) {
+            j["y" + std::to_string(i)] = roi.vertices[2*i];
+            j["x" + std::to_string(i)] = roi.vertices[2*i+1];
+        }
+        j["y_scale"] = roi.m_yscale;
+        j["x_scale"] = roi.m_xscale;
+
+    }
+
+    template<typename BasicJsonType>
+    void from_json(const BasicJsonType &j, LaneImageRegion &roi)
+    {
+        // Each pix is (y, x)
+        for (int i =0 ; i < 4 ; i ++ ) {
+            roi.vertices[2*i] = j.value("y" + std::to_string(i), 0.0F);
+            roi.vertices[2*i+1] = j.value("x" + std::to_string(i), 0.0F);
+        }
+        roi.m_yscale = j.value("y_scale", 720.0F);
+        roi.m_xscale = j.value("x_scale", 1280.0F);
+    }
+
 
     template<typename BasicJsonType>
     void to_json(BasicJsonType &j, const BoundingBoxInfo &bounding_box_result)

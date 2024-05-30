@@ -16,8 +16,11 @@
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/mongo/mongo_bag_state.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
+#include <experimental/filesystem>
 #include "drop_zone_searcher.h"
 #include "pre_post_compare.h"
+
+namespace std_filesystem = std::experimental::filesystem;
 
 namespace fulfil::dispense::drop
 {
@@ -46,28 +49,64 @@ class DropManager
    */
   explicit DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std::shared_ptr<INIReader> dispense_man_reader,
                        std::shared_ptr<fulfil::dispense::visualization::LiveViewer> drop_live_viewer);
+
+  /**
+   * Generates the error code data
+   * @param generate_data determines whether to generate the data or not
+   * @param error_code_file destination filepath to write error code data
+   * @param error_code success or error code of the drop target algorithm
+   */
+  void generate_error_code_result_data(bool generate_data, std::string error_code_file, int error_code);
+
+    /**
+   * Generates the data received before the handling of the drop target
+   * @param generate_data determines whether to generate the data or not
+   * @param base_directory directory to write data to
+   * @param time_stamp used in creation of the final file path to write data to
+   * @param request_json JSON data to be written
+   */
+  void generate_request_data(bool generate_data,
+                                  std_filesystem::path base_directory,
+                                  const std::shared_ptr<std::string> &time_stamp,
+                                  std::shared_ptr<nlohmann::json> request_json);
+
+  void generate_pre_drop_target_data(bool generate_data,
+                                     std_filesystem::path base_directory,
+                                     const std::shared_ptr<std::string> &time_stamp,
+                                     std::shared_ptr<nlohmann::json> request_json,
+                                     std::shared_ptr<nlohmann::json> bag_state_json);
+  /**
+   * Generates the data resulting from the drop target handling
+   * @param generate_data determines whether to generate the data or not
+   * @param target_file destination filepath to write drop target coordinate data
+   * @param error_code success or error code of the drop target algorithm
+   * @param error_code_file destination filepath to write error code data
+   * @param rover_position drop target coordinate data to write
+   * @param dispense_position drop target coordinate data to write
+   */
+  void generate_drop_target_result_data(bool generate_data, std::string target_file, std::string error_code_file,
+                                        float rover_position, float dispense_position, int error_code);
   /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location
    * @return a pointer to drop result which contains details about where to
    * drop an item based on the request.
    */
-  std::shared_ptr<fulfil::dispense::drop::DropResult> handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
-                                                                          std::shared_ptr<nlohmann::json> request_json,
+  std::shared_ptr<fulfil::dispense::drop::DropResult> handle_drop_request(std::shared_ptr<nlohmann::json> request_json,
                                                                           std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
                                                                           const std::shared_ptr<std::string> &base_directory,
                                                                           const std::shared_ptr<std::string> &time_stamp,
-                                                                          bool generate_data=true, bool bot_has_already_rotated = false);
+                                                                          bool generate_data=true,
+                                                                          bool bot_has_already_rotated = false);
 
-  std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> handle_post_LFR(std::shared_ptr<INIReader> LFB_config_reader,
-                                                                               std::shared_ptr<nlohmann::json> request_json,
+  std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> handle_post_LFR(std::shared_ptr<nlohmann::json> request_json,
                                                                           const std::shared_ptr<std::string> &base_directory_input,
                                                                                std::shared_ptr<std::string> request_id,
                                                                           bool generate_data=true);
 
-  std::pair<int, int> handle_pre_post_compare(std::shared_ptr<INIReader> LFB_config_reader, std::string PrimaryKeyID);
+  std::pair<int, int> handle_pre_post_compare(std::string PrimaryKeyID);
 
-  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<nlohmann::json> request_json);
+  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json);
 
   /**
    * Delegate to receive information from the drop manager.

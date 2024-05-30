@@ -6,7 +6,7 @@
  * This file contains the implementation of encoding and
  * decoding extrinsics of a sensor from the realsense library.
  */
-#include "extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
 #include <fstream>
 #include <iostream>
 #include <cstring>

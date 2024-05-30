@@ -6,7 +6,7 @@
  * This file contains the implemenation of encoding the
  * intrinsics of a sensor from the realsense library.
  */
-#include "intrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include <cstring>
 #include <fstream>
 #include <ostream>

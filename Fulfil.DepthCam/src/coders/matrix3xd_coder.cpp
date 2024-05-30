@@ -6,7 +6,7 @@
  * This file contains the implementation for encoding and decoding
  * a matrix3xd from the eigen library.
  */
-#include "matrix3xd_coder.h"
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include <fstream>
 #include <iostream>
 

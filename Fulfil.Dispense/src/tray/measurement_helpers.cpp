@@ -5,17 +5,24 @@
 #include <Fulfil.Dispense/tray/measurement_helpers.h>
 #include <cmath>
 
+/*
 float fulfil::measure::scale_and_round(float value, float scale)
 {
-    float const intermediate = std::round(value * scale);
-    return intermediate;
-}
-
-float fulfil::measure::to_rounded_millimeters(float meters)
+    return std::round(value * scale);
+    float fulfil::measure::to_rounded_millimeters(float meters)
 {
     constexpr float scale = 1000;
     return fulfil::measure::scale_and_round(meters, scale);
 }
+
+double fulfil::measure::to_rounded_millimeters(double meters)
+{
+    constexpr float scale = 1000;
+    return fulfil::measure::scale_and_round(meters, scale);
+}
+
+}*/
+
 
 float fulfil::measure::to_meters(float millimeters)
 {

@@ -41,19 +41,16 @@ class MarkerDetectorContainer : public Container
   int num_markers;
   float marker_depth;
   float marker_depth_tolerance;
+  int min_marker_count_for_validation;
 
   std::shared_ptr<Eigen::Affine3d> get_transform_to_bag_coordinates(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers);
  public:
+  cv::Mat grab_color_frame() override;
 
-    cv::Mat grab_color_frame() override;
-
-
-    int region_min_x;
+  int region_min_x;
   int region_max_x;
   int region_min_y;
   int region_max_y;
-
-  float marker_adjust_amount; // in meters, for resolving issue when only markers on one side of LFB are detected
 
   std::shared_ptr<MarkerDetector> marker_detector;
    /**
@@ -98,11 +95,11 @@ class MarkerDetectorContainer : public Container
                            int num_markers,
                            float marker_depth,
                            float marker_depth_tolerance,
+                           int min_marker_count_for_validation,
                            int region_max_x,
                            int region_min_x,
                            int region_max_y,
-                           int region_min_y,
-                           float marker_adjust_amount);
+                           int region_min_y);
   /**
    * Returns the transform found from the aruco markers.
    * @return
@@ -189,10 +186,10 @@ class MarkerDetectorContainer : public Container
  * use different parts of the aruco markers for definitions. See depth cam diagrams for more details
  * @return a point to a vector of 8 coordinates, where the corner at index i corresponds to the relevant marker location for marker id i
  */
-  static std::shared_ptr<std::vector<Marker::Coordinate>> centers_and_sides()
+  static std::shared_ptr<std::vector<Marker::Coordinate>> centers_and_sides(int marker_count)
   {
     std::shared_ptr<std::vector<Marker::Coordinate>> corners = std::make_shared<std::vector<Marker::Coordinate>>();
-    for(int i = 0; i < 8; i++)
+    for(int i = 0; i < marker_count; i++)
     {
       if(i == 1 or i == 2)
       {

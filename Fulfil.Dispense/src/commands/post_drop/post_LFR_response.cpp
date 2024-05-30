@@ -13,6 +13,8 @@ void PostLFRResponse::encode_payload()
 {
   std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
   (*result_json)["Error"] = this->success_code;
+  (*result_json)["Max_Depth_X"] = this->max_depth_point_X;
+  (*result_json)["Max_Depth_Y"] = this->max_depth_point_Y;
   (*result_json)["Max_Z"] = this->max_Z;
   (*result_json)["Items_Dispensed"] = this->items_dispensed;
   (*result_json)["Bag_Full_Percent"] = this->Bag_Full_Percent;
@@ -31,12 +33,14 @@ void PostLFRResponse::encode_payload()
 }
 
 
-PostLFRResponse::PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, float max_Z,
+PostLFRResponse::PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<fulfil::utils::Point3D> max_Z,
                                  int items_dispensed, int Bag_Full_Percent, int Item_On_Target_Percent)
 {
   this->command_id = command_id;
   this->success_code = success_code;
-  this->max_Z = std::round(max_Z * 1000); //conversion from meters to mm for VLSG response
+  this->max_depth_point_X = std::round(max_Z->x * 1000);
+  this->max_depth_point_Y = std::round(max_Z->y * 1000);
+  this->max_Z = std::round(max_Z->z * 1000); //conversion from meters to mm for VLSG response
   this->items_dispensed = items_dispensed;
   this->Bag_Full_Percent = Bag_Full_Percent;
   this->Item_On_Target_Percent = Item_On_Target_Percent;

@@ -8,7 +8,7 @@
  * from the eigen library.
  */
 #include <gtest/gtest.h>
-#include "../src/coders/affine3d_coder.h"
+#include "Fulfil.DepthCam/coders/affine3d_coder.h"
 #include <eigen3/Eigen/Geometry>
 
 using fulfil::depthcam::pointcloud::Affine3DCoder;

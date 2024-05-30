@@ -93,34 +93,131 @@ DropManager::DropManager(std::shared_ptr<fulfil::depthcam::Session> session, std
   this->mongo_bag_state = std::make_shared<fulfil::mongo::MongoBagState>();
 }
 
-std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INIReader> LFB_config_reader,
-                                                             std::shared_ptr<nlohmann::json> request_json,
+void DropManager::generate_request_data(bool generate_data,
+                                             std_filesystem::path base_directory,
+                                             const std::shared_ptr<std::string> &time_stamp,
+                                             std::shared_ptr<nlohmann::json> request_json)
+{
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data)
+    {
+        Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
+        DataGenerator generator = DataGenerator(this->session,
+                                                std::make_shared<std::string>(base_directory.string()),
+                                                request_json);
+        generator.save_data(time_stamp);
+    }
+}
+
+void DropManager::generate_pre_drop_target_data(bool generate_data,
+                                                std_filesystem::path base_directory,
+                                                const std::shared_ptr<std::string> &time_stamp,
+                                                std::shared_ptr<nlohmann::json> request_json,
+                                                std::shared_ptr<nlohmann::json> bag_state_json)
+{
+    generate_request_data(generate_data, base_directory, time_stamp, request_json);
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data)
+    {
+        if (bag_state_json->is_null())
+        {
+            Logger::Instance()->Debug(
+                    "No bag state JSON is available, json file will not be saved along with data generation");
+        } else {
+            std::string bag_state_file_path = make_media::paths::join_as_path(base_directory, *time_stamp, "bag_state.json");
+            Logger::Instance()->Trace("Bag state JSON data generation file path: {}", bag_state_file_path);
+
+            std::ofstream file(bag_state_file_path);
+            file << *bag_state_json;
+            Logger::Instance()->Trace("Finished bag state JSON data generation for drop camera request!");
+        }
+    }
+}
+
+void DropManager::generate_error_code_result_data(bool generate_data, std::string error_code_file, int error_code)
+{
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data) {
+        // save error/success code
+        Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_code, error_code_file);
+        std::ofstream error_file(error_code_file);
+        error_file << error_code;
+    }
+}
+
+void DropManager::generate_drop_target_result_data(bool generate_data, std::string target_file, std::string error_code_file, float rover_position, float dispense_position, int error_code)
+{
+    // data generation is gated so that offline simulation does not generate data
+    if (generate_data)
+    {
+        generate_error_code_result_data(generate_data, error_code_file, error_code);
+        // save X,Y of drop target result
+        std::ofstream target_file_stream(target_file);
+        target_file_stream << rover_position << "\n";
+        target_file_stream << -1 * dispense_position
+                           << std::endl; //target is saved in LFB frame, requires the sign flip
+        Logger::Instance()->Trace("Finished data generation for drop camera request!");
+    }
+}
+
+void get_min_max(cv::Mat m, std::string debugging_string_desc)
+{
+    double minVal;
+    double maxVal;
+    cv::Point minLoc;
+    cv::Point maxLoc;
+    minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
+    Logger::Instance()->Debug("{}: Number valid points found in matrix: {}\n\tMin: ({},{})={}\n\tMax: ({},{})={}\n\tMean={}",
+                              debugging_string_desc, cv::countNonZero(m), minLoc.x, minLoc.y, minVal, maxLoc.x, maxLoc.y, maxVal, cv::mean(m)[0]);
+}
+
+std::string get_eigen_stats(Eigen::Matrix3Xd point_cloud){
+    Eigen::Matrix3Xd::Index max_index;
+    auto max_res = point_cloud.rowwise().sum().maxCoeff(&max_index);
+    Eigen::Matrix3Xd::Index min_index;
+    auto min_res = point_cloud.rowwise().sum().minCoeff(&min_index);
+    std::stringstream out_msg;
+    out_msg << "There are " << (point_cloud.array().row(2) == 0).count() << " points at 0 depth out of " << point_cloud.cols()
+            << " total. The cloud has a max point sum of " << max_res << " at point " << max_index
+            << " and a min point sum of " << min_res << " at " << min_index
+            << ".\nMin value across rows is \n" << point_cloud.rowwise().minCoeff()
+            << "\nMean value across rows is \n" << point_cloud.rowwise().mean()
+            << "\nMax value across rows is \n" << point_cloud.rowwise().maxCoeff();
+    return out_msg.str();
+}
+
+std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlohmann::json> request_json,
                                  std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                 const std::shared_ptr<std::string> &base_directory_input, const std::shared_ptr<std::string> &time_stamp,
-                                 bool generate_data, bool bot_has_already_rotated)
+                                 const std::shared_ptr<std::string> &base_directory_input,
+                                 const std::shared_ptr<std::string> &time_stamp,
+                                 bool generate_data,
+                                 bool bot_has_already_rotated)
 {
     Logger::Instance()->Debug("Handle_Drop_Request called in drop_manager.cpp");
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
     this->searcher->PKID = PrimaryKeyID;
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
       (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Drop_Target_Image");
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
-    std::string error_code_file = base_directory.string() + "/" + *time_stamp + "/error_code";
-
-    std::string target_file =  (base_directory / *time_stamp / "target_center").string();
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    std::string target_file = make_media::paths::join_as_path(base_directory, *time_stamp, "target_center");
+    std::cout << error_code_file << std::endl;
 
     Logger::Instance()->Debug("about to lock session");
     try
     {
-        bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
         //this->session->set_emitter(true); //turn on emitter for imaging
+
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
 
+        generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
+
         Logger::Instance()->Debug("Getting container for algorithm now");
-        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
 
         this->cached_drop_target_container = container; //cache for potential use in prepostcomparison later
         this->cached_drop_target_request = request_json; //cache for potential use in prepostcomparison later
@@ -128,29 +225,14 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         this->cached_info = nullptr;
 
         // Initiate main algorithm to find the target drop center
-        std::shared_ptr<DropResult> drop_result = this->searcher->find_drop_zone_center(container, details, LFB_config_reader,
+        std::shared_ptr<DropResult> drop_result = this->searcher->find_drop_zone_center(container, details, lfb_vision_config,
                                                                                         this->mongo_bag_state, bot_has_already_rotated);
+
+        generate_drop_target_result_data(generate_data, target_file, error_code_file, drop_result->rover_position,
+                                             drop_result->dispense_position, drop_result->success_code);
 
         //cache drop target. Target is cached in the LFB local coordinate frame (in meter units), that's why the VLS drop y result is flipped
         this->cached_drop_target = std::make_shared<cv::Point2f>(cv::Point2f(drop_result->rover_position/1000, -1 * drop_result->dispense_position/1000));
-
-
-        if (generate_data) //this functionality is added so offline simulation does not generate data
-        {
-            Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
-
-            DataGenerator generator = DataGenerator(this->session,std::make_shared<std::string>(base_directory.string()), request_json);
-            generator.save_data(time_stamp);
-
-            Logger::Instance()->Trace("Saving error code file with code 0 at path {}", error_code_file);
-            std::ofstream error_file(error_code_file);
-            error_file << "0"; //TODO: this should represent the success code, not necessarily 0 always (e.g. case 9)
-
-            std::ofstream target_file_stream(target_file);
-            target_file_stream << drop_result->rover_position << "\n";
-            target_file_stream << -1 * drop_result->dispense_position << std::endl; //target is saved in LFB frame, requires the sign flip
-        }
-
         this->cached_info = std::make_shared<std::vector<std::string>>();
         this->cached_info->push_back("Target: Success");
         if(drop_result->LFB_Currently_Rotated) this->cached_info->push_back("LFR is Rotated");
@@ -184,23 +266,8 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         DropTargetErrorCodes error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
-        if (generate_data) //this functionality is added so offline simulation does not generate data
-        {
-            Logger::Instance()->Trace("Data generation for drop camera request started!");
-            std::shared_ptr<DataGenerator>
-                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
-            generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
-            Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
-            std::ofstream error_file(error_code_file);
-            error_file << error_id;
-
-            Logger::Instance()->Trace("Saving target data as -1 at path {}", target_file);
-            std::ofstream target_file_stream(target_file);
-            target_file_stream << -1 << "\n";
-            target_file_stream << -1 << std::endl;
-
-            Logger::Instance()->Trace("Finished data generation for drop camera request!");
-        }
+        // TODO: should pre_target be generated as well? will that overwrite if already written or append
+        generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
         return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
     }
     // TODO - remove. this is horrible. sincerely, jess
@@ -210,23 +277,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
         std::string error_desc = std::get<std::string>(e);
         Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
 
-        if (generate_data) //this functionality is added so offline simulation does not generate data
-        {
-            Logger::Instance()->Trace("Data generation for drop camera request started!");
-            std::shared_ptr<DataGenerator>
-                    generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
-            generator->save_data(time_stamp);  //TODO: ADD IMAGE DATA SAVING BACK IN BY FIXING ADDING A THROW/CATCH ERROR HERE.
-            Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
-            std::ofstream error_file(error_code_file);
-            error_file << error_id;
-
-            Logger::Instance()->Trace("Saving target data as -1 at path {}", target_file);
-            std::ofstream target_file_stream(target_file);
-            target_file_stream << -1 << "\n";
-            target_file_stream << -1 << std::endl;
-
-            Logger::Instance()->Trace("Finished data generation for drop camera request!");
-        }
+        generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
         return std::make_shared<DropResult>(details->request_id, error_id, error_desc);
     }
     catch (const std::exception & e)
@@ -244,11 +295,13 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<INI
 }
 
 
-std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<INIReader> LFB_config_reader,
-                                                              std::shared_ptr<nlohmann::json> request_json,
-const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::string> request_id, bool generate_data)
+std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nlohmann::json> request_json,
+                                                              const std::shared_ptr<std::string> &base_directory_input,
+                                                              std::shared_ptr<std::string> request_id,
+                                                              bool generate_data)
 {
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_post_LFR for " + PrimaryKeyID);
     auto time_stamp = make_media::paths::get_datetime_str();
 
@@ -269,28 +322,19 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
 
     std::shared_ptr<DataGenerator> generator;
-    if(generate_data)
-    {
-      generator = std::make_shared<DataGenerator>(this->session, std::make_shared<std::string>(base_directory.string()), request_json);
-      generator->save_data(time_stamp);
-    }
+    generate_request_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
 
     Logger::Instance()->Debug("Getting container for algorithm now");
-    bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
-    std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(LFB_config_reader, this->session, extend_depth_analysis_over_markers);
+    bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
+    std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
 
     this->cached_post_container = container; //cache container for potential use in prepostcomparison later
     this->cached_post_request = request_json;
 
-    std::shared_ptr<PostLFRResponse> post_drop_result = this->searcher->find_max_Z(container, request_id, LFB_config_reader,
+    std::shared_ptr<PostLFRResponse> post_drop_result = this->searcher->find_max_Z(container, request_id, lfb_vision_config,
                                                                                     this->mongo_bag_state, request_json, this->cached_info);
 
-    if (generate_data) //this functionality is added so offline simulation does not generate data
-    {
-      Logger::Instance()->Trace("Saving error code file with code 0 at path {}", error_code_file);
-      std::ofstream error_file(error_code_file);
-      error_file << "0";
-    }
+    generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
 
     return post_drop_result;
   }
@@ -308,12 +352,7 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
       }
     }
 
-    if (generate_data) //this functionality is added so offline simulation does not generate data
-    {
-      Logger::Instance()->Trace("Saving error code file with code {} at path {}", error_id, error_code_file);
-      std::ofstream error_file(error_code_file);
-      error_file << error_id;
-    }
+    generate_error_code_result_data(generate_data, error_code_file, error_id);
     return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id,  error_id));
   }
   catch (const std::exception & e)
@@ -331,8 +370,9 @@ const std::shared_ptr<std::string> &base_directory_input, std::shared_ptr<std::s
 }
 
 
-std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIReader> LFB_config_reader, std::string PrimaryKeyID)
+std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyID)
 {
+  std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
   std::shared_ptr<MarkerDetectorContainer> cached_pre_container = this->cached_pre_container;
   std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
   std::shared_ptr<nlohmann::json> cached_pre_request_json = this->cached_pre_request;
@@ -365,7 +405,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
     //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
     std::shared_ptr<cv::Mat> result_mat = nullptr;
     int target_item_overlap = -1;
-    int comparison_result = this->pre_post_compare->run_comparison(cached_pre_container, cached_post_container, LFB_config_reader,
+    int comparison_result = this->pre_post_compare->run_comparison(cached_pre_container, cached_post_container, lfb_vision_config,
                                            cached_pre_request_json, cached_post_request_json,
                                            cached_drop_target_json, *cached_drop_target, &result_mat, &target_item_overlap);
 
@@ -378,14 +418,14 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
 
     std::string message;
     switch (comparison_result) {
-      case (item_not_detected_code): message = "Item in bag: No";
-      case (item_detected_code): message = "Item in bag: Yes";
-      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers";
-      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions";
-      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value";
-      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency";
-      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure";
-      default: message = "Unhandled case encountered";
+      case (item_not_detected_code): message = "Item in bag: No"; break;
+      case (item_detected_code): message = "Item in bag: Yes"; break;
+      case (PrePostCompareErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers"; break;
+      case (PrePostCompareErrorCodes::InvalidItemDimensions): message = "Invalid Item Dimensions"; break;
+      case (PrePostCompareErrorCodes::InvalidRequest): message = "Invalid Platform Value"; break;
+      case (PrePostCompareErrorCodes::InconsistentPlatform): message = "Platform Inconsistency"; break;
+      case (PrePostCompareErrorCodes::UnspecifiedError): message = "Undefined Failure"; break;
+      default: message = "Unhandled case encountered"; break;
     }
 
     this->cached_info->push_back(message);
@@ -454,8 +494,9 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::shared_ptr<INIRead
   }
 }
 
-std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<INIReader> LFB_config_reader, std::shared_ptr<nlohmann::json> request_json)
+std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json)
 {
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
     // TODO why is this assigned a shadowing name? Why assign to a new ptr at all? It does not appear to be copied or overwritten?
     std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
 
@@ -472,11 +513,11 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<INIR
         Logger::Instance()->Debug("DropManager: Executing Check for Remaining Products Fit In Bag Now");
         auto products_to_check = (*request_json)["Remaining_Products_To_Pack"];
         Logger::Instance()->Info("DropManager: Check Products for Fit in Bag: found {} products to analyze", products_to_check.size());
-        if (products_to_check.size() < 1) return std::vector<int>{}; //exit early if no products to check
+        if (products_to_check.empty()) return std::vector<int>{}; //exit early if no products to check
 
         float remaining_platform = ((*request_json)["Remaining_Platform"].get<float>()) / 1000; // [meter] units
         Logger::Instance()->Debug("DropManager: Check Product Fit, creating drop grid now");
-        DropGrid drop_depth_grid = DropGrid(cached_post_container->width, cached_post_container->length, 22, 15); //TODO (SB): add grid squares to config?
+        DropGrid drop_depth_grid = DropGrid(cached_post_container->width, cached_post_container->length, lfb_vision_config->num_rows_in_drop_depth_grid, lfb_vision_config->num_cols_in_drop_depth_grid); //TODO (SB): add grid squares to config? 22, 15
         Logger::Instance()->Debug("DropManager: Check Product Fit, getting point cloud now");
         std::shared_ptr<LocalPointCloud> point_cloud = cached_post_container->get_point_cloud(false)->as_local_cloud();
         Logger::Instance()->Debug("DropManager: Check Product Fit, populating depth grid now");
@@ -494,7 +535,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<INIR
             float product_height = product["H"].get<float>()/1000; // [meter] units
 
             //product_length in tray is equivalent to shadow_height in bag (assumption) for these calculations
-            float max_item_length_percent_overflow = LFB_config_reader->GetFloat("LFB_config", "max_item_length_percent_overflow", 0.45);
+            float max_item_length_percent_overflow = lfb_vision_config->max_item_length_percent_overflow;
             float acceptable_height_above_marker_surface = std::min((max_item_length_percent_overflow * product_length), acceptable_Z_above_marker_surface); //[meter] units
             float upper_depth_limit = remaining_platform - product_length + acceptable_height_above_marker_surface;
             //note how product dimensions in tray translate to the shadow inputs for this function (width --> width, height --> shadow length)

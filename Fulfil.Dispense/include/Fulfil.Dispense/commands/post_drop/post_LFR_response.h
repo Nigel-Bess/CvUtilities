@@ -6,6 +6,9 @@
 #define FULFIL_DISPENSE_SRC_COMMANDS_POST_DROP_POST_DROP_RESPONSE_H_
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.CPPUtils/point_3d.h>
+
+using fulfil::utils::Point3D;
 
 namespace fulfil
 {
@@ -25,7 +28,14 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
    * The id for the request.
    */
   std::shared_ptr<std::string> command_id;
-
+  /**
+   * X coordinate of tallest item in LFB bag, in mm
+   */
+  float max_depth_point_X;
+  /**
+   * Y coordinate of tallest item in LFB bag, in mm
+   */
+  float max_depth_point_Y;
   /**
    * depth of tallest item in LFB bag, in mm, relative to the top surface of the bag
    */
@@ -34,6 +44,10 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
    *  success_code = 0 if successful, > 0 if there was an error
    */
   int success_code;
+  /**
+   * Description of the error code thrown. Will be empty string if code is success.
+   */
+  std::string error_description;
   /**
    *  code for the amount of dispensed items detected in bag. Valid values: -1 (error), 0, or 1 (>= 0)
    * */
@@ -67,7 +81,7 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
   /**
    * constructor that initializes a response indicating a success with additional parameters to be sent
    */
-  PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, float max_Z = 0, int items_dispensed = -1,
+  PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<fulfil::utils::Point3D> max_Z = std::make_shared<fulfil::utils::Point3D>(0,0,0), int items_dispensed = -1,
                    int Bag_Full_Percent = 0, int Item_On_Target_Percent = 0);
   /**
    * Returns the command id for the response.

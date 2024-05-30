@@ -7,7 +7,7 @@
  * from sessions for saving
  */
 #include "Fulfil.DepthCam/data/upload_generator.h"
-#include "../coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/coders/extrinsics_coder.h"
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/timer.h>
