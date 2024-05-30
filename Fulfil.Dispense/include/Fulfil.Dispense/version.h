@@ -18,11 +18,15 @@
 #define DISPENSE_COMMIT "unknown"
 #endif
 
+#ifndef IS_SOURCE_REPO_CLEAN
+#define IS_SOURCE_REPO_CLEAN "unknown"
+#endif
+
 namespace versions {
     inline int dispense_api_build_info()
     {
         std::cout << "Latest FW Tag found: " FW_VERSION << ". Build generated on " << BUILD_DATE << ".\n";
-        std::cout << "Dispense API commit details: " << DISPENSE_COMMIT << std::endl;
+        std::cout << "Dispense API commit details: " << DISPENSE_COMMIT << " (" << IS_SOURCE_REPO_CLEAN << ")" << std::endl;
         return 0;
     }
 }
