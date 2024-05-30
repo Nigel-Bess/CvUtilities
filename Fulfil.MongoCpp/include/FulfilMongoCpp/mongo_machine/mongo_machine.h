@@ -8,13 +8,8 @@
 #include <memory>
 
 #include "FulfilMongoCpp/mongo_objects/mongo_object_id.h"
-
-
 #include "FulfilMongoCpp/mongo_objects/mongo_document.h"
-
-
 #include "FulfilMongoCpp/mongo_parse/mongo_bsonxx_parser.h"
-using ff_mongo_cpp::mongo_parse::MongoBsonxxParser;
 
 namespace ff_mongo_cpp {
     namespace mongo_machine {
@@ -29,7 +24,7 @@ namespace ff_mongo_cpp {
                                  std::shared_ptr<std::vector<std::string>> keys,
                                 std::vector<T*> containers)
             {
-                MongoBsonxxParser parser = MongoBsonxxParser(doc);
+                ff_mongo_cpp::mongo_parse::MongoBsonxxParser parser = ff_mongo_cpp::mongo_parse::MongoBsonxxParser(doc);
                 std::vector<int> errors;
                 parser.bulkParse(keys, containers, errors);
                 if (!errors.empty()) {

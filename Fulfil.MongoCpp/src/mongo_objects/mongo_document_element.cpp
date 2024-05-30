@@ -10,6 +10,7 @@ using ff_mongo_cpp::mongo_objects::MongoDocumentElement;
 
 #include "FulfilMongoCpp/mongo_objects/mongo_object_id.h"
 using ff_mongo_cpp::mongo_objects::MongoObjectID;
+using ff_mongo_cpp::mongo_objects::MongoElement;
 
 MongoDocumentElement::MongoDocumentElement(bsoncxx::document::element elem_val){
   this->raw_element = elem_val;
