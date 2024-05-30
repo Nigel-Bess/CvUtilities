@@ -22,7 +22,6 @@
 //#include <Fulfil.Dispense/commands/home_motor_request.h>
 //#include <Fulfil.Dispense/commands/position_motor_request.h>
 #include <Fulfil.CPPUtils/logging.h>
-#include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
 using fulfil::utils::Logger;
 
@@ -63,7 +62,7 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
 
   std::shared_ptr<std::string> PrimaryKeyID =  std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
 
-  std::string request_id_string = bsoncxx::oid((*request_id).c_str()).to_string();
+  //std::string request_id_string = bsoncxx::oid((*request_id).c_str()).to_string();
   switch (static_cast<DispenseCommand>(type))
   {
     case DispenseCommand::nop:
@@ -76,38 +75,38 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       return std::make_shared<NopRequest>(request_id, PrimaryKeyID);
     case DispenseCommand::request_bag_state:
     case DispenseCommand::get_state:
-      Logger::Instance()->Info("Received Get State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Get State Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<GetStateRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::drop_target:
-      Logger::Instance()->Info("Received Drop Target Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Drop Target Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<DropTargetRequest>(request_id, PrimaryKeyID, std::make_shared<DropTargetDetails>(request_json, request_id), request_json);
     case DispenseCommand::post_LFR:
-      Logger::Instance()->Info("Received Post Drop Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Post Drop Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<PostLFRRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::start_lfb_video:
-      Logger::Instance()->Info("Received Start LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Start LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StartLFBVideoRequest>(request_id, PrimaryKeyID);
     case DispenseCommand::stop_lfb_video:
-      Logger::Instance()->Info("Received Stop LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Stop LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StopLFBVideoRequest>(request_id, PrimaryKeyID);
     case DispenseCommand::start_tray_video:
-      Logger::Instance()->Info("Received Start Tray Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Start Tray Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StartTrayVideoRequest>(request_id, PrimaryKeyID);
     case DispenseCommand::stop_tray_video:
-      Logger::Instance()->Info("Received Stop Tray Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Stop Tray Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StopTrayVideoRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::tray_validation:
-      Logger::Instance()->Info("Received Tray Validation Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Tray Validation Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<TrayValidationRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::item_edge_distance:
-      Logger::Instance()->Info("Received Tray Dispense Lane Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Tray Dispense Lane Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<ItemEdgeDistanceRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::pre_LFR:
-      Logger::Instance()->Info("Received Pre Drop LFB Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Pre Drop LFB Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<PreLFRRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::send_bag_state:
     case DispenseCommand::update_state:
-      Logger::Instance()->Info("Received Update State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Update State Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<UpdateStateRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::home_motor:
       Logger::Instance()->Error("Received Defunct Home Motor Request, PKID: {}", *PrimaryKeyID);

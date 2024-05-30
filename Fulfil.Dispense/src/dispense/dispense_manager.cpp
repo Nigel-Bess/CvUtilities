@@ -17,15 +17,13 @@
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
-#include <Fulfil.Dispense/mongo/mongo_tray_calibration.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
+#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
-#include "Fulfil.Dispense/visualization/make_media.h"
+#include <Fulfil.Dispense/visualization/make_media.h>
 
 using ff_mongo_cpp::MongoConnection;
-using ff_mongo_cpp::mongo_objects::MongoObjectID;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::dispense::commands::DropTargetDetails;
@@ -57,7 +55,6 @@ using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
-using fulfil::mongo::MongoTrayCalibration;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::ini::IniSectionReader;
 using fulfil::utils::Logger;
@@ -109,13 +106,6 @@ DispenseManager::DispenseManager(
   if(tray_session)
   {
     this->tray_session = tray_session;
-    //find last tray camera calibration from Mongo collection Machines.DepthCamera
-    if (dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "validate_calibration_with_mongo", false))
-    {
-      MongoTrayCalibration temp;
-      this->tray_calibration_ids = temp.findLastTrayCalibration(
-              this->machine_id, this->mongo_connection, this->tray_config_reader);
-    }
 
     //read specific tray configuration
     std::string tray_config_type = this->dispense_reader->Get("device_specific", "tray_config_type");

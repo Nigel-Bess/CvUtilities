@@ -11,7 +11,6 @@
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager_delegate.h>
 #include <Fulfil.DepthCam/core/session.h>
-#include <Fulfil.DepthCam/data/bigquery_upload.h>
 #include <Fulfil.DepthCam/data/upload_generator.h>
 #include <Fulfil.Dispense/bays/bay_runner.h>
 #include <Fulfil.Dispense/commands/dispense_request.h>
@@ -107,11 +106,6 @@ namespace fulfil::dispense {
             std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
             /**
-             *  Mongo ids for the last calibration entries in mongo for dispense, hover, and tongue engage
-             *  used for linking tray count entry to a calibration
-             */
-            std::vector<std::string> tray_calibration_ids;
-            /**
              *  Mongo id for the LFB bag currently being inspected at the bay
              */
             std::string bag_id;
@@ -123,11 +117,6 @@ namespace fulfil::dispense {
             */
             bool bot_already_rotated_for_current_dispense = false;
 
-
-            /**
-             * BigQuery uploader object to upload traycounts (and potentially other data) to BigQuery
-             */
-            fulfil::depthcam::data::BQUpload bq_uploader;
 
             /**
              * Builds a fresh copy of base_dir from configs and appends a date to the end.
