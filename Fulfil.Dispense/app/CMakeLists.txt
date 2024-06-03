@@ -44,8 +44,7 @@ message("\nSetting up targets and build generation.")
 #message("-- Current commit head for Fulfil.Dispense: ${DISPENSE_COMMIT}")
 
 # Add the executable code for your application main function
-add_executable(main main.cpp
-        ../include/Fulfil.Dispense/commands/floor_view/floor_view_request.h)
+add_executable(main main.cpp)
 target_link_libraries(main Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 target_compile_definitions(main PRIVATE BUILD_DATE="${BUILD_DATE}")
 target_compile_definitions(main PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
@@ -77,8 +76,7 @@ target_compile_definitions(offline_test PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURC
 # YOU NEED TO SPECIFICALLY TARGET THESE TO TRIGGER A BUILD!
 add_executable(auto_tray_calibration
    EXCLUDE_FROM_ALL
-   auto_tray_calibration.cpp ../include/Fulfil.Dispense/tray/tray_process_logging_messages.h ../include/Fulfil.Dispense/recipes/visualization_presets.h
-        ../include/Fulfil.Dispense/commands/floor_view/floor_view_response.h)
+   auto_tray_calibration.cpp ../include/Fulfil.Dispense/tray/tray_process_logging_messages.h ../include/Fulfil.Dispense/recipes/visualization_presets.h)
 target_link_libraries(auto_tray_calibration PRIVATE
    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
 
