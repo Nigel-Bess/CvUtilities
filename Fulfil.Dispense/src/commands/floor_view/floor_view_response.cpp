@@ -23,7 +23,7 @@ void FloorViewResponse::encode_payload()
     {
         (*result_json)["Anomaly_Present"] = this->anomaly_present;
         (*result_json)["Item_On_Ground"] = this->item_on_ground;
-        (*result_json)["Bots_In_Image"] = this->bots_in_image;
+        (*result_json)["Floor_Analysis_Confidence_Score"] = this->floor_analysis_confidence_score;
     }
 
     std::string json_string = result_json->dump();
@@ -38,14 +38,14 @@ void FloorViewResponse::encode_payload()
 }
 
 FloorViewResponse::FloorViewResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description,
-                                     bool anomaly_present, bool item_on_ground, int bots_in_image)
+                                     bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score)
 {
     this->success_code = success_code;
     this->command_id = command_id;
     this->error_description = error_description;
     this->anomaly_present = anomaly_present;
     this->item_on_ground = item_on_ground;
-    this->bots_in_image = bots_in_image;
+    this->floor_analysis_confidence_score = floor_analysis_confidence_score;
 }
 
 std::shared_ptr<std::string> FloorViewResponse::get_command_id()

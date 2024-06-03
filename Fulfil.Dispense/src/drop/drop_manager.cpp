@@ -160,7 +160,7 @@ void DropManager::generate_drop_target_result_data(bool generate_data, std::stri
     }
 }
 
-void DropManager::generate_floor_view_result_data(bool generate_data, std::string floor_view_file, std::string error_code_file, bool anomaly_detected, bool item_on_ground, int bots_in_image, int error_code)
+void DropManager::generate_floor_view_result_data(bool generate_data, std::string floor_view_file, std::string error_code_file, bool anomaly_detected, bool item_on_ground, float floor_analysis_confidence_score, int error_code)
 {
     // data generation is gated so that offline simulation does not generate data
     if (generate_data)
@@ -170,7 +170,7 @@ void DropManager::generate_floor_view_result_data(bool generate_data, std::strin
         std::ofstream floor_view_file_stream(floor_view_file);
         floor_view_file_stream << anomaly_detected << "\n";
         floor_view_file_stream << item_on_ground  << "\n";
-        floor_view_file_stream << bots_in_image
+        floor_view_file_stream << floor_analysis_confidence_score
                                << std::endl;
         Logger::Instance()->Trace("Finished data generation for drop camera floor view request!");
     }

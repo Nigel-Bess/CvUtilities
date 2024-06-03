@@ -89,7 +89,7 @@ class DropManager
 
   void generate_floor_view_result_data(bool generate_data, std::string floor_view_file,
                                                     std::string error_code_file, bool anomaly_detected,
-                                                    bool item_on_ground, int bots_in_image, int error_code);
+                                                    bool item_on_ground, float floor_analysis_confidence_score, int error_code);
     /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location

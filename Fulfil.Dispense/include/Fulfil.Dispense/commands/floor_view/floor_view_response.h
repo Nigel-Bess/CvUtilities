@@ -48,11 +48,10 @@ namespace fulfil::dispense::commands
          */
         bool item_on_ground;
         /**
-         *  Number of bots seen in the image
+         * Value between 0.0-1.0 representing the confidence of the values outputted in the floor analysis, such as identifying
+         * items on the ground. 0 represents no confidence, and 1 is full confidence.
          */
-        int bots_in_image;
-
-
+        float floor_analysis_confidence_score;
 
         /**
          * Encodes the payload in the payload string variable on this object.
@@ -63,7 +62,7 @@ namespace fulfil::dispense::commands
         /**
          * constructor that initializes a response indicating a success with additional parameters to be sent
          */
-        FloorViewResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description, bool anomaly_present, bool item_on_ground, int bots_in_image);
+        FloorViewResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description, bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score);
         /**
          * Returns the command id for the response.
          * @return pointer to string containing command id for the response.
