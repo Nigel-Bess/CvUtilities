@@ -31,6 +31,11 @@ void DropTargetResponse::encode_payload()
     (*result_json)["Rotate_LFB"] = this->Rotate_LFB;
     (*result_json)["LFB_Currently_Rotated"] = this->LFB_Currently_Rotated;
     (*result_json)["Swing_Collision_Expected"] = this->Swing_Collision_Expected;
+    (*result_json)["Target_Depth_Range"] = this->target_depth_range;
+    (*result_json)["Target_Depth_Variance"] = this->target_depth_variance;
+    (*result_json)["Interference_Max_Z"] = this->interference_max_z;
+    (*result_json)["Interference_Average_Z"] = this->interference_average_z;
+    (*result_json)["Target_Region_Max_Z"] = this->target_region_max_z;
   }
 
   std::string json_string = result_json->dump();
@@ -55,6 +60,8 @@ DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, 
                                        float rover_position, float dispense_position, float depth_result,
                                        float max_depth_point_X, float max_depth_point_Y, float max_Z,
                                        bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected,
+                                       float target_depth_range, float target_depth_variance, float interference_max_z,
+                                       float interference_average_z, float target_region_max_z,
                                        std::string error_description)
 {
   this->success_code = success_code;
@@ -68,6 +75,11 @@ DropTargetResponse::DropTargetResponse(std::shared_ptr<std::string> command_id, 
   this->Rotate_LFB = Rotate_LFB;
   this->LFB_Currently_Rotated = LFB_Currently_Rotated;
   this->Swing_Collision_Expected = Swing_Collision_Expected;
+  this->target_depth_range = target_depth_range;
+  this->target_depth_variance = target_depth_variance;
+  this->interference_max_z = interference_max_z;
+  this->interference_average_z = interference_average_z;
+  this->target_region_max_z = target_region_max_z;
   this->error_description = error_description;
 }
 

@@ -62,6 +62,16 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
    * Indicates that dispensed item is expected to collide with item already in bag during swing part of the dispense
    */
   bool Swing_Collision_Expected;
+
+  /**
+   * Metrics of the drop target region for evaluation of drop target selection qualityinterference_average_z
+   */
+  float target_depth_range;
+  float target_depth_variance;
+  float interference_max_z;
+  float interference_average_z;
+  float target_region_max_z;
+
   /**
    *  success_code = 0 if successful, > 0 if there was an error
    */
@@ -93,7 +103,9 @@ class DropTargetResponse : public fulfil::dispense::commands::DispenseResponse
   DropTargetResponse(std::shared_ptr<std::string> command_id, int success_code,
                      float rover_position, float dispense_position, float depth_result,
                      float max_depth_point_X, float max_depth_point_Y, float max_Z,
-                     bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected, std::string error_description);
+                     bool Rotate_LFB, bool LFB_Currently_Rotated, bool Swing_Collision_Expected,
+                     float target_depth_range, float target_depth_variance, float interference_max_z,
+                     float interference_average_z, float target_region_max_z, std::string error_description);
   /**
    * Returns the command id for the response.
    * @return pointer to string containing command id for the response.
