@@ -111,7 +111,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
 
   this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
   this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, no_wait);
-  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,yes_wait);
+  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,no_wait);
   this->session_visualizer4 = std::make_shared<SessionVisualizer>(session, window_name_4, location_top_right, window_size, yes_wait);
   this->session_visualizer5 = std::make_shared<SessionVisualizer>(session, window_name_5, location_bottom_left, window_size, no_wait);
   this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, no_wait);
@@ -819,7 +819,7 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
 
   bool crazy_depth_regression = (average_diff < this->crazy_depth_regression);
   bool significant_depth_regression = (average_diff < this->significant_depth_regression); // significantly worse depth
-  bool equivalent_depth = (average_diff > this->equivalent_depth); // equivalent or better average depth
+  bool lower_depth = !(max_diff > this->equivalent_depth); // equivalent or better average depth
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
@@ -828,27 +828,38 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           get_quadrant_of_point(current_target_region->x, current_target_region->y),
           quadrant_preference_order);
 
+    bool range_diff_improvement = range_diff > 0.005;
+    bool range_diff_regression = range_diff < -0.010;
+  bool is_better = (range_diff_improvement and moderate_variance_improvement)
+          or interference_improved; //or !interference_improved); // and !moderate_variance_regression);
+//          (rotation_improved and significant_variance_improvement) or
+//                   (crazy_depth_regression and !significant_variance_regression) or
+//                   (significant_depth_regression and !moderate_variance_regression) or
+//                   (equivalent_depth and moderate_variance_improvement);
+
+
   if (use_quadrant_preference_order)
   {
-      return current_quadrant_preferred and ((interference_improved and !significant_depth_regression) or
-                                             (significant_depth_improvement and !significant_variance_regression) or
-                                             (moderate_depth_improvement and !moderate_variance_regression) or
-                                             (equivalent_depth and moderate_variance_improvement));
+      return current_quadrant_preferred and is_better;
+//              (interference_improved and !significant_depth_regression) or
+//                                             (significant_depth_improvement and !significant_variance_regression) or
+//                                             (moderate_depth_improvement and !moderate_variance_regression) or
+//                                             (equivalent_depth and moderate_variance_improvement));
   } else {
       // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-      if (rotation_worsened) {
-          return crazy_depth_improvement;
-      }
+//      if (rotation_worsened) {
+//          return crazy_depth_improvement;
+//      }
           // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-      else if (rotation_improved) {
-          return !crazy_depth_regression;
-      } else //rotation of candidates is the same
-      {
-          return (interference_improved and !significant_depth_regression) or
-                 (significant_depth_improvement and !significant_variance_regression) or
-                 (moderate_depth_improvement and !moderate_variance_regression) or
-                 (equivalent_depth and moderate_variance_improvement);
-      }
+//      else if (rotation_improved) {
+//          return !crazy_depth_regression;
+//      } else //rotation of candidates is the same
+//      {
+          return
+//          (interference_improved and !significant_depth_regression) or
+
+              is_better;
+//      }
   }
 }
 
