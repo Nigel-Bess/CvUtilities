@@ -725,7 +725,7 @@ DropZoneSearcher::Interference_Region DropZoneSearcher::define_interference_regi
 }
 
 
-void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud)
+void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud, float remaining_platform)
 {
   Interference_Region interference_region = target_region->interference_region;
   float center_x = interference_region.center.x;
@@ -736,7 +736,7 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   float maxx = center_x + interference_region.width/2.0;
   float miny = center_y - interference_region.length/2.0;
   float maxy = center_y + interference_region.length/2.0;
-  float minz = center_z + this->interference_depth_tolerance;
+  float minz = target_region->min_Z + this->interference_depth_tolerance;
 
   std::shared_ptr<Eigen::Matrix3Xd> cloud_data = point_cloud->as_local_cloud()->get_data();
 
@@ -757,11 +757,12 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
       if (local_z > interference_max_z) interference_max_z = local_z;
     }
   }
-  if (num_interference_points >= this->num_interference_points_tolerance)
+  if (num_interference_points >= this->num_interference_points_tolerance) // or target_region->min_Z > remaining_platform + 0.005)
   {
     target_region->interference_detected = true;
     target_region->interference_max_z = interference_max_z;
     target_region->interference_average_z = sum_interference_z / num_interference_points;
+    target_region->interference_points_count = num_interference_points;
     Logger::Instance()->Trace("Interference Threshold was met. {} points found, with maxz: {} and average z: {}",
                               num_interference_points, target_region->interference_max_z, target_region->interference_average_z);
   }
@@ -830,8 +831,15 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
 
     bool range_diff_improvement = range_diff > 0.005;
     bool range_diff_regression = range_diff < -0.010;
-  bool is_better = (range_diff_improvement and moderate_variance_improvement)
-          or interference_improved; //or !interference_improved); // and !moderate_variance_regression);
+  bool is_better = (current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
+          (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
+          (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
+          ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count));
+//          (!current_target_region->interference_detected or (current_target_region->interference_detected and best_target_region->interference_detected)); // or
+//          bes
+//          (range_diff > 0.010) or (max_diff > 0.100 and range_diff > -0.010); // or (range_diff > 0.010);
+          //(range_diff > 0.010) or (range_diff > -0.005 and !moderate_variance_regression);
+//          or (interference_improved and !moderate_variance_regression); //or !interference_improved); // and !moderate_variance_regression);
 //          (rotation_improved and significant_variance_improvement) or
 //                   (crazy_depth_regression and !significant_variance_regression) or
 //                   (significant_depth_regression and !moderate_variance_regression) or
@@ -840,7 +848,7 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
 
   if (use_quadrant_preference_order)
   {
-      return current_quadrant_preferred and is_better;
+      return  is_better; //current_quadrant_preferred and is_better;
 //              (interference_improved and !significant_depth_regression) or
 //                                             (significant_depth_improvement and !significant_variance_regression) or
 //                                             (moderate_depth_improvement and !moderate_variance_regression) or
@@ -1616,7 +1624,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                                            current_point, must_rotate_from_nominal_to_reach_candidate);
 
     std::shared_ptr<Target_Region> current_target_ptr = std::make_shared<Target_Region>(current_target_region);
-    check_interference(current_target_ptr, filtered_point_cloud);
+    check_interference(current_target_ptr, filtered_point_cloud, details->remaining_platform);
 
     // Check if candidate point will result in item sticking out too far above bag (collision and non-collision cases). if so, continue on to next candidate
     float dispensed_item_expected_max_Z_collision = -1;
