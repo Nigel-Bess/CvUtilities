@@ -835,40 +835,13 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
           (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
           ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count));
-//          (!current_target_region->interference_detected or (current_target_region->interference_detected and best_target_region->interference_detected)); // or
-//          bes
-//          (range_diff > 0.010) or (max_diff > 0.100 and range_diff > -0.010); // or (range_diff > 0.010);
-          //(range_diff > 0.010) or (range_diff > -0.005 and !moderate_variance_regression);
-//          or (interference_improved and !moderate_variance_regression); //or !interference_improved); // and !moderate_variance_regression);
+//          Historically, this has been:
 //          (rotation_improved and significant_variance_improvement) or
 //                   (crazy_depth_regression and !significant_variance_regression) or
 //                   (significant_depth_regression and !moderate_variance_regression) or
 //                   (equivalent_depth and moderate_variance_improvement);
 
-
-  if (use_quadrant_preference_order)
-  {
-      return  is_better; //current_quadrant_preferred and is_better;
-//              (interference_improved and !significant_depth_regression) or
-//                                             (significant_depth_improvement and !significant_variance_regression) or
-//                                             (moderate_depth_improvement and !moderate_variance_regression) or
-//                                             (equivalent_depth and moderate_variance_improvement));
-  } else {
-      // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-//      if (rotation_worsened) {
-//          return crazy_depth_improvement;
-//      }
-          // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-//      else if (rotation_improved) {
-//          return !crazy_depth_regression;
-//      } else //rotation of candidates is the same
-//      {
-          return
-//          (interference_improved and !significant_depth_regression) or
-
-              is_better;
-//      }
-  }
+  return (use_quadrant_preference_order) ? current_quadrant_preferred and is_better : is_better;
 }
 
 std::shared_ptr<cv::Mat> DropZoneSearcher::visualize_target(std::shared_ptr<Point3D> result, std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, float shadow_length, float shadow_width, std::shared_ptr<cv::Mat> RGB_matrix, int color, int thickness)
