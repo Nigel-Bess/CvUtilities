@@ -651,21 +651,7 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
         return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
     }
 
-    float remaining_platform = (*request_json)["Remaining_Platform"].get<float>();
-    Logger::Instance()->Debug("Remaining_Platform: {}", remaining_platform);
-
     this->LFB_session->refresh();
-
-    std::shared_ptr<MockSession> mock_session_floor = std::make_shared<MockSession>(this->LFB_session);
-
-    // send images to LiveViewer
-    if(this->live_viewer) {
-        this->live_viewer->update_image(std::make_shared<cv::Mat>(
-                                                this->LFB_session->grab_color_frame()),
-                                        ViewerImageType::LFB_Floor_View,
-                                        *PrimaryKeyID,
-                                        true);
-    }
 
     // initial data generation
     std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
@@ -685,12 +671,22 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
     bool anomaly_detected = false;
     bool item_on_ground = false;
     float floor_analysis_confidence_score = 0;
-    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id, error_code, error_description, anomaly_detected, item_on_ground, floor_analysis_confidence_score);
+    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id,
+                                                                                          error_code,
+                                                                                          error_description,
+                                                                                          anomaly_detected,
+                                                                                          item_on_ground,
+                                                                                          floor_analysis_confidence_score);
 
     // generate results data
     std::string floor_view_file = make_media::paths::join_as_path(base_directory, *time_stamp, "floor_view_result");
     std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
-    this->drop_manager->generate_floor_view_result_data(true, floor_view_file, error_code_file, anomaly_detected, item_on_ground, floor_analysis_confidence_score, error_code);
+    this->drop_manager->generate_floor_view_result_data(true,
+                                                        floor_view_file,
+                                                        error_code_file,
+                                                        anomaly_detected,
+                                                        item_on_ground,
+                                                        floor_analysis_confidence_score, error_code);
 
     Logger::Instance()->Info("Finished handling Floor View command. Result: "
                              "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, *PrimaryKeyID, anomaly_detected, item_on_ground, floor_analysis_confidence_score);
