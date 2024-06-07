@@ -23,7 +23,7 @@ void FloorViewResponse::encode_payload()
     {
         (*result_json)["Anomaly_Present"] = this->anomaly_present;
         (*result_json)["Item_On_Ground"] = this->item_on_ground;
-        (*result_json)["Floor_Analysis_Confidence_Score"] = this->floor_analysis_confidence_score;
+        (*result_json)["Floor_Analysis_Confidence_Score"] = (int)this->floor_analysis_confidence_score;
     }
 
     std::string json_string = result_json->dump();
