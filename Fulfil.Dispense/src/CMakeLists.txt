@@ -101,6 +101,7 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         recipes/lfb_vision_configuration.cpp
         recipes/lfb_vision_configuration.cpp
         commands/floor_view/floor_view_request.cpp
+        commands/floor_view/floor_view_response.cpp
         commands/floor_view/floor_view_response.cpp)
 
 target_link_libraries(Fulfil.Dispense LINK_PUBLIC json)
