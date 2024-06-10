@@ -76,6 +76,7 @@ class DropZoneSearcher
     float interference_average_z {};       // average z in LFB local coordinates of points detected in interference zone
     bool rotation_required{};       // indicates whether LFB rotation will be required to reach this candidate point
     bool interference_detected{};    // true if potential interference detected for this drop region
+    int interference_points_count{};
     Interference_Region interference_region{};
     // bleh should init all in one place
     Target_Region() = default;
@@ -129,7 +130,7 @@ class DropZoneSearcher
   /**
   * Returns true if there is detected interference in the interference region
   */
-  void check_interference(std::shared_ptr<Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud);
+  void check_interference(std::shared_ptr<Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud, float remaining_platform);
 
   /**
    * Returns true if the current candidate is better than the best candidate up to that point

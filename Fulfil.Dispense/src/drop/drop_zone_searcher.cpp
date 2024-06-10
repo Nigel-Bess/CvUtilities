@@ -111,7 +111,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
 
   this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
   this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, no_wait);
-  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,yes_wait);
+  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,no_wait);
   this->session_visualizer4 = std::make_shared<SessionVisualizer>(session, window_name_4, location_top_right, window_size, yes_wait);
   this->session_visualizer5 = std::make_shared<SessionVisualizer>(session, window_name_5, location_bottom_left, window_size, no_wait);
   this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, no_wait);
@@ -725,7 +725,7 @@ DropZoneSearcher::Interference_Region DropZoneSearcher::define_interference_regi
 }
 
 
-void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud)
+void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud, float remaining_platform)
 {
   Interference_Region interference_region = target_region->interference_region;
   float center_x = interference_region.center.x;
@@ -736,7 +736,7 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   float maxx = center_x + interference_region.width/2.0;
   float miny = center_y - interference_region.length/2.0;
   float maxy = center_y + interference_region.length/2.0;
-  float minz = center_z + this->interference_depth_tolerance;
+  float minz = target_region->min_Z + this->interference_depth_tolerance;
 
   std::shared_ptr<Eigen::Matrix3Xd> cloud_data = point_cloud->as_local_cloud()->get_data();
 
@@ -757,11 +757,12 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
       if (local_z > interference_max_z) interference_max_z = local_z;
     }
   }
-  if (num_interference_points >= this->num_interference_points_tolerance)
+  if (num_interference_points >= this->num_interference_points_tolerance) // or target_region->min_Z > remaining_platform + 0.005)
   {
     target_region->interference_detected = true;
     target_region->interference_max_z = interference_max_z;
     target_region->interference_average_z = sum_interference_z / num_interference_points;
+    target_region->interference_points_count = num_interference_points;
     Logger::Instance()->Trace("Interference Threshold was met. {} points found, with maxz: {} and average z: {}",
                               num_interference_points, target_region->interference_max_z, target_region->interference_average_z);
   }
@@ -819,7 +820,7 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
 
   bool crazy_depth_regression = (average_diff < this->crazy_depth_regression);
   bool significant_depth_regression = (average_diff < this->significant_depth_regression); // significantly worse depth
-  bool equivalent_depth = (average_diff > this->equivalent_depth); // equivalent or better average depth
+  bool lower_depth = !(max_diff > this->equivalent_depth); // equivalent or better average depth
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
@@ -828,28 +829,19 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           get_quadrant_of_point(current_target_region->x, current_target_region->y),
           quadrant_preference_order);
 
-  if (use_quadrant_preference_order)
-  {
-      return current_quadrant_preferred and ((interference_improved and !significant_depth_regression) or
-                                             (significant_depth_improvement and !significant_variance_regression) or
-                                             (moderate_depth_improvement and !moderate_variance_regression) or
-                                             (equivalent_depth and moderate_variance_improvement));
-  } else {
-      // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-      if (rotation_worsened) {
-          return crazy_depth_improvement;
-      }
-          // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-      else if (rotation_improved) {
-          return !crazy_depth_regression;
-      } else //rotation of candidates is the same
-      {
-          return (interference_improved and !significant_depth_regression) or
-                 (significant_depth_improvement and !significant_variance_regression) or
-                 (moderate_depth_improvement and !moderate_variance_regression) or
-                 (equivalent_depth and moderate_variance_improvement);
-      }
-  }
+    bool range_diff_improvement = range_diff > 0.005;
+    bool range_diff_regression = range_diff < -0.010;
+  bool is_better = (current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
+          (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
+          (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
+          ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count));
+//          Historically, this has been:
+//          (rotation_improved and significant_variance_improvement) or
+//                   (crazy_depth_regression and !significant_variance_regression) or
+//                   (significant_depth_regression and !moderate_variance_regression) or
+//                   (equivalent_depth and moderate_variance_improvement);
+
+  return (use_quadrant_preference_order) ? current_quadrant_preferred and is_better : is_better;
 }
 
 std::shared_ptr<cv::Mat> DropZoneSearcher::visualize_target(std::shared_ptr<Point3D> result, std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, float shadow_length, float shadow_width, std::shared_ptr<cv::Mat> RGB_matrix, int color, int thickness)
@@ -1605,7 +1597,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                                            current_point, must_rotate_from_nominal_to_reach_candidate);
 
     std::shared_ptr<Target_Region> current_target_ptr = std::make_shared<Target_Region>(current_target_region);
-    check_interference(current_target_ptr, filtered_point_cloud);
+    check_interference(current_target_ptr, filtered_point_cloud, details->remaining_platform);
 
     // Check if candidate point will result in item sticking out too far above bag (collision and non-collision cases). if so, continue on to next candidate
     float dispensed_item_expected_max_Z_collision = -1;
