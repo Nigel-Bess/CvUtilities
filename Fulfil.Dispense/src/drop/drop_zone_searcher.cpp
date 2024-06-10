@@ -1440,7 +1440,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
     Logger::Instance()->Info("Returning standard empty-bag target. Doesn't need to take into account rotated status of bot");
     return std::make_shared<DropResult>(XYZ_result, XYZ_result, false, bot_is_rotated,
-      false, details->request_id, this->success_code, this->error_description);
+      false,  -1, -1, -1, -1, -1, details->request_id, this->success_code, this->error_description);
   }
 
   // TODO: this conversion to pixel_depth is only necessary because the new_point_cloud function in the TranslatedPointCloud.cpp causes the new matrix to reference the same inner matrix as before, rather than creating a copy.
@@ -1750,7 +1750,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   Logger::Instance()->Debug("Drop Target Algorithm finished with success code: {}", this->success_code);
   return std::make_shared<DropResult>(XYZ_result, max_Z_result, tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
-                                                    best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
+                                                    best_target_region.interference_detected, best_target_region.range_depth,
+                                                    best_target_region.variance_depth, best_target_region.interference_max_z,
+                                                    best_target_region.interference_average_z, best_target_region.max_Z,
+                                                    details->request_id, this->success_code, this->error_description);
 }
 
 std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)

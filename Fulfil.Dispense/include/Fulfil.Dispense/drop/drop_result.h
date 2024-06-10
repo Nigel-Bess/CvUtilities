@@ -44,7 +44,8 @@ class DropResult
    * @param request used to calculate the drop zone
    */
   DropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, std::shared_ptr<fulfil::utils::Point3D> max_depth_point, bool Rotate_LFB, bool LFB_Currently_Rotated,
-             bool Swing_Collision_Expected, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
+             bool Swing_Collision_Expected, float target_depth_range, float target_depth_variance, float interference_max_z,
+             float interference_average_z, float target_region_max_z, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
   /**
    * The id of the request.
    */
@@ -100,7 +101,15 @@ class DropResult
    *  of the LFB rover. -Z is deeper (further away from the depth cam). mm units
    */
   float depth_result;
-  
+
+  /**
+   * Metrics of the drop target region for evaluation of drop target selection quality
+   */
+  float target_depth_range;
+  float target_depth_variance;
+  float interference_max_z;
+  float interference_average_z;
+  float target_region_max_z;
   };
 }
 

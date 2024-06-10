@@ -335,7 +335,6 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
                                                                                     this->mongo_bag_state, request_json, this->cached_info);
 
     generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
-    this->searcher->detect_item_on_ground();
 
     return post_drop_result;
   }
