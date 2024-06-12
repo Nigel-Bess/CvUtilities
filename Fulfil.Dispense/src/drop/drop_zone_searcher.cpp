@@ -1773,7 +1773,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSea
 
 
 
-std::tuple<bool, bool, float> DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
+DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
 {
     auto get_color_img_file= [base_directory] (std::string prefix) -> std::string {
         std::string dir = make_media::paths::join_as_path(
@@ -1788,14 +1788,28 @@ std::tuple<bool, bool, float> DropZoneSearcher::detect_item_on_ground_during_pos
     auto get_roi = [](cv::Mat img) -> cv::Mat {
 //        def get_roi(img, top_left, bottom_right, num_detected_markers):
 // coordinates of the area to include in the image, roughly the front area of bot
-        int min_x = 200;
-        int max_x = 1100;
+        int min_x = 300; //200;
+        int max_x = 1000; //1100;
         int min_y = 150; // #190 #150
         int max_y = 400; //#650
         int width = max_x - min_x;
         int height = max_y - min_y;
 
         cv::Mat crop_img = img(cv::Rect (min_x, min_y, width, height));
+
+		cv::Mat mask = cv::Mat::zeros(crop_img.size(), crop_img.type());
+//		cv::Mat dstImage = cv::Mat::zeros(crop_img.size(), crop_img.type());
+
+//I assume you want to draw the circle at the center of your image, with a radius of 50
+//        bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
+//200, 100, 1000-450, 400-250
+//		cv::Mat mask = cv::Mat::zeros(8, 8, CV_8U); // all 0
+//		mask(cv::Rect(2,2,4,4)) = 1;
+		mask(cv::Rect(420-min_x, 250-min_y, 450, 150)) = cv::Scalar(255,255,255);
+		cv::bitwise_not(mask, mask);
+		cv::bitwise_and(mask, crop_img, crop_img);
+
+//Now you can copy your source image to destination image with masking
 //        def remove_inner_b?ot(image):
 //        int bot_border_buffer_y = 40;
 //        int bot_border_buffer_x = 5;
@@ -1893,10 +1907,11 @@ std::tuple<bool, bool, float> DropZoneSearcher::detect_item_on_ground_during_pos
     Logger::Instance()->Debug("MSSIM: {}", mssim.val[1]);
     Logger::Instance()->Debug("MSSIM: {}", mssim.val[2]);
     Logger::Instance()->Debug("MSSIM: {}", mssim.val[3]);
-
-
-// todo not tuple, struct maybe
-    return std::make_tuple(false, false, 0.5);
+	float mssim_sum = mssim.val[0] + mssim.val[1] + mssim.val[2];
+	bool anomaly_detected = mssim_sum < (3*0.83) or mssim_sum > (3*0.98);
+	bool items_on_ground = mssim_sum < (3*0.9);
+	DropZoneSearcher::FloorAnalysisResult result{anomaly_detected, items_on_ground, 0.5};
+	return result;
 }
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
@@ -2009,22 +2024,22 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   bool items_on_ground = false;
   float floor_analysis_confidence_score = 0.0;
   Logger::Instance()->Debug("PostDrop Post_LFR handling will check for items on ground: {}", check_for_items_on_ground);
-  if (true) //check_for_items_on_ground)
+  if (check_for_items_on_ground)
   {
-      Logger::Instance()->Debug("PostDrop Post_LFR checking for items on ground");
+	  try {
+		  Logger::Instance()->Debug("PostDrop Post_LFR checking for items on ground");
+//	  container->get_markers();
+		  DropZoneSearcher::FloorAnalysisResult result = detect_item_on_ground_during_post_drop(*base_directory);
 
-      // TODO: apply item on ground detection algorithm
-
-      // read in the pre image
-      std::string primary_key_id = (*request_json)["Primary_Key_ID"].get<std::string>();
-
-      std::tuple result = detect_item_on_ground_during_post_drop(*base_directory);
-
-//      anomaly_present = get(result);
-      // run algo & get output
-      items_on_ground = false;
-      Logger::Instance()->Debug("PostDrop Post_LFR found items on ground: {}", items_on_ground);
-
+		  anomaly_present = result.anomaly_present;
+		  items_on_ground = result.items_on_ground;
+		  floor_analysis_confidence_score = result.confidence_score;
+		  Logger::Instance()->Debug(
+				  "PostDrop Post_LFR found anomaly detected: {}, items on ground: {}, with confidence score: {}",
+				  result.anomaly_present, result.items_on_ground, result.confidence_score);
+	  } catch (...){
+		  Logger::Instance()->Debug("Error encountered in detect_item_on_ground_during_post_drop!");
+	  }
   }
 
   return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);

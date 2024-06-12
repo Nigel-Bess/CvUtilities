@@ -108,6 +108,13 @@ class DropZoneSearcher
     int number_of_points_protruding;
   };
 
+	struct FloorAnalysisResult {
+		bool anomaly_present{};
+		bool items_on_ground{};
+		float confidence_score{};
+		FloorAnalysisResult() = default;
+	};
+
   /**
    * Analyzes target region candidate and populates Target Region struct with results
    * @param shadow_length of the drop shadow of the item being dropped.
@@ -293,7 +300,7 @@ public:
   /**
    * Handles the detection of items on the ground during a dispense sequence, during the PostDropImage.
    */
-  std::tuple<bool, bool, float> detect_item_on_ground_during_post_drop(std::string base_directory);
+  FloorAnalysisResult detect_item_on_ground_during_post_drop(std::string base_directory);
 
     /**
   *  Modifies the current container cavity local point cloud to treat detected parts of the white bag as if the detected depth were at the bottom of the cavity
