@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -108,6 +109,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   std::shared_ptr<std::string> window_name_8 = std::make_shared<std::string>("Window 8: Interference Zone");
   std::shared_ptr<std::string> window_name_8andahalf = std::make_shared<std::string>("Window 8.5: Maximum Depth Points");
   std::shared_ptr<std::string> window_name_9 = std::make_shared<std::string>("Window 9: Candidates, post Damage Risk Filter");
+  std::shared_ptr<std::string> window_name_9andahalf = std::make_shared<std::string>("Window 9.5: Item on Ground Region of Interest");
 
   this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
   this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, no_wait);
@@ -119,6 +121,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   this->session_visualizer8 = std::make_shared<SessionVisualizer>(session, window_name_8, location_bottom_right, window_size, yes_wait);
   this->session_visualizer8andahalf = std::make_shared<SessionVisualizer>(session, window_name_8andahalf, location_bottom_right, window_size, yes_wait);
   this->session_visualizer9 = std::make_shared<SessionVisualizer>(session, window_name_9, location_bottom_left, window_size, no_wait);
+  this->session_visualizer9andahalf = std::make_shared<SessionVisualizer>(session, window_name_9andahalf, location_bottom_left, window_size, no_wait);
 }
 
 void DropZoneSearcher::check_inputs(float shadow_length,
@@ -1763,9 +1766,153 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSea
 }
 
 
+
+
+DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
+{
+    auto get_color_img_file= [base_directory] (std::string prefix) -> std::string {
+        std::string dir = make_media::paths::join_as_path(
+                base_directory, prefix).string();
+        for (const auto & entry : std::filesystem::directory_iterator(dir)) {
+            // there should only be one in this directory so take the first one and run
+            return entry.path().string() + "/color_image.png";
+        }
+        return std::string();
+    };
+
+    auto get_roi = [](cv::Mat img) -> cv::Mat {
+//        def get_roi(img, top_left, bottom_right, num_detected_markers):
+// coordinates of the area to include in the image, roughly the front area of bot
+        int min_x = 300; //200;
+        int max_x = 1000; //1100;
+        int min_y = 150; // #190 #150
+        int max_y = 400; //#650
+        int width = max_x - min_x;
+        int height = max_y - min_y;
+
+        cv::Mat crop_img = img(cv::Rect (min_x, min_y, width, height));
+
+		cv::Mat mask = cv::Mat::zeros(crop_img.size(), crop_img.type());
+//		cv::Mat dstImage = cv::Mat::zeros(crop_img.size(), crop_img.type());
+
+//I assume you want to draw the circle at the center of your image, with a radius of 50
+//        bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
+//200, 100, 1000-450, 400-250
+//		cv::Mat mask = cv::Mat::zeros(8, 8, CV_8U); // all 0
+//		mask(cv::Rect(2,2,4,4)) = 1;
+		mask(cv::Rect(420-min_x, 250-min_y, 450, 150)) = cv::Scalar(255,255,255);
+		cv::bitwise_not(mask, mask);
+		cv::bitwise_and(mask, crop_img, crop_img);
+
+//Now you can copy your source image to destination image with masking
+//        def remove_inner_b?ot(image):
+//        int bot_border_buffer_y = 40;
+//        int bot_border_buffer_x = 5;
+////# inner bot mask
+//        bot_mask = np.zeros(image.shape[:2], np.uint8)
+//# too many detected markers causes issues so use default
+//        if num_detected_markers > 8:
+//        bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
+
+//# based on marker coordinates
+//# bot_mask[top_left[1]-min_y:bottom_right[1]-min_y, top_left[0]-min_x:bottom_right[0]-min_x] = 255
+//# based on eyeballing pixels of bot walls
+// bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
+//# based on mix of detected coordinates and eyeballing
+//        bot_mask[top_left[1]-min_y-bot_border_buffer_y:bottom_right[1]-min_y, top_left[0]-min_x-bot_border_buffer_x:bottom_right[0]-min_x+bot_border_buffer_x] = 255
+
+//        bot_mask = np.invert(bot_mask)
+//        masked_img = cv2.bitwise_and(image, image, mask=bot_mask)
+//        return masked_img
+//# def remove_dab(image):
+
+//        return remove_inner_bot(crop_img(img))
+    return crop_img;
+    };
+
+    auto getMSSIM = [] ( const cv::Mat& i1, const cv::Mat& i2)  -> cv::Scalar {
+        double C1 = 6.5025;
+        double C2 = 58.5225;
+        /***************************** INITS **********************************/
+        int d = CV_32F;
+
+        cv::Mat I1, I2;
+        i1.convertTo(I1, d); // cannot calculate on one byte large values
+        i2.convertTo(I2, d);
+
+        cv::Mat I2_2 = I2.mul(I2); // I2^2
+        cv::Mat I1_2 = I1.mul(I1); // I1^2
+        cv::Mat I1_I2 = I1.mul(I2); // I1 * I2
+
+        /*************************** END INITS **********************************/
+
+        cv::Mat mu1, mu2; // PRELIMINARY COMPUTING
+        GaussianBlur(I1, mu1, cv::Size(11, 11), 1.5);
+        GaussianBlur(I2, mu2, cv::Size(11, 11), 1.5);
+
+        cv::Mat mu1_2 = mu1.mul(mu1);
+        cv::Mat mu2_2 = mu2.mul(mu2);
+        cv::Mat mu1_mu2 = mu1.mul(mu2);
+
+        cv::Mat sigma1_2, sigma2_2, sigma12;
+
+        GaussianBlur(I1_2, sigma1_2, cv::Size(11, 11), 1.5);
+        sigma1_2 -= mu1_2;
+
+        GaussianBlur(I2_2, sigma2_2, cv::Size(11, 11), 1.5);
+        sigma2_2 -= mu2_2;
+
+        GaussianBlur(I1_I2, sigma12, cv::Size(11, 11), 1.5);
+        sigma12 -= mu1_mu2;
+
+        cv::Mat t1, t2, t3;
+
+        t1 = 2 * mu1_mu2 + C1;
+        t2 = 2 * sigma12 + C2;
+        t3 = t1.mul(t2); // t3 = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))
+
+        t1 = mu1_2 + mu2_2 + C1;
+        t2 = sigma1_2 + sigma2_2 + C2;
+        t1 = t1.mul(t2); // t1 =((mu1_2 + mu2_2 + C1).*(sigma1_2 + sigma2_2 + C2))
+
+        cv::Mat ssim_map;
+        divide(t3, t1, ssim_map); // ssim_map = t3./t1;
+
+        cv::Scalar mssim = mean( ssim_map ); // mssim = average of ssim map
+        return mssim;
+    };
+
+    // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
+
+    std::string pre_color_img_file = get_color_img_file("Pre_Drop_Image");
+    Logger::Instance()->Debug("Reading PreDrop image from {}", pre_color_img_file);
+    std::string post_color_img_file = get_color_img_file("Post_Drop_Image");
+    Logger::Instance()->Debug("Reading PostDrop image from {}", post_color_img_file); // or do i just use the frame etc, not read in
+
+    cv::Mat pre_color_img = get_roi(cv::imread(pre_color_img_file, cv::IMREAD_COLOR));
+    cv::Mat post_color_img = get_roi(cv::imread(post_color_img_file, cv::IMREAD_COLOR));
+//    cv::imshow("ROI", post_color_img);
+    this->session_visualizer9andahalf->display_image(std::make_shared<cv::Mat>(post_color_img));
+
+
+    double psnr = cv::PSNR(pre_color_img, post_color_img);
+    cv::Scalar mssim = getMSSIM(pre_color_img, post_color_img);
+    Logger::Instance()->Debug("PSNR: {}", psnr);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[0]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[1]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[2]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[3]);
+	float mssim_sum = mssim.val[0] + mssim.val[1] + mssim.val[2];
+	bool anomaly_detected = mssim_sum < (3*0.83) or mssim_sum > (3*0.98);
+	bool items_on_ground = mssim_sum < (3*0.9);
+	DropZoneSearcher::FloorAnalysisResult result{anomaly_detected, items_on_ground, 0.5};
+	return result;
+}
+
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
-                                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info)
+                                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
+                                                               std::shared_ptr<std::string> base_directory)
 {
   Logger::Instance()->Trace("find_drop_zone_center called in drop_zone_searcher");
 
@@ -1871,17 +2018,24 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   bool anomaly_present = false;
   bool items_on_ground = false;
   float floor_analysis_confidence_score = 0.0;
+  Logger::Instance()->Debug("PostDrop Post_LFR handling will check for items on ground: {}", check_for_items_on_ground);
   if (check_for_items_on_ground)
   {
-      // TODO: apply item on ground detection algorithm
-      // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
-      // run algo & get output
-      items_on_ground = false;
+	  try {
+		  Logger::Instance()->Debug("PostDrop Post_LFR checking for items on ground");
+//	  container->get_markers();
+		  DropZoneSearcher::FloorAnalysisResult result = detect_item_on_ground_during_post_drop(*base_directory);
+
+		  anomaly_present = result.anomaly_present;
+		  items_on_ground = result.items_on_ground;
+		  floor_analysis_confidence_score = result.confidence_score;
+		  Logger::Instance()->Debug(
+				  "PostDrop Post_LFR found anomaly detected: {}, items on ground: {}, with confidence score: {}",
+				  result.anomaly_present, result.items_on_ground, result.confidence_score);
+	  } catch (...){
+		  Logger::Instance()->Debug("Error encountered in detect_item_on_ground_during_post_drop!");
+	  }
   }
 
   return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
 }
-
-
-
-

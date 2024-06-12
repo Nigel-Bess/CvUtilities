@@ -109,6 +109,13 @@ class DropZoneSearcher
     int number_of_points_protruding;
   };
 
+	struct FloorAnalysisResult {
+		bool anomaly_present{};
+		bool items_on_ground{};
+		float confidence_score{};
+		FloorAnalysisResult() = default;
+	};
+
   /**
    * Analyzes target region candidate and populates Target Region struct with results
    * @param shadow_length of the drop shadow of the item being dropped.
@@ -210,9 +217,11 @@ class DropZoneSearcher
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer8;
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer8andahalf;
   std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer9;
+  std::shared_ptr<depthcam::visualization::SessionVisualizer> session_visualizer9andahalf;
 
 
- public:
+
+public:
   /**
    * Calculates the optimal drop zone for the provided length and width (taking into
    * consideration obstructions on left and right side of the bags) in the provided
@@ -279,7 +288,8 @@ class DropZoneSearcher
 
   std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> find_max_Z(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<fulfil::mongo::MongoBagState> mongo_bag_state,
-                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info);
+                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
+                                               std::shared_ptr<std::string> base_directory);
 
   /**
    *  Note: see marker_detector_container.h for notes on usage of extend_region_over_markers param. Currently it does nothing
@@ -289,6 +299,11 @@ class DropZoneSearcher
                                                                                   bool extend_region_over_markers);
 
   /**
+   * Handles the detection of items on the ground during a dispense sequence, during the PostDropImage.
+   */
+  FloorAnalysisResult detect_item_on_ground_during_post_drop(std::string base_directory);
+
+    /**
   *  Modifies the current container cavity local point cloud to treat detected parts of the white bag as if the detected depth were at the bottom of the cavity
   * @param   live_viewer_flag - this input was added to prevent saving filter visualization during the post-dispense call to adjust_depth_detections
   * @return See definition of Max_Z_Points struct above. Coordinates are provided in meter units, local bag coordinate system

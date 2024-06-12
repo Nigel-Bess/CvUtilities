@@ -306,8 +306,8 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     auto time_stamp = make_media::paths::get_datetime_str();
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
-        (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Post_Drop_Image");
-    std::string error_code_file = (base_directory / time_stamp / "error_code").string();
+        (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+    std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
   try
@@ -332,9 +332,10 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     this->cached_post_request = request_json;
 
     std::shared_ptr<PostLFRResponse> post_drop_result = this->searcher->find_max_Z(container, request_id, lfb_vision_config,
-                                                                                    this->mongo_bag_state, request_json, this->cached_info);
+                                                                                    this->mongo_bag_state, request_json, this->cached_info, std::make_shared<std::string>(base_directory));
 
     generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
+
 
     return post_drop_result;
   }
@@ -353,19 +354,19 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     }
 
     generate_error_code_result_data(generate_data, error_code_file, error_id);
-    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id,  error_id));
+    return std::make_shared<PostLFRResponse>(request_id,  error_id);
   }
   catch (const std::exception & e)
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
 
-    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+    return std::make_shared<PostLFRResponse>(request_id, 10);
   }
   catch (...)
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request ");
 
-    return  std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+    return  std::make_shared<PostLFRResponse>(request_id, 10);
   }
 }
 
