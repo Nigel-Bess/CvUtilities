@@ -101,7 +101,7 @@ void DropManager::generate_request_data(bool generate_data,
     // data generation is gated so that offline simulation does not generate data
     if (generate_data)
     {
-        Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
+        Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data in {}", base_directory.string());
         DataGenerator generator = DataGenerator(this->session,
                                                 std::make_shared<std::string>(base_directory.string()),
                                                 request_json);
@@ -322,7 +322,9 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
 
     std::shared_ptr<DataGenerator> generator;
-    generate_request_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
+	std::string data_destination = (base_directory / "Post_Drop_Image").string();
+
+	generate_request_data(generate_data, data_destination, std::make_shared<std::string>(time_stamp), request_json);
 
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
