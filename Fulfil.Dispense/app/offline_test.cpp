@@ -14,6 +14,8 @@
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <FulfilMongoCpp/mongo_connection.h>
+#include <Fulfil.Dispense/version.h>
+
 
 using ff_mongo_cpp::MongoConnection;
 using fulfil::utils::Logger;
@@ -456,6 +458,8 @@ int main(int argc, char** argv)
                                          Logger::Level::TurnOff,Logger::Level::Trace);
 
 
+
+  Logger::Instance()->Debug("Latest FW Tag found: {}. Build generated on {}.\nDispense API commit details: {} ({})", FW_VERSION, BUILD_DATE, DISPENSE_COMMIT, IS_SOURCE_REPO_CLEAN);
 
   std::string config_section = argv[1];
   Logger::Instance()->Fatal("Offline test called with test section: {}", config_section);

@@ -134,7 +134,10 @@ class DropZoneSearcher
   /**
    * Returns true if the current candidate is better than the best candidate up to that point
    */
-  bool compare_candidates(std::shared_ptr<Target_Region> best_target_region, std::shared_ptr<Target_Region> current_target_region);
+  bool compare_candidates(std::shared_ptr<Target_Region> best_target_region,
+                          std::shared_ptr<Target_Region> current_target_region,
+                          bool use_quadrant_preference_order,
+                          std::shared_ptr<std::vector<std::string>> quadrant_preference_order);
 
   /**
    * Uses bag state info and current dispense item damage details to
@@ -270,7 +273,7 @@ class DropZoneSearcher
    * @param item_protrusion_detection_threshold amount in meters that the max Z must be detected above the marker plane (AKA the top of LFB)
    * @return max Z detected
    */
-  fulfil::utils::Point3D get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold);
+  std::shared_ptr<fulfil::utils::Point3D> get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold);
 
 
   std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> find_max_Z(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,

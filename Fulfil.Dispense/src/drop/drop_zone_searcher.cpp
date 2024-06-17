@@ -767,8 +767,39 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   }
 }
 
+// get the quadrant that the given x,y target coordinates are in for nominal orientation
+std::shared_ptr<std::string> get_quadrant_of_point(float target_region_x, float target_region_y)
+{
+    std::shared_ptr<std::string> quadrant_name = std::make_shared<std::string>("");
+    *quadrant_name = (target_region_y < 0) ? *quadrant_name + "Back" : *quadrant_name + "Front";
+    *quadrant_name = (target_region_x < 0) ? *quadrant_name + "Left" : *quadrant_name + "Right";
+    return quadrant_name;
+}
 
-bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region, std::shared_ptr<DropZoneSearcher::Target_Region> current_target_region)
+// determine if the current target region is preferred by the quadrant it is located in compared to the best target region so far's quadrant
+bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadrant,
+                                       std::shared_ptr<std::string> current_quadrant,
+                                       std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
+{
+    // get location of  both quadrants in list, if before then
+    auto best_quad = std::find(quadrant_preference_order->begin(), quadrant_preference_order->end(), *best_quadrant);
+    auto current_quad = std::find(quadrant_preference_order->begin(), quadrant_preference_order->end(), *current_quadrant);
+
+    // default false if a quadrant isn't in the preference list, or if the quadrants are the same
+    // true if the current quadrant is higher in the priority list than the current quadrant
+    bool better = (!(best_quad == quadrant_preference_order->end()) and
+        !(current_quad == quadrant_preference_order->end()) and
+        !(best_quad == current_quad) and
+        (current_quad < best_quad));
+    // this is a little too verbose. leaving commented for easy re-enabling of log
+//    Logger::Instance()->Trace("Best quad: {} and current quad: {} was an improvement: {}",*best_quadrant, *current_quadrant, better);
+    return better;
+}
+
+bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Target_Region> best_target_region,
+                                          std::shared_ptr<DropZoneSearcher::Target_Region> current_target_region,
+                                          bool use_quadrant_preference_order,
+                                          std::shared_ptr<std::vector<std::string>> quadrant_preference_order)
 {
   bool interference_improved = ((best_target_region->interference_detected == true) and (current_target_region->interference_detected == false));
   bool rotation_improved = ((best_target_region->rotation_required == true) and (current_target_region->rotation_required == false));
@@ -792,23 +823,32 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
+  bool current_quadrant_preferred = current_target_quadrant_preferred(
+          get_quadrant_of_point(best_target_region->x, best_target_region->y),
+          get_quadrant_of_point(current_target_region->x, current_target_region->y),
+          quadrant_preference_order);
 
-  // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-  if(rotation_worsened)
+  if (use_quadrant_preference_order)
   {
-      return crazy_depth_improvement;
-  }
-  // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-  else if (rotation_improved)
-  {
-    return !crazy_depth_regression;
-  }
-  else //rotation of candidates is the same
-  {
-    return (interference_improved and !significant_depth_regression) or
-        (significant_depth_improvement and !significant_variance_regression) or
-        (moderate_depth_improvement and !moderate_variance_regression) or
-        (equivalent_depth and moderate_variance_improvement);
+      return current_quadrant_preferred and ((interference_improved and !significant_depth_regression) or
+                                             (significant_depth_improvement and !significant_variance_regression) or
+                                             (moderate_depth_improvement and !moderate_variance_regression) or
+                                             (equivalent_depth and moderate_variance_improvement));
+  } else {
+      // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
+      if (rotation_worsened) {
+          return crazy_depth_improvement;
+      }
+          // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
+      else if (rotation_improved) {
+          return !crazy_depth_regression;
+      } else //rotation of candidates is the same
+      {
+          return (interference_improved and !significant_depth_regression) or
+                 (significant_depth_improvement and !significant_variance_regression) or
+                 (moderate_depth_improvement and !moderate_variance_regression) or
+                 (equivalent_depth and moderate_variance_improvement);
+      }
   }
 }
 
@@ -1338,7 +1378,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
 
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   DropZoneSearcher::Max_Z_Points max_Z_points = adjust_depth_detections(RGB_matrix, point_cloud, details->item_mass, platform_in_LFB_coords, details->use_flipped_x_default, lfb_vision_config, true, true, bag_empty, false);
-  Point3D max_Z_point = max_Z_points.overall;
+  Point3D max_Z_point = (max_Z_points.outer_overall.z > lfb_vision_config->item_protrusion_detection_threshold and
+          max_Z_points.outer_overall.z > max_Z_points.overall.z) ? max_Z_points.outer_overall : max_Z_points.overall;
 
   /**
    * Secondary check for bag too full, must be able to lower platform enough so tallest point in quadrant of bag of bag is low enough
@@ -1399,7 +1440,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
     Logger::Instance()->Info("Returning standard empty-bag target. Doesn't need to take into account rotated status of bot");
     return std::make_shared<DropResult>(XYZ_result, XYZ_result, false, bot_is_rotated,
-      false, details->request_id, this->success_code, this->error_description);
+      false,  -1, -1, -1, -1, -1, details->request_id, this->success_code, this->error_description);
   }
 
   // TODO: this conversion to pixel_depth is only necessary because the new_point_cloud function in the TranslatedPointCloud.cpp causes the new matrix to reference the same inner matrix as before, rather than creating a copy.
@@ -1589,7 +1630,10 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     }
 
     //compare current candidate to best candidate up to this point, as long as the interference state would not worsen with the new candidate
-    bool update_flag = !candidate_found || compare_candidates(std::make_shared<Target_Region>(best_target_region), current_target_ptr);
+    bool update_flag = !candidate_found || compare_candidates(std::make_shared<Target_Region>(best_target_region),
+                                                              current_target_ptr,
+                                                              details->use_quadrant_preference_order,
+                                                              details->quadrant_preference_order);
 
     if (update_flag)
     {
@@ -1698,27 +1742,32 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    * TODO: in the future, we can apply this more narrowly to just a region around the dispense target, especially when bot size increases
   */
   float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
-  Point3D max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
+  std::shared_ptr<Point3D> max_Z_result = get_max_z_from_max_points(max_Z_points, !best_target_region.rotation_required, item_protrusion_detection_threshold);
 
-  bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
+    Logger::Instance()->Debug("Drop Target Max_z on either side: {}", max_Z_result->z);
+
+    bool tell_VLSG_to_rotate_bot_from_current_state = best_target_region.rotation_required != bot_is_rotated;
 
   Logger::Instance()->Debug("Drop Target Algorithm finished with success code: {}", this->success_code);
-  return std::make_shared<DropResult>(XYZ_result, std::make_shared<Point3D>(max_Z_result), tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
-                                                    best_target_region.interference_detected, details->request_id, this->success_code, this->error_description);
+  return std::make_shared<DropResult>(XYZ_result, max_Z_result, tell_VLSG_to_rotate_bot_from_current_state, bot_is_rotated,
+                                                    best_target_region.interference_detected, best_target_region.range_depth,
+                                                    best_target_region.variance_depth, best_target_region.interference_max_z,
+                                                    best_target_region.interference_average_z, best_target_region.max_Z,
+                                                    details->request_id, this->success_code, this->error_description);
 }
 
-Point3D DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
+std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSearcher::Max_Z_Points max_Z_points, bool rotation_required, float item_protrusion_detection_threshold)
 {
     // if the outer bag's max Z is greater than marker surface then use that instead of inner bag's max Z
-    Point3D front_max_z = (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? max_Z_points.outer_front : max_Z_points.front;
-    Point3D back_max_z = (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? max_Z_points.outer_back : max_Z_points.back;
+    std::shared_ptr<Point3D> front_max_z = (max_Z_points.outer_front.z > item_protrusion_detection_threshold) ? std::make_shared<Point3D>(max_Z_points.outer_front) : std::make_shared<Point3D>(max_Z_points.front);
+    std::shared_ptr<Point3D> back_max_z = (max_Z_points.outer_back.z > item_protrusion_detection_threshold) ? std::make_shared<Point3D>(max_Z_points.outer_back) : std::make_shared<Point3D>(max_Z_points.back);
     auto get_max_on_side = [front_max_z,  back_max_z](bool is_back_side) {
         return (is_back_side) ? back_max_z : front_max_z;
     };
     Logger::Instance()->Debug("Max_Z on dispense side is: {}, alternate max_Z is: {}",
-                              get_max_on_side(rotation_required).z,
-                              get_max_on_side(!rotation_required).z);
-    return (front_max_z.z > back_max_z.z) ? front_max_z : back_max_z;
+                              get_max_on_side(rotation_required)->z,
+                              get_max_on_side(!rotation_required)->z);
+    return (front_max_z->z > back_max_z->z) ? front_max_z : back_max_z;
 }
 
 
@@ -1777,11 +1826,13 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
   float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
   // true or false for rotation_required var doesn't impact output, just logging
-  Point3D max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
+  std::shared_ptr<Point3D> max_detected_Z_point = get_max_z_from_max_points(max_Z_points, true, item_protrusion_detection_threshold);
 
-  /**
-  * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
-  */
+    Logger::Instance()->Debug("Drop Target Max_z on either side: {}", max_detected_Z_point->z);
+
+    /**
+    * Secondary check for bag too full, must be able to lower platform enough so tallest point in half of bag is at or below marker surface
+    */
   float allowed_item_overflow_post_dispense_check = lfb_vision_config->allowed_item_overflow_post_dispense_check;
   float remaining_platform_adjusted = std::max(remaining_platform, float(0.0)); //in case invalid negative values were provided from LFR
   bool front_side_no_viable_targets = std::max(max_Z_points.outer_front_left.z, max_Z_points.front_left.z) > (remaining_platform_adjusted + allowed_item_overflow_post_dispense_check) &&
@@ -1809,7 +1860,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     Logger::Instance()->Error("Could not update packing state because mongo_bag_state is nullptr!");
   }
 
-  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point.z * 1000));
+  Logger::Instance()->Debug("Post-Dispense Analysis, max_Z is: {} mm", int(max_detected_Z_point->z * 1000));
 
   if (this->visualize == 1)
   {
@@ -1817,14 +1868,14 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     session_visualizer4->display_image(session_visualizer4->display_points_with_depth_coloring(point_cloud));
   }
 
-  float max_Z_result = max_detected_Z_point.z;
+  float max_Z_result = max_detected_Z_point->z;
   if (front_side_no_viable_targets && back_side_no_viable_targets)
   {
     Logger::Instance()->Warn("Both sides of LFR could result in future item - dispense conveyor collision. Will send bag to pickup");
     max_Z_result = 1.0; //returning such a large value will automatically lead to bag sent to pickup. //TODO: could handle more elegantly w/ additional output
   }
 
-  return std::make_unique<commands::PostLFRResponse>(request_id, 0, std::make_shared<Point3D>(max_detected_Z_point), -1, bag_full_result);
+  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result);
 }
 
 
