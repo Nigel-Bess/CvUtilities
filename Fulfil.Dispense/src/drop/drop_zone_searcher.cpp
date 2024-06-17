@@ -5,6 +5,7 @@
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.DepthCam/frame/image_comparison.h>
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/visualization.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
@@ -17,6 +18,7 @@
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
+using fulfil::depthcam::image_comparison::get_MSSIM;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PixelPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
@@ -1765,9 +1767,6 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSea
     return (front_max_z->z > back_max_z->z) ? front_max_z : back_max_z;
 }
 
-
-
-
 DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
 {
     auto get_color_img_file= [base_directory] (std::string prefix) -> std::string {
@@ -1793,93 +1792,12 @@ DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_du
         cv::Mat crop_img = img(cv::Rect (min_x, min_y, width, height));
 
 		cv::Mat mask = cv::Mat::zeros(crop_img.size(), crop_img.type());
-//		cv::Mat dstImage = cv::Mat::zeros(crop_img.size(), crop_img.type());
-
-//I assume you want to draw the circle at the center of your image, with a radius of 50
-//        bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
-//200, 100, 1000-450, 400-250
-//		cv::Mat mask = cv::Mat::zeros(8, 8, CV_8U); // all 0
-//		mask(cv::Rect(2,2,4,4)) = 1;
+		// TODO make this better and not hardcoded
 		mask(cv::Rect(420-min_x, 250-min_y, 450, 150)) = cv::Scalar(255,255,255);
 		cv::bitwise_not(mask, mask);
 		cv::bitwise_and(mask, crop_img, crop_img);
 
-//Now you can copy your source image to destination image with masking
-//        def remove_inner_b?ot(image):
-//        int bot_border_buffer_y = 40;
-//        int bot_border_buffer_x = 5;
-////# inner bot mask
-//        bot_mask = np.zeros(image.shape[:2], np.uint8)
-//# too many detected markers causes issues so use default
-//        if num_detected_markers > 8:
-//        bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
-
-//# based on marker coordinates
-//# bot_mask[top_left[1]-min_y:bottom_right[1]-min_y, top_left[0]-min_x:bottom_right[0]-min_x] = 255
-//# based on eyeballing pixels of bot walls
-// bot_mask[ 250-min_y:550-min_y, 420-min_x:900-min_x] = 255
-//# based on mix of detected coordinates and eyeballing
-//        bot_mask[top_left[1]-min_y-bot_border_buffer_y:bottom_right[1]-min_y, top_left[0]-min_x-bot_border_buffer_x:bottom_right[0]-min_x+bot_border_buffer_x] = 255
-
-//        bot_mask = np.invert(bot_mask)
-//        masked_img = cv2.bitwise_and(image, image, mask=bot_mask)
-//        return masked_img
-//# def remove_dab(image):
-
-//        return remove_inner_bot(crop_img(img))
     return crop_img;
-    };
-
-    auto getMSSIM = [] ( const cv::Mat& i1, const cv::Mat& i2)  -> cv::Scalar {
-        double C1 = 6.5025;
-        double C2 = 58.5225;
-        /***************************** INITS **********************************/
-        int d = CV_32F;
-
-        cv::Mat I1, I2;
-        i1.convertTo(I1, d); // cannot calculate on one byte large values
-        i2.convertTo(I2, d);
-
-        cv::Mat I2_2 = I2.mul(I2); // I2^2
-        cv::Mat I1_2 = I1.mul(I1); // I1^2
-        cv::Mat I1_I2 = I1.mul(I2); // I1 * I2
-
-        /*************************** END INITS **********************************/
-
-        cv::Mat mu1, mu2; // PRELIMINARY COMPUTING
-        GaussianBlur(I1, mu1, cv::Size(11, 11), 1.5);
-        GaussianBlur(I2, mu2, cv::Size(11, 11), 1.5);
-
-        cv::Mat mu1_2 = mu1.mul(mu1);
-        cv::Mat mu2_2 = mu2.mul(mu2);
-        cv::Mat mu1_mu2 = mu1.mul(mu2);
-
-        cv::Mat sigma1_2, sigma2_2, sigma12;
-
-        GaussianBlur(I1_2, sigma1_2, cv::Size(11, 11), 1.5);
-        sigma1_2 -= mu1_2;
-
-        GaussianBlur(I2_2, sigma2_2, cv::Size(11, 11), 1.5);
-        sigma2_2 -= mu2_2;
-
-        GaussianBlur(I1_I2, sigma12, cv::Size(11, 11), 1.5);
-        sigma12 -= mu1_mu2;
-
-        cv::Mat t1, t2, t3;
-
-        t1 = 2 * mu1_mu2 + C1;
-        t2 = 2 * sigma12 + C2;
-        t3 = t1.mul(t2); // t3 = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))
-
-        t1 = mu1_2 + mu2_2 + C1;
-        t2 = sigma1_2 + sigma2_2 + C2;
-        t1 = t1.mul(t2); // t1 =((mu1_2 + mu2_2 + C1).*(sigma1_2 + sigma2_2 + C2))
-
-        cv::Mat ssim_map;
-        divide(t3, t1, ssim_map); // ssim_map = t3./t1;
-
-        cv::Scalar mssim = mean( ssim_map ); // mssim = average of ssim map
-        return mssim;
     };
 
     // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
@@ -1891,12 +1809,11 @@ DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_du
 
     cv::Mat pre_color_img = get_roi(cv::imread(pre_color_img_file, cv::IMREAD_COLOR));
     cv::Mat post_color_img = get_roi(cv::imread(post_color_img_file, cv::IMREAD_COLOR));
-//    cv::imshow("ROI", post_color_img);
-    this->session_visualizer9andahalf->display_image(std::make_shared<cv::Mat>(post_color_img));
+	if (this->visualize == 1)  { this->session_visualizer9andahalf->display_image(std::make_shared<cv::Mat>(post_color_img)); }
 
 
     double psnr = cv::PSNR(pre_color_img, post_color_img);
-    cv::Scalar mssim = getMSSIM(pre_color_img, post_color_img);
+    cv::Scalar mssim = get_MSSIM(pre_color_img, post_color_img);
     Logger::Instance()->Debug("PSNR: {}", psnr);
     Logger::Instance()->Debug("MSSIM: {}", mssim.val[0]);
     Logger::Instance()->Debug("MSSIM: {}", mssim.val[1]);

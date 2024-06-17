@@ -48,7 +48,9 @@ add_library(Fulfil.DepthCam STATIC
         data/data_generator.cpp  ../include/Fulfil.DepthCam/data/data_generator.h
         frame/filtering.cpp
         ../include/Fulfil.DepthCam/frame/filtering.h
-        ../include/Fulfil.DepthCam/data/null_sender.h)
+        ../include/Fulfil.DepthCam/data/null_sender.h
+        frame/image_comparison.cpp
+        ../include/Fulfil.DepthCam/frame/image_comparison.h)
 
 #Adding opencv
 find_package(OpenCV 4.5.5 REQUIRED)

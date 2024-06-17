@@ -224,6 +224,7 @@ void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::sh
 
   ff_mongo_cpp::mongo_objects::MongoObjectID bag_oid = ff_mongo_cpp::mongo_objects::MongoObjectID("5e6fe411b901a80c5481d4e5");
   std::shared_ptr<fulfil::mongo::MongoBagState> doc = std::make_shared<fulfil::mongo::MongoBagState>(bag_oid, false);
+//  manager->handle_post_LFR(post_request_json, base_directory, request_id, false);
   manager->searcher->find_max_Z(container, request_id, lfb_vision_config, doc, post_request_json, nullptr, base_directory); // parameters
 
 
