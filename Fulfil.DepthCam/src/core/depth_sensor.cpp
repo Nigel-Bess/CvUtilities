@@ -157,26 +157,22 @@ void DepthSensor::manage_pipe(){
             Logger::Instance()->Fatal("{} [{}]: Unrecoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             unrecoverable_exc++;
-            connected_ = true;
             create_camera_status_msg(DepthCameras::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
         }
         catch (const rs2::recoverable_error& e){
             Logger::Instance()->Error("{} [{}]: Recoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             recoverable_exc++;
-            connected_ = true;
             create_camera_status_msg(DepthCameras::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
         }
         catch (const std::exception & e){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe exception {}", name_.c_str(), serial_number->c_str(), e.what());
             std_exceptions++;
-            connected_ = true;
             create_camera_status_msg(DepthCameras::CAMERA_STATUS_STD_EXCEPTION);
         }
         catch(...){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe unknown error!", name_.c_str(), serial_number->c_str());
             std_exceptions++;
-            connected_ = true;
             create_camera_status_msg(DepthCameras::CAMERA_STATUS_STD_EXCEPTION);
         }
         auto elapsed = ms_elapsed(timer);
@@ -186,7 +182,10 @@ void DepthSensor::manage_pipe(){
                 serial_number->c_str(), average_frame_time, total_frames, good_frames, unrecoverable_exc, recoverable_exc, std_exceptions);
             print_time = CurrentTime();
         }
-        if(!success)std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        if(!success){
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            connected_ = false;
+        }
     }
 }
 
