@@ -50,6 +50,10 @@ enum class DispenseCommand
   // FC is sending the new bag state
   send_bag_state    = 31,
 
+  side_dispense_target = 32,
+  post_side_dispense = 33,
+  pre_side_dispense = 34
+
 };
 } // namespace commands
 } // namespace dispense

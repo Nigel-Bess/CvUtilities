@@ -270,6 +270,28 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
             response =  handle_post_LFR(pkid, command_id, request_json);
             break;
         }
+        case DispenseCommand::side_dispense_target:{
+            Logger::Instance()->Info("Received Side Dispense Target Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+            std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
+
+            std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
+            DataGenerator generator = DataGenerator(this->lfb_session,
+                                                    this->create_datagenerator_basedir()),
+                                                    request_json);
+            generator.save_data(time_stamp);
+            response = std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(command_id);
+            break;
+        }
+        case DispenseCommand::pre_side_dispense:{
+            Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+            response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, code);
+            break;
+        }
+        case DispenseCommand::post_side_dispense:{
+            Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+            response = std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(command_id);
+            break;
+        }
         case DispenseCommand::start_lfb_video:{
                 Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *command_id);
             handle_start_lfb_video(pkid);

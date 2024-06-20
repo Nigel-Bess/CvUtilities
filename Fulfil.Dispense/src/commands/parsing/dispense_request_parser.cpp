@@ -116,6 +116,16 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       Logger::Instance()->Info("Received Position Motor Request, PKID: {}", *PrimaryKeyID);
       return std::make_shared<PositionMotorRequest>(request_id, PrimaryKeyID, request_json);
 
+    case DispenseCommand::drop_target_side_dispense:
+      Logger::Instance()->Info("Received Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<SideDispenseTargetRequest>(request_id, PrimaryKeyID, request_json);
+  case DispenseCommand::post_side_dispense:
+      Logger::Instance()->Info("Received Post Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<PostSideDispenseRequest>(request_id, PrimaryKeyID, request_json);
+  case DispenseCommand::pre_side_dispense:
+      Logger::Instance()->Info("Received Pre Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<PreSideDispenseRequest>(request_id, PrimaryKeyID, request_json);
+
     default:
       throw InvalidCommandFormatException(request_id);
   }

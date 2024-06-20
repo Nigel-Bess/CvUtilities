@@ -13,10 +13,7 @@
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 
-namespace fulfil
-{
-namespace dispense {
-namespace commands
+namespace fulfil::dispense::commands
 {
 /**
  * The purpose of this class is to separate the implementation for handling commands from the class that parses commands.
@@ -80,9 +77,14 @@ class DispenseRequestDelegate
 
   virtual bool check_motor_in_position() = 0;
 
+
+  virtual std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_post_side_dispense(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
+  virtual std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
+  virtual int handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
+
+
 };
 } // namespace commands
-} // namespace dispense
-} // namespace fulfil
+
 
 #endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_DELEGATE_H_
