@@ -122,6 +122,10 @@ public:
         return tasks_.GetNextRequest();
     }
 
+    void AddStatusUpdate(DepthCameras::MessageType t, std::string str){
+        tasks_.AddStatusUpdate(t, str);
+    }
+
 private:
     void HandleRawRpcs();
     void HandleNewMessages();

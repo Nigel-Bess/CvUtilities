@@ -17,6 +17,8 @@
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 
+// #include "../../Fulfil.CPPUtils/include/Fulfil.CPPUtils/comm/depthCams.pb.h"
+#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.DepthCam/point_cloud/point_cloud.h>
 
 
@@ -94,7 +96,7 @@ class Session
    */
   virtual bool set_emitter(bool state) = 0;
 
-
+    virtual void set_service(std::shared_ptr<GrpcService> serv);
   /**
    * Returns an OpenCV matrix with the data for the color image stream
    * from the session. The format of the stream is 1280x720 3 channel

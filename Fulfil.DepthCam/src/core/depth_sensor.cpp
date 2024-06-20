@@ -128,9 +128,9 @@ void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes cod
     msg.set_command_id(GetTxObjectIdString());
     msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);
     msg.set_camera_name(name_);
-    msg.set_camera_serial(serial_number);
+    msg.set_camera_serial(*serial_number.get());
     msg.set_status_code(code);
-    AddStatusUpdate(msg.msg_type(), msg.SerializeAsString());
+    service_->AddStatusUpdate(msg.msg_type(), msg.SerializeAsString());
 }
 
 void DepthSensor::manage_pipe(){

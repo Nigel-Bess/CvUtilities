@@ -46,10 +46,10 @@ message CommandStatusUpdate{
 
 message CameraStatusUpdate{
     MessageType msg_type = 1;
-    string command_id = 3;
-    string camera_name = 4;
-    string camera_serial = 5;
-    DcCameraStatusCodes status_code = 6;
+    string command_id = 2;
+    string camera_name = 3;
+    string camera_serial = 4;
+    DcCameraStatusCodes status_code = 5;
 }
 
 service DcApiService {

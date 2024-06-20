@@ -55,7 +55,7 @@ namespace fulfil::utils::networking
             */
             void connect_socket();
 
-            GrpcService service_;
+            std::shared_ptr<GrpcService> service_;
             /**
             * Disconnect from the socket on the server side
             */
