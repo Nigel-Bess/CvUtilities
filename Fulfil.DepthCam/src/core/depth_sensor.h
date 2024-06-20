@@ -13,6 +13,8 @@
 #include<chrono>
 #include <Fulfil.CPPUtils/timer.h>
 #include<eigen3/Eigen/Dense>
+#include <Fulfil.CPPUtils/comm/depthCams.pb.h>
+#include <Fulfil.CPPUtils/comm/TaskQueue.h>
 #include<opencv2/opencv.hpp>
 #include<librealsense2/rs.hpp>
 using namespace std::chrono;
@@ -46,6 +48,7 @@ class DepthSensor
     std::chrono::system_clock::time_point last_frame_time;
     std::chrono::system_clock::time_point print_time;
     void manage_pipe();
+    void create_camera_status_msg(DcCameraStatusCodes code);
 
     inline bool frame_is_good(){
         return ms_elapsed(last_frame_time) < 500;
@@ -145,6 +148,8 @@ class DepthSensor
     double average_frame_time = 0;
 
     std::string name_ = "D";
+
+    bool connected_ = false;
 };
 } // namespace fulfil
 } // namespace depthcam

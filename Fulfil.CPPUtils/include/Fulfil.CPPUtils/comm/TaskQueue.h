@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <queue>
+#include <chrono>
 
 #include "Fulfil.CPPUtils/comm/depthCams.pb.h"
 #include "Fulfil.CPPUtils/comm/depthCams.grpc.pb.h"
@@ -13,6 +14,23 @@
 
 using fulfil::utils::Logger;
 using namespace DepthCameras;
+
+inline std::string GetTxObjectIdString(){
+    static uint32_t _transaction = 1000;
+    static char dt[128];
+    auto now = std::chrono::steady_clock::now();
+    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+    std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+    std::time_t t = s.count();
+    uint16_t frac_sec = ms.count() % 1000;
+
+    struct tm * info;
+    info = localtime(&t);
+    sprintf(dt, "%02d-%02dT%02d:%02d:%02d.%03u-%u", 
+        info->tm_mon +1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec, frac_sec, _transaction++); 
+    std::string id(dt);
+    return id;
+}
 
 class TaskQueue final{
 public:
@@ -94,6 +112,17 @@ public:
         cmd.SerializeToString(&msg);
         Logger::Instance()->Info("Status update for %s [%s: %s]\n",function.c_str(), id.c_str(), DcStatusCodes_Name(code).c_str());
 
+        std::lock_guard<std::mutex> lock(status_mu_);
+        _statusUpdates.push(msg);
+    }
+
+    void AddStatusUpdate(DepthCameras::MessageType t, std::string str){
+        std::string msg;
+        DcResponse resp = {};
+        resp.set_type(t);
+        resp.set_message_data(str.data(), str.size());
+        resp.set_message_size(str.size());
+        resp.SerializeToString(&msg);
         std::lock_guard<std::mutex> lock(status_mu_);
         _statusUpdates.push(msg);
     }

@@ -2,8 +2,8 @@
 // If you make any local change, they will be lost.
 // source: depthCams.proto
 
-#include "Fulfil.CPPUtils/comm/depthCams.pb.h"
-#include "Fulfil.CPPUtils/comm/depthCams.grpc.pb.h"
+#include "depthCams.pb.h"
+#include "depthCams.grpc.pb.h"
 
 #include <functional>
 #include <grpcpp/support/async_stream.h>

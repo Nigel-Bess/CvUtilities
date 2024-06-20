@@ -9,12 +9,21 @@ enum MessageType{
     MESSAGE_TYPE_HEARTBEAT      = 4;
     MESSAGE_TYPE_BAG_STATE_REQUEST  = 5;
     MESSAGE_TYPE_BAG_STATE      = 6;
+    MESSAGE_TYPE_CAMERA_STATUS = 7;
 }
 
 enum DcCommandType{
     DC_COMMAND_UNSPECIFIED    = 0;
     DC_COMMAND_NOP            = 1;
     DC_COMMAND_GENERIC_QUERY  = 2;
+}
+
+enum DcCameraStatusCodes{
+    CAMERA_STATUS_CONNECTED = 0;
+    CAMERA_STATUS_NO_FRAME = -1;
+    CAMERA_STATUS_STD_EXCEPTION = -2;
+    CAMERA_STATUS_RECOVERABLE_EXCEPTION = -3;
+    CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION = -4;
 }
 
 enum DcStatusCodes{
@@ -33,6 +42,14 @@ message CommandStatusUpdate{
     MessageType msg_type = 1;
     string command_id = 2;
     int32 status_code = 3;
+}
+
+message CameraStatusUpdate{
+    MessageType msg_type = 1;
+    string command_id = 3;
+    string camera_name = 4;
+    string camera_serial = 5;
+    DcCameraStatusCodes status_code = 6;
 }
 
 service DcApiService {
