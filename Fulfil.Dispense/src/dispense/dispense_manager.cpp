@@ -180,7 +180,7 @@ DispenseManager::DispenseManager(
         }
     }
 
-    socket_manager->service_ this->drop_manager = std::make_shared<DropManager>(this->LFB_session, dispense_man_reader, this->live_viewer);
+    this->drop_manager = std::make_shared<DropManager>(this->LFB_session, dispense_man_reader, this->live_viewer);
 
     this->network_manager = std::make_shared<SocketNetworkManager<std::shared_ptr<DispenseRequest>>>(socket_manager, parser);
 
