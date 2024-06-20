@@ -4,12 +4,11 @@
 
 #ifndef FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_RESPONSE_H
 #define FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_RESPONSE_H
+#include <Fulfil.Dispense/commands/dispense_response.h>
+#include <Fulfil.CPPUtils/logging.h>
 
 namespace fulfil::dispense::commands {
-    /**
-     *
-     */
-    class SideDispenseTargetResponse : public fulfil::dispense::commands::DispenseResponse
+    class SideDispenseTargetResponse final : public fulfil::dispense::commands::DispenseResponse
     {
     private:
 
@@ -59,7 +58,7 @@ namespace fulfil::dispense::commands {
          * @return pointer to string containing data representing the drop result.
          */
         std::shared_ptr<std::string> dispense_payload() override;
-            };
+    };
 } // namespace fulfil::dispense::commands
 
 #endif //FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_RESPONSE_H

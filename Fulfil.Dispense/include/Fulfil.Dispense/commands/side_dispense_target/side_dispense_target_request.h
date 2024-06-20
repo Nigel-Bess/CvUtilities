@@ -5,9 +5,6 @@
 #ifndef FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_REQUEST_H
 #define FULFIL_COMPUTERVISION_SIDE_DISPENSE_TARGET_REQUEST_H
 namespace fulfil::dispense::commands {
-    /**
-     *
-     */
     class SideDispenseTargetRequest : public fulfil::dispense::commands::DispenseRequest
     {
     private:
