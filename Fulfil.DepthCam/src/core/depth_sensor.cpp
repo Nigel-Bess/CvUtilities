@@ -123,8 +123,8 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
     }
 }
 
-void DepthSensor::create_camera_status_msg(DcCameraStatusCodes code){
-    DepthCameras::CommandStatusUpdate msg;
+void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes code){
+    DepthCameras::CameraStatusUpdate msg;
     msg.set_command_id(GetTxObjectIdString());
     msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);
     msg.set_camera_name(name_);
@@ -149,7 +149,7 @@ void DepthSensor::manage_pipe(){
             success = true;
             if(!connected_ && name_.compare("D")){//wait for name to be assigned
                 connected_ = true;
-                create_camera_status_msg(DepthCameras::CAMERA_STATUS_CONNECTED);
+                create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
             }
 
         }
@@ -157,23 +157,23 @@ void DepthSensor::manage_pipe(){
             Logger::Instance()->Fatal("{} [{}]: Unrecoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             unrecoverable_exc++;
-            create_camera_status_msg(DepthCameras::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
         }
         catch (const rs2::recoverable_error& e){
             Logger::Instance()->Error("{} [{}]: Recoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             recoverable_exc++;
-            create_camera_status_msg(DepthCameras::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
         }
         catch (const std::exception & e){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe exception {}", name_.c_str(), serial_number->c_str(), e.what());
             std_exceptions++;
-            create_camera_status_msg(DepthCameras::CAMERA_STATUS_STD_EXCEPTION);
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         catch(...){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe unknown error!", name_.c_str(), serial_number->c_str());
             std_exceptions++;
-            create_camera_status_msg(DepthCameras::CAMERA_STATUS_STD_EXCEPTION);
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         auto elapsed = ms_elapsed(timer);
         average_frame_time = average_frame_time * 0.90 + elapsed * 0.10;
@@ -202,7 +202,7 @@ rs2::frameset DepthSensor::get_latest_frame(){
     }
 
     connected_ = false;
-    create_camera_status_msg(DepthCameras::CAMERA_STATUS_NO_FRAME);
+    create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NO_FRAME);
     Logger::Instance()->Error(error);
     throw (error);
 }

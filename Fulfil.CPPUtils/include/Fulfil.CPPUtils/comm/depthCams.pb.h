@@ -49,6 +49,9 @@ namespace DepthCameras {
 class Acknowledge;
 struct AcknowledgeDefaultTypeInternal;
 extern AcknowledgeDefaultTypeInternal _Acknowledge_default_instance_;
+class CameraStatusUpdate;
+struct CameraStatusUpdateDefaultTypeInternal;
+extern CameraStatusUpdateDefaultTypeInternal _CameraStatusUpdate_default_instance_;
 class CommandStatusUpdate;
 struct CommandStatusUpdateDefaultTypeInternal;
 extern CommandStatusUpdateDefaultTypeInternal _CommandStatusUpdate_default_instance_;
@@ -61,6 +64,7 @@ extern DcResponseDefaultTypeInternal _DcResponse_default_instance_;
 }  // namespace DepthCameras
 PROTOBUF_NAMESPACE_OPEN
 template<> ::DepthCameras::Acknowledge* Arena::CreateMaybeMessage<::DepthCameras::Acknowledge>(Arena*);
+template<> ::DepthCameras::CameraStatusUpdate* Arena::CreateMaybeMessage<::DepthCameras::CameraStatusUpdate>(Arena*);
 template<> ::DepthCameras::CommandStatusUpdate* Arena::CreateMaybeMessage<::DepthCameras::CommandStatusUpdate>(Arena*);
 template<> ::DepthCameras::DcRequest* Arena::CreateMaybeMessage<::DepthCameras::DcRequest>(Arena*);
 template<> ::DepthCameras::DcResponse* Arena::CreateMaybeMessage<::DepthCameras::DcResponse>(Arena*);
@@ -75,12 +79,13 @@ enum MessageType : int {
   MESSAGE_TYPE_HEARTBEAT = 4,
   MESSAGE_TYPE_BAG_STATE_REQUEST = 5,
   MESSAGE_TYPE_BAG_STATE = 6,
+  MESSAGE_TYPE_CAMERA_STATUS = 7,
   MessageType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   MessageType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 bool MessageType_IsValid(int value);
 constexpr MessageType MessageType_MIN = MESSAGE_TYPE_UNSPECIFIED;
-constexpr MessageType MessageType_MAX = MESSAGE_TYPE_BAG_STATE;
+constexpr MessageType MessageType_MAX = MESSAGE_TYPE_CAMERA_STATUS;
 constexpr int MessageType_ARRAYSIZE = MessageType_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* MessageType_descriptor();
@@ -122,6 +127,34 @@ inline bool DcCommandType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DcCommandType* value) {
   return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<DcCommandType>(
     DcCommandType_descriptor(), name, value);
+}
+enum DcCameraStatusCodes : int {
+  CAMERA_STATUS_CONNECTED = 0,
+  CAMERA_STATUS_NO_FRAME = -1,
+  CAMERA_STATUS_STD_EXCEPTION = -2,
+  CAMERA_STATUS_RECOVERABLE_EXCEPTION = -3,
+  CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION = -4,
+  DcCameraStatusCodes_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  DcCameraStatusCodes_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool DcCameraStatusCodes_IsValid(int value);
+constexpr DcCameraStatusCodes DcCameraStatusCodes_MIN = CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION;
+constexpr DcCameraStatusCodes DcCameraStatusCodes_MAX = CAMERA_STATUS_CONNECTED;
+constexpr int DcCameraStatusCodes_ARRAYSIZE = DcCameraStatusCodes_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* DcCameraStatusCodes_descriptor();
+template<typename T>
+inline const std::string& DcCameraStatusCodes_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DcCameraStatusCodes>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DcCameraStatusCodes_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    DcCameraStatusCodes_descriptor(), enum_t_value);
+}
+inline bool DcCameraStatusCodes_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DcCameraStatusCodes* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<DcCameraStatusCodes>(
+    DcCameraStatusCodes_descriptor(), name, value);
 }
 enum DcStatusCodes : int {
   STATUS_CODE_SUCCESS = 0,
@@ -500,6 +533,213 @@ class CommandStatusUpdate final :
 };
 // -------------------------------------------------------------------
 
+class CameraStatusUpdate final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DepthCameras.CameraStatusUpdate) */ {
+ public:
+  inline CameraStatusUpdate() : CameraStatusUpdate(nullptr) {}
+  ~CameraStatusUpdate() override;
+  explicit PROTOBUF_CONSTEXPR CameraStatusUpdate(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  CameraStatusUpdate(const CameraStatusUpdate& from);
+  CameraStatusUpdate(CameraStatusUpdate&& from) noexcept
+    : CameraStatusUpdate() {
+    *this = ::std::move(from);
+  }
+
+  inline CameraStatusUpdate& operator=(const CameraStatusUpdate& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CameraStatusUpdate& operator=(CameraStatusUpdate&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CameraStatusUpdate& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const CameraStatusUpdate* internal_default_instance() {
+    return reinterpret_cast<const CameraStatusUpdate*>(
+               &_CameraStatusUpdate_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(CameraStatusUpdate& a, CameraStatusUpdate& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(CameraStatusUpdate* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CameraStatusUpdate* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CameraStatusUpdate* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<CameraStatusUpdate>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const CameraStatusUpdate& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const CameraStatusUpdate& from) {
+    CameraStatusUpdate::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(CameraStatusUpdate* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "DepthCameras.CameraStatusUpdate";
+  }
+  protected:
+  explicit CameraStatusUpdate(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kCommandIdFieldNumber = 3,
+    kCameraNameFieldNumber = 4,
+    kCameraSerialFieldNumber = 5,
+    kMsgTypeFieldNumber = 1,
+    kStatusCodeFieldNumber = 6,
+  };
+  // string command_id = 3;
+  void clear_command_id();
+  const std::string& command_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_command_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_command_id();
+  PROTOBUF_NODISCARD std::string* release_command_id();
+  void set_allocated_command_id(std::string* command_id);
+  private:
+  const std::string& _internal_command_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_command_id(const std::string& value);
+  std::string* _internal_mutable_command_id();
+  public:
+
+  // string camera_name = 4;
+  void clear_camera_name();
+  const std::string& camera_name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_camera_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_camera_name();
+  PROTOBUF_NODISCARD std::string* release_camera_name();
+  void set_allocated_camera_name(std::string* camera_name);
+  private:
+  const std::string& _internal_camera_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_camera_name(const std::string& value);
+  std::string* _internal_mutable_camera_name();
+  public:
+
+  // string camera_serial = 5;
+  void clear_camera_serial();
+  const std::string& camera_serial() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_camera_serial(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_camera_serial();
+  PROTOBUF_NODISCARD std::string* release_camera_serial();
+  void set_allocated_camera_serial(std::string* camera_serial);
+  private:
+  const std::string& _internal_camera_serial() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_camera_serial(const std::string& value);
+  std::string* _internal_mutable_camera_serial();
+  public:
+
+  // .DepthCameras.MessageType msg_type = 1;
+  void clear_msg_type();
+  ::DepthCameras::MessageType msg_type() const;
+  void set_msg_type(::DepthCameras::MessageType value);
+  private:
+  ::DepthCameras::MessageType _internal_msg_type() const;
+  void _internal_set_msg_type(::DepthCameras::MessageType value);
+  public:
+
+  // .DepthCameras.DcCameraStatusCodes status_code = 6;
+  void clear_status_code();
+  ::DepthCameras::DcCameraStatusCodes status_code() const;
+  void set_status_code(::DepthCameras::DcCameraStatusCodes value);
+  private:
+  ::DepthCameras::DcCameraStatusCodes _internal_status_code() const;
+  void _internal_set_status_code(::DepthCameras::DcCameraStatusCodes value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:DepthCameras.CameraStatusUpdate)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr command_id_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr camera_name_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr camera_serial_;
+    int msg_type_;
+    int status_code_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_depthCams_2eproto;
+};
+// -------------------------------------------------------------------
+
 class DcRequest final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:DepthCameras.DcRequest) */ {
  public:
@@ -548,7 +788,7 @@ class DcRequest final :
                &_DcRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    3;
 
   friend void swap(DcRequest& a, DcRequest& b) {
     a.Swap(&b);
@@ -761,7 +1001,7 @@ class DcResponse final :
                &_DcResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   friend void swap(DcResponse& a, DcResponse& b) {
     a.Swap(&b);
@@ -1117,6 +1357,200 @@ inline void CommandStatusUpdate::_internal_set_status_code(int32_t value) {
 inline void CommandStatusUpdate::set_status_code(int32_t value) {
   _internal_set_status_code(value);
   // @@protoc_insertion_point(field_set:DepthCameras.CommandStatusUpdate.status_code)
+}
+
+// -------------------------------------------------------------------
+
+// CameraStatusUpdate
+
+// .DepthCameras.MessageType msg_type = 1;
+inline void CameraStatusUpdate::clear_msg_type() {
+  _impl_.msg_type_ = 0;
+}
+inline ::DepthCameras::MessageType CameraStatusUpdate::_internal_msg_type() const {
+  return static_cast< ::DepthCameras::MessageType >(_impl_.msg_type_);
+}
+inline ::DepthCameras::MessageType CameraStatusUpdate::msg_type() const {
+  // @@protoc_insertion_point(field_get:DepthCameras.CameraStatusUpdate.msg_type)
+  return _internal_msg_type();
+}
+inline void CameraStatusUpdate::_internal_set_msg_type(::DepthCameras::MessageType value) {
+  
+  _impl_.msg_type_ = value;
+}
+inline void CameraStatusUpdate::set_msg_type(::DepthCameras::MessageType value) {
+  _internal_set_msg_type(value);
+  // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.msg_type)
+}
+
+// string command_id = 3;
+inline void CameraStatusUpdate::clear_command_id() {
+  _impl_.command_id_.ClearToEmpty();
+}
+inline const std::string& CameraStatusUpdate::command_id() const {
+  // @@protoc_insertion_point(field_get:DepthCameras.CameraStatusUpdate.command_id)
+  return _internal_command_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void CameraStatusUpdate::set_command_id(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.command_id_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.command_id)
+}
+inline std::string* CameraStatusUpdate::mutable_command_id() {
+  std::string* _s = _internal_mutable_command_id();
+  // @@protoc_insertion_point(field_mutable:DepthCameras.CameraStatusUpdate.command_id)
+  return _s;
+}
+inline const std::string& CameraStatusUpdate::_internal_command_id() const {
+  return _impl_.command_id_.Get();
+}
+inline void CameraStatusUpdate::_internal_set_command_id(const std::string& value) {
+  
+  _impl_.command_id_.Set(value, GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::_internal_mutable_command_id() {
+  
+  return _impl_.command_id_.Mutable(GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::release_command_id() {
+  // @@protoc_insertion_point(field_release:DepthCameras.CameraStatusUpdate.command_id)
+  return _impl_.command_id_.Release();
+}
+inline void CameraStatusUpdate::set_allocated_command_id(std::string* command_id) {
+  if (command_id != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.command_id_.SetAllocated(command_id, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.command_id_.IsDefault()) {
+    _impl_.command_id_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.command_id)
+}
+
+// string camera_name = 4;
+inline void CameraStatusUpdate::clear_camera_name() {
+  _impl_.camera_name_.ClearToEmpty();
+}
+inline const std::string& CameraStatusUpdate::camera_name() const {
+  // @@protoc_insertion_point(field_get:DepthCameras.CameraStatusUpdate.camera_name)
+  return _internal_camera_name();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void CameraStatusUpdate::set_camera_name(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.camera_name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.camera_name)
+}
+inline std::string* CameraStatusUpdate::mutable_camera_name() {
+  std::string* _s = _internal_mutable_camera_name();
+  // @@protoc_insertion_point(field_mutable:DepthCameras.CameraStatusUpdate.camera_name)
+  return _s;
+}
+inline const std::string& CameraStatusUpdate::_internal_camera_name() const {
+  return _impl_.camera_name_.Get();
+}
+inline void CameraStatusUpdate::_internal_set_camera_name(const std::string& value) {
+  
+  _impl_.camera_name_.Set(value, GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::_internal_mutable_camera_name() {
+  
+  return _impl_.camera_name_.Mutable(GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::release_camera_name() {
+  // @@protoc_insertion_point(field_release:DepthCameras.CameraStatusUpdate.camera_name)
+  return _impl_.camera_name_.Release();
+}
+inline void CameraStatusUpdate::set_allocated_camera_name(std::string* camera_name) {
+  if (camera_name != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.camera_name_.SetAllocated(camera_name, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.camera_name_.IsDefault()) {
+    _impl_.camera_name_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.camera_name)
+}
+
+// string camera_serial = 5;
+inline void CameraStatusUpdate::clear_camera_serial() {
+  _impl_.camera_serial_.ClearToEmpty();
+}
+inline const std::string& CameraStatusUpdate::camera_serial() const {
+  // @@protoc_insertion_point(field_get:DepthCameras.CameraStatusUpdate.camera_serial)
+  return _internal_camera_serial();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void CameraStatusUpdate::set_camera_serial(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.camera_serial_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.camera_serial)
+}
+inline std::string* CameraStatusUpdate::mutable_camera_serial() {
+  std::string* _s = _internal_mutable_camera_serial();
+  // @@protoc_insertion_point(field_mutable:DepthCameras.CameraStatusUpdate.camera_serial)
+  return _s;
+}
+inline const std::string& CameraStatusUpdate::_internal_camera_serial() const {
+  return _impl_.camera_serial_.Get();
+}
+inline void CameraStatusUpdate::_internal_set_camera_serial(const std::string& value) {
+  
+  _impl_.camera_serial_.Set(value, GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::_internal_mutable_camera_serial() {
+  
+  return _impl_.camera_serial_.Mutable(GetArenaForAllocation());
+}
+inline std::string* CameraStatusUpdate::release_camera_serial() {
+  // @@protoc_insertion_point(field_release:DepthCameras.CameraStatusUpdate.camera_serial)
+  return _impl_.camera_serial_.Release();
+}
+inline void CameraStatusUpdate::set_allocated_camera_serial(std::string* camera_serial) {
+  if (camera_serial != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.camera_serial_.SetAllocated(camera_serial, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.camera_serial_.IsDefault()) {
+    _impl_.camera_serial_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.camera_serial)
+}
+
+// .DepthCameras.DcCameraStatusCodes status_code = 6;
+inline void CameraStatusUpdate::clear_status_code() {
+  _impl_.status_code_ = 0;
+}
+inline ::DepthCameras::DcCameraStatusCodes CameraStatusUpdate::_internal_status_code() const {
+  return static_cast< ::DepthCameras::DcCameraStatusCodes >(_impl_.status_code_);
+}
+inline ::DepthCameras::DcCameraStatusCodes CameraStatusUpdate::status_code() const {
+  // @@protoc_insertion_point(field_get:DepthCameras.CameraStatusUpdate.status_code)
+  return _internal_status_code();
+}
+inline void CameraStatusUpdate::_internal_set_status_code(::DepthCameras::DcCameraStatusCodes value) {
+  
+  _impl_.status_code_ = value;
+}
+inline void CameraStatusUpdate::set_status_code(::DepthCameras::DcCameraStatusCodes value) {
+  _internal_set_status_code(value);
+  // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.status_code)
 }
 
 // -------------------------------------------------------------------
@@ -1496,6 +1930,8 @@ inline void DcResponse::set_is_acknowledge(bool value) {
 
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+
 
 // @@protoc_insertion_point(namespace_scope)
 
@@ -1512,6 +1948,11 @@ template <> struct is_proto_enum< ::DepthCameras::DcCommandType> : ::std::true_t
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::DepthCameras::DcCommandType>() {
   return ::DepthCameras::DcCommandType_descriptor();
+}
+template <> struct is_proto_enum< ::DepthCameras::DcCameraStatusCodes> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::DepthCameras::DcCameraStatusCodes>() {
+  return ::DepthCameras::DcCameraStatusCodes_descriptor();
 }
 template <> struct is_proto_enum< ::DepthCameras::DcStatusCodes> : ::std::true_type {};
 template <>

@@ -48,7 +48,7 @@ class DepthSensor
     std::chrono::system_clock::time_point last_frame_time;
     std::chrono::system_clock::time_point print_time;
     void manage_pipe();
-    void create_camera_status_msg(DcCameraStatusCodes code);
+    void create_camera_status_msg(DepthCameras::DcCameraStatusCodes code);
 
     inline bool frame_is_good(){
         return ms_elapsed(last_frame_time) < 500;

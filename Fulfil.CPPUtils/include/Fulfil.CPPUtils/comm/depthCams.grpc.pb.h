@@ -4,7 +4,7 @@
 #ifndef GRPC_depthCams_2eproto__INCLUDED
 #define GRPC_depthCams_2eproto__INCLUDED
 
-#include "Fulfil.CPPUtils/comm/depthCams.pb.h"
+#include "depthCams.pb.h"
 
 #include <functional>
 #include <grpcpp/generic/async_generic_service.h>
