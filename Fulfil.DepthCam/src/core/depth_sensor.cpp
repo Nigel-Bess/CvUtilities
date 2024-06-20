@@ -124,6 +124,7 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
 }
 
 void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes code){
+    if(service_ == nullptr)return;
     DepthCameras::CameraStatusUpdate msg;
     msg.set_command_id(GetTxObjectIdString());
     msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);

@@ -126,7 +126,7 @@ TestManager::TestManager(){
 
 void TestManager::run_stream(std::string serial){
     static int id = 1;
-    DepthSensor sensor(serial, nullptr);
+    DepthSensor sensor(serial);
     sensor.name_ = std::to_string(id++);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));

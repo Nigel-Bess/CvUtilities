@@ -151,7 +151,7 @@ class DepthSensor
     std::string name_ = "D";
 
     bool connected_ = false;
-    std::shared_ptr<GrpcService> service_;
+    std::shared_ptr<GrpcService> service_ = nullptr;
 };
 } // namespace fulfil
 } // namespace depthcam
