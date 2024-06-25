@@ -1219,6 +1219,7 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
             this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir"),
             "Side_Bag_Camera/")  / (*request_json)["Primary_Key_ID"].get<std::string>();
     data_fs_path /= "Side_Dispense_Target";
+    this->LFB_session->refresh();
     auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
     data_generator.save_data(std::make_shared<std::string>());
     return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(request_id);
@@ -1237,6 +1238,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
             this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir"),
             "Side_Bag_Camera/")  / (*request_json)["Primary_Key_ID"].get<std::string>();
     data_fs_path /= "Post_Side_Dispense";
+    this->LFB_session->refresh();
     auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
     data_generator.save_data(std::make_shared<std::string>());
     return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id);

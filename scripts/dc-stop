@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ "$USER" != "root" ]] ; then
+    systemctl stop depthcam.service && systemctl stop bg_redis_worker.service && systemctl stop tray_count.service
+    runuser -l fulfil -c 'dc-startup kill'
+    dc-startup
+    exit $?
+
+fi
+
+
+sudo systemctl stop depthcam.service && sudo systemctl stop bg_redis_worker.service && sudo systemctl stop tray_count.service
+dc-startup kill
+dc-startup
