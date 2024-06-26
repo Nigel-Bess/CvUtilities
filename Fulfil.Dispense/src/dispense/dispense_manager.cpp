@@ -300,7 +300,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         }
         case DispenseCommand::post_side_dispense:
             Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
-            response = handle_post_side_dispense(pkid, request_json);
+            response = handle_post_side_dispense(command_id, request_json);
             break;
 
         case DispenseCommand::start_lfb_video:
