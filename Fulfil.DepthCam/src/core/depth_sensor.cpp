@@ -19,8 +19,9 @@ using fulfil::depthcam::DepthSensor;
 using fulfil::utils::Logger;
 
 // TODO need to make frame size, rate, decimation factor configurable!!!
-DepthSensor::DepthSensor(const std::string &serial)
+DepthSensor::DepthSensor(const std::string &serial, std::shared_ptr<TaskQueue> q)
 {
+    queue_ = q;
     //Add desired streams to configuration
     rs2::config cfg;
     cfg.enable_device(serial.c_str());
@@ -130,7 +131,7 @@ void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes cod
     msg.set_camera_name(name_);
     msg.set_camera_serial(serial_number);
     msg.set_status_code(code);
-    AddStatusUpdate(msg.msg_type(), msg.SerializeAsString());
+    queue_->AddStatusUpdate(msg.msg_type(), msg.SerializeAsString());
 }
 
 void DepthSensor::manage_pipe(){

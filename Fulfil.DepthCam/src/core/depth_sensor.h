@@ -55,6 +55,7 @@ class DepthSensor
     }
 
     std::mutex _lock;
+    std::shared_ptr<TaskQueue> queue_;
 
  public:
   /**
