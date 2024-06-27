@@ -76,9 +76,6 @@ class DeviceManager
   std::shared_ptr<std::vector<std::shared_ptr<Session>>> get_connected_sessions();
 
 
-
-
-
   /**
    * @purpose Attempts to return the first connected sensor and will retry a
    * specified number of times.

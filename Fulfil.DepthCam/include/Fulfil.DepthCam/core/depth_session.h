@@ -87,6 +87,7 @@ class DepthSession : public Session
 
   std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics() override;
 
+    void set_service(std::shared_ptr<GrpcService> serv);
 
   template <size_t N>
   std::array<cv::Mat, N> get_fresh_frameset() {

@@ -33,7 +33,7 @@ void SocketManager::Disconnect()
 
 void SocketManager::create_socket()
 {
-  this->service_.Run(socket_information->port);
+  this->service_->Run(socket_information->port);
 }
 
 void SocketManager::connect_socket()

@@ -14,7 +14,7 @@
 #include <Fulfil.CPPUtils/timer.h>
 #include<eigen3/Eigen/Dense>
 #include <Fulfil.CPPUtils/comm/depthCams.pb.h>
-#include <Fulfil.CPPUtils/comm/TaskQueue.h>
+#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include<opencv2/opencv.hpp>
 #include<librealsense2/rs.hpp>
 using namespace std::chrono;
@@ -56,6 +56,7 @@ class DepthSensor
 
     std::mutex _lock;
     std::shared_ptr<TaskQueue> queue_;
+
 
  public:
   /**
@@ -151,6 +152,7 @@ class DepthSensor
     std::string name_ = "D";
 
     bool connected_ = false;
+    std::shared_ptr<GrpcService> service_ = nullptr;
 };
 } // namespace fulfil
 } // namespace depthcam

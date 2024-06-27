@@ -189,9 +189,9 @@ const char descriptor_table_protodef_depthCams_2eproto[] PROTOBUF_SECTION_VARIAB
   "\001(\0162\031.DepthCameras.MessageType\022\022\n\ncomman"
   "d_id\030\002 \001(\t\022\023\n\013status_code\030\003 \001(\005\"\271\001\n\022Came"
   "raStatusUpdate\022+\n\010msg_type\030\001 \001(\0162\031.Depth"
-  "Cameras.MessageType\022\022\n\ncommand_id\030\003 \001(\t\022"
-  "\023\n\013camera_name\030\004 \001(\t\022\025\n\rcamera_serial\030\005 "
-  "\001(\t\0226\n\013status_code\030\006 \001(\0162!.DepthCameras."
+  "Cameras.MessageType\022\022\n\ncommand_id\030\002 \001(\t\022"
+  "\023\n\013camera_name\030\003 \001(\t\022\025\n\rcamera_serial\030\004 "
+  "\001(\t\0226\n\013status_code\030\005 \001(\0162!.DepthCameras."
   "DcCameraStatusCodes\"\276\001\n\tDcRequest\022\022\n\ncom"
   "mand_id\030\001 \001(\t\0220\n\013dc_cmd_type\030\002 \001(\0162\033.Dep"
   "thCameras.DcCommandType\022\'\n\004type\030\003 \001(\0162\031."
@@ -971,9 +971,9 @@ const char* CameraStatusUpdate::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // string command_id = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+      // string command_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_command_id();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -981,9 +981,9 @@ const char* CameraStatusUpdate::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // string camera_name = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+      // string camera_name = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_camera_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -991,9 +991,9 @@ const char* CameraStatusUpdate::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // string camera_serial = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+      // string camera_serial = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           auto str = _internal_mutable_camera_serial();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -1001,9 +1001,9 @@ const char* CameraStatusUpdate::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // .DepthCameras.DcCameraStatusCodes status_code = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+      // .DepthCameras.DcCameraStatusCodes status_code = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
           _internal_set_status_code(static_cast<::DepthCameras::DcCameraStatusCodes>(val));
@@ -1046,41 +1046,41 @@ uint8_t* CameraStatusUpdate::_InternalSerialize(
       1, this->_internal_msg_type(), target);
   }
 
-  // string command_id = 3;
+  // string command_id = 2;
   if (!this->_internal_command_id().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_command_id().data(), static_cast<int>(this->_internal_command_id().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "DepthCameras.CameraStatusUpdate.command_id");
     target = stream->WriteStringMaybeAliased(
-        3, this->_internal_command_id(), target);
+        2, this->_internal_command_id(), target);
   }
 
-  // string camera_name = 4;
+  // string camera_name = 3;
   if (!this->_internal_camera_name().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_camera_name().data(), static_cast<int>(this->_internal_camera_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "DepthCameras.CameraStatusUpdate.camera_name");
     target = stream->WriteStringMaybeAliased(
-        4, this->_internal_camera_name(), target);
+        3, this->_internal_camera_name(), target);
   }
 
-  // string camera_serial = 5;
+  // string camera_serial = 4;
   if (!this->_internal_camera_serial().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_camera_serial().data(), static_cast<int>(this->_internal_camera_serial().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "DepthCameras.CameraStatusUpdate.camera_serial");
     target = stream->WriteStringMaybeAliased(
-        5, this->_internal_camera_serial(), target);
+        4, this->_internal_camera_serial(), target);
   }
 
-  // .DepthCameras.DcCameraStatusCodes status_code = 6;
+  // .DepthCameras.DcCameraStatusCodes status_code = 5;
   if (this->_internal_status_code() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
-      6, this->_internal_status_code(), target);
+      5, this->_internal_status_code(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1099,21 +1099,21 @@ size_t CameraStatusUpdate::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string command_id = 3;
+  // string command_id = 2;
   if (!this->_internal_command_id().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_command_id());
   }
 
-  // string camera_name = 4;
+  // string camera_name = 3;
   if (!this->_internal_camera_name().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_camera_name());
   }
 
-  // string camera_serial = 5;
+  // string camera_serial = 4;
   if (!this->_internal_camera_serial().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
@@ -1126,7 +1126,7 @@ size_t CameraStatusUpdate::ByteSizeLong() const {
       ::_pbi::WireFormatLite::EnumSize(this->_internal_msg_type());
   }
 
-  // .DepthCameras.DcCameraStatusCodes status_code = 6;
+  // .DepthCameras.DcCameraStatusCodes status_code = 5;
   if (this->_internal_status_code() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_status_code());

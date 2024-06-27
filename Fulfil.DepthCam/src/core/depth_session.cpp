@@ -61,6 +61,10 @@ void DepthSession::set_sensor_name(const std::string &name){
     sensor->name_ = name;
 }
 
+void DepthSession::set_service(std::shared_ptr<GrpcService> serv){
+    sensor->service_ = serv;
+}
+
 std::shared_ptr<rs2_intrinsics> DepthSession::get_depth_stream_intrinsics()
 {
   return this->sensor->depth_intrinsics;
