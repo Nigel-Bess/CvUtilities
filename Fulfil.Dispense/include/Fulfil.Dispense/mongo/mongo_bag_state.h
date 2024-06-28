@@ -25,7 +25,9 @@ class CvBagState final
             _bag_id_string = json["BagId"].get<std::string>();
             // for offline test compatibility - the key is MongoID in prod but _id in offline data
             _id_string = json.value("MongoID", "NOT FOUND");
+            bool is_offline_test_run = false;
             if (_id_string == "NOT FOUND") {
+                is_offline_test_run = true;
                 _id_string = json["_id"].get<std::string>();
             }
             std::cout << "id string: " << _id_string << std::endl;
@@ -48,8 +50,11 @@ class CvBagState final
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
-            Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+            if (is_offline_test_run) {
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>();
+            } else {
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+            }
             std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
         }
         CvBagState(){  }
@@ -113,23 +118,17 @@ class MongoBagState
 
   void SetObjectID(ff_mongo_cpp::mongo_objects::MongoObjectID new_id);
 
-  //inline void update_values(bsoncxx::document::view doc) {}
   /**
    *  Takes in a pointer to a vector of cv::Mat, where each Mat is one layer of the item map,
    *  and converts this into item_map_arrays for mongo.
    */
   void set_item_map_arrays_from_mat(std::shared_ptr<std::vector<cv::Mat>> item_map_ptr);
 
-  //bsoncxx::document::value MakeWritableValue();
+
   void UpdateRawMongoDocState();
   nlohmann::json GetStateAsJson();
   std::string GetStateAsString();
 
-  /*
-  std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument> MakeNewMongoDocument(bsoncxx::document::view doc,
-                                                      const std::string& collection_name = "",
-                                                      const std::string& db_name = "");
-  */
   /**
    *  Converts the arrays representation of the item map into a cv::Mat that can be easily displayed
    */
