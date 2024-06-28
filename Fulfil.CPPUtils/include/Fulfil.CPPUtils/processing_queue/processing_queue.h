@@ -103,7 +103,7 @@ namespace fulfil::utils::processingqueue
         fulfil::utils::Logger::Instance()->Trace("Processing Queue push method called");
         std::lock_guard<std::mutex>(this->request_queue_mutex);
         this->request_queue->push(std::make_shared<Request>(request));
-        fulfil::utils::Logger::Instance()->Debug("Request was pushed to processing queue {}", *request->command_id);
+        fulfil::utils::Logger::Instance()->Debug("Request was pushed to processing queue {}", *request->request_id);
     }
 
     template<typename Request, typename Response>
@@ -123,9 +123,9 @@ namespace fulfil::utils::processingqueue
                 if(!this->delegate.expired())
                 {
                     std::shared_ptr<ProcessingQueueDelegate<Request, Response>> tmp = this->delegate.lock();
-                    fulfil::utils::Logger::Instance()->Debug("Processing queue calls process_request in dispense_manager {}", *request->command_id);
+                    fulfil::utils::Logger::Instance()->Debug("Processing queue calls process_request in dispense_manager {}", *request->request_id);
                     Response response = tmp->process_request(request);
-                    fulfil::utils::Logger::Instance()->Debug("Processing queue calls send_response {}", *request->command_id);
+                    fulfil::utils::Logger::Instance()->Debug("Processing queue calls send_response {}", *request->request_id);
                     tmp->send_response(response);
                     // this->delegate_mutex.unlock();
                 }

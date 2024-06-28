@@ -15,6 +15,9 @@ file(GLOB STOP_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/inc
 #file(GLOB STOP_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/tray_validation/*.h")
 file(GLOB DROP_VISUALIZATION_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/visualization/*.h")
 file(GLOB MONGO_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/mongo/*.h")
+file(GLOB POST_DROP_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/side_dispense_target/*.h")
+file(GLOB POST_DROP_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/post_side_dispense/*.h")
+
 
 add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         ${DROP_HEADER_LIST}
@@ -37,6 +40,11 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         commands/drop_target/drop_target_response.cpp
         commands/item_edge_distance/item_edge_distance_request.cpp
         commands/item_edge_distance/item_edge_distance_response.cpp
+        commands/side_dispense_target/side_dispense_target_request.cpp
+        commands/side_dispense_target/side_dispense_target_response.cpp
+        commands/post_side_dispense/post_side_dispense_request.cpp
+        commands/post_side_dispense/post_side_dispense_response.cpp
+        commands/pre_side_dispense_request.cpp
         commands/pre_LFR_request.cpp
         commands/post_drop/post_LFR_request.cpp
         commands/start_lfb_video_request.cpp

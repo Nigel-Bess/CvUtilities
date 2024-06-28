@@ -13,7 +13,7 @@ using fulfil::utils::Logger;
 
 NopRequest::NopRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
 }
 
@@ -22,11 +22,11 @@ std::shared_ptr<DispenseResponse> NopRequest::execute()
   if(!this->delegate.expired())
   {
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
-    return std::make_shared<NopResponse>(this->command_id, 0, tmp_delegate->check_motor_in_position());
+    return std::make_shared<NopResponse>(this->request_id, 0, tmp_delegate->check_motor_in_position());
   }
   else
   {
     Logger::Instance()->Error("Command Delegate Expired; Vars: HomeMotorRequest");
-    return std::make_shared<NopResponse>(this->command_id, 9, false);
+    return std::make_shared<NopResponse>(this->request_id, 9, false);
   }
 }

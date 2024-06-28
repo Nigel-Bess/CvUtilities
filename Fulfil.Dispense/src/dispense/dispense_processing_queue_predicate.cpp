@@ -16,5 +16,5 @@ DispenseProcessingQueuePredicate::DispenseProcessingQueuePredicate(std::shared_p
 
 bool DispenseProcessingQueuePredicate::should_keep(std::shared_ptr<DispenseRequest> request)
 {
-  return *request->command_id != *this->command_id;
+  return *request->request_id != *this->command_id;
 }

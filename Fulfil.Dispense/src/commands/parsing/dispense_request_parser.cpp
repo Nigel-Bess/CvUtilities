@@ -23,6 +23,10 @@
 #include <Fulfil.Dispense/commands/position_motor_request.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
+#include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
+#include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
+#include "Fulfil.Dispense/commands/pre_side_dispense_request.h"
+
 
 using fulfil::utils::Logger;
 
@@ -43,6 +47,10 @@ using fulfil::dispense::commands::StartTrayVideoRequest;
 using fulfil::dispense::commands::StopTrayVideoRequest;
 using fulfil::dispense::commands::TrayValidationRequest;
 using fulfil::dispense::commands::errors::InvalidCommandFormatException;
+using fulfil::dispense::commands::SideDispenseTargetRequest;
+using fulfil::dispense::commands::PostSideDispenseRequest;
+using fulfil::dispense::commands::PreSideDispenseRequest;
+
 
 DispenseRequestParser::DispenseRequestParser(std::shared_ptr<DispenseRequestJsonParser> parser)
 {
@@ -55,7 +63,7 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
 
   std::cout << "payload---> " << payload.get()->c_str() << std::endl;
   int type = (*request_json)["Type"].get<int>();
-  if (type > (int)DispenseCommand::send_bag_state || type < 0)  //check that type is within expected bounds
+  if (type > (int)DispenseCommand::pre_side_dispense || type < 0)  //check that type is within expected bounds
   {
     Logger::Instance()->Error("Invalid dispense request type, outside of expected bounds");
     throw std::invalid_argument("Invalid Command Type");
@@ -75,6 +83,8 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       }
       return std::make_shared<NopRequest>(request_id, PrimaryKeyID);
     case DispenseCommand::request_bag_state:
+      Logger::Instance()->Info("Received Request Bag State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<GetStateRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::get_state:
       Logger::Instance()->Info("Received Get State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
       return std::make_shared<GetStateRequest>(request_id, PrimaryKeyID, request_json);
@@ -106,6 +116,8 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       Logger::Instance()->Info("Received Pre Drop LFB Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
       return std::make_shared<PreLFRRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::send_bag_state:
+        Logger::Instance()->Info("Received Send Bag State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+        return std::make_shared<UpdateStateRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::update_state:
       Logger::Instance()->Info("Received Update State Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
       return std::make_shared<UpdateStateRequest>(request_id, PrimaryKeyID, request_json);
@@ -115,6 +127,15 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
     case DispenseCommand::position_motor:
       Logger::Instance()->Info("Received Position Motor Request, PKID: {}", *PrimaryKeyID);
       return std::make_shared<PositionMotorRequest>(request_id, PrimaryKeyID, request_json);
+    case DispenseCommand::side_dispense_target:
+      Logger::Instance()->Info("Received Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<SideDispenseTargetRequest>(request_id, PrimaryKeyID, request_json);
+    case DispenseCommand::post_side_dispense:
+      Logger::Instance()->Info("Received Post Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<PostSideDispenseRequest>(request_id, PrimaryKeyID, request_json);
+    case DispenseCommand::pre_side_dispense:
+      Logger::Instance()->Info("Received Pre Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      return std::make_shared<PreSideDispenseRequest>(request_id, PrimaryKeyID, request_json);
 
     default:
       throw InvalidCommandFormatException(request_id);

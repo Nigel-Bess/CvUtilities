@@ -18,7 +18,7 @@ HomeMotorRequest::HomeMotorRequest(std::shared_ptr<std::string> command_id, std:
   /**
    * The command id is still somewhat important here because it is used when filtering out commands in the queue.
    */
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
   this->request_json = request_json;
 }
@@ -31,11 +31,11 @@ std::shared_ptr<DispenseResponse> HomeMotorRequest::execute()
 
     int error_code = tmp_delegate->handle_home_motor(this->PrimaryKeyID, this->request_json);
 
-    return std::make_shared<CodeResponse>(this->command_id, error_code);
+    return std::make_shared<CodeResponse>(this->request_id, error_code);
   }
   else
   {
     Logger::Instance()->Error("Command Delegate Expired; Vars: HomeMotorRequest");
-    return std::make_shared<CodeResponse>(this->command_id, 9);
+    return std::make_shared<CodeResponse>(this->request_id, 9);
   }
 }

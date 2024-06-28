@@ -14,7 +14,7 @@ ItemEdgeDistanceRequest::ItemEdgeDistanceRequest(std::shared_ptr<std::string> co
                                                  std::shared_ptr<std::string> PrimaryKeyID,
                                                  std::shared_ptr<nlohmann::json> request_json)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
   this->request_json = request_json;
 }
@@ -25,12 +25,12 @@ std::shared_ptr<fulfil::dispense::commands::DispenseResponse> ItemEdgeDistanceRe
   {
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
     std::shared_ptr<fulfil::dispense::commands::ItemEdgeDistanceResponse> item_distance_response =
-            tmp_delegate->handle_item_edge_distance(command_id, request_json); // calling method in dispense_manager
+            tmp_delegate->handle_item_edge_distance(request_id, request_json); // calling method in dispense_manager
     return item_distance_response;
   }
   else
   {
     std::cout << "ItemEdgeDistance Command Delegate Expired" << std::endl;
-    return std::make_shared<ItemEdgeDistanceResponse>(this->command_id, 9); //Todo: change the error code used here if needed
+    return std::make_shared<ItemEdgeDistanceResponse>(this->request_id, 9); //Todo: change the error code used here if needed
   }
 }
