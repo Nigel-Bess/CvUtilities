@@ -1,3 +1,8 @@
+//
+// Created by nkaffine on 12/11/19.
+// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
+//
+
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
 
@@ -37,6 +42,8 @@ namespace fulfil::dispense::commands
         home_motor = 20,
         /// Command sent to control rail motor for positioning the LFB camera (absolute position relative to home)
         position_motor = 21,
+		/// Command sent to view the floor between dispenses using LFB camera processing
+		floor_view = 22,
         /// FC requests the current bag state
         request_bag_state = 30,
         /// FC is sending the new bag state

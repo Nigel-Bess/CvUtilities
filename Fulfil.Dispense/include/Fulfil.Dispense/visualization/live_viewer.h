@@ -18,12 +18,15 @@ namespace fulfil::dispense::visualization
 /**
  * The purpose of this class is to handle live visuals of image algorithm results
  */
- 
+/**
+ * The number of entries in the ViewerImageType enum
+ */
+const int VIEWER_IMAGE_TYPE_COUNT = 14;
 enum ViewerImageType {
   LFB_RGB, LFB_Depth, LFB_Damage_Risk, LFB_Filter,
   LFB_Target, Tray_Result, LFB_Pre_Dispense, Tray_Pre_Dispense,
   LFB_Post_Dispense, Tray_Post_Dispense, LFB_Item_Detection, LFB_Markers,
-  Info
+  Info, LFB_Floor_View
 };
 
 struct ABISVisualizationSettings
@@ -45,6 +48,9 @@ class LiveViewer
    cv::Rect crop_ROI;
 
    int publish(std::experimental::filesystem::path local_path);
+
+   std::tuple<std::string, double> image_name_and_presets(size_t image_code);
+
 
  public:
   /**

@@ -45,6 +45,7 @@ using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseRequestParser;
 using fulfil::dispense::commands::DispenseResponse;
 using fulfil::dispense::commands::ErrorResponse;
+using fulfil::dispense::commands::FloorViewResponse;
 using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
@@ -157,7 +158,7 @@ DispenseManager::DispenseManager(
   if(LFB_session)
   {
       //Sensor is connected
-      Logger::Instance()->Trace("LFB session.");
+      Logger::Instance()->Trace("LFB session is connected");
       this->LFB_session = LFB_session;
 
       if(dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "live_visualize_drop", false))
@@ -284,6 +285,11 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
             Logger::Instance()->Info("Received Post Drop Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_post_LFR(pkid, command_id, request_json);
+            break;
+        }
+        case DispenseCommand::floor_view:{
+            Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+            response = handle_floor_view(pkid, command_id, request_json);
             break;
         }
         case DispenseCommand::side_dispense_target: {
@@ -684,6 +690,59 @@ void DispenseManager::handle_stop_request(std::shared_ptr<std::string> command_i
 {
     std::shared_ptr<ProcessingQueuePredicate<std::shared_ptr<DispenseRequest>>> predicate = std::make_shared<DispenseProcessingQueuePredicate>(command_id);
     this->processing_queue->purge_queue(predicate);
+}
+
+std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
+{
+
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_floor_view for " + this->machine_name + " with PKID " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Floor View Processing {} for Bay: {}", *command_id, this->machine_name);
+
+    if (!this->LFB_session) {
+        Logger::Instance()->Warn("No LFB Session on Bay {}: Bouncing Floor View!", this->machine_name);
+        return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
+    }
+
+    this->LFB_session->refresh();
+
+    // initial data generation
+    std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+    std_filesystem::path base_directory = make_media::paths::join_as_path(*this->create_datagenerator_basedir(),
+                                                                          "Drop_Camera",
+                                                                          *PrimaryKeyID,
+                                                                          "Floor_View_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
+                                                                               std::make_shared<std::string>(base_directory.string()),
+                                                                               request_json);
+    generator->save_data(time_stamp);
+
+    // TODO: run floor view analysis and save result. for now use these defaults
+    int error_code = 0;
+    std::string error_description = "";
+    bool anomaly_detected = false;
+    bool item_on_ground = false;
+    float floor_analysis_confidence_score = 0;
+    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id,
+                                                                                          error_code,
+                                                                                          error_description,
+                                                                                          anomaly_detected,
+                                                                                          item_on_ground,
+                                                                                          floor_analysis_confidence_score);
+
+    // generate results data
+    std::string floor_view_file = make_media::paths::join_as_path(base_directory, *time_stamp, "floor_view_result");
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    this->drop_manager->generate_floor_view_result_data(true,
+                                                        floor_view_file,
+                                                        error_code_file,
+                                                        anomaly_detected,
+                                                        item_on_ground,
+                                                        floor_analysis_confidence_score, error_code);
+
+    Logger::Instance()->Info("Finished handling Floor View command. Result: "
+                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, *PrimaryKeyID, anomaly_detected, item_on_ground, floor_analysis_confidence_score);
+    return floor_result;
 }
 
 results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_ptr<fulfil::dispense::tray::TrayManager>& tray_manager,
