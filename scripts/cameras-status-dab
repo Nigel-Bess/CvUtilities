@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo -e "\n$(hostname) camera initialization order"
+rs-fw-update -l | cut -d , -f 1,2
+cd ~/code/Fulfil.ComputerVision/Fulfil.Dispense
+echo -e "\nDispense API expected init:"
+grep -a '_cam is expected to be' logs/dispense_logs_$(date +'%Y-%m-%d').log | sed 's/^.*\([FG]D[12]\).* \([LFBtray]*_cam.*$\)/\1 \2/g' | sed 's/LFB_cam/LFB_cam /g' | tail -n 4
+echo -e "\nKernel Stream init:"
+grep -Ea "$(date +'%b %d').*D4XX Sensor: DEPTH|$(date +'%b %d').*Booting Linux" /var/log/kern.log | tail -n 5
