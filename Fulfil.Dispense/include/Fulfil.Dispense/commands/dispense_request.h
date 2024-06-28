@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/11/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_H_
@@ -10,10 +6,7 @@
 #include <Fulfil.Dispense/commands/dispense_request_delegate.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
 
-namespace fulfil
-{
-namespace dispense {
-namespace commands
+namespace fulfil::dispense::commands
 {
 /**
  * The purpose of this class is to outline the general
@@ -32,7 +25,7 @@ class DispenseRequest
   /**
    * String with the id for the command.
    */
-  std::shared_ptr<std::string> command_id;
+  std::shared_ptr<std::string> request_id;
 
   /**
   * ID for data logging purposes
@@ -50,8 +43,7 @@ class DispenseRequest
   std::weak_ptr<fulfil::dispense::commands::DispenseRequestDelegate> delegate;
 };
 
-} // namespace commands
-} // namespace dispense
-} // namespace fulfil
+} // namespace fulfil::dispense::commands
+
 
 #endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_REQUEST_H_

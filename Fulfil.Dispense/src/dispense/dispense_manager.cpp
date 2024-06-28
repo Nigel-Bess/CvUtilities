@@ -360,7 +360,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
 void DispenseManager::did_receive_request(std::shared_ptr<DispenseRequest> request)
 {
 
-     Logger::Instance()->Debug("Dispense Manager: about to push request to process queue {}", *request->command_id);
+     Logger::Instance()->Debug("Dispense Manager: about to push request to process queue {}", *request->request_id);
      this->processing_queue->push(request);
 }
 

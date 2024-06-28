@@ -3,6 +3,8 @@
 //
 
 #include <Fulfil.CPPUtils/logging.h>
+
+#include <utility>
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h"
 
@@ -14,16 +16,12 @@ using fulfil::dispense::commands::SideDispenseTargetResponse;
 using fulfil::dispense::commands::DispenseResponse;
 
 
-SideDispenseTargetRequest::SideDispenseTargetRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID,
-                                                 std::shared_ptr<nlohmann::json> request_json)
+SideDispenseTargetRequest::SideDispenseTargetRequest(std::shared_ptr<std::string> request_id, std::shared_ptr<std::string> PrimaryKeyID,
+                                                     std::shared_ptr<nlohmann::json> request_json)
 {
-    /**
-     * The command id is still somewhat important here because
-     * it is used when filtering out commands in the queue.
-     */
-    this->command_id = command_id;
-    this->request_json = request_json;
-    this->PrimaryKeyID = PrimaryKeyID;
+    this->request_id = std::move(request_id);
+    this->request_json = std::move(request_json);
+    this->PrimaryKeyID = std::move(PrimaryKeyID);
 }
 
 std::shared_ptr<DispenseResponse> SideDispenseTargetRequest::execute()
@@ -34,13 +32,13 @@ std::shared_ptr<DispenseResponse> SideDispenseTargetRequest::execute()
         std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
         std::shared_ptr<SideDispenseTargetResponse> response = tmp_delegate->handle_side_dispense_target(
-                                                                                                     this->command_id,
+                                                                                                     this->request_id,
                                                                                                      this->request_json);
         return response;
     }
     else
     {
         std::cout << "SideDispenseTarget Command Delegate Expired" << std::endl;
-        return std::make_shared<SideDispenseTargetResponse>(this->command_id); //TODO: change error code here
+        return std::make_shared<SideDispenseTargetResponse>(this->request_id); //TODO: change error code here
     }
 }

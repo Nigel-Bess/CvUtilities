@@ -14,7 +14,7 @@ using fulfil::dispense::commands::DispenseRequestDelegate;
 
 TrayValidationRequest::TrayValidationRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
   this->request_json = request_json;
 }
@@ -24,12 +24,12 @@ std::shared_ptr<fulfil::dispense::commands::DispenseResponse> fulfil::dispense::
   if(!this->delegate.expired())
   {
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
-    return tmp_delegate->handle_tray_validation(this->command_id, this->request_json); //calls method in dispense_manager
+    return tmp_delegate->handle_tray_validation(this->request_id, this->request_json); //calls method in dispense_manager
   }
   else
   {
     std::cout << "Tray Height Command Delegate Expired" << std::endl;
-    return std::make_shared<CodeResponse>(this->command_id, 9);
+    return std::make_shared<CodeResponse>(this->request_id, 9);
   }
 }
 

@@ -1,5 +1,5 @@
 //
-// Created by fulfil on 6/20/24.
+// Created by amber on 6/20/24.
 //
 
 #ifndef FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_REQUEST_H
@@ -9,7 +9,7 @@
 #include <Fulfil.Dispense/commands/dispense_response.h>
 
 namespace fulfil::dispense::commands {
-    class PostSideDispenseRequest : public fulfil::dispense::commands::DispenseRequest
+    class PostSideDispenseRequest final: public fulfil::dispense::commands::DispenseRequest
     {
     public:
 

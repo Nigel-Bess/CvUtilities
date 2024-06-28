@@ -12,7 +12,7 @@ using fulfil::dispense::commands::DispenseResponse;
 PreLFRRequest::PreLFRRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID,
                              std::shared_ptr<nlohmann::json> request_json)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->request_json = request_json;
   this->PrimaryKeyID = PrimaryKeyID;
 }
@@ -25,11 +25,11 @@ std::shared_ptr<DispenseResponse> PreLFRRequest::execute()
 
     int error_code = tmp_delegate->handle_pre_LFR(this->PrimaryKeyID, this->request_json);
 
-    return std::make_shared<CodeResponse>(this->command_id, error_code);
+    return std::make_shared<CodeResponse>(this->request_id, error_code);
   }
   else
   {
     std::cout << "PreDropLFB Command Delegate Expired" << std::endl;
-    return std::make_shared<CodeResponse>(this->command_id, 9); //Todo: change the error code used here if needed
+    return std::make_shared<CodeResponse>(this->request_id, 9); //Todo: change the error code used here if needed
   }
 }
