@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/10/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 #include <Fulfil.CPPUtils/logging.h>
 #include <experimental/filesystem>
 #include <Fulfil.Dispense/dispense/realsense_runner_factory.h>
@@ -43,12 +39,12 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRu
     std::shared_ptr<fulfil::depthcam::Session> LFB_session, std::shared_ptr<fulfil::depthcam::Session> tray_session)
 {
   if (!mongo_conn->IsConnected()){
-      Logger::Instance()->Fatal("Failure to make connection to MongoDB. Exiting program with fail!");
-      throw std::runtime_error("Unable to connect to MongoDB");
+      Logger::Instance()->Error("Failure to make connection to MongoDB. Ignoring for now...");
+      //throw std::runtime_error("Unable to connect to MongoDB");
   }
   fulfil::configuration::tray::TrayDimensions tray_builder =
       fulfil::configuration::tray::set_bay_wide_tray_dimensions(this->tray_config_reader,
-               "tray_dimensions_" + this->dispense_man_reader->Get("device_specific", "tray_config_type", "2.1"));
+               "tray_dimensions_" + this->dispense_man_reader->Get("device_specific", "tray_config_type", "4.1"));
 
   std::shared_ptr<fulfil::dispense::tray::TrayManager> tray_manager =
       std::make_shared<fulfil::dispense::tray::TrayManager>(tray_session, tray_builder);

@@ -3,6 +3,7 @@
 //
 
 #include "Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h"
+#include <Fulfil.CPPUtils/logging.h>
 #include <json.hpp>
 #include <iostream>
 #include <utility>

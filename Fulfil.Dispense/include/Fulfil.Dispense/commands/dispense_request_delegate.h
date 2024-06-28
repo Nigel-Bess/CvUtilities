@@ -73,9 +73,9 @@ class DispenseRequestDelegate
 
   virtual int handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
 
-  virtual int handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
+  //virtual int handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
 
-  virtual int handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
+  //virtual int handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
 
   virtual bool check_motor_in_position() = 0;
 

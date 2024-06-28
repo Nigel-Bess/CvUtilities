@@ -8,6 +8,7 @@
 
 using fulfil::mongo::MongoTrayCalibration;
 using ff_mongo_cpp::mongo_parse::MongoBsonxxEncoder;
+using ff_mongo_cpp::mongo_filter::MongoFilter;
 using ff_mongo_cpp::MongoConnection;
 using ff_mongo_cpp::mongo_objects::MongoObjectID;
 using ff_mongo_cpp::mongo_objects::MongoDocument;

@@ -18,6 +18,7 @@
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
 
 
+
 namespace fulfil::dispense::drop
 {
 /**
@@ -35,7 +36,7 @@ class DropZoneSearcher
   void check_inputs(float shadow_length,
                     float shadow_width,
                     float shadow_height,
-                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                     std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details);
 
 
@@ -76,7 +77,6 @@ class DropZoneSearcher
     float interference_average_z {};       // average z in LFB local coordinates of points detected in interference zone
     bool rotation_required{};       // indicates whether LFB rotation will be required to reach this candidate point
     bool interference_detected{};    // true if potential interference detected for this drop region
-    int interference_points_count{};
     Interference_Region interference_region{};
     // bleh should init all in one place
     Target_Region() = default;
@@ -108,13 +108,6 @@ class DropZoneSearcher
     fulfil::utils::Point3D outer_back;
     int number_of_points_protruding;
   };
-
-	struct FloorAnalysisResult {
-		bool anomaly_present{};
-		bool items_on_ground{};
-		float confidence_score{};
-		FloorAnalysisResult() = default;
-	};
 
   /**
    * Analyzes target region candidate and populates Target Region struct with results
@@ -162,7 +155,7 @@ class DropZoneSearcher
    * Checks that the markers are in correct positions
    */
   void validate_marker_positions(bool nominal_bot_rotation, std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
-                                 std::shared_ptr<LfbVisionConfiguration> lfb_vision_config);
+                                 std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
 
 
@@ -269,11 +262,11 @@ public:
 
 
   std::shared_ptr<DropResult> find_drop_zone_center(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<fulfil::mongo::MongoBagState> mongo_bag_state, bool bot_has_already_rotated = false);
+                                                    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<fulfil::mongo::MongoBagState> mongo_bag_state, bool bot_has_already_rotated = false);
 
 
   std::shared_ptr<fulfil::utils::Point3D> get_empty_bag_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
+                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
                                                 float LFB_cavity_height);
 
     /**
@@ -287,14 +280,14 @@ public:
 
 
   std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> find_max_Z(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
-                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<fulfil::mongo::MongoBagState> mongo_bag_state,
-                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
-                                               std::shared_ptr<std::string> base_directory);
+                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<fulfil::mongo::MongoBagState> mongo_bag_state,
+                std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
+                std::shared_ptr<std::string> base_directory);
 
-  /**
+    /**
    *  Note: see marker_detector_container.h for notes on usage of extend_region_over_markers param. Currently it does nothing
    */
-  std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> get_container(std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+  std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> get_container(std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                                                   std::shared_ptr<fulfil::depthcam::Session> session,
                                                                                   bool extend_region_over_markers);
 
@@ -309,7 +302,7 @@ public:
   * @return See definition of Max_Z_Points struct above. Coordinates are provided in meter units, local bag coordinate system
   */
   Max_Z_Points adjust_depth_detections(std::shared_ptr<cv::Mat>, std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> input_cloud,
-                                  float item_mass, float minimum_max_depth, bool should_search_right_to_left, std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, bool visualize_flag = true,
+                                  float item_mass, float minimum_max_depth, bool should_search_right_to_left, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, bool visualize_flag = true,
                                   bool live_viewer_flag = false, bool should_check_empty = false, bool force_adjustment = false);
 
 

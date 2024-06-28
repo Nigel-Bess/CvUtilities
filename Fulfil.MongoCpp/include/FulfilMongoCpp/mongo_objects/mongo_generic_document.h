@@ -18,7 +18,6 @@
 #include "FulfilMongoCpp/mongo_objects/mongo_element.h"
 #include "FulfilMongoCpp/mongo_objects/mongo_document.h"
 
-using ff_mongo_cpp::mongo_objects::MongoElement;
 
 
 namespace ff_mongo_cpp {

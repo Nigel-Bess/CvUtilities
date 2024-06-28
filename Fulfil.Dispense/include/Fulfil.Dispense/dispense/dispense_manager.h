@@ -11,7 +11,6 @@
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager_delegate.h>
 #include <Fulfil.DepthCam/core/session.h>
-#include <Fulfil.DepthCam/data/bigquery_upload.h>
 #include <Fulfil.DepthCam/data/upload_generator.h>
 #include <Fulfil.Dispense/bays/bay_runner.h>
 #include <Fulfil.Dispense/commands/dispense_request.h>
@@ -20,11 +19,9 @@
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
 #include <Fulfil.Dispense/drop/drop_manager.h>
-#include <Fulfil.Dispense/motion/trinamic.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
-#include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <FulfilMongoCpp/mongo_connection.h>
 
@@ -109,20 +106,17 @@ namespace fulfil::dispense {
             std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
             /**
-             *  Mongo ids for the last calibration entries in mongo for dispense, hover, and tongue engage
-             *  used for linking tray count entry to a calibration
-             */
-            std::vector<std::string> tray_calibration_ids;
-            /**
              *  Mongo id for the LFB bag currently being inspected at the bay
              */
             std::string bag_id;
 
-
             /**
-             * BigQuery uploader object to upload traycounts (and potentially other data) to BigQuery
-             */
-            fulfil::depthcam::data::BQUpload bq_uploader;
+            *  keeps track of whether the bot has already been commanded to rotate 180 degrees for the current dispense
+            * (i.e. the Drop Target result Rotate_LFB was True for the first drop target request for the current dispense)
+            * This is important because we will only command the bot to rotate a maximum of one time per dispense
+            */
+            bool bot_already_rotated_for_current_dispense = false;
+
 
             /**
              * Builds a fresh copy of base_dir from configs and appends a date to the end.
@@ -132,50 +126,6 @@ namespace fulfil::dispense {
              */
             std::shared_ptr<std::string> create_datagenerator_basedir();
 
-            /**
-             *  Pointer to motion controller object for handling stepper motor control
-             */
-            std::shared_ptr<fulfil::dispense::motion::Trinamic> motion_controller;
-
-            /**
-             *  Ini reader for motion controller configs
-             */
-            INIReader motion_config_reader;
-
-
-            /**
-            *  Read in configs and set parameters on the Trinamic motion controller, as well as velocity settings
-            *  Returns false if encounter an issue
-            */
-            bool set_motion_params();
-
-            /**
-            *  Velocity in pps (pulses per second = microsteps/sec) for the homing motor routine
-            */
-            int home_velocity_setting = 0;
-
-            /**
-             *  Velocity in pps (pulses per second = microsteps/sec) for the position motor routine
-             */
-            int position_velocity_setting = 0;
-
-            /**
-             *  keeps track of whether the rail motor is in position (stationary after completing a homing or positioning sequence)
-             *  this is important for indicating to VLSG via a NOP command response field that the motor is in position after a motion command
-             */
-            bool motor_in_position = false;
-
-            bool motor_motion_interrupted = false;
-
-            /**
-             *  keeps track of whether the bot has already been commanded to rotate 180 degrees for the current dispense
-             * (i.e. the Drop Target result Rotate_LFB was True for the first drop target request for the current dispense)
-             * This is important because we will only command the bot to rotate a maximum of one time per dispense
-             */
-            bool bot_already_rotated_for_current_dispense = false;
-
-            //capture image and save w/ Live viewer for ABIS / visualizations
-            int populate_live_viewer_frame(std::shared_ptr<cv::Mat> live_viewer_img, int live_viewer_code);
 
 
 
@@ -261,17 +211,12 @@ namespace fulfil::dispense {
 
             int handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
 
-            int handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
 
-            int handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
-
-        std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
+            std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             int handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
 
-            /**
-            *  Returns true if rail motor is stationary after a position or home motion
-            */
+            // Currently always returns true to meet FCs expectations after motor control outsourced to fw
             bool check_motor_in_position() override;
 
             void handle_request_in_thread(std::shared_ptr<std::string> payload, std::shared_ptr<std::string> command_id);

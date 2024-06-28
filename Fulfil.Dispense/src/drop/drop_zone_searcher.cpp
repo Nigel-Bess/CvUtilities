@@ -129,7 +129,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
 void DropZoneSearcher::check_inputs(float shadow_length,
                                     float shadow_width,
                                     float shadow_height,
-                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                     std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details)
 {
   float LFB_width = lfb_vision_config->LFB_width;
@@ -218,7 +218,7 @@ void DropZoneSearcher::check_inputs(float shadow_length,
 }
 
 std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
+                                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
                                                                    float LFB_cavity_height)
 {
   float container_length = lfb_vision_config->container_length;
@@ -345,7 +345,7 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detec
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
                                                   float item_mass, float platform_in_LFB_coords,
                                                   bool should_search_right_to_left,
-                                                  std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                                  std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
@@ -907,7 +907,7 @@ void eigen_sort_columns_by_y(std::shared_ptr<Eigen::Matrix3Xd> matrix)
   }
 };
 
-std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                                          std::shared_ptr<Session> session,
                                                                          bool extend_region_over_markers)
 {
@@ -1077,7 +1077,7 @@ int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::dept
 }
 
 void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
-                                                 std::shared_ptr<LfbVisionConfiguration> lfb_vision_config)
+                                                 std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config)
 {
   Logger::Instance()->Debug("Conducting second round validation check on marker locations");
   int min_dim_1 = lfb_vision_config->min_dim_1;
@@ -1127,7 +1127,7 @@ void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std:
 
 std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_ptr<MarkerDetectorContainer> container,
                                                                std::shared_ptr<DropTargetDetails> details,
-                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                                               std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                                std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                bool bot_has_already_rotated)
 
@@ -1827,7 +1827,7 @@ DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_du
 }
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
-                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
+                                                               std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
                                                                std::shared_ptr<std::string> base_directory)
 {
