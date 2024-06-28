@@ -33,11 +33,11 @@ void PostSideDispenseResponse::encode_payload()
 
 
 PostSideDispenseResponse::PostSideDispenseResponse(
-        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id){}
+        std::shared_ptr<std::string> request_handshake_id) : request_id(request_handshake_id){}
 
 std::shared_ptr<std::string> PostSideDispenseResponse::get_command_id()
 {
-    return this->command_id;
+    return this->request_id;
 }
 
 int PostSideDispenseResponse::dispense_payload_size()

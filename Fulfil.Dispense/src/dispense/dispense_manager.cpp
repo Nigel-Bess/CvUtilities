@@ -298,23 +298,26 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::post_side_dispense:
-            Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
+        case DispenseCommand::post_side_dispense: {
+            Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
+                                     this->machine_name, *pkid, *command_id);
             response = handle_post_side_dispense(command_id, request_json);
             break;
-
-        case DispenseCommand::start_lfb_video:
-                Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *command_id);
+        }
+        case DispenseCommand::start_lfb_video: {
+            Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}",
+                                     this->machine_name, *command_id);
             handle_start_lfb_video(pkid);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
-
-        case DispenseCommand::stop_lfb_video:
-            Logger::Instance()->Info("Received Stop LFB Video Request on Bay {}, PKID: {}, request_id: {}", this->machine_name, *pkid, *command_id);
-            handle_stop_lfb_video(); 
+        }
+        case DispenseCommand::stop_lfb_video: {
+            Logger::Instance()->Info("Received Stop LFB Video Request on Bay {}, PKID: {}, request_id: {}",
+                                     this->machine_name, *pkid, *command_id);
+            handle_stop_lfb_video();
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
-
+        }
         case DispenseCommand::start_tray_video: {
             Logger::Instance()->Info("Received Start Tray Video Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
@@ -360,7 +363,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
 void DispenseManager::did_receive_request(std::shared_ptr<DispenseRequest> request)
 {
 
-     Logger::Instance()->Debug("Dispense Manager: about to push request to process queue {}", *request->command_id);
+     Logger::Instance()->Debug("Dispense Manager: about to push request to process queue {}", *request->request_id);
      this->processing_queue->push(request);
 }
 

@@ -8,7 +8,6 @@
 
 using fulfil::utils::networking::SocketCommandHeader;
 using fulfil::dispense::commands::DispenseResponse;
-using fulfil::utils::Logger;
 
 int DispenseResponse::header_size()
 {
