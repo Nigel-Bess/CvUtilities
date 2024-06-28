@@ -1767,7 +1767,7 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSea
     return (front_max_z->z > back_max_z->z) ? front_max_z : back_max_z;
 }
 
-DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
+std::shared_ptr<DropZoneSearcher::FloorAnalysisResult> DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
 {
     auto get_color_img_file= [base_directory] (std::string prefix) -> std::string {
         std::string dir = make_media::paths::join_as_path(
@@ -1823,7 +1823,7 @@ DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_du
 	bool anomaly_detected = mssim_sum < (3*0.83) or mssim_sum > (3*0.98);
 	bool items_on_ground = mssim_sum < (3*0.9);
 	DropZoneSearcher::FloorAnalysisResult result{anomaly_detected, items_on_ground, 0.5};
-	return result;
+	return std::make_shared<DropZoneSearcher::FloorAnalysisResult>(result);
 }
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
@@ -1941,7 +1941,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 	  try {
 		  Logger::Instance()->Debug("PostDrop Post_LFR checking for items on ground");
 //	  container->get_markers();
-		  DropZoneSearcher::FloorAnalysisResult result = detect_item_on_ground_during_post_drop(*base_directory);
+		  DropZoneSearcher::FloorAnalysisResult result = *detect_item_on_ground_during_post_drop(*base_directory);
 
 		  anomaly_present = result.anomaly_present;
 		  items_on_ground = result.items_on_ground;

@@ -301,7 +301,7 @@ public:
   /**
    * Handles the detection of items on the ground during a dispense sequence, during the PostDropImage.
    */
-  FloorAnalysisResult detect_item_on_ground_during_post_drop(std::string base_directory);
+  std::shared_ptr<FloorAnalysisResult> detect_item_on_ground_during_post_drop(std::string base_directory);
 
     /**
   *  Modifies the current container cavity local point cloud to treat detected parts of the white bag as if the detected depth were at the bottom of the cavity
