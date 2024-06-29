@@ -45,7 +45,8 @@ void FileSystemUtil::create_directory(const char *directory) {
     std::string command;
     command.append("mkdir ");
     command.append(directory);
-    system(command.c_str());
+    int result = system(command.c_str());
+    if (result != 0) { std::cerr << "Unable to create dictionary\n" ; }
 }
 
 void FileSystemUtil::create_nested_directory(const std::shared_ptr<std::string>&directory) {
@@ -67,7 +68,8 @@ void FileSystemUtil::create_nested_directory(const std::string& directory) {
   std::string command;
   command.append("mkdir -p ");
   command.append((directory));
-  system(command.c_str());
+  int result = system(command.c_str());
+  if (result != 0) { std::cerr << "Unable to create nested dictionaries\n" ; }
 }
 
 bool FileSystemUtil::file_exists(const char *filename) {

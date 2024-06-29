@@ -10,6 +10,10 @@ calibrate:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build
 	cmake --build build --target auto_tray_calibration -- -j 6
 
+.phony : client
+client:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake --build build --target dispense_test_client -- -j 6
 
 .phony : deploy
 deploy:
