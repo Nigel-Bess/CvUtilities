@@ -1,9 +1,22 @@
 #!/bin/bash
 
 echo -e "\n$(hostname) camera initialization order"
-rs-fw-update -l | cut -d , -f 1,2
-cd ~/code/Fulfil.ComputerVision/Fulfil.Dispense
+#rs-fw-update -l | cut -d , -f 1,2
+#cd ~/code/Fulfil.ComputerVision/Fulfil.Dispense || echo "Failure to find the dispense repo directory" && exit
+
 echo -e "\nDispense API expected init:"
-grep -a '_cam is expected to be' logs/dispense_logs_$(date +'%Y-%m-%d').log | sed 's/^.*\([FG]D[12]\).* \([LFBtray]*_cam.*$\)/\1 \2/g' | sed 's/LFB_cam/LFB_cam /g' | tail -n 4
+# use today's log file, but if it doesn't exist then loop through the last week to find the latest log file
+LOG_DATE=$(date +'%Y-%m-%d')
+while [ "$LOG_DATE" != "$(date -d '-1 week' '+%Y-%m-%d')" ]; do
+  LOG_FILE_PATH="logs/dispense_logs_$LOG_DATE.log"
+  echo "Looking for camera init in $LOG_FILE_PATH..."
+  if [ -e $LOG_FILE_PATH ]; then
+    # actual output of camera init
+    grep -a '_cam is expected to be' $LOG_FILE_PATH | sed 's/^.*\([FG]D[12]\).* \([LFBtray]*_cam.*$\)/\1 \2/g' | sed 's/LFB_cam/LFB_cam /g' | tail -n 4
+  fi
+  # decrement the date by 1 day
+  LOG_DATE=$(date -I -d "$LOG_DATE - 1 day")
+done
+
 echo -e "\nKernel Stream init:"
 grep -Ea "$(date +'%b %d').*D4XX Sensor: DEPTH|$(date +'%b %d').*Booting Linux" /var/log/kern.log | tail -n 5
