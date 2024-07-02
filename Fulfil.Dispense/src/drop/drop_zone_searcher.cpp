@@ -1,9 +1,11 @@
+#include <filesystem>
 #include <memory>
 #include <tuple>
 #include <vector>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.DepthCam/frame/image_comparison.h>
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/visualization.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
@@ -16,6 +18,7 @@
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
+using fulfil::depthcam::image_comparison::get_MSSIM;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PixelPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
@@ -108,10 +111,11 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   std::shared_ptr<std::string> window_name_8 = std::make_shared<std::string>("Window 8: Interference Zone");
   std::shared_ptr<std::string> window_name_8andahalf = std::make_shared<std::string>("Window 8.5: Maximum Depth Points");
   std::shared_ptr<std::string> window_name_9 = std::make_shared<std::string>("Window 9: Candidates, post Damage Risk Filter");
+  std::shared_ptr<std::string> window_name_9andahalf = std::make_shared<std::string>("Window 9.5: Item on Ground Region of Interest");
 
   this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
   this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, no_wait);
-  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,yes_wait);
+  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,no_wait);
   this->session_visualizer4 = std::make_shared<SessionVisualizer>(session, window_name_4, location_top_right, window_size, yes_wait);
   this->session_visualizer5 = std::make_shared<SessionVisualizer>(session, window_name_5, location_bottom_left, window_size, no_wait);
   this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, no_wait);
@@ -119,12 +123,13 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   this->session_visualizer8 = std::make_shared<SessionVisualizer>(session, window_name_8, location_bottom_right, window_size, yes_wait);
   this->session_visualizer8andahalf = std::make_shared<SessionVisualizer>(session, window_name_8andahalf, location_bottom_right, window_size, yes_wait);
   this->session_visualizer9 = std::make_shared<SessionVisualizer>(session, window_name_9, location_bottom_left, window_size, no_wait);
+  this->session_visualizer9andahalf = std::make_shared<SessionVisualizer>(session, window_name_9andahalf, location_bottom_left, window_size, no_wait);
 }
 
 void DropZoneSearcher::check_inputs(float shadow_length,
                                     float shadow_width,
                                     float shadow_height,
-                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                     std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details)
 {
   float LFB_width = lfb_vision_config->LFB_width;
@@ -213,7 +218,7 @@ void DropZoneSearcher::check_inputs(float shadow_length,
 }
 
 std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                                std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
+                                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
                                                                    float LFB_cavity_height)
 {
   float container_length = lfb_vision_config->container_length;
@@ -340,7 +345,7 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(float item_protrusion_detec
 DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
                                                   float item_mass, float platform_in_LFB_coords,
                                                   bool should_search_right_to_left,
-                                                  std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                                  std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
 {
   Logger::Instance()->Debug("Analyzing white regions of bag and finding max depth point. Min value thresh: {}",
@@ -725,7 +730,7 @@ DropZoneSearcher::Interference_Region DropZoneSearcher::define_interference_regi
 }
 
 
-void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud)
+void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Target_Region> target_region, std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud, float remaining_platform)
 {
   Interference_Region interference_region = target_region->interference_region;
   float center_x = interference_region.center.x;
@@ -736,7 +741,7 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
   float maxx = center_x + interference_region.width/2.0;
   float miny = center_y - interference_region.length/2.0;
   float maxy = center_y + interference_region.length/2.0;
-  float minz = center_z + this->interference_depth_tolerance;
+  float minz = target_region->min_Z + this->interference_depth_tolerance;
 
   std::shared_ptr<Eigen::Matrix3Xd> cloud_data = point_cloud->as_local_cloud()->get_data();
 
@@ -757,11 +762,12 @@ void DropZoneSearcher::check_interference(std::shared_ptr<DropZoneSearcher::Targ
       if (local_z > interference_max_z) interference_max_z = local_z;
     }
   }
-  if (num_interference_points >= this->num_interference_points_tolerance)
+  if (num_interference_points >= this->num_interference_points_tolerance) // or target_region->min_Z > remaining_platform + 0.005)
   {
     target_region->interference_detected = true;
     target_region->interference_max_z = interference_max_z;
     target_region->interference_average_z = sum_interference_z / num_interference_points;
+    target_region->interference_points_count = num_interference_points;
     Logger::Instance()->Trace("Interference Threshold was met. {} points found, with maxz: {} and average z: {}",
                               num_interference_points, target_region->interference_max_z, target_region->interference_average_z);
   }
@@ -819,7 +825,7 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
 
   bool crazy_depth_regression = (average_diff < this->crazy_depth_regression);
   bool significant_depth_regression = (average_diff < this->significant_depth_regression); // significantly worse depth
-  bool equivalent_depth = (average_diff > this->equivalent_depth); // equivalent or better average depth
+  bool lower_depth = !(max_diff > this->equivalent_depth); // equivalent or better average depth
   bool moderate_depth_improvement = (average_diff > this->moderate_depth_improvement); //modest or better average depth
   bool significant_depth_improvement = (average_diff > this->significant_depth_improvement); //significantly better average depth
   bool crazy_depth_improvement = (average_diff > this->crazy_depth_improvement);
@@ -828,28 +834,19 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           get_quadrant_of_point(current_target_region->x, current_target_region->y),
           quadrant_preference_order);
 
-  if (use_quadrant_preference_order)
-  {
-      return current_quadrant_preferred and ((interference_improved and !significant_depth_regression) or
-                                             (significant_depth_improvement and !significant_variance_regression) or
-                                             (moderate_depth_improvement and !moderate_variance_regression) or
-                                             (equivalent_depth and moderate_variance_improvement));
-  } else {
-      // Only prefer a candidate requiring a pirouette (while current best does not require) if TODO - depth improvement
-      if (rotation_worsened) {
-          return crazy_depth_improvement;
-      }
-          // Only prefer a candidate that does not require a pirouette (while current best does require) if there's not a crazy depth regression
-      else if (rotation_improved) {
-          return !crazy_depth_regression;
-      } else //rotation of candidates is the same
-      {
-          return (interference_improved and !significant_depth_regression) or
-                 (significant_depth_improvement and !significant_variance_regression) or
-                 (moderate_depth_improvement and !moderate_variance_regression) or
-                 (equivalent_depth and moderate_variance_improvement);
-      }
-  }
+    bool range_diff_improvement = range_diff > 0.005;
+    bool range_diff_regression = range_diff < -0.010;
+  bool is_better = (current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
+          (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
+          (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
+          ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count));
+//          Historically, this has been:
+//          (rotation_improved and significant_variance_improvement) or
+//                   (crazy_depth_regression and !significant_variance_regression) or
+//                   (significant_depth_regression and !moderate_variance_regression) or
+//                   (equivalent_depth and moderate_variance_improvement);
+
+  return (use_quadrant_preference_order) ? current_quadrant_preferred and is_better : is_better;
 }
 
 std::shared_ptr<cv::Mat> DropZoneSearcher::visualize_target(std::shared_ptr<Point3D> result, std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, float shadow_length, float shadow_width, std::shared_ptr<cv::Mat> RGB_matrix, int color, int thickness)
@@ -910,7 +907,7 @@ void eigen_sort_columns_by_y(std::shared_ptr<Eigen::Matrix3Xd> matrix)
   }
 };
 
-std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                                          std::shared_ptr<Session> session,
                                                                          bool extend_region_over_markers)
 {
@@ -1080,7 +1077,7 @@ int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::dept
 }
 
 void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
-                                                 std::shared_ptr<LfbVisionConfiguration> lfb_vision_config)
+                                                 std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config)
 {
   Logger::Instance()->Debug("Conducting second round validation check on marker locations");
   int min_dim_1 = lfb_vision_config->min_dim_1;
@@ -1130,7 +1127,7 @@ void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std:
 
 std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_ptr<MarkerDetectorContainer> container,
                                                                std::shared_ptr<DropTargetDetails> details,
-                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                                                               std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                                std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                bool bot_has_already_rotated)
 
@@ -1605,7 +1602,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                                            current_point, must_rotate_from_nominal_to_reach_candidate);
 
     std::shared_ptr<Target_Region> current_target_ptr = std::make_shared<Target_Region>(current_target_region);
-    check_interference(current_target_ptr, filtered_point_cloud);
+    check_interference(current_target_ptr, filtered_point_cloud, details->remaining_platform);
 
     // Check if candidate point will result in item sticking out too far above bag (collision and non-collision cases). if so, continue on to next candidate
     float dispensed_item_expected_max_Z_collision = -1;
@@ -1770,17 +1767,77 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_max_z_from_max_points(DropZoneSea
     return (front_max_z->z > back_max_z->z) ? front_max_z : back_max_z;
 }
 
+DropZoneSearcher::FloorAnalysisResult DropZoneSearcher::detect_item_on_ground_during_post_drop(std::string base_directory)
+{
+    auto get_color_img_file= [base_directory] (std::string prefix) -> std::string {
+        std::string dir = make_media::paths::join_as_path(
+                base_directory, prefix).string();
+        for (const auto & entry : std::filesystem::directory_iterator(dir)) {
+            // there should only be one in this directory so take the first one and run
+            return entry.path().string() + "/color_image.png";
+        }
+        return std::string();
+    };
+
+    auto get_roi = [](cv::Mat img) -> cv::Mat {
+//        def get_roi(img, top_left, bottom_right, num_detected_markers):
+// coordinates of the area to include in the image, roughly the front area of bot
+        int min_x = 300; //200;
+        int max_x = 1000; //1100;
+        int min_y = 150; // #190 #150
+        int max_y = 400; //#650
+        int width = max_x - min_x;
+        int height = max_y - min_y;
+
+        cv::Mat crop_img = img(cv::Rect (min_x, min_y, width, height));
+
+		cv::Mat mask = cv::Mat::zeros(crop_img.size(), crop_img.type());
+		// TODO make this better and not hardcoded
+		mask(cv::Rect(420-min_x, 250-min_y, 450, 150)) = cv::Scalar(255,255,255);
+		cv::bitwise_not(mask, mask);
+		cv::bitwise_and(mask, crop_img, crop_img);
+
+    return crop_img;
+    };
+
+    // read in pre and post images (where is the post image SAVED!? need to do this after that happens) actually no it doesn't need to be saved because it's a variable in this function
+
+    std::string pre_color_img_file = get_color_img_file("Pre_Drop_Image");
+    Logger::Instance()->Debug("Reading PreDrop image from {}", pre_color_img_file);
+    std::string post_color_img_file = get_color_img_file("Post_Drop_Image");
+    Logger::Instance()->Debug("Reading PostDrop image from {}", post_color_img_file); // or do i just use the frame etc, not read in
+
+    cv::Mat pre_color_img = get_roi(cv::imread(pre_color_img_file, cv::IMREAD_COLOR));
+    cv::Mat post_color_img = get_roi(cv::imread(post_color_img_file, cv::IMREAD_COLOR));
+	if (this->visualize == 1)  { this->session_visualizer9andahalf->display_image(std::make_shared<cv::Mat>(post_color_img)); }
+
+
+    double psnr = cv::PSNR(pre_color_img, post_color_img);
+    cv::Scalar mssim = get_MSSIM(pre_color_img, post_color_img);
+    Logger::Instance()->Debug("PSNR: {}", psnr);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[0]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[1]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[2]);
+    Logger::Instance()->Debug("MSSIM: {}", mssim.val[3]);
+	float mssim_sum = mssim.val[0] + mssim.val[1] + mssim.val[2];
+	bool anomaly_detected = mssim_sum < (3*0.83) or mssim_sum > (3*0.98);
+	bool items_on_ground = mssim_sum < (3*0.9);
+	DropZoneSearcher::FloorAnalysisResult result{anomaly_detected, items_on_ground, 0.5};
+	return result;
+}
 
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
-                                                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
-                                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info)
+                                                               std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
+                                                               std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
+                                                               std::shared_ptr<std::string> base_directory)
 {
   Logger::Instance()->Trace("find_drop_zone_center called in drop_zone_searcher");
 
   float LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
   /* remaining platform in meters from request */
   float remaining_platform = (*request_json)["Remaining_Platform"].get<float>()/1000;
-  float should_search_right_to_left = request_json->value("Flip_X_Default", false);
+  bool should_search_right_to_left = request_json->value("Flip_X_Default", false);
+  bool check_for_items_on_ground = request_json->value("Check_For_Items_On_Ground", false);
 
   Logger::Instance()->Debug("Check MaxZ Initiated");
 
@@ -1875,9 +1932,27 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
     max_Z_result = 1.0; //returning such a large value will automatically lead to bag sent to pickup. //TODO: could handle more elegantly w/ additional output
   }
 
-  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result);
+  bool anomaly_present = false;
+  bool items_on_ground = false;
+  float floor_analysis_confidence_score = 0.0;
+  Logger::Instance()->Debug("PostDrop Post_LFR handling will check for items on ground: {}", check_for_items_on_ground);
+  if (check_for_items_on_ground)
+  {
+	  try {
+		  Logger::Instance()->Debug("PostDrop Post_LFR checking for items on ground");
+//	  container->get_markers();
+		  DropZoneSearcher::FloorAnalysisResult result = detect_item_on_ground_during_post_drop(*base_directory);
+
+		  anomaly_present = result.anomaly_present;
+		  items_on_ground = result.items_on_ground;
+		  floor_analysis_confidence_score = result.confidence_score;
+		  Logger::Instance()->Debug(
+				  "PostDrop Post_LFR found anomaly detected: {}, items on ground: {}, with confidence score: {}",
+				  result.anomaly_present, result.items_on_ground, result.confidence_score);
+	  } catch (...){
+		  Logger::Instance()->Debug("Error encountered in detect_item_on_ground_during_post_drop!");
+	  }
+  }
+
+  return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
 }
-
-
-
-

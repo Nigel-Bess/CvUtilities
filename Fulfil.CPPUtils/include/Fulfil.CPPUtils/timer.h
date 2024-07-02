@@ -7,7 +7,6 @@
 #include <chrono>
 #include <string>
 
-using namespace std::chrono;
 
 namespace fulfil::utils::timing {// Timer class to log absolute time until complete for a scope.
     std::string time_and_date_ms_precision(std::chrono::time_point <std::chrono::high_resolution_clock> tp);
@@ -32,7 +31,7 @@ inline std::chrono::system_clock::time_point CurrentTime() {
 }
 
 inline double ms_elapsed(std::chrono::system_clock::time_point start) {
-        auto elapsed = duration_cast<std::chrono::milliseconds>(CurrentTime() - start).count();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime() - start).count();
         return static_cast<double>(elapsed);   
     }
 

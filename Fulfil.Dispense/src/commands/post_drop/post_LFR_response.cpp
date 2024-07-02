@@ -20,6 +20,9 @@ void PostLFRResponse::encode_payload()
   (*result_json)["Bag_Full_Percent"] = this->Bag_Full_Percent;
   (*result_json)["Item_On_Target_Percent"] = this->Item_On_Target_Percent;
   (*result_json)["Products_To_Overflow"] = this->Products_To_Overflow;
+  (*result_json)["Anomaly_Present"] = this->anomaly_present;
+  (*result_json)["Item_On_Ground"] = this->item_on_ground;
+  (*result_json)["Floor_Analysis_Confidence_Score"] = this->floor_analysis_confidence_score;
 
   std::string json_string = result_json->dump();
   Logger::Instance()->Info("Encoding PostLFRResponse as: {}", json_string);
@@ -34,7 +37,7 @@ void PostLFRResponse::encode_payload()
 
 
 PostLFRResponse::PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<fulfil::utils::Point3D> max_Z,
-                                 int items_dispensed, int Bag_Full_Percent, int Item_On_Target_Percent)
+                                 int items_dispensed, int Bag_Full_Percent, int Item_On_Target_Percent, bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score)
 {
   this->command_id = command_id;
   this->success_code = success_code;
@@ -45,6 +48,9 @@ PostLFRResponse::PostLFRResponse(std::shared_ptr<std::string> command_id, int su
   this->Bag_Full_Percent = Bag_Full_Percent;
   this->Item_On_Target_Percent = Item_On_Target_Percent;
   this->Products_To_Overflow = std::vector<int>();
+  this->anomaly_present = anomaly_present;
+  this->item_on_ground = item_on_ground;
+  this->floor_analysis_confidence_score = floor_analysis_confidence_score;
 }
 
 std::shared_ptr<std::string> PostLFRResponse::get_command_id()

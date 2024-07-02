@@ -13,7 +13,6 @@
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 
 #include <Fulfil.CPPUtils/logging.h>
-// #include <Fulfil.CPPUtils/GrpcService.h>
 #include <Fulfil.CPPUtils/comm/GrpcService.h>
 
 #include <FulfilMongoCpp/mongo_connection.h>

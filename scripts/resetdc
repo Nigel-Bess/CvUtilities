@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-redis-cli FLUSHALL && sudo systemctl stop depthcam.service && sudo systemctl stop bg_redis_worker.service && sudo systemctl stop tray_count.service && sudo systemctl start tray_count.service && sudo systemctl start bg_redis_worker.service && sudo systemctl start depthcam.service || echo "Failed"

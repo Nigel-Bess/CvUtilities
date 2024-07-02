@@ -18,7 +18,7 @@ StopLFBVideoRequest::StopLFBVideoRequest(std::shared_ptr<std::string> command_id
    * The command id is still somewhat important here because
    * it is used when filtering out commands in the queue.
    */
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
 }
 
@@ -34,5 +34,5 @@ std::shared_ptr<DispenseResponse> StopLFBVideoRequest::execute()
     std::cout << "StopLFBVideo Command Delegate Expired" << std::endl;
   }
   //std::cout << "returning StopVideoresponse" << std::endl;
-  return std::make_shared<CodeResponse>(this->command_id, 0);
+  return std::make_shared<CodeResponse>(this->request_id, 0);
 }

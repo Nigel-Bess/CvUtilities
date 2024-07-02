@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-sudo systemctl stop depthcam.service && sudo systemctl stop bg_redis_worker.service && sudo systemctl stop tray_count.service || echo "Failed"

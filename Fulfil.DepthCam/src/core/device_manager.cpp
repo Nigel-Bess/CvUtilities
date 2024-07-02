@@ -66,21 +66,6 @@ void DeviceManager::reset_context_list() {
     fulfil::utils::Logger::Instance()->Info("Reset {} managed devices for production...", managed_devices.size());
 }
 
-std::shared_ptr<Session> DeviceManager::session_by_serial_number(const std::string &serial_number)
-{   //Checks to see if the specified device is connected.
-    for(rs2::device const device : this->context.query_devices()) {
-        if(std::string_view{device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)} == serial_number){
-            fulfil::utils::Logger::Instance()->Debug("Found specified device {}", serial_number);
-            return std::make_unique<DepthSession>(std::make_unique<DepthSensor>(serial_number));
-        }
-        fulfil::utils::Logger::Instance()->Debug("Found {} which does not match {}",
-          device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER),  serial_number);
-
-    }
-    fulfil::utils::Logger::Instance()->Error("Failed to find session {} in context", serial_number);
-    throw std::invalid_argument("serial number does not correspond to any connected devices");
-}
-
 
 
 
@@ -127,6 +112,46 @@ nlohmann::json parse_request_file_to_json(std::filesystem::path json_file_path) 
   return json_obj_data;
 }
 
+std::shared_ptr<Session> DeviceManager::session_by_serial_number(const std::string &serial_number)
+{   //Checks to see if the specified device is connected.
+    for(rs2::device const device : this->managed_devices) {
+        if(std::string_view{device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)} == serial_number){
+            fulfil::utils::Logger::Instance()->Debug("Found specified device {}", serial_number);
+            if(device.is<rs400::advanced_mode>()) {
+                auto advanced_mode_dev = device.as<rs400::advanced_mode>();
+                if (auto preset_str = this->get_preset_by_camera_type(device.get_info(RS2_CAMERA_INFO_NAME)) ; !preset_str.empty() ){
+                    advanced_mode_dev.load_json(preset_str);
+                    fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for {} device {}...", device.get_info(RS2_CAMERA_INFO_NAME), serial_number);
+                }
+            }
+            return std::make_unique<DepthSession>(std::make_unique<DepthSensor>(serial_number));
+        }
+        fulfil::utils::Logger::Instance()->Debug("Found {} which does not match {}", device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER),  serial_number);
+    }
+    fulfil::utils::Logger::Instance()->Error("Failed to find session {} in context", serial_number);
+    throw std::invalid_argument("Failed to find any connected devices with serial number " + serial_number);
+}
+
+std::string DeviceManager::get_preset_by_camera_type(std::string_view camera_name) const{
+    if (camera_name == "Intel RealSense D415"){
+        auto D415_presets = in_frozen_env ? *DevicePresets::D415_frozen() : *DevicePresets::D415_high_accuracy();
+        return D415_presets;
+    }
+    else if (camera_name == "Intel RealSense D455"){
+        return *DevicePresets::D455_adjusted();
+    }
+    else if (camera_name == "Intel RealSense D457"){
+        std::filesystem::path preset_base_dir = std::filesystem::path(fulfil::utils::Logger::default_logging_dir).parent_path().parent_path();
+        preset_base_dir /= "Fulfil.DepthCam/src/presets/d457_adjustments.json";
+        auto presets = parse_request_file_to_json(preset_base_dir);
+        return presets.dump();
+    }
+    fulfil::utils::Logger::Instance()->Error("Did not load presets for advanced mode. Device neither D415, D455 "
+                                                 "nor D457, but {}", camera_name);
+    return "";
+
+}
+
 
 std::shared_ptr<std::vector<std::shared_ptr<Session>>> DeviceManager::get_connected_sessions()
 {
@@ -140,32 +165,14 @@ std::shared_ptr<std::vector<std::shared_ptr<Session>>> DeviceManager::get_connec
         std::string name = device.get_info(RS2_CAMERA_INFO_NAME);
         fulfil::utils::Logger::Instance()->Trace("Current device {} name is: {}", unwrap_rs_serial(device), name);
         fulfil::utils::Logger::Instance()->Trace("Found device serial number from list...");
-        auto D415_presets = in_frozen_env ? *DevicePresets::D415_frozen() : *DevicePresets::D415_high_accuracy();
-
-        if(device.is<rs400::advanced_mode>())
-        {
+        if(device.is<rs400::advanced_mode>()) {
             auto advanced_mode_dev = device.as<rs400::advanced_mode>();
-            if (name == "Intel RealSense D415"){
-                advanced_mode_dev.load_json(*DevicePresets::D415_high_accuracy());
-                fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for D415 device {}...", device_serial_number);
-            }
-            else if (name == "Intel RealSense D455"){
-                advanced_mode_dev.load_json(*DevicePresets::D455_adjusted());
-                fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for D455 device {}...", device_serial_number);
-            }
-            else if (name == "Intel RealSense D457"){
-              std::filesystem::path preset_base_dir = std::filesystem::path(fulfil::utils::Logger::default_logging_dir).parent_path().parent_path();
-              preset_base_dir /= "Fulfil.DepthCam/src/presets/d457_adjustments.json";
-              auto presets = parse_request_file_to_json(preset_base_dir);
-              fulfil::utils::Logger::Instance()->Info("D457 advance mode settings for {} at {}...", device_serial_number, preset_base_dir.string());
-              advanced_mode_dev.load_json(presets.dump());
-              fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for D457 device {}...", device_serial_number);
-            } else{
-                fulfil::utils::Logger::Instance()->Error("Did not load presets for advanced mode. Device neither D415, D455 "
-                                                        "nor D457, but {}", name);
+            if (auto preset_str = this->get_preset_by_camera_type(name) ; !preset_str.empty() ){
+                advanced_mode_dev.load_json(preset_str);
+                fulfil::utils::Logger::Instance()->Info("Loaded advanced mode for {} device {}...", name, device_serial_number);
             }
         } else {
-          fulfil::utils::Logger::Instance()->Info("Device {} does not support advanced mode", device_serial_number);
+            fulfil::utils::Logger::Instance()->Info("{} device {} does not support advanced mode", name, device_serial_number);
         }
         result->emplace_back(std::make_shared<DepthSession>(std::make_unique<DepthSensor>(device_serial_number)));
         fulfil::utils::Logger::Instance()->Trace("Session added to result.");

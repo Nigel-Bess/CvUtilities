@@ -4,15 +4,12 @@
 //
 
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
-#define FULFIL_DISPENSE_INCLUDE_FULFnIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
+#define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
 #include <Fulfil.Dispense/commands/dispense_command.h>
 #include <memory>
 #include <json.hpp>
 
-namespace fulfil
-{
-namespace dispense {
-namespace commands
+namespace fulfil::dispense::commands
 {
 /**
  * The purpose of this class is to parse the command
@@ -40,7 +37,6 @@ class DispenseCommandParser
   static fulfil::dispense::commands::DispenseCommand parse(std::shared_ptr<nlohmann::json> json);
 };
 } // namespace commands
-} // namespace dispense
-} // namespace fulfil
+
 
 #endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_

@@ -1,7 +1,3 @@
-//
-// Created by nkaffine on 12/2/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 /**
  * This file contains the implementation of the depth sensor
  * that wraps around the realsense sensor and sdk. It also
@@ -60,6 +56,18 @@ DepthSensor::DepthSensor(const std::string &serial, std::shared_ptr<TaskQueue> q
     last_frame_time = CurrentTime();
     std::thread run(&DepthSensor::manage_pipe, this);
     run.detach();
+
+    // WARM UP
+    fulfil::utils::Logger::Instance()->Trace("WARM UP starting for camera {}.", serial);
+    print_framestats();
+    auto start = CurrentTime();
+    while((good_frames < 30) || (ms_elapsed(start) < 1500)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    print_framestats();
+    fulfil::utils::Logger::Instance()->Trace("WARM UP complete for camera {}.", serial);
+
+
 }
 
 /**
@@ -180,8 +188,7 @@ void DepthSensor::manage_pipe(){
         auto elapsed = ms_elapsed(timer);
         average_frame_time = average_frame_time * 0.90 + elapsed * 0.10;
         if(ms_elapsed(print_time) > 10000){
-            printf("%s:[%s] Avg frame: %.01fms, total frames: %ld [good: %ld, unrecov exc: %ld, recov exc: %ld, std exc: %ld]\n", name_.c_str(),
-                serial_number->c_str(), average_frame_time, total_frames, good_frames, unrecoverable_exc, recoverable_exc, std_exceptions);
+            print_framestats();
             print_time = CurrentTime();
         }
         if(!success){

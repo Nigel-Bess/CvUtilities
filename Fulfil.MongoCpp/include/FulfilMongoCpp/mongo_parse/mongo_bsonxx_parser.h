@@ -4,10 +4,7 @@
 #include <memory>
 
 #include "FulfilMongoCpp/mongo_objects/mongo_array_element.h"
-using ff_mongo_cpp::mongo_objects::MongoArrayElement;
-
 #include "FulfilMongoCpp/mongo_objects/mongo_document_element.h"
-using ff_mongo_cpp::mongo_objects::MongoDocumentElement;
 
 namespace ff_mongo_cpp {
     namespace mongo_parse {
@@ -83,7 +80,7 @@ namespace ff_mongo_cpp {
               if (cursorAtRoot()) {
                 this->current_element = std::make_shared<ff_mongo_cpp::mongo_objects::MongoDocumentElement>(this->document[key]);
               } else {
-                std::shared_ptr<MongoElement> next = this->current_element->getNext(key);
+                std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoElement> next = this->current_element->getNext(key);
                 this->current_element = nullptr;
                 this->current_element = std::move(next);
               }
@@ -95,7 +92,7 @@ namespace ff_mongo_cpp {
               if (cursorAtRoot()) {
                 throw std::runtime_error("Cursor is at root, first index value must be a string index, not array index!");
               }
-              std::shared_ptr<MongoElement> next = this->current_element->getNext(key);
+              std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoElement> next = this->current_element->getNext(key);
               this->current_element = nullptr;
               this->current_element = std::move(next);
               moveCursorToElem(std::forward<Args>(args)...);
@@ -137,7 +134,7 @@ namespace ff_mongo_cpp {
 
         private:
             bsoncxx::document::view document;
-            std::shared_ptr<MongoElement> current_element;
+            std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoElement> current_element;
 
 
         };

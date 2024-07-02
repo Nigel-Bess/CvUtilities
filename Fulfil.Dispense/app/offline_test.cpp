@@ -197,45 +197,47 @@ void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std
 }
 
 
-void test_post_drop_routine(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader, std::shared_ptr<INIReader> LFB_config_reader)
+void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader, std::shared_ptr<INIReader> LFB_config_reader)
 {
-    Logger::Instance()->Fatal("This test is not currently supported!");
-//  std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
-//  std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
-//  start_mock_session(directory_path, mock_session, mock_serial);
-//  if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
+  std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
+  std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
+  start_mock_session(directory_path, mock_session, mock_serial);
+  if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
+
+  // Creating the DropManager
+  std::shared_ptr<fulfil::dispense::drop::DropManager>
+      manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session, reader, nullptr);
+
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = std::make_shared<LfbVisionConfiguration>();
+
+    std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
+  bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
+
+  std::shared_ptr<MarkerDetectorContainer> container = manager->searcher->get_container(lfb_vision_config, mock_session, extend_depth_analysis_over_markers);
+
+
+  Logger::Instance()->Debug("Reading post json request from file now");
+  *directory_path = make_media::paths::join_as_path(*directory_path, "json_request.json");
+  Logger::Instance()->Info("Reading json from file location is: {}", *directory_path);
+  std::ifstream ifs2( *directory_path);
+  std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
+
+  ff_mongo_cpp::mongo_objects::MongoObjectID bag_oid = ff_mongo_cpp::mongo_objects::MongoObjectID("5e6fe411b901a80c5481d4e5");
+  std::shared_ptr<fulfil::mongo::MongoBagState> doc = std::make_shared<fulfil::mongo::MongoBagState>(bag_oid, false);
+//  manager->handle_post_LFR(post_request_json, base_directory, request_id, false);
+  manager->searcher->find_max_Z(container, request_id, lfb_vision_config, doc, post_request_json, nullptr, base_directory); // parameters
+
+
+  /**
+   * Add additional check for products fitting in bag
+   */
+//   manager->cached_post_container = container;
+//   std::vector<int> products_to_overflow = manager->check_products_for_fit_in_bag(LFB_config_reader, post_request_json);
+//   std::cout << "offline test for product fit included " << products_to_overflow.size() << " products" << std::endl;
 //
-//  // Creating the DropManager
-//  std::shared_ptr<fulfil::dispense::drop::DropManager>
-//      manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session, reader, nullptr);
-//
-//  std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
-//  bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
-//
-//  std::shared_ptr<MarkerDetectorContainer> container = manager->searcher->get_container(lfb_vision_config, mock_session, extend_depth_analysis_over_markers);
-//
-//
-//  Logger::Instance()->Debug("Reading post json request from file now");
-//  *directory_path = make_media::paths::join_as_path(*directory_path, "json_request.json");
-//  Logger::Instance()->Info("Reading json from file location is: {}", *directory_path);
-//  std::ifstream ifs2( *directory_path);
-//  std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
-//
-//  ff_mongo_cpp::mongo_objects::MongoObjectID bag_oid = ff_mongo_cpp::mongo_objects::MongoObjectID("5e6fe411b901a80c5481d4e5");
-//  std::shared_ptr<fulfil::mongo::MongoBagState> doc = std::make_shared<fulfil::mongo::MongoBagState>(bag_oid, false);
-//  manager->searcher->find_max_Z(container, request_id, LFB_config_reader, doc, post_request_json, nullptr); // parameters
-//
-//
-//  /**
-//   * Add additional check for products fitting in bag
-//   */
-////   manager->cached_post_container = container;
-////   std::vector<int> products_to_overflow = manager->check_products_for_fit_in_bag(LFB_config_reader, post_request_json);
-////   std::cout << "offline test for product fit included " << products_to_overflow.size() << " products" << std::endl;
-////
-////   PostLFRResponse test_response = PostLFRResponse(request_id, 0);
-////   test_response.set_products_to_overflow(products_to_overflow);
-////   test_response.dispense_payload();
+//   PostLFRResponse test_response = PostLFRResponse(request_id, 0);
+//   test_response.set_products_to_overflow(products_to_overflow);
+//   test_response.dispense_payload();
 }
 
 int test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::shared_ptr<std::string> directory_path_post, std::shared_ptr<std::string> directory_path_target, std::shared_ptr<INIReader> reader, std::shared_ptr<INIReader> LFB_config_reader)
@@ -442,6 +444,28 @@ return 0;
 //  return result;
 }
 
+void test_item_on_ground_post_drop(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
+    std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
+    std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
+    start_mock_session(directory_path, mock_session, mock_serial);
+    if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
+
+    // Creating the DropManager
+    std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session, reader, nullptr);
+
+    std::shared_ptr<nlohmann::json> request_json = read_in_request_json(*directory_path, "json_request.json");
+    std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
+
+    std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> offline_drop_details =
+            std::make_shared<fulfil::dispense::commands::DropTargetDetails>(request_json, request_id);
+
+    std::cout << std::endl;
+    Logger::Instance()->Info("Handling request now");
+    manager->handle_post_LFR(request_json, directory_path, FileSystemUtil::create_datetime_string(), false); // parameters
+    Logger::Instance()->Info("Successfully completed routine");
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -605,12 +629,12 @@ int main(int argc, char** argv)
         {
           std::cout << std::endl;
           std::cout << std::endl;
-          test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
-          std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(test_data_path);
+          std::string exact_test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
+          std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(exact_test_data_path);
           for (auto td : *timestamp_dirs) {
             test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", *td);
             //Todo: add check for color image being present before calling test_image_routine
-            test_post_drop_routine(td, reader, LFB_config_reader);
+            test_post_drop_routine(std::make_shared<std::string>(test_data_path), td, reader, LFB_config_reader);
           }
         }
         else if (test_type == 3) //run pre-drop w/json followed by post-drop for performance evaluation
@@ -635,10 +659,10 @@ int main(int argc, char** argv)
 
           std::cout << std::endl;
           std::cout << std::endl;
-          test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
-          test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", test_data_path);
+          std::string exact_test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Drop_Image");
+          test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", exact_test_data_path);
           //Todo: add check for color image being present before calling test_image_routine
-          test_post_drop_routine(std::make_shared<std::string>(test_data_path), reader, LFB_config_reader);
+          test_post_drop_routine(std::make_shared<std::string>(test_data_path), std::make_shared<std::string>(exact_test_data_path), reader, LFB_config_reader);
         }
 
         else if (test_type == 4) //run pre/post comparison

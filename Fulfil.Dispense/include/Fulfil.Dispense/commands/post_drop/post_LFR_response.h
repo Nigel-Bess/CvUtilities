@@ -68,6 +68,20 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
   int Item_On_Target_Percent;
 
   /**
+   *  True if something unexpected was identified, like an item on the ground
+   */
+  bool anomaly_present;
+  /**
+   *  True if there is one or more items on the ground
+   */
+  bool item_on_ground;
+  /**
+   * Value between 0.0-1.0 representing the confidence of the values outputted in the floor analysis, such as identifying
+   * items on the ground. 0 represents no confidence, and 1 is full confidence.
+   */
+  float floor_analysis_confidence_score;
+
+  /**
    * List of products IDs that must be overflowed to another bag, will no longer fit in current bag based on post-image analysis
    */
    std::vector<int> Products_To_Overflow;
@@ -82,7 +96,7 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
    * constructor that initializes a response indicating a success with additional parameters to be sent
    */
   PostLFRResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<fulfil::utils::Point3D> max_Z = std::make_shared<fulfil::utils::Point3D>(0,0,0), int items_dispensed = -1,
-                   int Bag_Full_Percent = 0, int Item_On_Target_Percent = 0);
+                   int Bag_Full_Percent = 0, int Item_On_Target_Percent = 0, bool anomaly_present = false, bool item_on_ground = false, float floor_analysis_confidence_score = 0.0);
   /**
    * Returns the command id for the response.
    * @return pointer to string containing command id for the response.

@@ -25,6 +25,7 @@ using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::PrePostCompare;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
 using fulfil::dispense::visualization::LiveViewer;
+using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 

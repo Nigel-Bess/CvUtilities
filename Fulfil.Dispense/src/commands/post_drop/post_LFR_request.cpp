@@ -21,7 +21,7 @@ PostLFRRequest::PostLFRRequest(std::shared_ptr<std::string> command_id, std::sha
    * The command id is still somewhat important here because
    * it is used when filtering out commands in the queue.
    */
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->request_json = request_json;
   this->PrimaryKeyID = PrimaryKeyID;
 }
@@ -34,13 +34,13 @@ std::shared_ptr<DispenseResponse> PostLFRRequest::execute()
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
     std::shared_ptr<PostLFRResponse> response = tmp_delegate->handle_post_LFR(this->PrimaryKeyID,
-                                                                                    this->command_id,
+                                                                                    this->request_id,
                                                                                     this->request_json);
     return response;
   }
   else
   {
     std::cout << "PostDispense Command Delegate Expired" << std::endl;
-    return std::make_shared<PostLFRResponse>(this->command_id, 9); //TODO: change error code here
+    return std::make_shared<PostLFRResponse>(this->request_id, 9); //TODO: change error code here
   }
 }

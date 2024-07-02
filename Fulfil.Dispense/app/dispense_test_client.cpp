@@ -1,14 +1,8 @@
-//
-// Created by nkaffine on 12/18/19.
-// Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
-//
 #include <Fulfil.CPPUtils/comm/SbcClient.h>
-#include <Fulfil.CPPUtils/networking.h>
-#include <Fulfil.CPPUtils/file_system_util.h>
+#include <filesystem>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <json.hpp>
-#include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
 using fulfil::utils::Logger;
 
@@ -22,12 +16,6 @@ int main(int argc, char** argv)
   srand (time(NULL));
   Logger* test_logger = Logger::Instance((Logger::default_logging_dir +"/test_logs"), "dispense_test_client",
                                          Logger::Level::TurnOff,Logger::Level::Debug);
-    // nlohmann::json testjson;
-    // testjson["Type"] = 0;
-    // testjson["Primary_Key_ID"] = "6451d1e0561da0b95c2614ad";
-    // auto test = new ClientStream("0.0.0.0", 9510);
-    // test->Write(testjson.dump());
-    // test->ReadReponse();
   if(argc < 2)
   {
     throw std::runtime_error("Please specify which test config section to use from config ini on command line.");
@@ -68,8 +56,7 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < json_names.size(); i++)  //iterate through jsons and execute in order
   {
-    std::string filename = repo_location;
-    fulfil::utils::FileSystemUtil::join_append(filename, json_names[i]);
+    std::string filename = std::filesystem::path{ repo_location } /json_names[i];
 
     test_logger->Info("Configs from ini:\n\tFilename: {}\n\tIP Address: {}\n\tPort: {}", filename, ip_addr, port);
     auto get_file_json = [](const std::string& filename){
