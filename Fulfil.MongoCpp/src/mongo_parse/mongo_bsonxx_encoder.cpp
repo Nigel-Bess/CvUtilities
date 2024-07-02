@@ -38,7 +38,7 @@ bsoncxx::types::b_document MongoBsonxxEncoder::convert_bson(bsoncxx::document::v
   return bsoncxx::types::b_document{ value };
 }
 
-bsoncxx::types::b_document MongoBsonxxEncoder::convert_bson(MongoFilter value)
+bsoncxx::types::b_document MongoBsonxxEncoder::convert_bson(ff_mongo_cpp::mongo_filter::MongoFilter value)
 {
   return bsoncxx::types::b_document{ value.view() };
 }

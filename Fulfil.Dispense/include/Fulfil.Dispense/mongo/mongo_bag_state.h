@@ -5,22 +5,14 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_MONGO_BAG_STATE_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_MONGO_BAG_STATE_H_
 
-#include <bsoncxx/builder/stream/document.hpp>
-#include <bsoncxx/json.hpp>
-#include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
 
-#include <FulfilMongoCpp/mongo_objects/mongo_document.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
-#include <FulfilMongoCpp/mongo_objects/mongo_element.h>
 
 #include<opencv2/opencv.hpp>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.Dispense/mongo/packing_state.h>
 #include "Fulfil.Dispense/recipes/lfb_vision_configuration.h"
 
-using ff_mongo_cpp::mongo_objects::MongoObjectID;
-using fulfil::configuration::lfb::LfbVisionConfiguration;
 
 namespace fulfil::mongo
 {
@@ -29,7 +21,6 @@ class CvBagState final
     public:
         CvBagState(nlohmann::json json)
         {
-            std::cout << "In CvBagState constructor" << std::endl;
             _bag_id_string = json["BagId"].get<std::string>();
             // for offline test compatibility - the key is MongoID in prod but _id in offline data
             _id_string = json.value("MongoID", "NOT FOUND");
@@ -38,31 +29,25 @@ class CvBagState final
                 is_offline_test_run = true;
                 _id_string = json["_id"].get<std::string>();
             }
-            std::cout << "id string: " << _id_string << std::endl;
-            std::cout << "bag id string: " << _bag_id_string << std::endl;
 
-            BagId = MongoObjectID(bsoncxx::oid(_bag_id_string));
-            MongoID = MongoObjectID(bsoncxx::oid(_id_string));
+            BagId = ff_mongo_cpp::mongo_objects::MongoObjectID(_bag_id_string);
+            MongoID = ff_mongo_cpp::mongo_objects::MongoObjectID(_id_string);
             std::cout << "item map 1 json " << json["ItemMap1"] << std::endl;
 
             ItemMap1 = json["ItemMap1"].get<std::vector<int>>();
-            std::cout << "after item map 1" << std::endl;
 
             ItemMap2 = json["ItemMap2"].get<std::vector<int>>();
-            std::cout << "after item map 2" << std::endl;
 
             ItemMap3 = json["ItemMap3"].get<std::vector<int>>();
-            std::cout << "after item map 3" << std::endl;
 
             PackedItemsVolume = json["PackedItemsVolume"].get<int>();
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            std::cout << "In CvBagState after NumberDamageRejections" << std::endl;
             if (is_offline_test_run) {
-                Config = std::make_shared<LfbVisionConfiguration>();
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>();
             } else {
-                Config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
             }
             std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
         }
@@ -71,12 +56,12 @@ class CvBagState final
         std::vector<int> ItemMap1;
         std::vector<int> ItemMap2;
         std::vector<int> ItemMap3;
-        int PackedItemsVolume = -1;
-        int PercentBagFull = -1;
-        int PackingEfficiency = -1;
-        int NumberDamageRejections= -1;
+        int PackedItemsVolume{-1};
+        int PercentBagFull{-1};
+        int PackingEfficiency{-1};
+        int NumberDamageRejections{-1};
         ff_mongo_cpp::mongo_objects::MongoObjectID MongoID;
-        std::shared_ptr<LfbVisionConfiguration> Config;
+        std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> Config;
 
         nlohmann::json ToJson()
         {
@@ -107,7 +92,7 @@ class CvBagState final
         std::string _id_string;
 };
 
-class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
+class MongoBagState
 {
  public:
   MongoBagState();
@@ -127,21 +112,16 @@ class MongoBagState : public ff_mongo_cpp::mongo_objects::MongoDocument
 
   void SetObjectID(ff_mongo_cpp::mongo_objects::MongoObjectID new_id);
 
-  inline void update_values(bsoncxx::document::view doc) {}
   /**
    *  Takes in a pointer to a vector of cv::Mat, where each Mat is one layer of the item map,
    *  and converts this into item_map_arrays for mongo.
    */
   void set_item_map_arrays_from_mat(std::shared_ptr<std::vector<cv::Mat>> item_map_ptr);
 
-  bsoncxx::document::value MakeWritableValue();
+
   void UpdateRawMongoDocState();
   nlohmann::json GetStateAsJson();
   std::string GetStateAsString();
-
-  std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoDocument> MakeNewMongoDocument(bsoncxx::document::view doc,
-                                                      const std::string& collection_name = "",
-                                                      const std::string& db_name = "");
 
   /**
    *  Converts the arrays representation of the item map into a cv::Mat that can be easily displayed

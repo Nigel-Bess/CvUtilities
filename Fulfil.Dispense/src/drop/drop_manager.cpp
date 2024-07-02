@@ -21,6 +21,7 @@
 namespace std_filesystem = std::experimental::filesystem;
 
 using fulfil::depthcam::DepthSession;
+using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
@@ -101,7 +102,7 @@ void DropManager::generate_request_data(bool generate_data,
     // data generation is gated so that offline simulation does not generate data
     if (generate_data)
     {
-        Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data");
+        Logger::Instance()->Trace("DropManager: generate_data boolean is TRUE, about to generate data in {}", base_directory.string());
         DataGenerator generator = DataGenerator(this->session,
                                                 std::make_shared<std::string>(base_directory.string()),
                                                 request_json);
@@ -306,8 +307,8 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     auto time_stamp = make_media::paths::get_datetime_str();
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
-        (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Post_Drop_Image");
-    std::string error_code_file = (base_directory / time_stamp / "error_code").string();
+        (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+    std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
   try
@@ -322,7 +323,9 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
 
     std::shared_ptr<DataGenerator> generator;
-    generate_request_data(generate_data, base_directory, std::make_shared<std::string>(time_stamp), request_json);
+	std::string data_destination = (base_directory / "Post_Drop_Image").string();
+
+	generate_request_data(generate_data, data_destination, std::make_shared<std::string>(time_stamp), request_json);
 
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
@@ -332,9 +335,10 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     this->cached_post_request = request_json;
 
     std::shared_ptr<PostLFRResponse> post_drop_result = this->searcher->find_max_Z(container, request_id, lfb_vision_config,
-                                                                                    this->mongo_bag_state, request_json, this->cached_info);
+                                                                                    this->mongo_bag_state, request_json, this->cached_info, std::make_shared<std::string>(base_directory));
 
     generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
+
 
     return post_drop_result;
   }
@@ -353,19 +357,19 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     }
 
     generate_error_code_result_data(generate_data, error_code_file, error_id);
-    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id,  error_id));
+    return std::make_shared<PostLFRResponse>(request_id,  error_id);
   }
   catch (const std::exception & e)
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
 
-    return std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+    return std::make_shared<PostLFRResponse>(request_id, 10);
   }
   catch (...)
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request ");
 
-    return  std::shared_ptr<PostLFRResponse>(new PostLFRResponse(request_id, 10));
+    return  std::make_shared<PostLFRResponse>(request_id, 10);
   }
 }
 

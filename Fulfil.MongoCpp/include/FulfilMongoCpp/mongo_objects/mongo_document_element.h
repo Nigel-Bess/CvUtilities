@@ -24,11 +24,10 @@
 
 
 #include "FulfilMongoCpp/mongo_objects/mongo_element.h"
-using ff_mongo_cpp::mongo_objects::MongoElement;
 
 namespace ff_mongo_cpp {
     namespace mongo_objects {
-        class MongoDocumentElement : public MongoElement{
+        class MongoDocumentElement : public ff_mongo_cpp::mongo_objects::MongoElement{
         public:
 
           MongoDocumentElement(bsoncxx::document::element elem_val);
@@ -51,15 +50,15 @@ namespace ff_mongo_cpp {
               return bsoncxx::document::view();
             }
 
-            std::shared_ptr<MongoElement> getNext(const std::string& index) override;
-            std::shared_ptr<MongoElement> getNext(int index) override;
+            std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoElement> getNext(const std::string& index) override;
+            std::shared_ptr<ff_mongo_cpp::mongo_objects::MongoElement> getNext(int index) override;
 
             std::string type() override;
             std::string key() override { return std::string(this->raw_element.key()); }
             template<typename T>
             T get() {
               T value;
-              if (!MongoElement::tryGetElem(this->raw_element, value)) {
+              if (!ff_mongo_cpp::mongo_objects::MongoElement::tryGetElem(this->raw_element, value)) {
                 throw std::runtime_error("Tried to get an incorrect value type from element!");
               }
               return value;
@@ -74,7 +73,7 @@ namespace ff_mongo_cpp {
               bsoncxx::array::view arr = bsoncxx::array::view(this->raw_element.get_array());
               for (const bsoncxx::array::element& a : arr ){
                 T elem;
-                MongoElement::tryGetElem(a, elem);
+                ff_mongo_cpp::mongo_objects::MongoElement::tryGetElem(a, elem);
                 container.push_back(elem);
               }
               // might want to clip recursion depth

@@ -5,7 +5,8 @@
 #ifndef FULFIL_DISPENSE_ITEM_EDGE_DISTANCE_RESPONSE_H
 #define FULFIL_DISPENSE_ITEM_EDGE_DISTANCE_RESPONSE_H
 #include <Fulfil.Dispense/commands/dispense_response.h>
-#include <Fulfil.Dispense/tray/tray_result.h>
+#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
+
 
 namespace fulfil::dispense::commands
         {

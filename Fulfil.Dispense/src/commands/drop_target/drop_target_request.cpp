@@ -21,7 +21,7 @@ DropTargetRequest::DropTargetRequest(std::shared_ptr<std::string> command_id,
                                      std::shared_ptr<DropTargetDetails> details,
                                      std::shared_ptr<nlohmann::json> request_json)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->PrimaryKeyID = PrimaryKeyID;
   this->details = details;
   this->request_json = request_json;
@@ -38,22 +38,22 @@ std::shared_ptr<fulfil::dispense::commands::DispenseResponse> fulfil::dispense::
     if(raw_result->success_code == 0 or raw_result->success_code == 9)
     {
       //initialize and return a DropTargetResponse based on the DropResult
-      return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->command_id, raw_result->success_code,
-          raw_result->rover_position, raw_result->dispense_position, raw_result->depth_result,
-          raw_result->max_depth_point_X, raw_result->max_depth_point_Y, raw_result->max_Z,
-          raw_result->Rotate_LFB, raw_result->LFB_Currently_Rotated, raw_result->Swing_Collision_Expected,
-          raw_result->target_depth_range, raw_result->target_depth_variance, raw_result->interference_max_z,
-          raw_result->interference_average_z, raw_result->target_region_max_z, raw_result->error_description);
+      return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->request_id, raw_result->success_code,
+                                                                              raw_result->rover_position, raw_result->dispense_position, raw_result->depth_result,
+                                                                              raw_result->max_depth_point_X, raw_result->max_depth_point_Y, raw_result->max_Z,
+                                                                              raw_result->Rotate_LFB, raw_result->LFB_Currently_Rotated, raw_result->Swing_Collision_Expected,
+                                                                              raw_result->target_depth_range, raw_result->target_depth_variance, raw_result->interference_max_z,
+                                                                              raw_result->interference_average_z, raw_result->target_region_max_z, raw_result->error_description);
     }
     else
     {
-      return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->command_id, raw_result->success_code, raw_result->error_description);
+      return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->request_id, raw_result->success_code, raw_result->error_description);
     }
   }
   else
   {
     std::cout << "DropTarget Command Delegate Expired" << std::endl;
-    return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->command_id, DropTargetErrorCodes::CommandDelegateExpired, "DispenseRequestDelegate expired");
+    return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->request_id, DropTargetErrorCodes::CommandDelegateExpired, "DispenseRequestDelegate expired");
   }
 }
 

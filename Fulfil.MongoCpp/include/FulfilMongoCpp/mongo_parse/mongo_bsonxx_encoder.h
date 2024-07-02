@@ -15,7 +15,6 @@
 #include "FulfilMongoCpp/mongo_objects/mongo_object_id.h"
 
 #include "FulfilMongoCpp/mongo_filter/mongo_filters.h"
-using ff_mongo_cpp::mongo_filter::MongoFilter;
 
 namespace ff_mongo_cpp {
   namespace mongo_parse {
@@ -77,7 +76,7 @@ namespace ff_mongo_cpp {
         bsoncxx::types::b_oid convert_bson(ff_mongo_cpp::mongo_objects::MongoObjectID value);
         bsoncxx::types::b_array convert_bson(bsoncxx::array::view value);
         bsoncxx::types::b_document convert_bson(bsoncxx::document::view value);
-        bsoncxx::types::b_document convert_bson(MongoFilter value);
+        bsoncxx::types::b_document convert_bson(ff_mongo_cpp::mongo_filter::MongoFilter value);
 
     };
   }

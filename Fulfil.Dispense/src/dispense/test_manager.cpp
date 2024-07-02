@@ -31,14 +31,12 @@
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include <Fulfil.Dispense/tray/tray_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <FulfilMongoCpp/mongo_filter/mongo_filters.h>
 #include <FulfilMongoCpp/mongo_json/mongo_json_document.h>
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/commands/content_response.h>
 #include <Fulfil.Dispense/commands/dispense_command.h>
-#include <memory>
 
 using fulfil::depthcam::data::BQUpload;
 using ff_mongo_cpp::MongoConnection;
@@ -71,7 +69,6 @@ using fulfil::depthcam::data::FileSender;
 using fulfil::depthcam::data::UploadGenerator;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
-using fulfil::dispense::tray::TrayResult;
 using fulfil::dispense::tray::Tray;
 using fulfil::utils::Logger;
 using fulfil::utils::ini::IniSectionReader;

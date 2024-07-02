@@ -18,7 +18,7 @@ UpdateStateRequest::UpdateStateRequest(std::shared_ptr<std::string> command_id,
                                        std::shared_ptr<std::string> PrimaryKeyID,
                                        std::shared_ptr<nlohmann::json> request_json)
 {
-  this->command_id = command_id;
+  this->request_id = command_id;
   this->request_json = request_json;
   this->PrimaryKeyID = PrimaryKeyID;
 }
@@ -30,11 +30,11 @@ std::shared_ptr<DispenseResponse> UpdateStateRequest::execute()
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
     auto error_code = tmp_delegate->handle_update_state(this->PrimaryKeyID, this->request_json);
-    return std::make_shared<CodeResponse>(this->command_id, error_code);
+    return std::make_shared<CodeResponse>(this->request_id, error_code);
   }
   else
   {
     Logger::Instance()->Error("Command Delegate Expired; Vars: HomeMotorRequest");
-    return std::make_shared<CodeResponse>(this->command_id, 9); //Todo: change the error code used here if needed
+    return std::make_shared<CodeResponse>(this->request_id, 9); //Todo: change the error code used here if needed
   }
 }
