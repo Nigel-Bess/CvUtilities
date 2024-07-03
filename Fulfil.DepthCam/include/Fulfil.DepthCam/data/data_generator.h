@@ -35,7 +35,7 @@ class DataGenerator
   void save_aligned_depth_data(std::shared_ptr<std::string> filename);
   void save_raw_depth_data(std::shared_ptr<std::string> filename);
   void save_point_cloud(std::shared_ptr<std::string> filename);
-  void save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, nlohmann::json json_to_write);
+  void save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, std::shared_ptr<nlohmann::json> json_to_write);
   bool do_session_save(std::string frame_directory );
 
 

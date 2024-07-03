@@ -5,7 +5,7 @@ file(GLOB DROP_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulf
 file(GLOB BAYS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/bays/*.h")
 file(GLOB BAYS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/tray/*.h")
 file(GLOB COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/*.h")
-file(GLOB MOTION_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/motion/*.h")
+#file(GLOB MOTION_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/motion/*.h")
 file(GLOB DROP_TARGET_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/drop_target/*.h")
 file(GLOB PRE_DROP_BULK_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/pre_drop_bulk/*.h")
 file(GLOB POST_DROP_COMMANDS_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.Dispense/commands/post_drop/*.h")
@@ -59,8 +59,8 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         #commands/tray_validation/tray_validation_details.cpp
         commands/update_state_request.cpp
         commands/dispense_response.cpp
-        commands/home_motor_request.cpp
-        commands/position_motor_request.cpp
+        #commands/home_motor_request.cpp
+        #commands/position_motor_request.cpp
         commands/error_response.cpp
         commands/content_response.cpp
         dispense/dispense_manager.cpp
@@ -76,11 +76,11 @@ add_library(Fulfil.Dispense STATIC ${HEADER_LIST}
         drop/drop_grid.cpp
         tray/tray_algorithm.cpp
         tray/tray.cpp
-        tray/tray_result.cpp
+        #tray/tray_result.cpp
         tray/item_edge_distance_result.cpp
-        motion/trinamic.cpp
-        motion/serial.cpp
-        motion/motion_timer.cpp
+        #motion/trinamic.cpp
+        #motion/serial.cpp
+        #motion/motion_timer.cpp
         mongo/mongo_bag_state.cpp
         mongo/mongo_tray_calibration.cpp
         visualization/live_viewer.cpp

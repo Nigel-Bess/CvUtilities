@@ -106,7 +106,7 @@ class PrePostCompare
    */
   int populate_class_variables(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
                                std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
-                               std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                               std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                std::shared_ptr<nlohmann::json> pre_request_json,
                                std::shared_ptr<nlohmann::json> post_request_json,
                                std::shared_ptr<nlohmann::json> drop_target_json,
@@ -155,7 +155,7 @@ class PrePostCompare
    */
   int run_comparison(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
                      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
-                     std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+                     std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                      std::shared_ptr<nlohmann::json> pre_request_json,
                      std::shared_ptr<nlohmann::json> post_request_json,
                      std::shared_ptr<nlohmann::json> drop_target_json,

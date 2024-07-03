@@ -17,16 +17,13 @@
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
-#include <Fulfil.Dispense/mongo/mongo_tray_calibration.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
-#include <Fulfil.Dispense/tray/tray_result.h>
+#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
-#include "Fulfil.Dispense/visualization/make_media.h"
+#include <Fulfil.Dispense/visualization/make_media.h>
 
 using ff_mongo_cpp::MongoConnection;
-using ff_mongo_cpp::mongo_objects::MongoObjectID;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::dispense::commands::DropTargetDetails;
@@ -57,10 +54,8 @@ using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
-using fulfil::dispense::tray::TrayResult;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
-using fulfil::mongo::MongoTrayCalibration;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::ini::IniSectionReader;
 using fulfil::utils::Logger;
@@ -97,9 +92,6 @@ DispenseManager::DispenseManager(
   this->machine_id = safe_get_dispense_string_val("_id", "000000000000000000000000");
   int port = this->dispense_reader->GetInteger(dispense_name, "port", 9500);
 
-  this->motion_config_reader = INIReader("motion_config.ini", true);
-
-
   auto safe_get_tray_string_val =
           [&tray_dim_type = this->tray_dimension_type, &tray_config=this->tray_config_reader](auto key, std::string default_value) {
               return tray_config->Get(tray_dim_type, key, default_value); };
@@ -112,40 +104,9 @@ DispenseManager::DispenseManager(
    *  Initialize connection to LFB camera-on-rail motor if motion control is required
    */
 
-  if(this->dispense_reader->GetBoolean(dispense_man_reader->get_default_section(), "motion_control_required", false))
-  {
-    this->motor_in_position = false;
-    Logger::Instance()->Info("Motion Control IS Required to run this bay!");
-    uint32_t baud = this->motion_config_reader.GetInteger("motion_parameters", "baud", -1);
-    std::string com_port = this->dispense_reader->Get(dispense_man_reader->get_default_section(), "trinamic_com_port", "error");
-    this->motion_controller = std::make_shared<fulfil::dispense::motion::Trinamic>(baud, com_port.c_str());
-    this->motion_controller->TryConnectMotor();
-    this->motion_controller->StopMotor();
-
-    bool successfully_set_params = set_motion_params();
-    if(!successfully_set_params)
-    {
-      Logger::Instance()->Error("Motion control parameters did not load properly");
-      exit(14); // TODO error map for the dispense manager generally
-    }
-    motor_in_position = true;
-  }
-  else
-  {
-    motor_in_position = true;
-    Logger::Instance()->Info("Motion Control is NOT Required to run this bay!");
-  }
-
   if(tray_session)
   {
     this->tray_session = tray_session;
-    //find last tray camera calibration from Mongo collection Machines.DepthCamera
-    if (dispense_man_reader->GetBoolean(dispense_man_reader->get_default_section(), "validate_calibration_with_mongo", false))
-    {
-      MongoTrayCalibration temp;
-      this->tray_calibration_ids = temp.findLastTrayCalibration(
-              this->machine_id, this->mongo_connection, this->tray_config_reader);
-    }
 
     //read specific tray configuration
     std::string tray_config_type = this->dispense_reader->Get("device_specific", "tray_config_type");
@@ -391,75 +352,6 @@ void DispenseManager::send_response(std::shared_ptr<DispenseResponse> response)
 std::shared_ptr<DispenseResponse> DispenseManager::process_request(std::shared_ptr<DispenseRequest> request)
 {
     return request->execute();
-}
-
-bool DispenseManager::set_motion_params()
-{
-  if (!this->LFB_session) {
-    Logger::Instance()->Warn("No LFB Session: Bouncing Motor Control");
-    return false;
-
-  }
-  //Load in initial motor control parameters
-  // ALERT! FOR MOTOR SAFETY DO NOT CHANGE THESE WITHOUT READING TRINAMIC-1241 FIRMWARE MANUAL. DAMAGE TO MOTOR MAY OCCUR
-  int microstep_setting = 3; //microstep resolution, value = 2^X. E.g. 2^3 = 8 microsteps per step (full step)
-  int steps_per_revolution = 200; //Motor full-step resolution (default is 200). Full steps per revolution
-
-  int microsteps_per_step = pow(2.0, microstep_setting); //microsteps are equivalent to "pulses" in trinamic documentation, e.g. for pps units
-  int microsteps_per_rev = microsteps_per_step * steps_per_revolution; //equivalent to pulses per revolution
-  Logger::Instance()->Info("Motion control pulses per motor revolution is: {} pulses", microsteps_per_rev);
-
-  // ALERT! FOR MOTOR SAFETY DO NOT CHANGE THESE WITHOUT READING TRINAMIC-1241 FIRMWARE MANUAL. DAMAGE TO MOTOR MAY OCCUR
-  bool check1 = motion_controller->SendMotorCommand(0x02, TMCL_SAP, MOT_MaxCurrent, 0, 150); //max current when motor is running
-  bool check2 = motion_controller->SendMotorCommand(0x02, TMCL_SAP, MOT_StandbyCurrent, 0, 2); //max current when motor is holding still. Aim for as low as possible so motor can cool down
-  bool check3 = motion_controller->SendMotorCommand(0x02, TMCL_SAP, 140, 0, microstep_setting); //microstep resolution, microsteps per full step
-  bool check4 = motion_controller->SendMotorCommand(0x02, TMCL_SAP, 202, 0, steps_per_revolution); //motor fullstep resolution
-
-  // These checks are critical to ensure that motor safe parameters have been loaded properly at initialization. Program should not run if fails
-  if(!check1 or !check2 or !check3 or !check4)
-  {
-    Logger::Instance()->Error("Unsuccessful in setting fundamental parameters on Trinamic board during initialization");
-    return false;
-  }
-
-  // Check for valid trinamic home sensor reading
-  int analog_input = motion_controller->GetAnalogSensorInput();
-  bool check5 = (analog_input > 1000) and (analog_input < 4100); //expected value when ON is: 4095, off is: ???
-  if(!check5)
-  {
-    Logger::Instance()->Error("Trinamic home sensor input is not within expected range (1000 - 4100), with value: {}. Check wiring!", analog_input);
-    return false;
-  }
-  else
-  {
-    Logger::Instance()->Info("Trinamic home sensor input is within expected range, value: {}", analog_input);
-  }
-
-  // TODO: add check that trinamic enable digital IO is ON
-  bool frozen_dispense = this->dispense_reader->GetBoolean("device_specific", "is_frozen", false);
-  if(frozen_dispense) Logger::Instance()->Info("Camera-on-rail position speeds will be set based on Frozen VLS motion config");
-  int desired_rev_per_second_homing = this->motion_config_reader.GetInteger("motion_parameters", "rev_per_sec_homing", 0);
-  int desired_rev_per_second_positioning = frozen_dispense ?
-      this->motion_config_reader.GetInteger("motion_parameters", "rev_per_sec_positioning_frozen", 0) :
-      this->motion_config_reader.GetInteger("motion_parameters", "rev_per_sec_positioning", 0);
-
-  this->home_velocity_setting = round(microsteps_per_rev * desired_rev_per_second_homing); // in pps
-  this->position_velocity_setting = round(microsteps_per_rev * desired_rev_per_second_positioning); // in pps
-  Logger::Instance()->Info("Motion control velocity setting for motor homing is: {} pps", home_velocity_setting);
-  Logger::Instance()->Info("Motion control velocity setting for motor positioning is: {} pps", position_velocity_setting);
-
-  if(home_velocity_setting <= 0 or home_velocity_setting > 5000 or position_velocity_setting <= 0 or position_velocity_setting > 10000)
-  {
-    Logger::Instance()->Debug("Motion control velocity settings appear out of expected range");
-    return false;
-  }
-
-  if(!motion_controller->SendMotorCommand(0x02, TMCL_SAP, MOT_MaxPositionSpeed, 0, position_velocity_setting))
-  {
-    Logger::Instance()->Error("Unsuccessful in setting parameter on Trinamic board during initialization");
-    return false;
-  }
-  return true;
 }
 
 std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
@@ -947,6 +839,11 @@ int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKey
   }
 }
 
+bool DispenseManager::check_motor_in_position()
+{
+    return true;
+}
+
 std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
 {
     Logger::Instance()->Trace("Handle Update State called in Dispense Manager");
@@ -1046,215 +943,6 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
 
         return 1;
     }
-}
-
-int DispenseManager::handle_home_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
-{
-
-    if (!this->LFB_session) {
-      Logger::Instance()->Warn("No LFB Session: Bouncing Home Motor");
-      return 12;
-    }
-
-  if(motion_controller == nullptr)
-  {
-    Logger::Instance()->Error("Received motion request but motor not configured to run;");
-    exit(15);
-  }
-
-  if(!motor_in_position) //there are scenarios where a VLSG high command fails while the motor is homing or positioning, and a new home request may happen
-  {
-    Logger::Instance()->Error("Received motor command while motor already in motion;");
-    Logger::Instance()->Info("sending motor interrupt signal to stop any currently running threads and waiting 1000ms before continuing");
-    this->motor_motion_interrupted = true;
-    usleep(1000000);
-  }
-
-  Logger::Instance()->Info("Sending Stop Motor Command now before sending new homing command");
-  motion_controller->StopMotor();
-  usleep(200000);
-  this->motor_motion_interrupted = false;
-  motor_in_position = false;
-
-  bool initial_command_check = motion_controller->SendMotorCommand(0x02,TMCL_ROL, 0, 0, home_velocity_setting); //Rotate left, value in pps (= microsteps/sec))
-  if(!initial_command_check)
-  {
-    Logger::Instance()->Error("Motion command failed; Vars: home_velocity_command;");
-    exit(16);
-  }
-
-  std::thread home_motor_thread([this]()
-  {
-    int max_sensor_read_value = -1000; //for tracking what the max detected analog sensor input is, during this homing routine
-    int max_rotation_time_seconds = 20; //seconds
-    float sleep_time_ms = 100; //milliseconds
-    int remaining_loops = (max_rotation_time_seconds * 1000) / sleep_time_ms;
-    int sensor_threshold = motion_config_reader.GetInteger("motion_parameters", "sensor_threshold", -1);;
-    Logger::Instance()->Info("Homing routine in separate thread, for a total of {} seconds, thresh: {}", max_rotation_time_seconds, sensor_threshold);
-    bool successfully_homed = false;
-
-    while(remaining_loops > 0)
-    {
-      if(this->motor_motion_interrupted)
-      {
-        Logger::Instance()->Warn("INTERRUPT DETECTED in home motor thread, breaking and stopping motor now");
-        break;
-      }
-      int analog_input = motion_controller->GetAnalogSensorInput();
-      if(analog_input > max_sensor_read_value) max_sensor_read_value = analog_input; //update max sensor reading for logging purposes
-      if(analog_input > sensor_threshold)
-      {
-        Logger::Instance()->Info("Analog sensor has been triggered with value: {}, stopping motor now!", analog_input);
-        successfully_homed = true;
-        break;
-      }
-      Logger::Instance()->Debug("Analog input reads: {}", analog_input);
-      usleep(sleep_time_ms * 1000);
-      remaining_loops--;
-    }
-
-    motion_controller->StopMotor();
-    usleep(200000);
-    Logger::Instance()->Info("Max sensor reading during homing routine: {}", max_sensor_read_value);
-
-    if(!successfully_homed)
-    {
-      if(!this->motor_motion_interrupted) Logger::Instance()->Error("Motion command failed; Vars: home_destination_timeout;");
-      if(this->motor_motion_interrupted) Logger::Instance()->Error("Motion command failed; Vars: motor_motion_interrupt;");
-      return;
-    }
-
-    Logger::Instance()->Info("Setting motor absolute position to 0", max_sensor_read_value);
-    if(!motion_controller->SendMotorCommand(0x02, TMCL_SAP, MOT_ActualPosition, 0, 0))
-    {
-      Logger::Instance()->Error("Motion command failed; Vars: zero_position_value;");
-      exit(16);
-    }
-    motion_controller->update_and_print_motor_status();
-    motor_in_position = true;
-  });
-  home_motor_thread.detach();
-
-  //TODO: handle error cases --> what if sensor never goes high, or doesn't home in allowed time frame. Can set error codes via NOP command as well (or timeout on VLSG side)
-  Logger::Instance()->Info("handle home motor request returning now");
-  return 0;
-}
-
-
-int DispenseManager::handle_position_motor(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request)
-{
-    if (!this->LFB_session) {
-      Logger::Instance()->Warn("No LFB Session: Bouncing Position Motor");
-      return 12;
-    }
-
-  if(motion_controller == nullptr)
-  {
-    Logger::Instance()->Error("Received motion request but motor not configured to run");
-    exit(15);
-  }
-
-  if(!motor_in_position) //there are scenarios where a VLSG high command fails while the motor is homing or positioning, and a new home request may happen
-  {
-    Logger::Instance()->Error("Received position motor command while motor already in motion;");
-    Logger::Instance()->Info("sending motor interrupt signal to stop currently running threads and waiting 1000ms before continuing");
-    this->motor_motion_interrupted = true;
-    usleep(1000000);
-  }
-
-  Logger::Instance()->Info("Sending Stop Motor Command now before sending new position command");
-  motion_controller->StopMotor();
-  usleep(200000);
-  this->motor_motion_interrupted = false;
-  motor_in_position = false;
-
-  //TODO: add system diagram for how the coordinates work. Position is relative to the homing position for tray which is on the RIGHT side as you are facing the tray from outside the VLS, so positions will be NEGATIVE values
-  int target_position_relative_tray_zero = (*request)["Target_Position"].get<int>();
-  int trinamic_home_offset_from_tray_zero = motion_config_reader.GetInteger("motion_parameters", "trinamic_home_offset_from_tray_zero", -1);
-  float position_conversion_pulses_per_mm = motion_config_reader.GetFloat("motion_parameters", "position_conversion_pulses_per_mm", -1);
-
-  if(trinamic_home_offset_from_tray_zero == -1 or position_conversion_pulses_per_mm == -1)
-  {
-    Logger::Instance()->Error("Invalid config for motor position motion;", target_position_relative_tray_zero);
-    exit(16);
-  }
-  else if(abs(target_position_relative_tray_zero) > 1500)
-  {
-    Logger::Instance()->Error("Invalid Motor Position Request; Vars: target_position_relative_to_tray_zero: {}", target_position_relative_tray_zero);
-    return -1;
-  }
-  int target_position_from_trinamic_home = target_position_relative_tray_zero - trinamic_home_offset_from_tray_zero; //in mm
-  int target_position = position_conversion_pulses_per_mm * target_position_from_trinamic_home; // in pps relative to trinamic home position
-
-  Logger::Instance()->Info("Requested to send motor to: {} mm from tray zero = {} mm from motor zero = {} position in pps", target_position_relative_tray_zero,
-                           target_position_from_trinamic_home, target_position);
-  int upper_travel_limit = motion_config_reader.GetInteger("motion_parameters", "upper_travel_limit", 100);
-  Logger::Instance()->Debug("Upper travel limit from trinamic home is: {} mm", upper_travel_limit);
-
-  // prevent rail motion from going too far
-  if(target_position_from_trinamic_home > upper_travel_limit and ((target_position_from_trinamic_home - upper_travel_limit) < 100))
-  {
-    Logger::Instance()->Warn("Target position is above upper limit and within 100mm of upper limit, modifying to upper limit right now");
-    target_position_from_trinamic_home = upper_travel_limit;
-    target_position = position_conversion_pulses_per_mm * target_position_from_trinamic_home; // in pps relative to trinamic home position
-  }
-
-  if(target_position_from_trinamic_home < 0 or target_position_from_trinamic_home > (upper_travel_limit)) //sanity check in mm from trinamic home
-  {
-    Logger::Instance()->Error("Invalid Motor Position Request; Vars: target_position_from_trinamic_home: {}", target_position_from_trinamic_home);
-    exit(16);
-  }
-
-  Logger::Instance()->Info("Sending position move request to Trinamic now, target in microsteps: {}", target_position);
-  if(!motion_controller->SendMotorCommand(0x02, TMCL_MVP, MVP_ABS, 0, target_position)) //absolute positioning move
-  {
-    Logger::Instance()->Error("Motion command failed; Vars: absolute_position_command;");
-    exit(16);
-  }
-
-  std::thread home_motor_thread([this, target_position]()
-  {
-    bool successfully_in_position = false;
-    int remaining_loops = 100; //each loop will take ~200 ms. Total motion time: 20 seconds
-    while(remaining_loops > 0)
-    {
-      if(this->motor_motion_interrupted)
-      {
-        Logger::Instance()->Warn("INTERRUPT DETECTED in position motor thread, breaking and stopping motor now");
-        break;
-      }
-
-      int reached_target = motion_controller->check_position_reached();
-      if(reached_target)
-      {
-        Logger::Instance()->Info("Motor has reached target position! Will wait briefly before returning to add settling time");
-        successfully_in_position = true;
-        break;
-      }
-      int current_position = motion_controller->get_current_position();
-      Logger::Instance()->Debug("POSITION MOTOR THREAD: Current motor position in microsteps is: {}", current_position);
-      usleep(200000);
-      remaining_loops--;
-    }
-
-    motion_controller->StopMotor();
-    usleep(200000);
-
-    if(!successfully_in_position)
-    {
-      if(!this->motor_motion_interrupted) Logger::Instance()->Error("Motion command failed; Vars: position_timeout;");
-      if(this->motor_motion_interrupted) Logger::Instance()->Error("Motion command failed; Vars: motor_motion_interrupt;");
-      return;
-    }
-    motor_in_position = true; //variable which updates the NOP response for indicating to VLSG that motor has completed motion
-  });
-  home_motor_thread.detach();
-  return 0;
-}
-
-bool DispenseManager::check_motor_in_position()
-{
-  return motor_in_position;
 }
 
 std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::DispenseManager::get_shared_ptr()
