@@ -37,11 +37,11 @@ void FloorViewResponse::encode_payload()
     delete [] response;
 }
 
-FloorViewResponse::FloorViewResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description,
+FloorViewResponse::FloorViewResponse(std::shared_ptr<std::string> request_id, int success_code, std::string error_description,
                                      bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score)
 {
     this->success_code = success_code;
-    this->command_id = command_id;
+    this->request_id = request_id;
     this->error_description = error_description;
     this->anomaly_present = anomaly_present;
     this->item_on_ground = item_on_ground;
@@ -50,7 +50,7 @@ FloorViewResponse::FloorViewResponse(std::shared_ptr<std::string> command_id, in
 
 std::shared_ptr<std::string> FloorViewResponse::get_command_id()
 {
-    return this->command_id;
+    return this->request_id;
 }
 
 int FloorViewResponse::get_success_code()

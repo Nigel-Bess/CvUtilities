@@ -16,7 +16,7 @@ namespace fulfil::dispense::commands
 
         std::shared_ptr<nlohmann::json> request_json;
 
-        explicit FloorViewRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json);
+        explicit FloorViewRequest(std::shared_ptr<std::string> request_id, std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json);
 
         std::shared_ptr<fulfil::dispense::commands::DispenseResponse> execute() override;
     };

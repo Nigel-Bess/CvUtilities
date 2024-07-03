@@ -25,7 +25,7 @@ namespace fulfil::dispense::commands
         /**
          * The id for the request.
          */
-        std::shared_ptr<std::string> command_id;
+        std::shared_ptr<std::string> request_id;
         /**
          *  success_code = 0 if successful, > 0 if there was an error
          */
@@ -62,7 +62,7 @@ namespace fulfil::dispense::commands
         /**
          * constructor that initializes a response indicating a success with additional parameters to be sent
          */
-        FloorViewResponse(std::shared_ptr<std::string> command_id, int success_code, std::string error_description, bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score);
+        FloorViewResponse(std::shared_ptr<std::string> request_id, int success_code, std::string error_description, bool anomaly_present, bool item_on_ground, float floor_analysis_confidence_score);
         /**
          * Returns the command id for the response.
          * @return pointer to string containing command id for the response.
