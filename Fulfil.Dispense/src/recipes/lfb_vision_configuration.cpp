@@ -62,6 +62,11 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     threshold_depth_difference_to_validate_max_z{input_json->value("ThresholdDepthDifferenceToValidateMaxZMeters", 0.003F)},
     num_points_required_within_valid_distance_to_validate_max_z{input_json->value("NumPointsRequiredWithinValidDistanceToValidateMaxZ", 5)},
 
+	// physical antenna variables
+	antenna_x_distance_to_container_edge_meters{input_json->value("AntennaXDistanceToContainerEdgeMeters", 0.0175F)},
+	antenna_y_distance_to_container_edge_meters{input_json->value("AntennaYDistanceToContainerEdgeMeters", 0.070F)},
+	antenna_omission_buffer_meters{input_json->value("AntennaOmissionBufferMeters", 0.005F)},
+
     // physical marker variables
     num_markers{input_json->value("NumMarkers", 8)}, // TODO - this isn't fully configurable just by changing this
     min_marker_count_for_validation{input_json->value("MinMarkerCountForValidation", 3)},

@@ -390,15 +390,10 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   float x_limit = adjustment*container_width/2;
   float y_limit = adjustment*container_length/2;
 
-  //    antenna location is max_container_x + 15mm-20mm
-  float lfb_width = lfb_vision_config->LFB_width;
-  // TODO add antenna to configs
-  float antenna_x_coord_nominal = lfb_width / 2 + 0.0175;
-  //    antenna location is min_container_y + 65mm-75mm
-  float lfb_length = lfb_vision_config->LFB_length;
-
-  float antenna_y_coord_nominal = lfb_length / -2 + 0.070;
-  float antenna_buffer = 0.005;
+  //  filter out antenna data
+  float antenna_x_coord_nominal = lfb_vision_config->LFB_width / 2 + lfb_vision_config->antenna_x_distance_to_container_edge_meters;
+  float antenna_y_coord_nominal = lfb_vision_config->LFB_length / -2 + lfb_vision_config->antenna_y_distance_to_container_edge_meters;
+  float antenna_buffer = lfb_vision_config->antenna_omission_buffer_meters;
   int amount_of_max_depth_points_to_track = lfb_vision_config->amount_of_max_depth_points_to_track_for_noise_filtering;
 
   auto is_antenna_data = [antenna_x_coord_nominal, antenna_y_coord_nominal, antenna_buffer](float local_x_coord, float local_y_coord)-> bool
