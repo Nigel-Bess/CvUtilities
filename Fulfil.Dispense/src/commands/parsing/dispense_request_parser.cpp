@@ -94,7 +94,7 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
       Logger::Instance()->Info("Received Post Drop Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<PostLFRRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::floor_view:
-      Logger::Instance()->Info("Received Floor View Request, PKID: {}, request_id: {}", *PrimaryKeyID, request_id_string);
+      Logger::Instance()->Info("Received Floor View Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<FloorViewRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::start_lfb_video:
       Logger::Instance()->Info("Received Start LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
