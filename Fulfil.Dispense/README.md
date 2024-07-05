@@ -1,6 +1,6 @@
 # Fulfil.Dispense
 
-The only information guaranteed to be  up-to-date is the **Starting the Mars API** section. Any information that precedes the **Depreciation Warning** section of the readme is valid.
+The only information guaranteed to be  up-to-date is the **Starting the Mars API** section. Any information that precedes the **Depreciation Warning** section of the readme is valid. Other up-to-date information can be found on the [CV Command Guide](https://docs.google.com/document/d/14k9Jj3RgEqf9b27t3sbYC5RS6eEuN8hgaCXUnPTA268/edit?pli=1#heading=h.5wo37tlgfgcn).
 
 ## Starting the Mars API
 
