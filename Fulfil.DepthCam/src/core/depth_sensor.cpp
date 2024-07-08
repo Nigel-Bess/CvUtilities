@@ -134,6 +134,7 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
 
 void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes code){
     if(service_ == nullptr)return;
+    std::cout << name_ << " Sending status code " << DcCameraStatusCodes_Name(code) << std::endl;
     DepthCameras::CameraStatusUpdate msg;
     msg.set_command_id(GetTxObjectIdString());
     msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);
@@ -145,6 +146,7 @@ void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes cod
 
 void DepthSensor::manage_pipe(){
     print_time = CurrentTime();
+    static auto start_time = CurrentTime();
     while(true){
         auto timer = CurrentTime();
         auto success = false;
@@ -159,6 +161,7 @@ void DepthSensor::manage_pipe(){
             success = true;
             if(!connected_ && name_.compare("D")){//wait for name to be assigned
                 connected_ = true;
+                std::cout << name_ << " connected" << std::endl;
                 create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
             }
 

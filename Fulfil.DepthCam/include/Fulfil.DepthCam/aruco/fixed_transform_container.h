@@ -127,6 +127,8 @@ class FixedTransformContainer : public Container
   std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics() override;
 
   float depth_at_pixel(int x, int y) override;
+
+  void set_service(std::shared_ptr<GrpcService> serv) override;
 };
 }  // namespace aruco
 }  // namespace core

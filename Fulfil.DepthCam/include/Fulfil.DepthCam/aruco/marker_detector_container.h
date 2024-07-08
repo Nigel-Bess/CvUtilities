@@ -149,6 +149,9 @@ class MarkerDetectorContainer : public Container
   */
   float camera_depth_at_pixel(int x, int y);
 
+
+  void set_service(std::shared_ptr<GrpcService> serv) override;
+
   std::shared_ptr<rs2_intrinsics> get_color_stream_intrinsics() override;
 
   std::shared_ptr<rs2_intrinsics> get_depth_stream_intrinsics() override;

@@ -16,9 +16,6 @@
 #include <librealsense2/rs.hpp>
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/opencv.hpp>
-#include <Fulfil.CPPUtils/comm/GrpcService.h>
-
-
 // #include "../../Fulfil.CPPUtils/include/Fulfil.CPPUtils/comm/depthCams.pb.h"
 #include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.DepthCam/point_cloud/point_cloud.h>
@@ -144,6 +141,7 @@ class Session
     virtual std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics() = 0;
 
     virtual cv::Mat grab_color_frame() = 0;
+    virtual void set_service(std::shared_ptr<GrpcService> serv) = 0;
 };
 }  // namespace core
 }  // namespace fulfil

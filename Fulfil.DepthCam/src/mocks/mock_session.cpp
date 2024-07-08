@@ -150,6 +150,9 @@ void MockSession::lock()
     this->session_mutex.lock();
 }
 
+void MockSession::set_service(std::shared_ptr<GrpcService> serv){
+    return;
+}
 void MockSession::unlock()
 {
     this->session_mutex.unlock();
