@@ -125,7 +125,7 @@ namespace fulfil::dispense {
              * /home/fulfil/Videos/saved_images_2021_04_29
              */
             std::shared_ptr<std::string> create_datagenerator_basedir();
-            std::shared_ptr<SocketManager> socket_manager;
+            std::shared_ptr<fulfil::utils::networking::SocketManager> socket_manager;
 
 
 
