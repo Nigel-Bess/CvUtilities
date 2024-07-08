@@ -111,12 +111,13 @@ public:
         cmd.set_status_code(code);
         cmd.SerializeToString(&msg);
         Logger::Instance()->Info("Status update for %s [%s: %s]\n",function.c_str(), id.c_str(), DcStatusCodes_Name(code).c_str());
-        AddStatusUpdate(MESSAGE_TYPE_COMMAND_STATUS, msg);
+        AddStatusUpdate(MESSAGE_TYPE_COMMAND_STATUS, msg, id);
     }
 
-    void AddStatusUpdate(DepthCameras::MessageType t, std::string str){
+    void AddStatusUpdate(DepthCameras::MessageType t, std::string str, std::string id){
         DcResponse resp = {};
         resp.set_type(t);
+        resp.set_command_id(id);
         resp.set_message_data(str.data(), str.size());
         resp.set_message_size(str.size());
         std::lock_guard<std::mutex> lock(status_mu_);

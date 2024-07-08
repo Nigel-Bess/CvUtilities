@@ -122,8 +122,8 @@ public:
         return tasks_.GetNextRequest();
     }
 
-    void AddStatusUpdate(DepthCameras::MessageType t, std::string str){
-        tasks_.AddStatusUpdate(t, str);
+    void AddStatusUpdate(DepthCameras::MessageType t, std::string str, std::string id){
+        tasks_.AddStatusUpdate(t, str, id);
     }
 
 private:

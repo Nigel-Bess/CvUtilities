@@ -67,7 +67,6 @@ void GrpcService::Run(uint16_t port){
     Logger::Instance()->Info("GrpcServer listening on {}", server_address);
     builder.RegisterService(&async_service_);
     cq_ = builder.AddCompletionQueue();
-    std::cout << "3" << std::endl;
     server_ = builder.BuildAndStart();
    
     dcServiceHandle = new DepthCamServiceImpl(&async_service_, cq_.get(), &tasks_);
@@ -83,12 +82,13 @@ void GrpcService::Run(uint16_t port){
 void GrpcService::HandleNewMessages(){
     sem_init(&_cmd_wait, 0, 1);
     while(true){
-        sem_wait(&_cmd_wait);
+        // sem_wait(&_cmd_wait);
         //check for any status messages first
-        while(tasks_.HasNewStatus()){
-            auto msg = tasks_.GetStatusMessage();
-            dcServiceHandle->SendMessage(msg);
-        }
+        if(dcServiceHandle->Connected)
+            while(tasks_.HasNewStatus()){
+                auto msg = tasks_.GetStatusMessage();
+                dcServiceHandle->SendMessage(msg);
+            }
 
         // while(tasks_.HasReads()){
         //     auto msg = tasks_.GetNextRequest();

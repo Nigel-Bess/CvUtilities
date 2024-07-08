@@ -654,13 +654,13 @@ class CameraStatusUpdate final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kCommandIdFieldNumber = 2,
-    kCameraNameFieldNumber = 3,
-    kCameraSerialFieldNumber = 4,
+    kCommandIdFieldNumber = 3,
+    kCameraNameFieldNumber = 4,
+    kCameraSerialFieldNumber = 5,
     kMsgTypeFieldNumber = 1,
-    kStatusCodeFieldNumber = 5,
+    kStatusCodeFieldNumber = 6,
   };
-  // string command_id = 2;
+  // string command_id = 3;
   void clear_command_id();
   const std::string& command_id() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -674,7 +674,7 @@ class CameraStatusUpdate final :
   std::string* _internal_mutable_command_id();
   public:
 
-  // string camera_name = 3;
+  // string camera_name = 4;
   void clear_camera_name();
   const std::string& camera_name() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -688,7 +688,7 @@ class CameraStatusUpdate final :
   std::string* _internal_mutable_camera_name();
   public:
 
-  // string camera_serial = 4;
+  // string camera_serial = 5;
   void clear_camera_serial();
   const std::string& camera_serial() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -711,7 +711,7 @@ class CameraStatusUpdate final :
   void _internal_set_msg_type(::DepthCameras::MessageType value);
   public:
 
-  // .DepthCameras.DcCameraStatusCodes status_code = 5;
+  // .DepthCameras.DcCameraStatusCodes status_code = 6;
   void clear_status_code();
   ::DepthCameras::DcCameraStatusCodes status_code() const;
   void set_status_code(::DepthCameras::DcCameraStatusCodes value);
@@ -1383,7 +1383,7 @@ inline void CameraStatusUpdate::set_msg_type(::DepthCameras::MessageType value) 
   // @@protoc_insertion_point(field_set:DepthCameras.CameraStatusUpdate.msg_type)
 }
 
-// string command_id = 2;
+// string command_id = 3;
 inline void CameraStatusUpdate::clear_command_id() {
   _impl_.command_id_.ClearToEmpty();
 }
@@ -1433,7 +1433,7 @@ inline void CameraStatusUpdate::set_allocated_command_id(std::string* command_id
   // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.command_id)
 }
 
-// string camera_name = 3;
+// string camera_name = 4;
 inline void CameraStatusUpdate::clear_camera_name() {
   _impl_.camera_name_.ClearToEmpty();
 }
@@ -1483,7 +1483,7 @@ inline void CameraStatusUpdate::set_allocated_camera_name(std::string* camera_na
   // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.camera_name)
 }
 
-// string camera_serial = 4;
+// string camera_serial = 5;
 inline void CameraStatusUpdate::clear_camera_serial() {
   _impl_.camera_serial_.ClearToEmpty();
 }
@@ -1533,7 +1533,7 @@ inline void CameraStatusUpdate::set_allocated_camera_serial(std::string* camera_
   // @@protoc_insertion_point(field_set_allocated:DepthCameras.CameraStatusUpdate.camera_serial)
 }
 
-// .DepthCameras.DcCameraStatusCodes status_code = 5;
+// .DepthCameras.DcCameraStatusCodes status_code = 6;
 inline void CameraStatusUpdate::clear_status_code() {
   _impl_.status_code_ = 0;
 }
