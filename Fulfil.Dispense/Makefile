@@ -35,8 +35,10 @@ clean:
 
 .PHONY: update
 update:
-	@cd libs/Fulfil.CPPUtils/src/comm && protoc depthCams.proto --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin`
-	@cd libs/Fulfil.CPPUtils/src/comm && protoc depthCams.proto --cpp_out=.
+	@cd ../Fulfil.CPPUtils/src/comm && protoc depthCams.proto --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin`
+	@cd ../Fulfil.CPPUtils/src/comm && protoc depthCams.proto --cpp_out=.
+	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.pb.h
+	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.grpc.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.grpc.pb.h
 
 .phony : local
 local: 

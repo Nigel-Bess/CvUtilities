@@ -50,10 +50,11 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRu
       std::make_shared<fulfil::dispense::tray::TrayManager>(tray_session, tray_builder);
     char host[HOST_NAME_MAX];
     gethostname(host, HOST_NAME_MAX);
+    std::string bay = bay_num == 0 ? "-A" : "-B";
     if(LFB_session != nullptr)
-        LFB_session->set_sensor_name(host + std::to_string(bay_num + 1) + " LFB  cam");
+        LFB_session->set_sensor_name(host + bay + " LFB  cam");
     if(tray_session != nullptr)
-        tray_session->set_sensor_name(host + std::to_string(bay_num + 1) + " Tray cam");
+        tray_session->set_sensor_name(host + bay + " Tray cam");
   return std::shared_ptr<fulfil::dispense::DispenseManager>(new fulfil::dispense::DispenseManager(bay_num, LFB_session,
     tray_session, this->dispense_man_reader,
           this->tray_config_reader, this->mongo_conn, std::move(tray_manager)));

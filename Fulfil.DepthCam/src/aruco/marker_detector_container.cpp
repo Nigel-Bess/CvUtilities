@@ -271,6 +271,10 @@ bool point_in_bag(std::shared_ptr<Matrix3dPoint> point, const float& width, cons
            && (*point)(1) <= length/2;
 }
 
+void MarkerDetectorContainer::set_service(std::shared_ptr<GrpcService> serv){
+    this->session->set_service(serv);
+}
+
 void MarkerDetectorContainer::setup_cached_container()
 {
   Logger::Instance()->Debug("Setup Cached Container in marker_detector_container");

@@ -51,6 +51,10 @@ std::shared_ptr<std::string> FixedTransformContainer::get_serial_number()
     return this->session->get_serial_number();
 }
 
+void FixedTransformContainer::set_service(std::shared_ptr<GrpcService> serv){
+    this->session->set_service(serv);
+}
+
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud(
     bool include_invalid_depth_data)
 {

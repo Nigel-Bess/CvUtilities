@@ -16,7 +16,8 @@
 #include <librealsense2/rs.hpp>
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/opencv.hpp>
-
+// #include "../../Fulfil.CPPUtils/include/Fulfil.CPPUtils/comm/depthCams.pb.h"
+#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.DepthCam/point_cloud/point_cloud.h>
 
 
@@ -94,7 +95,6 @@ class Session
    */
   virtual bool set_emitter(bool state) = 0;
 
-
   /**
    * Returns an OpenCV matrix with the data for the color image stream
    * from the session. The format of the stream is 1280x720 3 channel
@@ -117,10 +117,6 @@ class Session
    * @return a float depth at the given pixel in the local coordinate
    * system.
    */
-
-
-
-
   virtual float depth_at_pixel(int x, int y) = 0;
 
     /**
@@ -145,7 +141,7 @@ class Session
     virtual std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics() = 0;
 
     virtual cv::Mat grab_color_frame() = 0;
-
+    virtual void set_service(std::shared_ptr<GrpcService> serv) = 0;
 };
 }  // namespace core
 }  // namespace fulfil

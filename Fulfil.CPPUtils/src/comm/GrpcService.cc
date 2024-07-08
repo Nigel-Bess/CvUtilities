@@ -64,11 +64,10 @@ void GrpcService::Run(uint16_t port){
     std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    
+    Logger::Instance()->Info("GrpcServer listening on {}", server_address);
     builder.RegisterService(&async_service_);
     cq_ = builder.AddCompletionQueue();
     server_ = builder.BuildAndStart();
-    Logger::Instance()->Info("GrpcServer listening on {}", server_address);
    
     dcServiceHandle = new DepthCamServiceImpl(&async_service_, cq_.get(), &tasks_);
     
@@ -83,12 +82,13 @@ void GrpcService::Run(uint16_t port){
 void GrpcService::HandleNewMessages(){
     sem_init(&_cmd_wait, 0, 1);
     while(true){
-        sem_wait(&_cmd_wait);     
+        // sem_wait(&_cmd_wait);
         //check for any status messages first
-        while(tasks_.HasNewStatus()){
-            auto msg = StringToDcResponse(MESSAGE_TYPE_COMMAND_STATUS, tasks_.GetStatusMessage());
-            dcServiceHandle->SendMessage(msg);
-        }
+        if(dcServiceHandle->Connected)
+            while(tasks_.HasNewStatus()){
+                auto msg = tasks_.GetStatusMessage();
+                dcServiceHandle->SendMessage(msg);
+            }
 
         // while(tasks_.HasReads()){
         //     auto msg = tasks_.GetNextRequest();

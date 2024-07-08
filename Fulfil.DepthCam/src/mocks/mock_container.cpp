@@ -39,6 +39,10 @@ void MockContainer::unlock()
   this->session->unlock();
 }
 
+void MockContainer::set_service(std::shared_ptr<GrpcService> serv){
+    this->session->set_service(serv);
+}
+
 cv::Mat MockContainer::grab_color_frame() {
     return this->session->grab_color_frame();
 }

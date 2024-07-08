@@ -98,6 +98,7 @@ public:
 
    std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics();
    void set_sensor_name(const std::string &name) override;
+   void set_service(std::shared_ptr<GrpcService> serv) override;
 };
 }
 }
