@@ -27,7 +27,6 @@ class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory<s
    */
   std::shared_ptr<INIReader>  dispense_man_reader;
   std::shared_ptr<INIReader>  tray_config_reader;
-  std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_conn;
 
  public:
   /**
@@ -35,7 +34,7 @@ class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory<s
    * @param reader contains all the main program configs
    * @return
    */
-  RealsenseRunnerFactory(std::shared_ptr<INIReader> reader, std::shared_ptr<ff_mongo_cpp::MongoConnection> conn);
+  RealsenseRunnerFactory(std::shared_ptr<INIReader> reader);
   /**
    * Given the bay number and the session, creates a runner that will belong
    * to the bay with the given identifier.

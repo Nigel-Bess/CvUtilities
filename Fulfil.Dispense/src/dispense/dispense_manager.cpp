@@ -69,9 +69,8 @@ DispenseManager::DispenseManager(
     std::shared_ptr<fulfil::depthcam::Session> tray_session,
     std::shared_ptr<INIReader> dispense_man_reader,
     std::shared_ptr<INIReader> tray_config_reader,
-    std::shared_ptr<MongoConnection> mongo_conn,
     std::shared_ptr<fulfil::dispense::tray::TrayManager> tray_manager) : bay(bay),
-                                                                         dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader), mongo_connection(mongo_conn)
+                                                                         dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader)
 {
     Logger::Instance()->Trace("DispenseManager Constructor Called");
 
