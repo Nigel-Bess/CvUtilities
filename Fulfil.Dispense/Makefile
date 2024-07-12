@@ -31,7 +31,7 @@ stark:
 
 .phony : clean
 clean:
-	mkdir -p build && cd build && cmake .. && cd ..
+	rm -r build && mkdir -p build && cd build && cmake .. && cd ..
 
 .PHONY: update
 update:

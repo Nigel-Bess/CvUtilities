@@ -13,9 +13,8 @@ using fulfil::dispense::RealsenseRunnerFactory;
 using fulfil::utils::Logger;
 using fulfil::mongo::MongoTrayCalibration;
 
-fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(std::shared_ptr<INIReader> reader,
-  std::shared_ptr<ff_mongo_cpp::MongoConnection> conn) :
-                                             dispense_man_reader{reader}, mongo_conn{conn}
+fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(std::shared_ptr<INIReader> reader) :
+                                             dispense_man_reader{reader}
 {
   //TODO once dispense manager needs stabilizes, we should pass config info through interface, not config pointer
   std::experimental::filesystem::path config_base = INIReader::get_compiled_default_dir_prefix();
@@ -38,10 +37,6 @@ fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(std::shared_ptr
 std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRunnerFactory::create(int bay_num,
     std::shared_ptr<fulfil::depthcam::Session> LFB_session, std::shared_ptr<fulfil::depthcam::Session> tray_session)
 {
-  if (!mongo_conn->IsConnected()){
-      Logger::Instance()->Error("Failure to make connection to MongoDB. Ignoring for now...");
-      //throw std::runtime_error("Unable to connect to MongoDB");
-  }
   fulfil::configuration::tray::TrayDimensions tray_builder =
       fulfil::configuration::tray::set_bay_wide_tray_dimensions(this->tray_config_reader,
                "tray_dimensions_" + this->dispense_man_reader->Get("device_specific", "tray_config_type", "4.1"));
@@ -57,11 +52,11 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRu
         tray_session->set_sensor_name(host + bay + " Tray cam");
   return std::shared_ptr<fulfil::dispense::DispenseManager>(new fulfil::dispense::DispenseManager(bay_num, LFB_session,
     tray_session, this->dispense_man_reader,
-          this->tray_config_reader, this->mongo_conn, std::move(tray_manager)));
+          this->tray_config_reader, std::move(tray_manager)));
 }
 
 std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRunnerFactory::create_empty(int bay_num)
 {
   return std::shared_ptr<fulfil::dispense::DispenseManager>(new fulfil::dispense::DispenseManager(bay_num, nullptr, nullptr,
-          nullptr, nullptr, nullptr, nullptr));
+          nullptr, nullptr, nullptr));
 }

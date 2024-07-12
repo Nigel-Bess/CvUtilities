@@ -103,7 +103,6 @@ namespace fulfil::dispense {
              */
             std::shared_ptr<INIReader>  dispense_reader;
             std::shared_ptr<INIReader>  tray_config_reader;
-            std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
             /**
              *  Mongo id for the LFB bag currently being inspected at the bay
@@ -145,7 +144,6 @@ namespace fulfil::dispense {
               std::shared_ptr<fulfil::depthcam::Session> tray_session,
               std::shared_ptr<INIReader> dispense_man_reader,
               std::shared_ptr<INIReader> tray_config_reader,
-              std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_conn,
               std::shared_ptr<fulfil::dispense::tray::TrayManager>
                   tray_manager);
             ///Mark: Bay Runner Functions

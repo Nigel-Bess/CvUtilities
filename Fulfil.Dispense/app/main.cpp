@@ -80,14 +80,12 @@ int main(int argc, char** argv)
    * Main control loop
    * */
   try {
-    std::shared_ptr<MongoConnection> conn = std::make_shared<MongoConnection>(conn_str);
-    logger->Info("Able to make connection to factory mongo: {}", conn->IsConnected());
     std::shared_ptr<RealsenseBayParser> parser = std::make_shared<RealsenseBayParser>(reader);
 
     std::shared_ptr<RealsenseManager> sensor_manager = std::make_shared<RealsenseManager>(
             std::make_shared<DeviceManager>(parser->get_camera_ids(), frozen));
     // pass in the connection here so that it can be used to retrieve configurations in dispense manager
-    std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader, conn);
+    std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader);
     BayManager<std::shared_ptr<Session>> manager(sensor_manager, factory, parser, expected_number_bays,
                                                  both_cameras_required, frozen);
 

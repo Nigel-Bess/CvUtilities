@@ -16,6 +16,8 @@ using fulfil::dispense::tray::Tray;
 
 #include <Fulfil.CPPUtils/logging.h>
 using fulfil::utils::Logger;
+using ff_mongo_cpp::mongo_objects::MongoObjectID;
+using ff_mongo_cpp::mongo_objects::MongoDocument;
 
 MongoTrayRecipe::MongoTrayRecipe(bsoncxx::document::view doc)
 {
@@ -102,7 +104,9 @@ int MongoTrayRecipe::parse_in_values(bsoncxx::document::view doc) {
       Logger::Instance()->Error("Unable to get Max/Min Item Width in either old or new format! "
             "Using small default values min={} and max={}!\n  Exception:\n\t{}",this->min_item_width, this->max_item_width, e.what());
     }
+    return -1;
   }
+  return 0;
 }
 
 
@@ -121,11 +125,12 @@ bsoncxx::document::value MongoTrayRecipe::MakeWritableValue() {
 //TODO add into inheritable class or rename
 std::shared_ptr<Tray> MongoTrayRecipe::build()
 {
+    Logger::Instance()->Error("This method is deprecated!");
   float min = min_item_width/1000;
   float max = max_item_width/1000;
   std::vector<float> centers;
   // TODO probably also want the dimension info to come from recipe
   for (auto c : lane_centers) centers.emplace_back(((c/1000)-0.33));
-  return std::make_shared<Tray>(tray_type_name, lane_count, max, min, centers);
+  return std::make_shared<Tray>();
 }
 
