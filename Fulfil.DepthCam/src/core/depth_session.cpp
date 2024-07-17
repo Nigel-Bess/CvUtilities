@@ -6,8 +6,9 @@
  * This file contains the implementation of the depth session
  * and the interactions with the depth sensor.
  */
-#include "depth_sensor.h"
-#include<Fulfil.DepthCam/core/depth_session.h>
+
+#include <Fulfil.DepthCam/core/depth_sensor.h>
+#include <Fulfil.DepthCam/core/depth_session.h>
 #include "../point_cloud/no_translation_point_cloud.h"
 #include<eigen3/Eigen/Dense>
 #include<memory>

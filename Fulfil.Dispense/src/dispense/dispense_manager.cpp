@@ -23,7 +23,6 @@
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 
-using ff_mongo_cpp::MongoConnection;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetector;
@@ -98,8 +97,6 @@ DispenseManager::DispenseManager(
 
     Logger::Instance()->Info("Initializing socket network manager at configured port {} for machine {}", port, this->machine_name);
 
-    this->drop_manager = std::make_shared<DropManager>(this->LFB_session, dispense_man_reader, this->live_viewer);
-
     auto parser = std::make_shared<DispenseRequestParser>(std::make_shared<DispenseJsonParser>());
     socket_manager = std::make_shared<SocketManager>(std::make_shared<SocketInformation>(port));
 
@@ -144,6 +141,7 @@ DispenseManager::DispenseManager(
         }
     }
 
+    this->drop_manager = std::make_shared<DropManager>(this->LFB_session, dispense_man_reader, this->live_viewer);
     this->processing_queue = std::make_shared<ProcessingQueue<std::shared_ptr<DispenseRequest>, std::shared_ptr<DispenseResponse>>>();
 
     // separate uploader for keeping track of if we should stop saving the LFB video

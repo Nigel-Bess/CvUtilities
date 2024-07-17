@@ -23,7 +23,6 @@
 #include <Fulfil.Dispense/tray/tray_manager.h>
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/visualization/live_viewer.h>
-#include <FulfilMongoCpp/mongo_connection.h>
 
 namespace fulfil::dispense {
 /**

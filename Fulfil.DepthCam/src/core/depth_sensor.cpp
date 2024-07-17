@@ -4,7 +4,7 @@
  * hadnles all of the settings that are used for the
  * realsense depth camera.
  */
-#include"depth_sensor.h"
+#include <Fulfil.DepthCam/core/depth_sensor.h>
 #include<eigen3/Eigen/Geometry>
 #include <memory>
 #include<librealsense2/rs.hpp>

@@ -9,12 +9,11 @@
 #ifndef FULFIL_DEPTHCAM_DEPTH_SESSION_H_
 #define FULFIL_DEPTHCAM_DEPTH_SESSION_H_
 
-#include "../../../src/core/depth_sensor.h"
-
 #include <memory>
 #include <mutex>
 
 #include <Fulfil.DepthCam/core/session.h>
+#include <Fulfil.DepthCam/core/depth_sensor.h>
 
 namespace fulfil
 {
