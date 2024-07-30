@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo -e "\n$(hostname) camera initialization order"
-#rs-fw-update -l | cut -d , -f 1,2
-#cd ~/code/Fulfil.ComputerVision/Fulfil.Dispense || echo "Failure to find the dispense repo directory" && exit
+rs-fw-update -l | cut -d , -f 1,2
+cd ~/code/Fulfil.ComputerVision/Fulfil.Dispense || echo "Failure to find the dispense repo directory" && exit
 
 echo -e "\nDispense API expected init:"
 # use today's log file, but if it doesn't exist then loop through the last week to find the latest log file
