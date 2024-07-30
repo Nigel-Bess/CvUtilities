@@ -2,12 +2,12 @@
 
 .phony : all
 all:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target main -- -j 6
 
 .phony : calibrate
 calibrate:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target auto_tray_calibration -- -j 6
 
 .phony : client
