@@ -2,18 +2,34 @@
 
 .phony : all
 all:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
 	cmake --build build --target main -- -j 6
 
 .phony : calibrate
 calibrate:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
 	cmake --build build --target auto_tray_calibration -- -j 6
 
 .phony : client
 client:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
 	cmake --build build --target dispense_test_client -- -j 6
+
+.phony : offline_bag
+offline_bag:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target offline_test -- -j 6
+
+.phony : offline_tray
+offline_tray:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target tray_offline_simulation -- -j 6
+
+.phony : offline_all
+offline_all:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target tray_offline_simulation -- -j 6
+	cmake --build build --target offline_test -- -j 6
 
 .phony : deploy
 deploy:
