@@ -293,6 +293,7 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
     FEDParams params) {
     double num_over_tray_on_line = 0;
     double sum_over_tray = 0;
+    //TODO could improve check conditions here using morph element
     auto invalid_depth = [&] (const Eigen::Vector3d& cur_pt) {
         if (cur_pt.z() < 0) {
             num_over_tray_on_line++;
@@ -301,6 +302,8 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>
         return -cur_pt.z() < params.min_height || (-cur_pt.z() > params.max_height)
                  || (cur_pt.x() < params.min_x) || (cur_pt.x() > params.max_x);};
 
+
+    // TODO Eliminate Maybe???
     uint dead_steps = 0; // REF PARAM
     auto log_dead_zone = [&](
                            //const cv::Point2i& pix,
@@ -642,7 +645,7 @@ cv::Mat make_local_depth_frame(const std::shared_ptr<fulfil::depthcam::Session> 
 
 cv::Mat get_aligned_local_depth_frame(const std::shared_ptr<fulfil::depthcam::Session> &session,
     Eigen::Affine3d transform) {
-  float decimation_factor = 8; // Should get from decimation filter through sensor eventually
+  float decimation_factor = 8; // TODO @JESS Should get from decimation filter through sensor eventually
   cv::Size full_size = cv::Size(session->get_color_stream_intrinsics()->width, session->get_color_stream_intrinsics()->height);
   cv::Size padded_decimated_frame_size = session->get_point_cloud(true)->as_pixel_cloud()->get_size_point_cloud_as_frame(decimation_factor);
   Logger::Instance()->Debug("Padded decimated frame (magnitude {}) size (x,y) is: ({},{})", decimation_factor, padded_decimated_frame_size.width, padded_decimated_frame_size.height);
@@ -811,6 +814,7 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   cv::Mat tongue_color_mask = make_tongue_color_selection(*session->get_color_mat());
   filterUtils::filter_out_selection( tongue_color_mask, safe_distance_selection);
 
+  //TODO @Jess Remove once James' stuff takes over, will need to separate out the tongue detection and lane center stuff
     auto [pixel_lane_centers, tongue_detections] =
             get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
 
@@ -841,6 +845,9 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   /*** mutates depth frame ***/
   cv::Mat invalid_depth_selection = mark_distance_thresholds(local_distance_frame,
       -1 * this->dispense_arm_height, false);
+  // TODO @JESS this->dispense_arm_height, trace, may need adjustments.
+  //  basically is a constant translation along z axis, could be used to help
+  //  diagnose issue arising from thickness of calibration board
   filterUtils::merge_selection( tongue_color_mask, invalid_depth_selection); // flip order here ?
   filterUtils::merge_selection(invalid_depth_selection, filterUtils::make_invalid_depth_selection(*(session->get_depth_mat(true)))); // may want to push below
     smooth_selection(tongue_color_mask, true); // or flip this up
@@ -889,6 +896,11 @@ tray_vlsg_request.m_context.get_id_tagged_sequence_step(),
 
 
 cv::Mat TrayAlgorithm::make_tongue_color_selection(cv::Mat rgb_selection) {
+    // TODO tongue HSV filter params, default is magenta, will need to add to the config for freezer tongue
+    /** CYAN values for freezer tongue
+        low_tongue_mask=85 78 82
+        high_tongue_mask=131 255 255
+     * */
     std::vector<int> low = this->tray_config_section.get_value("low_tongue_mask", std::vector<int>({150, 103, 110}));
     std::vector<int> high = this->tray_config_section.get_value( "high_tongue_mask", std::vector<int>({167, 255, 255}));
     cv::Mat tongue_color_mask = filterUtils::make_selection_by_color(
@@ -896,11 +908,7 @@ rgb_selection, cv::Scalar(low[0], low[1], low[2]), cv::Scalar(high[0], high[1], 
     return tongue_color_mask;
 }
 
-/**
-low_tongue_mask=85 78 82
-high_tongue_mask=131 255 255
 
- * */
 // TODO break out as free function
 // TODO move to caller
 std::string polygon_print(const std::vector<cv::Point2i>& lane_outline) {
