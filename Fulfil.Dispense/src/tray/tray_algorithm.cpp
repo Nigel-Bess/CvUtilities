@@ -823,9 +823,7 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   //auto [pixel_lane_centers, tongue_detections] =
   //    get_tongue_detections(session, current_tray, tray_vlsg_request, tray_lanes, tongue_color_mask);
     Eigen::Matrix3Xd lane_center_coordinates = current_tray.get_tray_center_coordinates(this->tray_length, 0);
-    std::cout << "LANE CENTERS 1:\n" << lane_center_coordinates << '\n';
     pixel_lane_centers =  get_center_pixels(local_pix2pt, tray_lanes, current_tray, lane_center_coordinates);
-    std::cout << "LANE CENTERS 2:\n" << lane_center_coordinates << '\n';
     std::vector<std::vector<cv::Point2i>> lane_bounds = get_width_boundaries(lane_center_coordinates, local_pix2pt, current_tray.get_max_item_width());
 
     tongue_detections = validate_tongues_in_lane_on_tray(tongue_color_mask, lane_bounds, tray_lanes, tray_vlsg_request.get_primary_key_id());

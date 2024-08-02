@@ -53,7 +53,7 @@ function print_env_params {
 # Currently only tested against machine with GPU acceleration.
 # Though should still run on machines with out GPUs
 
-NUM_CPU=6
+NUM_CPU=12
 MINIMUM_RELEASE=18.04
 OS_NAME="$(lsb_release -ds 2>/dev/null)"
 PROCESSOR="$(uname -p)"
