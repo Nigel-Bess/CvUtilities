@@ -102,6 +102,17 @@ cd ~/code/Fulfil.TrayCountAPI/scripts/
 BUILD=$(date '+%Y_%m_%d-H%H-M%M') ; bash agx_env_setup.sh 2>&1 | tee "count_dep_install_out_${BUILD}.txt"
 ```
 
+### Copy over services and utilities 
+
+```angular2html
+sudo cp ~/code/Fulfil.ComputerVision/scripts/dc-* /usr/bin
+sudo cp ~/code/Fulfil.ComputerVision/scripts/*.service /etc/systemd/system/
+# then you need to enable each service, sudo systemctl enable < service file >
+```
+Set up disk clean jobs by copying over example crontab file using the editor: `crontab -e`.
+
+Poke Mike to setup mars-ctl fw.
+
 ## Cloning / Restoring an Image
 ConnectTech provides instructions to [clone and restore an image](https://connecttech.com/resource-center/kdb-378-cloning-jetson-modules-with-connect-tech-board-support-package/) and install
 with their BSP intact. Though Amber only tested this on boards that were booting off eMMC.

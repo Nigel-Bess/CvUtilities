@@ -25,6 +25,8 @@
 */30 *  *   *   *    find /home/fulfil/data/live_images/live_drop_image/* -type d -empty -delete
   0  0  *   *   *    find /home/fulfil/data/saved_videos/* -mtime +1 -exec rm -rf {} \;
   0  0  *   *   *    find /home/fulfil/data/* -maxdepth 1 -name "saved_images_*" -mtime +7 -exec rm -rf {} \;
-  0  0  *   *   *    find /home/fulfil/data/flask_output/* -maxdepth 1 -mtime +14 -exec rm -rf {} \;
+  0  0  *   *   *    find /home/fulfil/code/Fulfil.TrayCountAPI/model_app/logging/logs/ -maxdepth 1 -mtime +14 -exec rm -rf {} \;
+  0  0  *   *   *    find /home/fulfil/code/Fulfil.TrayCountAPI/flask_output/ -maxdepth 1 -mtime +7 -exec rm -rf {} \;
   0  0  *   *   *    find /home/fulfil/code/Fulfil.Dispense/logs/* -mtime +14 -exec rm -rf {} \;
+  0  0  *   *   *    find /home/fulfil/data/flask_output/* -maxdepth 1 -mtime +14 -exec rm -rf {} \;
 
