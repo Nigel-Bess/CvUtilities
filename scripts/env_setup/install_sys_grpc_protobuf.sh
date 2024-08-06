@@ -4,6 +4,17 @@ BLU='\033[1;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+function continue_or_skip {
+  while true ; do
+    read -p "Do you want to continue? (y/n) " yn
+    case $yn in
+        [yY] ) echo -e "Continue process..." ; return 0 ;;
+        [nN] ) echo -e "Do not proceed with process..." ; return 1 ;;
+        * ) echo "Please answer yes or no. ";;
+    esac
+  done
+}
+
 function arch_alias { if [[ "$(uname -p )" == "aarch64" ]] ;  then echo "arm64"
   elif [[ "$(uname -p )" == "x86_64" ]] ; then echo  "amd64" ; else uname -p ; fi }
 
@@ -29,9 +40,6 @@ PROTOBUF_ASSET_TYPE="cpp"
 PROTOBUF_RELEASE_TAG="21.12"
 PROTOBUF_VERSION_CPP="3.21.12"
 PROTOBUF_VERSION_PY="4.21.12"
-
-# Update python libs to allow for wheel builds and headers, may also need python3-distutils & python3-wheel if not installed
-sudo apt-get -y update && sudo apt install -y python3-pip python3-venv python3-dev
 
 # Install Bazel
 BAZEL_BIN="bazelisk-linux-${ARCH_ALIAS}"
@@ -68,27 +76,32 @@ if ! pip3 -V &>/dev/null ; then
   apt-get update && apt-get install -y --no-install-recommends python3-pip
 fi
 
-cd ${PROTOBUF_DIR} || exit
-  ./autogen.sh && ./configure --prefix=/usr | tee "${BUILD_LOG_ROOT}/protobuf_configure_out.txt"
-  make -j "$(( $(nproc) - 2 ))" | tee "${BUILD_LOG_ROOT}/protobuf_make_out.txt"
-  make check -j "$(( $(nproc) - 4 ))" | tee "${BUILD_LOG_ROOT}/protobuf_make_check_out.txt"
-  make install  | tee "${BUILD_LOG_ROOT}/protobuf_install_out.txt" && ldconfig
-  if [ ${PROTOBUF_ASSET_TYPE} = 'python' ] ; then
-      pip3 install --no-cache-dir setuptools Cython wheel || exit
-      cd python || exit
-      echo "Building python protobuf..."
-      python3 setup.py build --cpp_implementation  | tee "${BUILD_LOG_ROOT}/protobuf_py_build_out.txt"
-      echo "Test python protobuf..."
-      python3 setup.py test --cpp_implementation  | tee "${BUILD_LOG_ROOT}/protobuf_py_test_out.txt"
-      echo "Make python protobuf wheel..."
-      python3 setup.py bdist_wheel --cpp_implementation | tee "${BUILD_LOG_ROOT}/protobuf_py_wheel_out.txt"
-      echo "Install python protobuf wheel"
-      cp dist/*.whl /opt && pip3 install dist/*.whl | tee "${BUILD_LOG_ROOT}/protobuf_py_pip_out.txt" || exit
-      echo "Test python proto installation"
-      pip3 show protobuf || exit
-  fi
-echo "Test protoc installation"
-protoc --version || exit
+echo -e "\n${CYN}Do you want to install protobuf system wide?${NC}"
+if continue_or_skip ; then
+  cd ${PROTOBUF_DIR} || exit
+    ./autogen.sh && ./configure --prefix=/usr | tee "${BUILD_LOG_ROOT}/protobuf_configure_out.txt"
+    make -j "$(( $(nproc) - 2 ))" | tee "${BUILD_LOG_ROOT}/protobuf_make_out.txt"
+    make check -j "$(( $(nproc) - 4 ))" | tee "${BUILD_LOG_ROOT}/protobuf_make_check_out.txt"
+    make install  | tee "${BUILD_LOG_ROOT}/protobuf_install_out.txt" && ldconfig
+    if [ ${PROTOBUF_ASSET_TYPE} = 'python' ] ; then
+        pip3 install --no-cache-dir setuptools Cython wheel || exit
+        cd python || exit
+        echo "Building python protobuf..."
+        python3 setup.py build --cpp_implementation  | tee "${BUILD_LOG_ROOT}/protobuf_py_build_out.txt"
+        echo "Test python protobuf..."
+        python3 setup.py test --cpp_implementation  | tee "${BUILD_LOG_ROOT}/protobuf_py_test_out.txt"
+        echo "Make python protobuf wheel..."
+        python3 setup.py bdist_wheel --cpp_implementation | tee "${BUILD_LOG_ROOT}/protobuf_py_wheel_out.txt"
+        echo "Install python protobuf wheel"
+        cp dist/*.whl /opt && pip3 install dist/*.whl | tee "${BUILD_LOG_ROOT}/protobuf_py_pip_out.txt" || exit
+        echo "Test python proto installation"
+        pip3 show protobuf || exit
+    fi
+  echo "Test protoc installation"
+  protoc --version || exit
+else
+  echo "Skipping protobuf install"
+fi
 
 # Install gRPC
 

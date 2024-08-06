@@ -53,7 +53,7 @@ function print_env_params {
 # Currently only tested against machine with GPU acceleration.
 # Though should still run on machines with out GPUs
 
-NUM_CPU=6
+NUM_CPU=12
 MINIMUM_RELEASE=18.04
 OS_NAME="$(lsb_release -ds 2>/dev/null)"
 PROCESSOR="$(uname -p)"
@@ -71,6 +71,10 @@ LIBREALSENSE_VERSION=2.54.2
 MONGOC_VERSION=1.21.1
 MONGOCXX_VERSION=3.6.6
 SPDLOG_VERSION=1.11.0
+# Architecture to gencode ref https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+JETSON_CUDA_ARCH="7.2" # 7.2 for Xavier 8.7 for Orin
+POSSIBLE_HOST_CUDA_ARCH="7.0" # This was specific to ambers x86 machine.
+# # If host computer has a gpu, update above. if it does not, the script detects that  and skips GPU specific steps
 
 
 function UPDATE_CUDA_ARGS () {
@@ -98,13 +102,14 @@ if [[ "$PROCESSOR" == "aarch64" ]]; then
       exit 1
     fi
   PKG_MAKE_PREFIX="/usr"
-  UPDATE_CUDA_ARGS "7.2"
+  UPDATE_CUDA_ARGS "$JETSON_CUDA_ARCH"
   DO_RS_USB_PATCH="OFF"
 elif [[ "$PROCESSOR" == "x86_64" ]]; then
   echo -e "${LIM}Valid host architecture $PROCESSOR found!${NC}"
   PKG_MAKE_PREFIX="/usr/local"
   UPDATE_CUDA_ARGS "7.0"
-  DO_RS_USB_PATCH="ON"
+  # You may want to comment this out if running a container / wsl on windows host
+  DO_RS_USB_PATCH="ON" # Unsure how the usb patch will work using WSL or docker since this is a kernel level change
 else
   echo -e "${RED}Unknown host architecture detected!${NC}"
   echo -e "${RED}Exiting workspace setup!${NC}"
@@ -319,17 +324,23 @@ REQUIRED_PKG="cmake"
 SYS_CMAKE_VERSION="$(cmake --version 2>/dev/null | grep -o "[3-9].[0-9.]*")"
 echo -e "${PRP}Checking $REQUIRED_PKG for version $CMAKE_VERSION or higher package installation...${NC}"
 
+kitware_keyring_install () {
+    echo -e "\n${BLU}Creating kitware keyring${NC}"
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+    echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs ) main" | sudo tee /etc/apt/sources.list.d/kitware.list  >/dev/null
+    sudo apt-get -y update
+    test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
+    sudo apt-get install -y kitware-archive-keyring
+    sudo apt-get -y update
+}
+
 if [[ "$SYS_CMAKE_VERSION" == "$(echo -e "$CMAKE_VERSION\n$SYS_CMAKE_VERSION" | sort --version-sort | tail -n1 )" ]] ; then
    echo -e "${GRN}System cmake '$SYS_CMAKE_VERSION' meets required version $CMAKE_VERSION. Skipping install...${NC}"
 else
    echo -e "${BLU}System does not meet the minimum required CMake version!"
    echo -e "${BLU}Need to update cmake from '$SYS_CMAKE_VERSION' to $CMAKE_VERSION!${NC}"
    sudo apt-get remove -y cmake cmake-data
-   wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-   echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs ) main" | sudo tee /etc/apt/sources.list.d/kitware.list  >/dev/null
-   sudo apt-get -y update
-   sudo apt-get install -y kitware-archive-keyring
-   sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
+   kitware_keyring_install
     cmake_apt_version="$(apt list --all-versions cmake 2>/dev/null \
       | grep -Eo "$(lsb_release -cs).*${CMAKE_VERSION}.*$(lsb_release -rs)[.0-9]* $(PROC_ARCH_ALIAS)" \
       | grep -Eo "${CMAKE_VERSION}[^ ]*$(lsb_release -rs)[.0-9]*" )"
@@ -337,10 +348,6 @@ else
    sudo apt-get install "cmake-data=${cmake_apt_version}"
    sudo apt-get install "cmake=${cmake_apt_version}"
    EXIT_LOG "CMake version ${CMAKE_VERSION} installation failed" $?
-   #cmake_install_script="cmake-${CMAKE_VERSION}-linux-$(uname -p).sh"
-   #echo -e "\n${BLU}Installing CMake ${CMAKE_VERSION} with $cmake_install_script download...${NC}\n"
-   #wget -O cmake-linux.sh "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${cmake_install_script}"
-   #sudo sh cmake-linux.sh -- --skip-license --prefix=/usr
 fi
 
 
@@ -644,17 +651,15 @@ if [ "" = "$PKG_Installed" ] || [ "" = "$PKG_bsonxx" ] || [ "" = "$PKG_mongoc" ]
   [ ! -d "cmake-build" ] && mkdir cmake-build
   cd cmake-build || exit
 
-  sudo sh -c 'curl -s --location https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/libmongocrypt.gpg'
+  # I think the key location changed, you may find that you will need the old link commented out below though
+  #sudo sh -c 'curl -s --location https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/libmongocrypt.gpg'
+  sudo sh -c 'curl -s --location https://pgp.mongodb.com/libmongocrypt.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/libmongocrypt.gpg'
   echo "deb https://libmongocrypt.s3.amazonaws.com/apt/ubuntu $(lsb_release -cs)/libmongocrypt/1.8 universe" | sudo tee /etc/apt/sources.list.d/libmongocrypt.list
   sudo apt-get -y update || exit 1
+  echo "Update mongocrypt"
   sudo apt-get install -y libmongocrypt-dev
 
-  wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-  echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs ) main" | sudo tee /etc/apt/sources.list.d/kitware.list  >/dev/null
-  sudo apt-get -y update || exit 1
-
-  #sudo apt-get install -y kitware-archive-keyring
-  #sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
+  kitware_keyring_install
 
   cmake .. \
     -D ENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF \
