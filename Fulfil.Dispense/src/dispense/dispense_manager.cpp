@@ -974,10 +974,11 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
     return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(request_id);
 }
 
-int fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID,
+std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> 
+fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID,
                                                                 std::shared_ptr<nlohmann::json> request_json)
 {
-    return 0;
+    return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id);
 }
 
 std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse>

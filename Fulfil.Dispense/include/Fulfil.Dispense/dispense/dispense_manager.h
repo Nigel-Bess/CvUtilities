@@ -209,10 +209,9 @@ namespace fulfil::dispense {
 
             int handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
 
-
+            std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
-            int handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
 
             // Currently always returns true to meet FCs expectations after motor control outsourced to fw
             bool check_motor_in_position() override;

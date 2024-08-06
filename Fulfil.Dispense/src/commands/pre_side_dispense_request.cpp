@@ -1,5 +1,5 @@
 //
-// Created by amber on 6/20/24.
+// Created by Jess on 8/6/24.
 //
 
 #include "Fulfil.Dispense/commands/pre_side_dispense_request.h"
@@ -7,9 +7,9 @@
 
 #include <utility>
 
-using fulfil::dispense::commands::PreSideDispenseRequest;
 using fulfil::dispense::commands::CodeResponse;
 using fulfil::dispense::commands::DispenseResponse;
+using fulfil::dispense::commands::PreSideDispenseRequest;
 
 PreSideDispenseRequest::PreSideDispenseRequest(std::shared_ptr<std::string> request_id, std::shared_ptr<std::string> PrimaryKeyID,
                                                std::shared_ptr<nlohmann::json> request_json)
@@ -31,7 +31,7 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
     }
     else
     {
-        std::cout << "PreDropLFB Command Delegate Expired" << std::endl;
+        std::cout << "PreSideDispense Command Delegate Expired" << std::endl;
         return std::make_shared<CodeResponse>(this->request_id, 9); //Todo: change the error code used here if needed
     }
 }
