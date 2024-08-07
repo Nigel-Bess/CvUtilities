@@ -28,7 +28,7 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
 {
     if(!this->delegate.expired())
     {
-        Logger::Instance()->Debug("PreDispense PreSideDispenseRequest execution now");
+        Logger::Instance()->Debug("PreSideDispenseRequest execution now");
         std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
         std::shared_ptr<PreSideDispenseResponse> response = tmp_delegate->handle_pre_side_dispense(
@@ -38,7 +38,7 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
     }
     else
     {
-        std::cout << "PreDispense Command Delegate Expired" << std::endl;
+        std::cout << "PreSideDispense Command Delegate Expired" << std::endl;
         return std::make_shared<PreSideDispenseResponse>(this->request_id, SideDispenseErrorCodes::CommandDelegateExpired);
     }
 }
