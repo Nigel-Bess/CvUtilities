@@ -14,7 +14,9 @@ using fulfil::utils::Logger;
 void PreSideDispenseResponse::encode_payload()
 {
     nlohmann::json result_json{};
+    result_json["Primary_Key_ID"] = *this->primary_key_id;
     result_json["Error"] = this->success_code;
+    result_json["Error_Description"] = this->error_description
 
     std::string json_string = result_json.dump();
     Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", json_string);
@@ -28,8 +30,14 @@ void PreSideDispenseResponse::encode_payload()
 }
 
 
-PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id, 
-                                                 SideDispenseErrorCodes success_code) : request_id(request_id), success_code(success_code){}
+PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
+                                                 std::shared_ptr<std::string> primary_key_id,
+                                                 SideDispenseErrorCodes success_code,
+                                                 std::string error_description=std::string("")) : 
+                                                 request_id(request_id), 
+                                                 primary_key_id(primary_key_id), 
+                                                 success_code(success_code), 
+                                                 error_description(error_description){}
 
 std::shared_ptr<std::string> PreSideDispenseResponse::get_command_id()
 {
