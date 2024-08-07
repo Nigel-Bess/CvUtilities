@@ -33,6 +33,7 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
 
         std::shared_ptr<PreSideDispenseResponse> response = tmp_delegate->handle_pre_side_dispense(
                                                                                   this->request_id,
+                                                                                  this->PrimaryKeyID,
                                                                                   this->request_json);
         return response;
     }
