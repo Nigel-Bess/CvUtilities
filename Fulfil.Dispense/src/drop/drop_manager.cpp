@@ -555,3 +555,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
         return std::vector<int>{};
     }
 }
+
+
+
+// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****

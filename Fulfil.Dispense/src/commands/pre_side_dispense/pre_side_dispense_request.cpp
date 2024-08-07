@@ -11,8 +11,9 @@ using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::commands::DispenseResponse;
 
 
-PreSideDispenseRequest::PreSideDispenseRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID,
-                               std::shared_ptr<nlohmann::json> request_json)
+PreSideDispenseRequest::PreSideDispenseRequest(std::shared_ptr<std::string> command_id, 
+                                               std::shared_ptr<std::string> PrimaryKeyID,
+                                               std::shared_ptr<nlohmann::json> request_json)
 {
     /**
      * The command id is still somewhat important here because
@@ -38,6 +39,6 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
     else
     {
         std::cout << "PreDispense Command Delegate Expired" << std::endl;
-        return std::make_shared<PreSideDispenseResponse>(this->request_id); //TODO: Must add error code back
+        return std::make_shared<PreSideDispenseResponse>(this->request_id, SideDispenseErrorCodes::CommandDelegateExpired);
     }
 }

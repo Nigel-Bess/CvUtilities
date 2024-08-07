@@ -959,6 +959,8 @@ std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagener
     return base_directory;
 }
 
+// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
+
 std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse>
 fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<nlohmann::json> request_json)
@@ -976,10 +978,8 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
 
 std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> 
 fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID,
-                                                                std::shared_ptr<nlohmann::json> request_json)
-{
-    //return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id);
-    
+                                                            std::shared_ptr<nlohmann::json> request_json)
+{   
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + PrimaryKeyID);
     Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", PrimaryKeyID, this->machine_name);
@@ -987,35 +987,38 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     if (!this->LFB_session)
     {
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
-        return std::make_shared<PreSideDispenseResponse>(details->request_id); // TODO: error code
-                                           // "No LFB Session: Bouncing Drop Camera Drop Target"); // Todo: move to throw/catch format, log data
+        return std::make_shared<PreSideDispenseResponse>(details->request_id, 
+                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError);
+                                                         // TODO: add error description 
+                                                         //"No LFB Session. Check all cameras registering and serial numbers match!"); 
+                                                         // TODO: have specific error code // TODO: move to throw/catch format, log data
     }
 
+    // create file path variables for data generation
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
-
     std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
     std::shared_ptr<fulfil::dispense::drop::PreSideDispenseResponse>
         pre_side_dispense_response = this->drop_manager->handle_pre_side_dispense_request(request_json, base_directory, time_stamp_string, true);
 
     // if algorithm failed, upload available visualizations immediately
-    if (pre_side_dispense_response->success_code != DropTargetErrorCodes::Success)
+    if (pre_side_dispense_response->success_code != SideDispensetErrorCodes::Success)
     {
         if (this->live_viewer != nullptr)
         {
             std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
-            std::string error_line = "Target: Error ID " + std::to_string(drop_result->success_code);
+            std::string error_line = "Target: Error ID " + std::to_string(pre_side_dispense_response->success_code);
             message->push_back(error_line);
-            std::string specific_error_message = get_error_name_from_code((DropTargetErrorCodes)drop_result->success_code);
+            std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)pre_side_dispense_response->success_code);
             message->push_back(specific_error_message);
             std::cout << specific_error_message << std::endl;
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, message);
 
-            Logger::Instance()->Debug("Handle Drop Target Failed!");
+            Logger::Instance()->Debug("Handle PreSideDispense Failed!");
         }
     }
 
-    Logger::Instance()->Debug("Finished handling Drop Target Request for Bay: {}", this->machine_name);
+    Logger::Instance()->Debug("Finished handling PreSideDispenseRequest {} for Bay: {}", PrimaryKeyID, this->machine_name);
     return pre_side_dispense_response;
 }
 
