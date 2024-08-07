@@ -15,7 +15,7 @@ void PreSideDispenseResponse::encode_payload()
 {
     nlohmann::json result_json{};
     result_json["Primary_Key_ID"] = *this->primary_key_id;
-    result_json["Error"] = this->success_code;
+    result_json["Error"] = (int)this->success_code;
     result_json["Error_Description"] = this->error_description
 
     std::string json_string = result_json.dump();
@@ -28,7 +28,6 @@ void PreSideDispenseResponse::encode_payload()
     this->payload = std::make_shared<std::string>(response);
     delete [] response;
 }
-
 
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
                                                  std::shared_ptr<std::string> primary_key_id,

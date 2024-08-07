@@ -273,7 +273,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     {
         Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+        response = handle_pre_side_dispense(command_id, pkid, request_json);
         break;
     }
     case DispenseCommand::post_side_dispense:
@@ -977,20 +977,20 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
 }
 
 std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> 
-fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID,
+fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> request_id,
+                                                            std::shared_ptr<std::string> primary_key_id,
                                                             std::shared_ptr<nlohmann::json> request_json)
 {   
-    std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + PrimaryKeyID);
-    Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", PrimaryKeyID, this->machine_name);
-    // TODO - make this more useful and obvious, panic the DAB In FC
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + primary_key_id);
+    Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", primary_key_id, this->machine_name);
     if (!this->LFB_session)
     {
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
-        return std::make_shared<PreSideDispenseResponse>(details->request_id, 
-                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError);
-                                                         // TODO: add error description 
-                                                         //"No LFB Session. Check all cameras registering and serial numbers match!"); 
+        // TODO - make this more useful and obvious, panic the DAB In FC
+        // TODO: do we even return a response here or just throw a big ol' exception
+        return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, 
+                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError,
+                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!")); 
                                                          // TODO: have specific error code // TODO: move to throw/catch format, log data
     }
 
@@ -998,8 +998,8 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
     std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
-    std::shared_ptr<fulfil::dispense::drop::PreSideDispenseResponse>
-        pre_side_dispense_response = this->drop_manager->handle_pre_side_dispense_request(request_json, base_directory, time_stamp_string, true);
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse>
+        pre_side_dispense_response = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, true);
 
     // if algorithm failed, upload available visualizations immediately
     if (pre_side_dispense_response->success_code != SideDispensetErrorCodes::Success)
@@ -1012,7 +1012,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
             std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)pre_side_dispense_response->success_code);
             message->push_back(specific_error_message);
             std::cout << specific_error_message << std::endl;
-            this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, message);
+            this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, primary_key_id, true, message);
 
             Logger::Instance()->Debug("Handle PreSideDispense Failed!");
         }

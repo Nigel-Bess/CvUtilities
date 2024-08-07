@@ -27,6 +27,7 @@ using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::data::DataGenerator;
 using fulfil::dispense::commands::PostLFRResponse;
+using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
@@ -559,3 +560,32 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
 
 
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
+
+std::shared_ptr<PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                            std::shared_ptr<std::string> primary_key_id,
+                                                            std::shared_ptr<nlohmann::json> request_json, 
+                                                            const std::shared_ptr<std::string> &base_directory,
+                                                            const std::shared_ptr<std::string> &time_stamp_string,
+                                                            bool generate_data)
+{
+    Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + primary_key_id);
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+
+    // TODO - fix this nonsense
+    //std_filesystem::path base_directory = make_media::paths::join_as_path(
+    //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+    //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+
+    // image
+
+    // depth & marker container
+
+    // depth cloud visualization
+
+    // transform depth cloud into the OccupancyMap
+
+    // send OccupancyMap to FC
+
+    return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, SideDispenseErrorCodes::Success);
+}
