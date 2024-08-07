@@ -14,10 +14,10 @@
 #include <Fulfil.Dispense/commands/pre_LFR_request.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_request.h>
 #include <Fulfil.Dispense/commands/parsing/command_parsing_errors.h>
-#include <Fulfil.Dispense/commands/start_tray_video_request.h>
-#include <Fulfil.Dispense/commands/start_lfb_video_request.h>
-#include <Fulfil.Dispense/commands/stop_tray_video_request.h>
-#include <Fulfil.Dispense/commands/stop_lfb_video_request.h>
+#include <Fulfil.Dispense/commands/video/start_tray_video_request.h>
+#include <Fulfil.Dispense/commands/video/start_lfb_video_request.h>
+#include <Fulfil.Dispense/commands/video/stop_tray_video_request.h>
+#include <Fulfil.Dispense/commands/video/stop_lfb_video_request.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_request.h>
 //#include <Fulfil.Dispense/commands/home_motor_request.h>
 //#include <Fulfil.Dispense/commands/position_motor_request.h>

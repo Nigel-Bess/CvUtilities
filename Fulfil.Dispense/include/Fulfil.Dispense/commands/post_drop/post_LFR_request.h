@@ -3,8 +3,8 @@
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
 
-#ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_STOP_VIDEO_REQUEST_H_
-#define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_POST_DROP_REQUEST_H_
+#ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_REQUEST_H_
+#define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_REQUEST_H_
 
 #include <Fulfil.Dispense/commands/dispense_request.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
@@ -29,4 +29,4 @@ class PostLFRRequest : public fulfil::dispense::commands::DispenseRequest
 } // namespace dispense
 } // namespace fulfil
 
-#endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_STOP_VIDEO_REQUEST_H_
+#endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_POST_DROP_REQUEST_H_

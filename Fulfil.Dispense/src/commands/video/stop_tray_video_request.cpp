@@ -3,7 +3,7 @@
 // Copyright (c) 2020 Fulfil Solutions, Inc. All rights reserved.
 //
 
-#include "Fulfil.Dispense/commands/stop_tray_video_request.h"
+#include "Fulfil.Dispense/commands/video/stop_tray_video_request.h"
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.CPPUtils/logging.h>
 
