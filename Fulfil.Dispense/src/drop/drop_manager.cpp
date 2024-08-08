@@ -16,6 +16,8 @@
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
 #include <Fulfil.Dispense/drop/pre_post_compare.h>
+#include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
@@ -34,6 +36,7 @@ using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
+using fulfil::dispense::drop::SideDropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
@@ -563,7 +566,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
 
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
 
-std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
                                                         std::shared_ptr<std::string> primary_key_id,
                                                         //std::shared_ptr<nlohmann::json> request_json, 
                                                         std::shared_ptr<std::string> base_directory,
@@ -601,7 +604,7 @@ std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_
     // send OccupancyMap to FC
     //std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>();
 
-    return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, 
+    return std::make_shared<SideDropResult>(request_id, 
         //occupancy_map,
-        SideDispenseErrorCodes::Success);
+        SideDispenseErrorCodes::Success, "");
 }

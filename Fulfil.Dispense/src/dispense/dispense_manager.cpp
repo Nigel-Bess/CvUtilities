@@ -18,6 +18,7 @@
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/commands/parsing/tray_parser.h>
@@ -1003,10 +1004,13 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
     std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
-    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse>
-        pre_side_dispense_response = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id,
+    std::shared_ptr<fulfil::dispense::drop::SideDropResult>
+        side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id,
         // request_json,
-        base_directory, time_stamp_string, true);
+        base_directory, time_stamp_string, false);
+
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response = 
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, SideDispenseErrorCodes::Success);
 
     // if algorithm failed, upload available visualizations immediately
     if (pre_side_dispense_response->success_code != SideDispenseErrorCodes::Success)

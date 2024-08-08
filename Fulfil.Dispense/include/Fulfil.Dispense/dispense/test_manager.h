@@ -12,6 +12,7 @@
 #include <Fulfil.Dispense/commands/dispense_request.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
 #include <Fulfil.Dispense/drop/drop_manager.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <FulfilMongoCpp/mongo_connection.h>
