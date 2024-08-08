@@ -18,6 +18,7 @@
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.Dispense/drop/drop_manager.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>

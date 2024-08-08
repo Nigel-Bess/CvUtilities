@@ -108,6 +108,13 @@ class DropManager
 
   std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json);
 
+  std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                            std::shared_ptr<std::string> primary_key_id,
+                                                            std::shared_ptr<nlohmann::json> request_json, 
+                                                            std::shared_ptr<std::string> base_directory,
+                                                            std::shared_ptr<std::string> time_stamp_string,
+                                                            bool generate_data);
+
   /**
    * Delegate to receive information from the drop manager.
    */

@@ -10,6 +10,7 @@
 #include <Fulfil.DepthCam/point_cloud.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.Dispense/drop/drop_grid.h>
 #include "Fulfil.Dispense/drop/drop_manager.h"
 #include <Fulfil.Dispense/drop/drop_result.h>
@@ -35,6 +36,7 @@ using fulfil::dispense::drop::DropZoneSearcher;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::FileSystemUtil;
@@ -555,37 +557,35 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
         Logger::Instance()->Error("Unspecified failure from Check Products For Fit In Bag algo");
         return std::vector<int>{};
     }
-}
 
+    // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
 
-
-// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
-
-std::shared_ptr<PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
                                                             std::shared_ptr<std::string> primary_key_id,
                                                             std::shared_ptr<nlohmann::json> request_json, 
-                                                            const std::shared_ptr<std::string> &base_directory,
-                                                            const std::shared_ptr<std::string> &time_stamp_string,
+                                                            std::shared_ptr<std::string> base_directory,
+                                                            std::shared_ptr<std::string> time_stamp_string,
                                                             bool generate_data)
-{
-    Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + primary_key_id);
-    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+    {
+        Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
+        auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
-    // TODO - fix this nonsense
-    //std_filesystem::path base_directory = make_media::paths::join_as_path(
-    //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
-    //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
-    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+        // TODO - fix this nonsense
+        //std_filesystem::path base_directory = make_media::paths::join_as_path(
+        //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+        //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
+        Logger::Instance()->Debug("Base directory is {}", *base_directory);
 
-    // image
+        // image
+    
+        // depth & marker container
 
-    // depth & marker container
+        // depth cloud visualization
 
-    // depth cloud visualization
+        // transform depth cloud into the OccupancyMap
 
-    // transform depth cloud into the OccupancyMap
+        // send OccupancyMap to FC
 
-    // send OccupancyMap to FC
-
-    return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, SideDispenseErrorCodes::Success);
+        return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, SideDispenseErrorCodes::Success);
+    }
 }

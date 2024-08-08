@@ -25,7 +25,7 @@
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
 #include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
-#include "Fulfil.Dispense/commands/pre_side_dispense_request.h"
+#include "Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_request.h"
 
 
 using fulfil::utils::Logger;

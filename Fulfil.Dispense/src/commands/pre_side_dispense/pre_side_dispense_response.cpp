@@ -31,8 +31,9 @@ void PreSideDispenseResponse::encode_payload()
 
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
                                                  std::shared_ptr<std::string> primary_key_id,
+                                                 //std::shared_ptr<std::vector<std::shared_ptr<std::vector>>>> occupancy_map,
                                                  SideDispenseErrorCodes success_code,
-                                                 std::string error_description=std::string("")) : 
+                                                 std::string error_description) : 
                                                  request_id(request_id), 
                                                  primary_key_id(primary_key_id), 
                                                  success_code(success_code), 
