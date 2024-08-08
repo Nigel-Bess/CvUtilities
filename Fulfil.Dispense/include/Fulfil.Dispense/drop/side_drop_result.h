@@ -6,6 +6,7 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_SIDE_DROP_RESULT_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_SIDE_DROP_RESULT_H_
 #include <memory>
+#include <vector>
 #include <fstream>
 #include <Fulfil.CPPUtils/point_3d.h>
 
@@ -26,7 +27,10 @@ class SideDropResult
    * the given request id and marks the result as a failure.
    * @param request_id pointer to string with request id.
    */
-  explicit SideDropResult(std::shared_ptr<std::string> request_id, int error_code, const std::string &error_description);
+  explicit SideDropResult(std::shared_ptr<std::string> request_id,
+   std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map,
+   int error_code,
+   const std::string &error_description);
 
   // /**
   //  * SideDropResult constructor that takes in the center of the drop location
@@ -44,6 +48,8 @@ class SideDropResult
    * The id of the request.
    */
   std::shared_ptr<std::string> request_id;
+
+  std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map;
   /**
    * Defines success of drop search algorithm
    *  0 = success

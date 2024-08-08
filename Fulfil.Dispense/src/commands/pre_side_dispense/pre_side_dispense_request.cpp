@@ -40,6 +40,6 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
     else
     {
         std::cout << "PreSideDispense Command Delegate Expired" << std::endl;
-        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, SideDispenseErrorCodes::CommandDelegateExpired);
+        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, nullptr, SideDispenseErrorCodes::CommandDelegateExpired);
     }
 }

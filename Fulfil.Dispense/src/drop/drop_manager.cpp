@@ -588,23 +588,25 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     // depth cloud visualization
 
     // transform depth cloud into the OccupancyMap
+    std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map;
     // TODO: don't hardcode
-    //int occupancy_map_width = 5;
-    //int occupancy_map_height = 5; 
+    int occupancy_map_width = 5;
+    int occupancy_map_height = 5;
     // for each column in map create a vector of int depths
-    //for x in occupancy_map_width {
-    //    std::vector<int> column;
-    //    for y in occupancy_map_height {
-    //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
-    //        column.append(point_closest_to_mouth_of_bag);
-    //    }
-    //    occupancy_map->append(std::make_shared<std::vector<int>>(column.copy());
-    //}
+    for (int x = 0; x < occupancy_map_width; x++) {
+        std::vector<int> column;
+        for (int y = 0; y < occupancy_map_height; y++) {
+        //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+            column.push_back(x+y);
+        }
+        // TODO make this a copy of column or else it will be messed up
+        occupancy_map->push_back(std::make_shared<std::vector<int>>(column));
+    }
     
     // send OccupancyMap to FC
     //std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>();
 
     return std::make_shared<SideDropResult>(request_id, 
-        //occupancy_map,
+        occupancy_map,
         SideDispenseErrorCodes::Success, "");
 }
