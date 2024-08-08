@@ -557,35 +557,51 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
         Logger::Instance()->Error("Unspecified failure from Check Products For Fit In Bag algo");
         return std::vector<int>{};
     }
+}
 
-    // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
 
-    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
-                                                            std::shared_ptr<std::string> primary_key_id,
-                                                            std::shared_ptr<nlohmann::json> request_json, 
-                                                            std::shared_ptr<std::string> base_directory,
-                                                            std::shared_ptr<std::string> time_stamp_string,
-                                                            bool generate_data)
-    {
-        Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
-        auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
-        // TODO - fix this nonsense
-        //std_filesystem::path base_directory = make_media::paths::join_as_path(
-        //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
-        //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
-        Logger::Instance()->Debug("Base directory is {}", *base_directory);
+// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
 
-        // image
+std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                        std::shared_ptr<std::string> primary_key_id,
+                                                        //std::shared_ptr<nlohmann::json> request_json, 
+                                                        std::shared_ptr<std::string> base_directory,
+                                                        std::shared_ptr<std::string> time_stamp_string,
+                                                        bool generate_data)
+{
+    Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+
+    // TODO - fix this nonsense
+    //std_filesystem::path base_directory = make_media::paths::join_as_path(
+    //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+    //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", *base_directory);
+    // image
     
-        // depth & marker container
+    // depth & marker container
+    
+    // depth cloud visualization
 
-        // depth cloud visualization
+    // transform depth cloud into the OccupancyMap
+    // TODO: don't hardcode
+    //int occupancy_map_width = 5;
+    //int occupancy_map_height = 5; 
+    // for each column in map create a vector of int depths
+    //for x in occupancy_map_width {
+    //    std::vector<int> column;
+    //    for y in occupancy_map_height {
+    //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+    //        column.append(point_closest_to_mouth_of_bag);
+    //    }
+    //    occupancy_map->append(std::make_shared<std::vector<int>>(column.copy());
+    //}
+    
+    // send OccupancyMap to FC
+    //std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>();
 
-        // transform depth cloud into the OccupancyMap
-
-        // send OccupancyMap to FC
-
-        return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, SideDispenseErrorCodes::Success);
-    }
+    return std::make_shared<PreSideDispenseResponse>(request_id, primary_key_id, 
+        //occupancy_map,
+        SideDispenseErrorCodes::Success);
 }

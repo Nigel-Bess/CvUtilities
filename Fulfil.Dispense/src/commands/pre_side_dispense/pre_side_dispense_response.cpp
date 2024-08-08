@@ -17,6 +17,8 @@ void PreSideDispenseResponse::encode_payload()
     result_json["Primary_Key_ID"] = *this->primary_key_id;
     result_json["Error"] = (int)this->success_code;
     result_json["Error_Description"] = this->error_description;
+    // TODO: test encoding
+    //result_json["Occupancy_Map"] = *this->occupancy_map;
 
     std::string json_string = result_json.dump();
     Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", json_string);
@@ -36,6 +38,7 @@ PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> re
                                                  std::string error_description) : 
                                                  request_id(request_id), 
                                                  primary_key_id(primary_key_id), 
+                                                 //occupancy_map(occupancy_map),
                                                  success_code(success_code), 
                                                  error_description(error_description){}
 
