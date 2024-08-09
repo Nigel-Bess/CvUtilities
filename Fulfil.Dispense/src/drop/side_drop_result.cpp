@@ -9,7 +9,7 @@ using fulfil::utils::Logger;
 
 
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
-   std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map,
+   std::shared_ptr<std::vector<std::vector<int>>> occupancy_map,
    int error_code,
    const std::string &error_description)
 {

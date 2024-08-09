@@ -19,11 +19,11 @@ void PreSideDispenseResponse::encode_payload()
     result_json["Error"] = (int)this->success_code;
     result_json["Error_Description"] = this->error_description;
     // TODO: test encoding
-    std::vector<std::vector<int>> map;
-    for (int x = 0; x < this->occupancy_map->size(); x++) {
-        map.push_back(*this->occupancy_map->at(x));
-    }
-    result_json["Occupancy_Map"] = map;
+    // std::vector<std::vector<int>> map;
+    // for (int x = 0; x < this->occupancy_map->size(); x++) {
+    //     map.push_back(*this->occupancy_map->at(x));
+    // }
+    result_json["Occupancy_Map"] = *this->occupancy_map;
 
     std::string json_string = result_json.dump();
     Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", json_string);
@@ -38,7 +38,7 @@ void PreSideDispenseResponse::encode_payload()
 
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
                                                  std::shared_ptr<std::string> primary_key_id,
-                                                 std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map,
+                                                 std::shared_ptr<std::vector<std::vector<int>>> occupancy_map,
                                                  SideDispenseErrorCodes success_code,
                                                  std::string error_description) : 
                                                  request_id(request_id), 

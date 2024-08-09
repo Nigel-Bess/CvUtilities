@@ -588,22 +588,27 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     // depth cloud visualization
 
     // transform depth cloud into the OccupancyMap
-    std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map;
+    std::vector<std::vector<int>> occupancy_map;
     // TODO: don't hardcode
     int occupancy_map_width = 5;
     int occupancy_map_height = 5;
+
+    // std::shared_ptr<std::shared_ptr<int[]>[]> occupancy_map(new std::shared_ptr<int[]>[occupancy_map_width]);
     std::vector<int> column;
     // for each column in map create a vector of int depths
     for (int x = 0; x < occupancy_map_width; x++) {
+        // occupancy_map[x] = std::shared_ptr<int[]>(new int[occupancy_map_height]);
+
         Logger::Instance()->Debug("Occupancy map loop x = {}", x);
         column.clear();
         for (int y = 0; y < occupancy_map_height; y++) {
             Logger::Instance()->Debug("Occupancy map loop y = {}", y);
-        //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+            //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
             column.push_back(x+y);
         }
         // TODO make this a copy of column or else it will be messed up
-        occupancy_map->push_back(std::make_shared<std::vector<int>>(column));
+        occupancy_map.push_back(column);
+
     }
 
     Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width, occupancy_map_height);
@@ -613,6 +618,6 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     //std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>();
 
     return std::make_shared<SideDropResult>(request_id, 
-        occupancy_map,
+        std::make_shared<std::vector<std::vector<int>>>(occupancy_map),
         SideDispenseErrorCodes::Success, "");
 }

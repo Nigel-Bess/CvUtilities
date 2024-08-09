@@ -28,7 +28,7 @@ class SideDropResult
    * @param request_id pointer to string with request id.
    */
   explicit SideDropResult(std::shared_ptr<std::string> request_id,
-   std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map,
+   std::shared_ptr<std::vector<std::vector<int>>> occupancy_map,
    int error_code,
    const std::string &error_description);
 
@@ -49,7 +49,7 @@ class SideDropResult
    */
   std::shared_ptr<std::string> request_id;
 
-  std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map;
+  std::shared_ptr<std::vector<std::vector<int>>> occupancy_map;
   /**
    * Defines success of drop search algorithm
    *  0 = success
