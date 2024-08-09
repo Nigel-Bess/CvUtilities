@@ -592,9 +592,10 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     // TODO: don't hardcode
     int occupancy_map_width = 5;
     int occupancy_map_height = 5;
+    std::vector<int> column;
     // for each column in map create a vector of int depths
     for (int x = 0; x < occupancy_map_width; x++) {
-        std::vector<int> column;
+        column.clear();
         for (int y = 0; y < occupancy_map_height; y++) {
         //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
             column.push_back(x+y);
