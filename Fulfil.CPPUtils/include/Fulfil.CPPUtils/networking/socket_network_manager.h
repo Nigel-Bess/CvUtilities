@@ -155,8 +155,8 @@ namespace fulfil::utils::networking
         {
             fulfil::utils::Logger::Instance()->Debug("listening");
             while(true){
-                while(this->socket_manager->service_.HasNewRequest()){
-                    auto request = this->socket_manager->service_.GetNextRequest();
+                while(this->socket_manager->service_->HasNewRequest()){
+                    auto request = this->socket_manager->service_->GetNextRequest();
                     fulfil::utils::Logger::Instance()->Info("New request {}: {}", request->command_id(), MessageType_Name(request->type()));
                     this->process_payload(std::make_shared<std::string>(request->message_data().data(), request->message_size()), std::make_shared<std::string>(request->command_id()));
                 }
@@ -225,7 +225,7 @@ namespace fulfil::utils::networking
         api_resp->set_type(response->message_type);
         api_resp->set_message_size(response->payload_size());
         api_resp->set_message_data(response->payload(), response->payload_size());
-        this->socket_manager->service_.QueueResponse(api_resp);
+        this->socket_manager->service_->QueueResponse(api_resp);
 
     }
 

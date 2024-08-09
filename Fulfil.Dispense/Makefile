@@ -2,18 +2,34 @@
 
 .phony : all
 all:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target main -- -j 6
 
 .phony : calibrate
 calibrate:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target auto_tray_calibration -- -j 6
 
 .phony : client
 client:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
 	cmake --build build --target dispense_test_client -- -j 6
+
+.phony : offline_bag
+offline_bag:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target offline_test -- -j 6
+
+.phony : offline_tray
+offline_tray:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target tray_offline_simulation -- -j 6
+
+.phony : offline_all
+offline_all:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target tray_offline_simulation -- -j 6
+	cmake --build build --target offline_test -- -j 6
 
 .phony : deploy
 deploy:
@@ -31,12 +47,14 @@ stark:
 
 .phony : clean
 clean:
-	mkdir -p build && cd build && cmake .. && cd ..
+	rm -r build && mkdir -p build && cd build && cmake .. && cd ..
 
 .PHONY: update
 update:
-	@cd libs/Fulfil.CPPUtils/src/comm && protoc depthCams.proto --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin`
-	@cd libs/Fulfil.CPPUtils/src/comm && protoc depthCams.proto --cpp_out=.
+	@cd ../Fulfil.CPPUtils/src/comm && protoc depthCams.proto --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin`
+	@cd ../Fulfil.CPPUtils/src/comm && protoc depthCams.proto --cpp_out=.
+	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.pb.h
+	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.grpc.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.grpc.pb.h
 
 .phony : local
 local: 

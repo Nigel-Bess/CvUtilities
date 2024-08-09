@@ -1,12 +1,11 @@
-# Define the library called "Fulfil.MongoCpp" and link all third party libraries needed by it
-file(GLOB HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/*.h")
-file(GLOB MONGO_OBJ_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_objects/*.h")
-file(GLOB MONGO_FILTER_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_filter/*.h")
-#file(GLOB MONGO_FILTER_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/Fulfil.MongoCpp/mongo_machine/*.h")
-file(GLOB MONGO_PARSE_HEADER_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/FulfilMongoCpp/mongo_parse/*.h")
 
-# Find mongo packages (assumes that user used global install procedure in README)
+include_directories(include/FulfilMongoCpp)
+include_directories(include/FulfilMongoCpp/mongo_filter)
+include_directories(include/FulfilMongoCpp/mongo_json)
+include_directories(include/FulfilMongoCpp/mongo_objects)
+include_directories(include/FulfilMongoCpp/mongo_parse)
 
+file(GLOB_RECURSE SOURCES "*.cpp")
 
 if (FULFIL_DISABLE_JSON)
     message("-- Disabling build of MongoJson functionality")
@@ -19,24 +18,7 @@ else()
     set(JSON_CODE 0)
 endif()
 
-add_library(FulfilMongoCpp STATIC
-        ${HEADER_LIST}
-        ${MONGO_OBJ_HEADER_LIST}
-        ${MONGO_FILTER_HEADER_LIST}
-        ${MONGO_PARSE_HEADER_LIST}
-        ${MONGO_JSON_LIST}
-        base_mongo_connection.cpp
-        mongo_connection.cpp
-        mongo_filter/mongo_filters.cpp
-        mongo_objects/mongo_basic_document.cpp
-        #mongo_objects/mongo_scoped_document.cpp
-        #mongo_machine/mongo_machine.cpp
-        mongo_objects/mongo_element.cpp
-        mongo_objects/mongo_document_element.cpp
-        mongo_objects/mongo_array_element.cpp
-        mongo_parse/mongo_bsonxx_parser.cpp
-        mongo_parse/mongo_bsonxx_encoder.cpp
-        mongo_objects/mongo_object_id.cpp)
+add_library(FulfilMongoCpp STATIC ${SOURCES})
 
 if (NOT FULFIL_DISABLE_JSON)
     target_link_libraries(FulfilMongoCpp LINK_PUBLIC json)

@@ -32,4 +32,4 @@ configs
 doxygen_config
 html
 
-
+scripts/env_setup/mongo*

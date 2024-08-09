@@ -244,3 +244,7 @@ bool TransformDepthSession::point_in_spatial_extents(int x, int y) {
 void fulfil::depthcam::TransformDepthSession::set_sensor_name(const std::string &name) {
     this->session->set_sensor_name(name) ;
 }
+
+void TransformDepthSession::set_service(std::shared_ptr<GrpcService> serv){
+    this->session->set_service(serv);
+}

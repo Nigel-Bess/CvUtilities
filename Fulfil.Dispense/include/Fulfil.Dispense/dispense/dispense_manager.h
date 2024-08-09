@@ -23,7 +23,6 @@
 #include <Fulfil.Dispense/tray/tray_manager.h>
 #include "Fulfil.Dispense/commands/parsing/tray_parser.h"
 #include <Fulfil.Dispense/visualization/live_viewer.h>
-#include <FulfilMongoCpp/mongo_connection.h>
 
 namespace fulfil::dispense {
 /**
@@ -103,7 +102,6 @@ namespace fulfil::dispense {
              */
             std::shared_ptr<INIReader>  dispense_reader;
             std::shared_ptr<INIReader>  tray_config_reader;
-            std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_connection;
 
             /**
              *  Mongo id for the LFB bag currently being inspected at the bay
@@ -125,6 +123,7 @@ namespace fulfil::dispense {
              * /home/fulfil/Videos/saved_images_2021_04_29
              */
             std::shared_ptr<std::string> create_datagenerator_basedir();
+            std::shared_ptr<fulfil::utils::networking::SocketManager> socket_manager;
 
 
 
@@ -144,7 +143,6 @@ namespace fulfil::dispense {
               std::shared_ptr<fulfil::depthcam::Session> tray_session,
               std::shared_ptr<INIReader> dispense_man_reader,
               std::shared_ptr<INIReader> tray_config_reader,
-              std::shared_ptr<ff_mongo_cpp::MongoConnection> mongo_conn,
               std::shared_ptr<fulfil::dispense::tray::TrayManager>
                   tray_manager);
             ///Mark: Bay Runner Functions

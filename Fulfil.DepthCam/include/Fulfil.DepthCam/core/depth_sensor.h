@@ -9,6 +9,8 @@
 #include<chrono>
 #include <Fulfil.CPPUtils/timer.h>
 #include<eigen3/Eigen/Dense>
+#include <Fulfil.CPPUtils/comm/depthCams.pb.h>
+#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include<opencv2/opencv.hpp>
 #include<librealsense2/rs.hpp>
 
@@ -38,6 +40,7 @@ class DepthSensor
     std::chrono::system_clock::time_point last_frame_time;
     std::chrono::system_clock::time_point print_time;
     void manage_pipe();
+    void create_camera_status_msg(DepthCameras::DcCameraStatusCodes code);
 
     inline void print_framestats(){
         printf("%s:[%s] Avg frame: %.01fms, total frames: %ld [good: %ld, unrecov exc: %ld, recov exc: %ld, std exc: %ld]\n", name_.c_str(),
@@ -49,6 +52,8 @@ class DepthSensor
     }
 
     std::mutex _lock;
+    std::shared_ptr<TaskQueue> queue_;
+
 
     public:
     /**
@@ -142,6 +147,9 @@ class DepthSensor
     double average_frame_time = 0;
 
     std::string name_ = "D";
+
+    bool connected_ = false;
+    std::shared_ptr<GrpcService> service_ = nullptr;
 };
 } // namespace fulfil
 #endif

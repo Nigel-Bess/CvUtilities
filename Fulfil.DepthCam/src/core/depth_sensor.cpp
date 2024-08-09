@@ -4,18 +4,20 @@
  * hadnles all of the settings that are used for the
  * realsense depth camera.
  */
-#include"depth_sensor.h"
+#include <Fulfil.DepthCam/core/depth_sensor.h>
 #include<eigen3/Eigen/Geometry>
 #include <memory>
 #include<librealsense2/rs.hpp>
 #include<librealsense2/rsutil.h>
 #include <Fulfil.CPPUtils/logging.h>
+
 using fulfil::depthcam::DepthSensor;
 using fulfil::utils::Logger;
 
 // TODO need to make frame size, rate, decimation factor configurable!!!
 DepthSensor::DepthSensor(const std::string &serial)
 {
+
     //Add desired streams to configuration
     rs2::config cfg;
     cfg.enable_device(serial.c_str());
@@ -130,8 +132,23 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
     }
 }
 
+void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes code){
+    if(service_ == nullptr)return;
+    Logger::Instance()->Info("{} Sending status code to FC [{}]", name_,  DcCameraStatusCodes_Name(code));
+    DepthCameras::CameraStatusUpdate msg;
+    std::string tostr;
+    msg.set_command_id(code == 0 ? "cafebabecafebabecafebabe" : "deadbeefdeadbeefdeadbeef"); 
+    msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);
+    msg.set_camera_name(name_);
+    msg.set_camera_serial(*serial_number.get());
+    msg.set_status_code(code);
+    msg.SerializeToString(&tostr);
+    service_->AddStatusUpdate(msg.msg_type(), tostr, msg.command_id());
+}
+
 void DepthSensor::manage_pipe(){
     print_time = CurrentTime();
+    static auto start_time = CurrentTime();
     while(true){
         auto timer = CurrentTime();
         auto success = false;
@@ -144,25 +161,33 @@ void DepthSensor::manage_pipe(){
             last_frame_time = CurrentTime();
             good_frames++;
             success = true;
+            if(!connected_ && name_.compare("D")){//wait for name to be assigned
+                connected_ = true;
+                create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
+            }
 
         }
         catch (const rs2::unrecoverable_error& e){
             Logger::Instance()->Fatal("{} [{}]: Unrecoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             unrecoverable_exc++;
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
         }
         catch (const rs2::recoverable_error& e){
             Logger::Instance()->Error("{} [{}]: Recoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             recoverable_exc++;
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
         }
         catch (const std::exception & e){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe exception {}", name_.c_str(), serial_number->c_str(), e.what());
             std_exceptions++;
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         catch(...){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe unknown error!", name_.c_str(), serial_number->c_str());
             std_exceptions++;
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         auto elapsed = ms_elapsed(timer);
         average_frame_time = average_frame_time * 0.90 + elapsed * 0.10;
@@ -170,7 +195,10 @@ void DepthSensor::manage_pipe(){
             print_framestats();
             print_time = CurrentTime();
         }
-        if(!success)std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        if(!success){
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            connected_ = false;
+        }
     }
 }
 
@@ -186,6 +214,8 @@ rs2::frameset DepthSensor::get_latest_frame(){
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    connected_ = false;
+    create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NO_FRAME);
     Logger::Instance()->Error(error);
     throw (error);
 }

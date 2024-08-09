@@ -73,6 +73,7 @@ class MockContainer : public fulfil::depthcam::aruco::Container
   std::shared_ptr<cv::Mat> get_depth_mat(bool aligned_frames = true) override;
 
   float depth_at_pixel(int x, int y) override;
+  void set_service(std::shared_ptr<GrpcService> serv) override;
 };
 } // namespace fulfil
 } // namespace core

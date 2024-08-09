@@ -48,23 +48,6 @@ enum ChannelStatus
 
 #define GRPC_PORT 9501
 
-inline std::string GetTxObjectIdString(){
-    static uint32_t _transaction = 1000;
-    static char dt[128];
-    auto now = system_clock::now();
-    milliseconds ms = duration_cast<milliseconds>(now.time_since_epoch());
-    seconds s = duration_cast<seconds>(ms);
-    std::time_t t = s.count();
-    uint16_t frac_sec = ms.count() % 1000;
-
-    struct tm * info;
-    info = localtime(&t);
-    sprintf(dt, "%02d-%02dT%02d:%02d:%02d.%03u-%u", 
-        info->tm_mon +1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec, frac_sec, _transaction++); 
-    std::string id(dt);
-    return id;
-}
-
 class AsyncConnection{
     public:     
         AsyncConnection(DcApiService::AsyncService *aservice, ServerCompletionQueue *scq, TaskQueue * task)
@@ -137,6 +120,10 @@ public:
 
     std::shared_ptr<DcRequest> GetNextRequest(){
         return tasks_.GetNextRequest();
+    }
+
+    void AddStatusUpdate(DepthCameras::MessageType t, std::string str, std::string id){
+        tasks_.AddStatusUpdate(t, str, id);
     }
 
 private:

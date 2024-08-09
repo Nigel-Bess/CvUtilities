@@ -20,6 +20,7 @@ using fulfil::utils::networking::SocketManager;
 SocketManager::SocketManager(std::shared_ptr<fulfil::utils::networking::SocketInformation> socket_information)
 {
   this->socket_information = socket_information;
+  this->service_ = std::make_shared<GrpcService>();
 }
 
 /**
@@ -33,7 +34,7 @@ void SocketManager::Disconnect()
 
 void SocketManager::create_socket()
 {
-  this->service_.Run(socket_information->port);
+  this->service_->Run(socket_information->port);
 }
 
 void SocketManager::connect_socket()

@@ -14,6 +14,8 @@ using ff_mongo_cpp::mongo_objects::MongoGenericDocument;
 BaseMongoConnection::BaseMongoConnection(const std::string& conn_string) {
   this->_connected = false;
   //TODO a constructor that takes instance args and ensures destruction
+  //why the f are we still using mongo
+  
   mongocxx::options::client client_options;
   mongocxx::options::tls tls_options;
   tls_options.allow_invalid_certificates(true);
