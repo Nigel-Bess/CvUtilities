@@ -188,8 +188,7 @@ void DispenseManager::handle_request(std::shared_ptr<std::string> payload, std::
     std::thread(&DispenseManager::handle_request_in_thread, this, payload, command_id).detach();
 }
 
-void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payload, std::shared_ptr<std::string> command_id)
-{
+void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payload, std::shared_ptr<std::string> command_id) {
     std::cout << "payload---> " << payload.get()->c_str() << std::endl;
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload->c_str()));
     auto type = (*request_json)["Type"].get<fulfil::dispense::commands::DispenseCommand>();
@@ -197,155 +196,8 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     std::shared_ptr<DispenseResponse> response;
     switch (type)
     {
-    case DispenseCommand::request_bag_state:
-    {
-        Logger::Instance()->Info("Received Get State Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        auto result = handle_get_state(pkid, request_json);
-        response = std::make_shared<fulfil::dispense::commands::ContentResponse>(
-            command_id, std::make_shared<std::string>(result),
-            DepthCameras::MessageType::MESSAGE_TYPE_BAG_STATE_REQUEST);
-        break;
-    }
-    case DispenseCommand::send_bag_state:
-    {
-        Logger::Instance()->Info("Received Update State Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        auto result = handle_update_state(pkid, request_json);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, result);
-        break;
-    }
-    case DispenseCommand::drop_target:
-    {
-        Logger::Instance()->Info("Received Drop Target Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        auto drop_details = std::make_shared<fulfil::dispense::commands::DropTargetDetails>(request_json,
-                                                                                            command_id);
-        auto raw_result = handle_drop_target(drop_details, request_json);
-        if (raw_result->success_code == 0 || raw_result->success_code == 9)
+        case DispenseCommand::request_bag_state:
         {
-            response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
-                                                                                        raw_result->success_code,
-                                                                                        raw_result->rover_position,
-                                                                                        raw_result->dispense_position,
-                                                                                        raw_result->depth_result,
-                                                                                        raw_result->max_depth_point_X,
-                                                                                        raw_result->max_depth_point_Y,
-                                                                                        raw_result->max_Z,
-                                                                                        raw_result->Rotate_LFB,
-                                                                                        raw_result->LFB_Currently_Rotated,
-                                                                                        raw_result->Swing_Collision_Expected,
-                                                                                        raw_result->target_depth_range,
-                                                                                        raw_result->target_depth_variance,
-                                                                                        raw_result->interference_max_z,
-                                                                                        raw_result->interference_average_z,
-                                                                                        raw_result->target_region_max_z,
-                                                                                        raw_result->error_description);
-        }
-        else
-            response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
-                                                                                        raw_result->success_code,
-                                                                                        raw_result->error_description);
-        break;
-    }
-    case DispenseCommand::pre_LFR:
-    {
-        Logger::Instance()->Info("Received Pre Drop LFB Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        auto code = handle_pre_LFR(pkid, request_json);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, code);
-        break;
-    }
-    case DispenseCommand::post_LFR:
-    {
-        Logger::Instance()->Info("Received Post Drop Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = handle_post_LFR(pkid, command_id, request_json);
-        break;
-    }
-    case DispenseCommand::side_dispense_target:
-    {
-        Logger::Instance()->Info("Received Side Dispense Target Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = handle_side_dispense_target(command_id, request_json);
-        break;
-    }
-    case DispenseCommand::pre_side_dispense:
-    {
-        Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
-        break;
-    }
-    case DispenseCommand::post_side_dispense:
-    {
-        Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = handle_post_side_dispense(command_id, request_json);
-        break;
-    }
-    case DispenseCommand::start_lfb_video:
-    {
-        Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *command_id);
-        handle_start_lfb_video(pkid);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
-        break;
-    }
-    case DispenseCommand::stop_lfb_video:
-    {
-        Logger::Instance()->Info("Received Stop LFB Video Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        handle_stop_lfb_video();
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
-        break;
-    }
-    case DispenseCommand::start_tray_video:
-    {
-        Logger::Instance()->Info("Received Start Tray Video Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        handle_start_tray_video(pkid);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
-        break;
-    }
-    case DispenseCommand::stop_tray_video:
-    {
-        Logger::Instance()->Info("Received Stop Tray Video Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        int delay = 0;
-        if (request_json->contains("Delay_Ms"))
-        {
-            delay = std::min(5000, (*request_json)["Delay_Ms"].get<int>());
-            // usleep(1000*delay);
-            Logger::Instance()->Debug("Received stop video delay of {} ms", delay);
-        }
-        handle_stop_tray_video(delay);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
-        break;
-    }
-    case DispenseCommand::tray_validation:
-    {
-        Logger::Instance()->Info("Received Tray Validation Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = handle_tray_validation(command_id, request_json);
-        break;
-    }
-    case DispenseCommand::item_edge_distance:
-    {
-        Logger::Instance()->Info("Received Tray Dispense Lane Request on Bay {}, PKID: {}, request_id: {}",
-                                 this->machine_name, *pkid, *command_id);
-        response = handle_item_edge_distance(command_id, request_json);
-        break;
-    }
-    default:
-    {
-        Logger::Instance()->Error("Un-handled request type on Bay {}, PKID: {}, request_id: {}", this->machine_name,
-                                  *pkid, *command_id);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, (int)type);
-        break;
-    }
-    switch (type) {
-        case DispenseCommand::request_bag_state: {
             Logger::Instance()->Info("Received Get State Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             auto result = handle_get_state(pkid, request_json);
@@ -354,135 +206,284 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
                 DepthCameras::MessageType::MESSAGE_TYPE_BAG_STATE_REQUEST);
             break;
         }
-        case DispenseCommand::send_bag_state: {
+        case DispenseCommand::send_bag_state:
+        {
             Logger::Instance()->Info("Received Update State Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             auto result = handle_update_state(pkid, request_json);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, result);
             break;
         }
-        case DispenseCommand::drop_target: {
+        case DispenseCommand::drop_target:
+        {
             Logger::Instance()->Info("Received Drop Target Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             auto drop_details = std::make_shared<fulfil::dispense::commands::DropTargetDetails>(request_json,
-                command_id);
+                                                                                                command_id);
             auto raw_result = handle_drop_target(drop_details, request_json);
-            if (raw_result->success_code == 0 || raw_result->success_code == 9) {
+            if (raw_result->success_code == 0 || raw_result->success_code == 9)
+            {
                 response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
-                    raw_result->success_code,
-                    raw_result->rover_position,
-                    raw_result->dispense_position,
-                    raw_result->depth_result,
-                    raw_result->max_depth_point_X,
-                    raw_result->max_depth_point_Y,
-                    raw_result->max_Z,
-                    raw_result->Rotate_LFB,
-                    raw_result->LFB_Currently_Rotated,
-                    raw_result->Swing_Collision_Expected,
-                    raw_result->target_depth_range,
-                    raw_result->target_depth_variance,
-                    raw_result->interference_max_z,
-                    raw_result->interference_average_z,
-                    raw_result->target_region_max_z,
-                    raw_result->error_description);
-            } else
+                                                                                            raw_result->success_code,
+                                                                                            raw_result->rover_position,
+                                                                                            raw_result->dispense_position,
+                                                                                            raw_result->depth_result,
+                                                                                            raw_result->max_depth_point_X,
+                                                                                            raw_result->max_depth_point_Y,
+                                                                                            raw_result->max_Z,
+                                                                                            raw_result->Rotate_LFB,
+                                                                                            raw_result->LFB_Currently_Rotated,
+                                                                                            raw_result->Swing_Collision_Expected,
+                                                                                            raw_result->target_depth_range,
+                                                                                            raw_result->target_depth_variance,
+                                                                                            raw_result->interference_max_z,
+                                                                                            raw_result->interference_average_z,
+                                                                                            raw_result->target_region_max_z,
+                                                                                            raw_result->error_description);
+            }
+            else
                 response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
-                    raw_result->success_code,
-                    raw_result->error_description);
+                                                                                            raw_result->success_code,
+                                                                                            raw_result->error_description);
             break;
         }
-        case DispenseCommand::pre_LFR: {
+        case DispenseCommand::pre_LFR:
+        {
             Logger::Instance()->Info("Received Pre Drop LFB Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             auto code = handle_pre_LFR(pkid, request_json);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, code);
             break;
         }
-        case DispenseCommand::post_LFR: {
+        case DispenseCommand::post_LFR:
+        {
             Logger::Instance()->Info("Received Post Drop Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_post_LFR(pkid, command_id, request_json);
             break;
         }
-        case DispenseCommand::floor_view: {
-            Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}",
-                                     this->machine_name, *pkid, *command_id);
-            response = handle_floor_view(pkid, command_id, request_json);
-            break;
-        }
-        case DispenseCommand::side_dispense_target: {
+        case DispenseCommand::side_dispense_target:
+        {
             Logger::Instance()->Info("Received Side Dispense Target Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_side_dispense_target(command_id, request_json);
             break;
         }
-        case DispenseCommand::pre_side_dispense: {
+        case DispenseCommand::pre_side_dispense:
+        {
             Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::post_side_dispense: {
+        case DispenseCommand::post_side_dispense:
+        {
             Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_post_side_dispense(command_id, request_json);
             break;
         }
-        case DispenseCommand::start_lfb_video: {
+        case DispenseCommand::start_lfb_video:
+        {
             Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *command_id);
             handle_start_lfb_video(pkid);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::stop_lfb_video: {
+        case DispenseCommand::stop_lfb_video:
+        {
             Logger::Instance()->Info("Received Stop LFB Video Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             handle_stop_lfb_video();
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::start_tray_video: {
+        case DispenseCommand::start_tray_video:
+        {
             Logger::Instance()->Info("Received Start Tray Video Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             handle_start_tray_video(pkid);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::stop_tray_video: {
+        case DispenseCommand::stop_tray_video:
+        {
             Logger::Instance()->Info("Received Stop Tray Video Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             int delay = 0;
-            if (request_json->contains("Delay_Ms")) {
+            if (request_json->contains("Delay_Ms"))
+            {
                 delay = std::min(5000, (*request_json)["Delay_Ms"].get<int>());
-                //usleep(1000*delay);
+                // usleep(1000*delay);
                 Logger::Instance()->Debug("Received stop video delay of {} ms", delay);
             }
             handle_stop_tray_video(delay);
             response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
             break;
         }
-        case DispenseCommand::tray_validation: {
+        case DispenseCommand::tray_validation:
+        {
             Logger::Instance()->Info("Received Tray Validation Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_tray_validation(command_id, request_json);
             break;
         }
-        case DispenseCommand::item_edge_distance: {
+        case DispenseCommand::item_edge_distance:
+        {
             Logger::Instance()->Info("Received Tray Dispense Lane Request on Bay {}, PKID: {}, request_id: {}",
                                      this->machine_name, *pkid, *command_id);
             response = handle_item_edge_distance(command_id, request_json);
             break;
         }
-        default: {
+        default:
+        {
             Logger::Instance()->Error("Un-handled request type on Bay {}, PKID: {}, request_id: {}", this->machine_name,
                                       *pkid, *command_id);
-            response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, (int) type);
+            response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, (int)type);
             break;
         }
+        switch (type) {
+            case DispenseCommand::request_bag_state: {
+                Logger::Instance()->Info("Received Get State Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                auto result = handle_get_state(pkid, request_json);
+                response = std::make_shared<fulfil::dispense::commands::ContentResponse>(
+                    command_id, std::make_shared<std::string>(result),
+                    DepthCameras::MessageType::MESSAGE_TYPE_BAG_STATE_REQUEST);
+                break;
+            }
+            case DispenseCommand::send_bag_state: {
+                Logger::Instance()->Info("Received Update State Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                auto result = handle_update_state(pkid, request_json);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, result);
+                break;
+            }
+            case DispenseCommand::drop_target: {
+                Logger::Instance()->Info("Received Drop Target Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                auto drop_details = std::make_shared<fulfil::dispense::commands::DropTargetDetails>(request_json,
+                    command_id);
+                auto raw_result = handle_drop_target(drop_details, request_json);
+                if (raw_result->success_code == 0 || raw_result->success_code == 9) {
+                    response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
+                        raw_result->success_code,
+                        raw_result->rover_position,
+                        raw_result->dispense_position,
+                        raw_result->depth_result,
+                        raw_result->max_depth_point_X,
+                        raw_result->max_depth_point_Y,
+                        raw_result->max_Z,
+                        raw_result->Rotate_LFB,
+                        raw_result->LFB_Currently_Rotated,
+                        raw_result->Swing_Collision_Expected,
+                        raw_result->target_depth_range,
+                        raw_result->target_depth_variance,
+                        raw_result->interference_max_z,
+                        raw_result->interference_average_z,
+                        raw_result->target_region_max_z,
+                        raw_result->error_description);
+                } else
+                    response = std::make_shared<fulfil::dispense::commands::DropTargetResponse>(command_id,
+                        raw_result->success_code,
+                        raw_result->error_description);
+                break;
+            }
+            case DispenseCommand::pre_LFR: {
+                Logger::Instance()->Info("Received Pre Drop LFB Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                auto code = handle_pre_LFR(pkid, request_json);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, code);
+                break;
+            }
+            case DispenseCommand::post_LFR: {
+                Logger::Instance()->Info("Received Post Drop Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_post_LFR(pkid, command_id, request_json);
+                break;
+            }
+            case DispenseCommand::floor_view: {
+                Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_floor_view(pkid, command_id, request_json);
+                break;
+            }
+            case DispenseCommand::side_dispense_target: {
+                Logger::Instance()->Info("Received Side Dispense Target Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_side_dispense_target(command_id, request_json);
+                break;
+            }
+            case DispenseCommand::pre_side_dispense: {
+                Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+                break;
+            }
+            case DispenseCommand::post_side_dispense: {
+                Logger::Instance()->Info("Received Post Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_post_side_dispense(command_id, request_json);
+                break;
+            }
+            case DispenseCommand::start_lfb_video: {
+                Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *command_id);
+                handle_start_lfb_video(pkid);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+                break;
+            }
+            case DispenseCommand::stop_lfb_video: {
+                Logger::Instance()->Info("Received Stop LFB Video Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                handle_stop_lfb_video();
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+                break;
+            }
+            case DispenseCommand::start_tray_video: {
+                Logger::Instance()->Info("Received Start Tray Video Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                handle_start_tray_video(pkid);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+                break;
+            }
+            case DispenseCommand::stop_tray_video: {
+                Logger::Instance()->Info("Received Stop Tray Video Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                int delay = 0;
+                if (request_json->contains("Delay_Ms")) {
+                    delay = std::min(5000, (*request_json)["Delay_Ms"].get<int>());
+                    //usleep(1000*delay);
+                    Logger::Instance()->Debug("Received stop video delay of {} ms", delay);
+                }
+                handle_stop_tray_video(delay);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+                break;
+            }
+            case DispenseCommand::tray_validation: {
+                Logger::Instance()->Info("Received Tray Validation Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_tray_validation(command_id, request_json);
+                break;
+            }
+            case DispenseCommand::item_edge_distance: {
+                Logger::Instance()->Info("Received Tray Dispense Lane Request on Bay {}, PKID: {}, request_id: {}",
+                                         this->machine_name, *pkid, *command_id);
+                response = handle_item_edge_distance(command_id, request_json);
+                break;
+            }
+            default: {
+                Logger::Instance()->Error("Un-handled request type on Bay {}, PKID: {}, request_id: {}", this->machine_name,
+                                          *pkid, *command_id);
+                response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, (int) type);
+                break;
+            }
+        }
+        network_manager->send_response(response);
     }
-    network_manager->send_response(response);
 }
+
 
 void DispenseManager::did_receive_request(std::shared_ptr<DispenseRequest> request)
 {
@@ -509,6 +510,59 @@ void DispenseManager::send_response(std::shared_ptr<DispenseResponse> response)
 std::shared_ptr<DispenseResponse> DispenseManager::process_request(std::shared_ptr<DispenseRequest> request)
 {
     return request->execute();
+}
+
+std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
+{
+
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_floor_view for " + this->machine_name + " with PKID " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Floor View Processing {} for Bay: {}", *command_id, this->machine_name);
+
+    if (!this->LFB_session) {
+        Logger::Instance()->Warn("No LFB Session on Bay {}: Bouncing Floor View!", this->machine_name);
+        return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
+    }
+
+    this->LFB_session->refresh();
+
+    // initial data generation
+    std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+    std_filesystem::path base_directory = make_media::paths::join_as_path(*this->create_datagenerator_basedir(),
+                                                                          "Drop_Camera",
+                                                                          *PrimaryKeyID,
+                                                                          "Floor_View_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
+                                                                               std::make_shared<std::string>(base_directory.string()),
+                                                                               request_json);
+    generator->save_data(time_stamp);
+
+    // TODO: run floor view analysis and save result. for now use these defaults
+    int error_code = 0;
+    std::string error_description = "";
+    bool anomaly_detected = false;
+    bool item_on_ground = false;
+    float floor_analysis_confidence_score = 0;
+    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id,
+                                                                                          error_code,
+                                                                                          error_description,
+                                                                                          anomaly_detected,
+                                                                                          item_on_ground,
+                                                                                          floor_analysis_confidence_score);
+
+    // generate results data
+    std::string floor_view_file = make_media::paths::join_as_path(base_directory, *time_stamp, "floor_view_result");
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    this->drop_manager->generate_floor_view_result_data(true,
+                                                        floor_view_file,
+                                                        error_code_file,
+                                                        anomaly_detected,
+                                                        item_on_ground,
+                                                        floor_analysis_confidence_score, error_code);
+
+    Logger::Instance()->Info("Finished handling Floor View command. Result: "
+                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, *PrimaryKeyID, anomaly_detected, item_on_ground, floor_analysis_confidence_score);
+    return floor_result;
 }
 
 std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
@@ -824,7 +878,6 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     this->tray_session->refresh();
     /** Save Data from generator */
     DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
-        request_json, tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
         request_json,
         tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.
         get_sequence_step());
@@ -981,10 +1034,6 @@ bool DispenseManager::check_motor_in_position()
 std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
 {
     Logger::Instance()->Trace("Handle Update State called in Dispense Manager");
-    try {
-        if (this->drop_manager->mongo_bag_state->raw_mongo_doc == nullptr)
-            this->drop_manager->mongo_bag_state->raw_mongo_doc = std::make_shared<fulfil::mongo::CvBagState>();
-
     try
     {
         if (this->drop_manager->mongo_bag_state->raw_mongo_doc == nullptr)
