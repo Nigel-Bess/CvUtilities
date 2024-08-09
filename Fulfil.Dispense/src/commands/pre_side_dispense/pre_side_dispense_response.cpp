@@ -7,6 +7,7 @@
 
 #include <json.hpp>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 using fulfil::dispense::commands::PreSideDispenseResponse;
@@ -18,11 +19,6 @@ void PreSideDispenseResponse::encode_payload()
     result_json["Primary_Key_ID"] = *this->primary_key_id;
     result_json["Error"] = (int)this->success_code;
     result_json["Error_Description"] = this->error_description;
-    // TODO: test encoding
-    // std::vector<std::vector<int>> map;
-    // for (int x = 0; x < this->occupancy_map->size(); x++) {
-    //     map.push_back(*this->occupancy_map->at(x));
-    // }
     result_json["Occupancy_Map"] = *this->occupancy_map;
 
     std::string json_string = result_json.dump();
@@ -68,4 +64,19 @@ std::shared_ptr<std::string> PreSideDispenseResponse::dispense_payload()
         this->encode_payload();
     }
     return this->payload;
+}
+
+std::string grid_map_to_string(std::shared_ptr<std::vector<std::vector<int>>> map) {
+    if (map == nullptr) return "nullptr";
+    std:: string output = "";
+    int val;
+    for (int y = 0; y < map.at(0).size(); y++) {
+        output += "| ";
+        for (int x = 0; x < map.size(); x++) {
+            val =  std::to_string(map.at(x).at(y));
+            output += val + std::string(4 - val.size() , ' ') + "| ";
+        }
+        output += "\n";
+    }
+    return output;
 }

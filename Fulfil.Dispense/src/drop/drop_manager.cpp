@@ -593,12 +593,9 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     int occupancy_map_width = 5;
     int occupancy_map_height = 5;
 
-    // std::shared_ptr<std::shared_ptr<int[]>[]> occupancy_map(new std::shared_ptr<int[]>[occupancy_map_width]);
     std::vector<int> column;
     // for each column in map create a vector of int depths
     for (int x = 0; x < occupancy_map_width; x++) {
-        // occupancy_map[x] = std::shared_ptr<int[]>(new int[occupancy_map_height]);
-
         Logger::Instance()->Debug("Occupancy map loop x = {}", x);
         column.clear();
         for (int y = 0; y < occupancy_map_height; y++) {
@@ -606,16 +603,10 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
             //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
             column.push_back(x+y);
         }
-        // TODO make this a copy of column or else it will be messed up
         occupancy_map.push_back(column);
-
     }
 
     Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width, occupancy_map_height);
-
-    
-    // send OccupancyMap to FC
-    //std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>();
 
     return std::make_shared<SideDropResult>(request_id, 
         std::make_shared<std::vector<std::vector<int>>>(occupancy_map),

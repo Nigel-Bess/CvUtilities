@@ -32,18 +32,6 @@ class SideDropResult
    int error_code,
    const std::string &error_description);
 
-  // /**
-  //  * SideDropResult constructor that takes in the center of the drop location
-  //  * and the request and does all of the calculations to determine the
-  //  * output dispense information to the VLS.
-  //  * Uses request id as request id of the result and sets the result to
-  //  * a success.
-  //  * @param drop_center pointer to center of the drop zone.
-  //  * @param request used to calculate the drop zone
-  //  */
-  // SideDropResult(std::shared_ptr<fulfil::utils::Point3D> drop_center, std::shared_ptr<fulfil::utils::Point3D> max_depth_point, bool Rotate_LFB, bool LFB_Currently_Rotated,
-  //            bool Swing_Collision_Expected, float target_depth_range, float target_depth_variance, float interference_max_z,
-  //            float interference_average_z, float target_region_max_z, std::shared_ptr<std::string> request_id, int success_code, const std::string &error_description);
   /**
    * The id of the request.
    */
