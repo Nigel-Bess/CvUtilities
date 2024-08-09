@@ -7,6 +7,7 @@
 
 #include <json.hpp>
 #include <iostream>
+#include <vector>
 
 using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::utils::Logger;
@@ -20,7 +21,7 @@ void PreSideDispenseResponse::encode_payload()
     // TODO: test encoding
     std::vector<std::vector<int>> map;
     for (int x = 0; x < this->occupancy_map->size(); x++) {
-        map.push_back(*this->occupancy_map.at(x));
+        map.push_back(*this->occupancy_map->at(x));
     }
     result_json["Occupancy_Map"] = map;
 

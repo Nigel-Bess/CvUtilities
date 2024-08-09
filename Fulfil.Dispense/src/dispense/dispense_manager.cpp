@@ -1011,7 +1011,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
         base_directory, time_stamp_string, false);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response = 
-        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, side_drop_result->occupancy_map, primary_key_id, SideDispenseErrorCodes::Success);
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, SideDispenseErrorCodes::Success);
 
     // if algorithm failed, upload available visualizations immediately
     if (pre_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
