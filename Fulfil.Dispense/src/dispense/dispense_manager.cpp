@@ -14,9 +14,11 @@
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/commands/parsing/tray_parser.h>
@@ -41,14 +43,17 @@ using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseRequestParser;
 using fulfil::dispense::commands::DispenseResponse;
 using fulfil::dispense::commands::DropTargetDetails;
+using fulfil::dispense::commands::DropTargetDetails;
 using fulfil::dispense::commands::ErrorResponse;
 using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::dispense::commands::PostLFRResponse;
+using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
@@ -273,7 +278,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     {
         Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
+        response = handle_pre_side_dispense(command_id, pkid, request_json);
         break;
     }
     case DispenseCommand::post_side_dispense:
@@ -868,7 +873,7 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
     if (!this->LFB_session)
     {
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Pre LFR");
-        return 12;
+        return 12; // TODO CHANGE CODE TO BE USEFUL !!!!
     }
 
     try
@@ -959,6 +964,8 @@ std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagener
     return base_directory;
 }
 
+// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
+
 std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse>
 fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<nlohmann::json> request_json)
@@ -974,10 +981,57 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
     return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(request_id);
 }
 
-int fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> PrimaryKeyID,
-                                                                std::shared_ptr<nlohmann::json> request_json)
-{
-    return 0;
+std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> 
+fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> request_id,
+                                                            std::shared_ptr<std::string> primary_key_id,
+                                                            std::shared_ptr<nlohmann::json> request_json)
+{   
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + *primary_key_id);
+    Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", *primary_key_id, this->machine_name);
+    if (!this->LFB_session)
+    {
+        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
+        // TODO - make this more useful and obvious, panic the DAB In FC
+        // TODO: do we even return a response here or just throw a big ol' exception
+        return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, 
+                                                         primary_key_id,
+                                                         nullptr,
+                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError,
+                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!")); 
+                                                         // TODO: have specific error code // TODO: move to throw/catch format, log data
+    }
+
+    // create file path variables for data generation
+    std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
+    std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
+
+    std::shared_ptr<fulfil::dispense::drop::SideDropResult>
+        side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id,
+        // request_json,
+        base_directory, time_stamp_string, false);
+
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response = 
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, SideDispenseErrorCodes::Success);
+
+    // if algorithm failed, upload available visualizations immediately
+    if (pre_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
+    {
+        if (this->live_viewer != nullptr)
+        {
+            std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
+            std::string error_line = "Target: Error ID " + std::to_string(pre_side_dispense_response->success_code);
+            message->push_back(error_line);
+            std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)pre_side_dispense_response->success_code);
+            message->push_back(specific_error_message);
+            std::cout << specific_error_message << std::endl;
+            this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, *primary_key_id, true, message);
+
+            Logger::Instance()->Debug("Handle PreSideDispense Failed!");
+        }
+    }
+
+    Logger::Instance()->Debug("Finished handling PreSideDispenseRequest {} for Bay: {}", *primary_key_id, this->machine_name);
+    return pre_side_dispense_response;
 }
 
 std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse>

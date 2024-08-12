@@ -10,11 +10,14 @@
 #include <Fulfil.DepthCam/point_cloud.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.Dispense/drop/drop_grid.h>
 #include "Fulfil.Dispense/drop/drop_manager.h"
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
 #include <Fulfil.Dispense/drop/pre_post_compare.h>
+#include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
@@ -27,13 +30,16 @@ using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::data::DataGenerator;
 using fulfil::dispense::commands::PostLFRResponse;
+using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
+using fulfil::dispense::drop::SideDropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::FileSystemUtil;
@@ -554,4 +560,55 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
         Logger::Instance()->Error("Unspecified failure from Check Products For Fit In Bag algo");
         return std::vector<int>{};
     }
+}
+
+
+
+// ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
+
+std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                        std::shared_ptr<std::string> primary_key_id,
+                                                        //std::shared_ptr<nlohmann::json> request_json, 
+                                                        std::shared_ptr<std::string> base_directory,
+                                                        std::shared_ptr<std::string> time_stamp_string,
+                                                        bool generate_data)
+{
+    Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+
+    // TODO - fix this nonsense
+    //std_filesystem::path base_directory = make_media::paths::join_as_path(
+    //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
+    //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", *base_directory);
+    // image
+    
+    // depth & marker container
+    
+    // depth cloud visualization
+
+    // transform depth cloud into the OccupancyMap
+    std::vector<std::vector<int>> occupancy_map;
+    // TODO: don't hardcode
+    int occupancy_map_width = 5;
+    int occupancy_map_height = 5;
+
+    std::vector<int> column;
+    // for each column in map create a vector of int depths
+    for (int x = 0; x < occupancy_map_width; x++) {
+        Logger::Instance()->Debug("Occupancy map loop x = {}", x);
+        column.clear();
+        for (int y = 0; y < occupancy_map_height; y++) {
+            Logger::Instance()->Debug("Occupancy map loop y = {}", y);
+            //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+            column.push_back(x+y);
+        }
+        occupancy_map.push_back(column);
+    }
+
+    Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width, occupancy_map_height);
+
+    return std::make_shared<SideDropResult>(request_id, 
+        std::make_shared<std::vector<std::vector<int>>>(occupancy_map),
+        SideDispenseErrorCodes::Success, "");
 }

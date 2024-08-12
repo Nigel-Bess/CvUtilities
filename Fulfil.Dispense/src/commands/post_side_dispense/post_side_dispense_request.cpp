@@ -1,15 +1,12 @@
 #include <Fulfil.CPPUtils/logging.h>
 #include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
 #include <Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_response.h>
-
 #include <utility>
-
 
 using fulfil::utils::Logger;
 using fulfil::dispense::commands::PostSideDispenseRequest;
 using fulfil::dispense::commands::PostSideDispenseResponse;
 using fulfil::dispense::commands::DispenseResponse;
-
 
 PostSideDispenseRequest::PostSideDispenseRequest(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> PrimaryKeyID,
                                std::shared_ptr<nlohmann::json> request_json)
@@ -27,7 +24,7 @@ std::shared_ptr<DispenseResponse> PostSideDispenseRequest::execute()
 {
     if(!this->delegate.expired())
     {
-        Logger::Instance()->Debug("PostDispense PostSideDispenseRequest execution now");
+        Logger::Instance()->Debug("PostSideDispenseRequest execution now");
         std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
         std::shared_ptr<PostSideDispenseResponse> response = tmp_delegate->handle_post_side_dispense(
@@ -37,7 +34,7 @@ std::shared_ptr<DispenseResponse> PostSideDispenseRequest::execute()
     }
     else
     {
-        std::cout << "PostDispense Command Delegate Expired" << std::endl;
+        std::cout << "PostSideDispense Command Delegate Expired" << std::endl;
         return std::make_shared<PostSideDispenseResponse>(this->request_id); //TODO: Must add error code back
     }
 }
