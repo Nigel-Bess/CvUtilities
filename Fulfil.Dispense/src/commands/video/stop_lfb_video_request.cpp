@@ -3,7 +3,7 @@
 // Copyright (c) 2020 Fulfil Solutions, Inc. All rights reserved.
 //
 
-#include "Fulfil.Dispense/commands/stop_lfb_video_request.h"
+#include "Fulfil.Dispense/commands/video/stop_lfb_video_request.h"
 #include <Fulfil.Dispense/commands/code_response.h>
 
 using fulfil::dispense::commands::StopLFBVideoRequest;

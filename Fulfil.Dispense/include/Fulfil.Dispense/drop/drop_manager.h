@@ -13,7 +13,9 @@
 #include <Fulfil.Dispense/commands/dispense_request.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/mongo/mongo_bag_state.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <experimental/filesystem>
@@ -111,6 +113,13 @@ class DropManager
   std::pair<int, int> handle_pre_post_compare(std::string PrimaryKeyID);
 
   std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json);
+
+  std::shared_ptr<fulfil::dispense::drop::SideDropResult> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                            std::shared_ptr<std::string> primary_key_id,
+                                                            //std::shared_ptr<nlohmann::json> request_json, 
+                                                            std::shared_ptr<std::string> base_directory,
+                                                            std::shared_ptr<std::string> time_stamp_string,
+                                                            bool generate_data=true);
 
   /**
    * Delegate to receive information from the drop manager.
