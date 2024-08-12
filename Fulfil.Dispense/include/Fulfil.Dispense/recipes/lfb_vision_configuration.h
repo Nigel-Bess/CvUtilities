@@ -125,6 +125,11 @@ namespace fulfil::configuration::lfb {
         float threshold_depth_difference_to_validate_max_z{0.003};
         int num_points_required_within_valid_distance_to_validate_max_z{5};
 
+		// physical antenna variables
+		float antenna_x_distance_to_container_edge_meters{0.0175};
+		float antenna_y_distance_to_container_edge_meters{0.070};
+		float antenna_omission_buffer_meters{0.005};
+
         // physical marker variables
         /** Number of Aruco markers/fiducials on top of LFB */
         int num_markers {8};

@@ -4,8 +4,8 @@
 
 #include "Fulfil.DepthCam/frame/image_comparison.h"
 
-
-
+// inspired by and heavily copied from
+// https://docs.opencv.org/4.x/d5/dc4/tutorial_video_input_psnr_ssim.html
 cv::Scalar fulfil::depthcam::image_comparison::get_MSSIM( const cv::Mat& i1, const cv::Mat& i2)
 {
 	double C1 = 6.5025;
@@ -58,6 +58,3 @@ cv::Scalar fulfil::depthcam::image_comparison::get_MSSIM( const cv::Mat& i1, con
 	cv::Scalar mssim = cv::mean( ssim_map ); // mssim = average of ssim map
 	return mssim;
 };
-
-
-#include "Fulfil.DepthCam/frame/image_comparison.h"

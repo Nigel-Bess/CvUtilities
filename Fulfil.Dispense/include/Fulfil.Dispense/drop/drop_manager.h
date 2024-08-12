@@ -88,7 +88,11 @@ class DropManager
    */
   void generate_drop_target_result_data(bool generate_data, std::string target_file, std::string error_code_file,
                                         float rover_position, float dispense_position, int error_code);
-  /**
+
+  void generate_floor_view_result_data(bool generate_data, std::string floor_view_file,
+                                                    std::string error_code_file, bool anomaly_detected,
+                                                    bool item_on_ground, float floor_analysis_confidence_score, int error_code);
+    /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location
    * @return a pointer to drop result which contains details about where to

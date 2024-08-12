@@ -2,14 +2,14 @@
 // Created by nkaffine on 12/11/19.
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
-
-#include "Fulfil.Dispense/commands/parsing/dispense_request_parser.h"
 #include <json.hpp>
+#include <Fulfil.CPPUtils/logging.h>
+#include "Fulfil.Dispense/commands/parsing/dispense_request_parser.h"
 #include <Fulfil.Dispense/commands/parsing/dispense_command_parser.h>
 #include "Fulfil.Dispense/commands/nop/nop_request.h"
-#include <Fulfil.Dispense/commands/get_state_request.h>
-#include <Fulfil.Dispense/commands/update_state_request.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_request.h>
+#include <Fulfil.Dispense/commands/floor_view/floor_view_request.h>
+#include <Fulfil.Dispense/commands/get_state_request.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_request.h>
 #include <Fulfil.Dispense/commands/pre_LFR_request.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_request.h>
@@ -19,9 +19,7 @@
 #include <Fulfil.Dispense/commands/video/stop_tray_video_request.h>
 #include <Fulfil.Dispense/commands/video/stop_lfb_video_request.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_request.h>
-//#include <Fulfil.Dispense/commands/home_motor_request.h>
-//#include <Fulfil.Dispense/commands/position_motor_request.h>
-#include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.Dispense/commands/update_state_request.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
 #include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
@@ -35,6 +33,7 @@ using fulfil::dispense::commands::DispenseRequestJsonParser;
 using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseResponse;
 using fulfil::dispense::commands::NopRequest;
+using fulfil::dispense::commands::FloorViewRequest;
 using fulfil::dispense::commands::GetStateRequest;
 using fulfil::dispense::commands::DropTargetRequest;
 using fulfil::dispense::commands::ItemEdgeDistanceRequest;
@@ -94,6 +93,9 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
     case DispenseCommand::post_LFR:
       Logger::Instance()->Info("Received Post Drop Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<PostLFRRequest>(request_id, PrimaryKeyID, request_json);
+    case DispenseCommand::floor_view:
+      Logger::Instance()->Info("Received Floor View Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
+      return std::make_shared<FloorViewRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::start_lfb_video:
       Logger::Instance()->Info("Received Start LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StartLFBVideoRequest>(request_id, PrimaryKeyID);

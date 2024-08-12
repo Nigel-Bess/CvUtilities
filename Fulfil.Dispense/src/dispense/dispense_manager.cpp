@@ -45,6 +45,7 @@ using fulfil::dispense::commands::DispenseResponse;
 using fulfil::dispense::commands::DropTargetDetails;
 using fulfil::dispense::commands::DropTargetDetails;
 using fulfil::dispense::commands::ErrorResponse;
+using fulfil::dispense::commands::FloorViewResponse;
 using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::PreSideDispenseResponse;
@@ -267,6 +268,12 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         response = handle_post_LFR(pkid, command_id, request_json);
         break;
     }
+    case DispenseCommand::floor_view: {
+        Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}",
+                                 this->machine_name, *pkid, *command_id);
+        response = handle_floor_view(pkid, command_id, request_json);
+        break;
+    }
     case DispenseCommand::side_dispense_target:
     {
         Logger::Instance()->Info("Received Side Dispense Target Request on Bay {}, PKID: {}, request_id: {}",
@@ -377,6 +384,59 @@ void DispenseManager::send_response(std::shared_ptr<DispenseResponse> response)
 std::shared_ptr<DispenseResponse> DispenseManager::process_request(std::shared_ptr<DispenseRequest> request)
 {
     return request->execute();
+}
+
+std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
+{
+
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_floor_view for " + this->machine_name + " with PKID " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Floor View Processing {} for Bay: {}", *command_id, this->machine_name);
+
+    if (!this->LFB_session) {
+        Logger::Instance()->Warn("No LFB Session on Bay {}: Bouncing Floor View!", this->machine_name);
+        return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
+    }
+
+    this->LFB_session->refresh();
+
+    // initial data generation
+    std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+    std_filesystem::path base_directory = make_media::paths::join_as_path(*this->create_datagenerator_basedir(),
+                                                                          "Drop_Camera",
+                                                                          *PrimaryKeyID,
+                                                                          "Floor_View_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
+                                                                               std::make_shared<std::string>(base_directory.string()),
+                                                                               request_json);
+    generator->save_data(time_stamp);
+
+    // TODO: run floor view analysis and save result. for now use these defaults
+    int error_code = 0;
+    std::string error_description = "";
+    bool anomaly_detected = false;
+    bool item_on_ground = false;
+    float floor_analysis_confidence_score = 0;
+    std::shared_ptr<FloorViewResponse> floor_result = std::make_shared<FloorViewResponse>(command_id,
+                                                                                          error_code,
+                                                                                          error_description,
+                                                                                          anomaly_detected,
+                                                                                          item_on_ground,
+                                                                                          floor_analysis_confidence_score);
+
+    // generate results data
+    std::string floor_view_file = make_media::paths::join_as_path(base_directory, *time_stamp, "floor_view_result");
+    std::string error_code_file = make_media::paths::join_as_path(base_directory, *time_stamp, "error_code");
+    this->drop_manager->generate_floor_view_result_data(true,
+                                                        floor_view_file,
+                                                        error_code_file,
+                                                        anomaly_detected,
+                                                        item_on_ground,
+                                                        floor_analysis_confidence_score, error_code);
+
+    Logger::Instance()->Info("Finished handling Floor View command. Result: "
+                             "Bay: {} PKID: {} Anomaly Present: {}, Item on Ground: {}, Bots in Image: {}", this->machine_name, *PrimaryKeyID, anomaly_detected, item_on_ground, floor_analysis_confidence_score);
+    return floor_result;
 }
 
 std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
@@ -692,7 +752,9 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     this->tray_session->refresh();
     /** Save Data from generator */
     DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
-        request_json, tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.get_sequence_step());
+        request_json,
+        tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.
+        get_sequence_step());
     single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
 
     auto tray_result = std::make_shared<ItemEdgeDistanceResponse>(do_all_tray_processing(run_fed_processing));
@@ -981,11 +1043,11 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
     return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(request_id);
 }
 
-std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> 
+std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse>
 fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> request_id,
                                                             std::shared_ptr<std::string> primary_key_id,
                                                             std::shared_ptr<nlohmann::json> request_json)
-{   
+{
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + *primary_key_id);
     Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", *primary_key_id, this->machine_name);
     if (!this->LFB_session)
@@ -993,11 +1055,11 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
         // TODO - make this more useful and obvious, panic the DAB In FC
         // TODO: do we even return a response here or just throw a big ol' exception
-        return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, 
+        return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id,
                                                          primary_key_id,
                                                          nullptr,
                                                          SideDispenseErrorCodes::UnrecoverableRealSenseError,
-                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!")); 
+                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
                                                          // TODO: have specific error code // TODO: move to throw/catch format, log data
     }
 
@@ -1010,7 +1072,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
         // request_json,
         base_directory, time_stamp_string, false);
 
-    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response = 
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
         std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, SideDispenseErrorCodes::Success);
 
     // if algorithm failed, upload available visualizations immediately
