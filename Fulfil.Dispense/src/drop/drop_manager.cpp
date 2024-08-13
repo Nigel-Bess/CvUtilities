@@ -40,6 +40,7 @@ using fulfil::dispense::drop::SideDropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::FileSystemUtil;
@@ -584,20 +585,42 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
 
 std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
                                                         std::shared_ptr<std::string> primary_key_id,
-                                                        //std::shared_ptr<nlohmann::json> request_json, 
-                                                        std::shared_ptr<std::string> base_directory,
+                                                        std::shared_ptr<nlohmann::json> request_json,
+                                                        std::shared_ptr<std::string> base_directory_input,
                                                         std::shared_ptr<std::string> time_stamp_string,
                                                         bool generate_data)
 {
     Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
-    // TODO - fix this nonsense
-    //std_filesystem::path base_directory = make_media::paths::join_as_path(
-    //    (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID);
-    //std::string error_code_file = ("Post_Drop_Image" / base_directory / time_stamp_string / "error_code").string();
-    Logger::Instance()->Debug("Base directory is {}", *base_directory);
-    // image
+    std_filesystem::path base_directory = make_media::paths::join_as_path(
+    (base_directory_input) ? *base_directory_input : "","Side_Drop_Camera", *primary_key_id);
+    std::string error_code_file = ("Side_Post_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+
+    try {
+        Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
+
+        this->session->refresh(); // need to refresh the session to get updated frames
+
+        //get image for live viewer
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
+            this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
+
+        std::shared_ptr<DataGenerator> generator;
+        std::string data_destination = (base_directory / "Post_Drop_Image").string();
+
+        generate_request_data(generate_data, data_destination, std::make_shared<std::string>(*time_stamp_string), request_json);
+
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        // bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(
+            lfb_vision_config, this->session, false);
+        //
+        // this->cached_post_container = container; //cache container for potential use in prepostcomparison later
+        // this->cached_post_request = request_json;
+
+        //generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
     
     // depth & marker container
     
@@ -627,4 +650,55 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     return std::make_shared<SideDropResult>(request_id, 
         std::make_shared<std::vector<std::vector<int>>>(occupancy_map),
         SideDispenseErrorCodes::Success, "");
+    }
+    catch (const rs2::unrecoverable_error& e)
+    {
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+    }
+    catch (const rs2::recoverable_error& e)
+    {
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Error(error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+    }
+    catch (const std::invalid_argument& e)
+    {
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+    }
+    catch (SideDispenseError & e)
+    {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+
+        // TODO: should the occupancy map be written here?
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
+
+        // TODO: should the occupancy map be written here?
+        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
+    }
+    catch (const std::exception &e) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
+                                  e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+    }
+    catch (...) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+    }
 }
