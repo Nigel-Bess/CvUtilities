@@ -928,17 +928,17 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
                                                                          std::shared_ptr<Session> session,
                                                                          bool extend_region_over_markers)
 {
-  int region_max_x = lfb_vision_config->region_max_x;
-  int region_min_x = lfb_vision_config->region_min_x;
-  int region_max_y = lfb_vision_config->region_max_y;
-  int region_min_y = lfb_vision_config->region_min_y;
+  int region_max_x = ; // lfb_vision_config->region_max_x;
+  int region_min_x = 0; // lfb_vision_config->region_min_x;
+  int region_max_y = ??; // lfb_vision_config->region_max_y;
+  int region_min_y = 0; // lfb_vision_config->region_min_y;
 
-  int num_markers = lfb_vision_config->num_markers;
+  int num_markers = 7; // lfb_vision_config->num_markers;
   int marker_size = lfb_vision_config->marker_size;
   int min_marker_count_for_validation = lfb_vision_config->min_marker_count_for_validation;
 
-  float marker_depth = lfb_vision_config->marker_depth;
-  float marker_depth_tolerance = lfb_vision_config->marker_depth_tolerance;
+  float marker_depth = 0.300; //lfb_vision_config->marker_depth;
+  float marker_depth_tolerance = 0.5; //lfb_vision_config->marker_depth_tolerance;
 
   float container_length = lfb_vision_config->container_length;
   float container_width = lfb_vision_config->container_width;

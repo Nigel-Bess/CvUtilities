@@ -3,8 +3,8 @@
 //
 
 #include <memory>
+#include <string>
 #include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
-
 
 using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
