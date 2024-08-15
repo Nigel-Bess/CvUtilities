@@ -32,7 +32,7 @@ std::array<const char*, 2> TrayPositionNames {"hover", "dispense"};
 std::string ini_base_path{};
 int min_markers_required{16};
 
-std::string calibration_filename(std::string_view position) { return std::string("new_tray_calibration_data_").append(position) + ".ini" ; }
+std::string calibration_filename(std::string_view position) { return std::string("tray_calibration_data_").append(position) + ".ini" ; }
 
 //                       0        1        2        3        4        5        6        7        8        9        10       11       12       13       14       15
 float markers_x[16] = { -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180, -0.3180, -0.1060,  0.1060,  0.3180 };
