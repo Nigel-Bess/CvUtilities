@@ -164,6 +164,11 @@ void DepthSensor::manage_pipe(){
             if(!connected_ && name_.compare("D")){//wait for name to be assigned
                 connected_ = true;
                 create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
+                auto cf = frame_set->get_color_frame();
+                cv::Mat pic(cv::Size(cf.get_width(), cf.get_height()), CV_8UC3, (void*) cf.get_data());
+                std::string file(name_);
+                std::replace(file.begin(), file.end(), ' ', '_');
+                cv::imwrite("/home/fulfil/" + file + ".jpg", pic);
             }
 
         }

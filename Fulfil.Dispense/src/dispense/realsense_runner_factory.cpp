@@ -47,9 +47,9 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRu
     gethostname(host, HOST_NAME_MAX);
     std::string bay = bay_num == 0 ? "-A" : "-B";
     if(LFB_session != nullptr)
-        LFB_session->set_sensor_name(host + bay + " LFB  cam");
+        LFB_session->set_sensor_name(host + bay + " LFB ");
     if(tray_session != nullptr)
-        tray_session->set_sensor_name(host + bay + " Tray cam");
+        tray_session->set_sensor_name(host + bay + " Tray");
   return std::shared_ptr<fulfil::dispense::DispenseManager>(new fulfil::dispense::DispenseManager(bay_num, LFB_session,
     tray_session, this->dispense_man_reader,
           this->tray_config_reader, std::move(tray_manager)));
