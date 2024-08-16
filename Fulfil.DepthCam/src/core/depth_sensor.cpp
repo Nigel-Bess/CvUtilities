@@ -167,7 +167,7 @@ void DepthSensor::manage_pipe(){
                 auto cf = frame_set->get_color_frame();
                 cv::Mat pic(cv::Size(cf.get_width(), cf.get_height()), CV_8UC3, (void*) cf.get_data());
                 std::string file(name_);
-                file.replace(file.begin(), file.end(), ' ', '_');
+                std::replace(file.begin(), file.end(), ' ', '_');
                 cv::imwrite("/home/fulfil/" + file + ".jpg", pic);
             }
 
