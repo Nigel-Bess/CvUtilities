@@ -144,7 +144,7 @@ void DataGenerator::save_data(const std::shared_ptr<std::string>& file_prefix)
     }
 
     Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
-    this->save_json_data(*frame_directory, "json_request.json", this->request_json);
+    this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
   } catch (const std::exception& ex) {
       Logger::Instance()->Error("Error '{}' occurred in trying to save all image + depth + pointcloud + transform data", ex.what());
@@ -166,7 +166,7 @@ void DataGenerator::save_data()
     }
 
     Logger::Instance()->Debug("Saving DataGenerator data at {} ", *frame_directory);
-    this->save_json_data(*frame_directory, "json_request.json", this->request_json);
+    this->save_json_data(*frame_directory, "json_request.json", *this->request_json);
     this->save_frame_information(frame_directory);
   } catch (const std::exception& ex) {
       Logger::Instance()->Error("Error '{}' occurred in trying to save all image + depth + pointcloud + transform data", ex.what());
@@ -188,7 +188,7 @@ bool fulfil::depthcam::data::DataGenerator::do_session_save(std::string frame_di
             FileSystemUtil::create_nested_directory(frame_directory);
         }
 
-        this->save_json_data(frame_directory, "json_request.json", this->request_json);
+        this->save_json_data(frame_directory, "json_request.json", *this->request_json);
         this->save_frame_information(std::make_shared<std::string>(frame_directory));
         return true;
     } catch (const std::exception& ex) {
