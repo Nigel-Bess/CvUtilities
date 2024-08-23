@@ -113,7 +113,7 @@ void DataGenerator::save_data(const std::string& file_prefix) {
 
 void DataGenerator::save_json_data(const std::string& dest_directory_name, const std::string& dest_file_name, std::shared_ptr<nlohmann::json> json_to_write)
 {
-    if (!json_to_write->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
+    if (json_to_write->is_null())   //Save the json file if one was included as input to the datagenerator (Default is " ")
     {
         Logger::Instance()->Debug("No {} is available, json file will not be saved along with data generation", dest_file_name);
     }
