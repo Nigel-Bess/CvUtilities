@@ -582,7 +582,34 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
 
 
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
-int get_point_closest_to_mouth_of_bag(std::shared_ptr<LocalPointCloud> point_cloud, int square_coord_x, int square_coord_y, int square_width, int square_height) {
+std::shared_ptr<std::vector<std::vector<int>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int occupancy_map_width, int occupancy_map_height) {
+    // TODO initialize all to -infs or smth
+    // TODO does this need to be shared ptr of vec of shared ptr or is the outermost one good enough
+    std::vector<std::vector<int>> depth_map_so_far = std::vector<std::vector<int>>();
+
+    std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
+    std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
+
+    //cycle through all points in bag and log the max depth points in each region
+    for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
+        cv::Point2f pixel = *pixels->at(current_pixel_index);
+        float local_x = (*local_cloud_data)(0, current_pixel_index);
+        float local_y = (*local_cloud_data)(1, current_pixel_index);
+        float local_z = (*local_cloud_data)(2, current_pixel_index);
+
+        for (int map_square_x = 0; map_square_x < occupancy_map_width; ++map_square_x) {
+            for (int map_square_y = 0; map_square_y < occupancy_map_height; ++map_square_y) {
+                float min_x_coord = map_square_x * square_width;
+                float max_x_coord = (map_square_x + 1) * square_width;
+                float min_y_coord = map_square_y * square_height;
+                float max_y_coord = (map_square_y + 1) * square_height;
+                if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
+                    depth_map_so_far.at(map_square_x).at(map_square_y) = std::max(depth_map_so_far.at(map_square_x).at(map_square_y), local_z);
+                    Logger::Instance()->Trace("Occupancy map loop map_square_x = {}, map_square_y = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
+                        map_square_x, map_square_y, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_x).at(map_square_y));
+                }
+            }
+        }
     // default point = 0,0,-inf or whatever
     // for each point in the cloud
         // if point is in the x'th width and the y'th height
@@ -640,7 +667,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
         // detect Aruco markers in RGB stream
         if (this->visualize == 1)
         {
-            std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker> > > markers = container->get_markers();
+            std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
             this->searcher->session_visualizer2->draw_detected_markers(
                 container->marker_detector->dictionary,
                 markers,
@@ -652,36 +679,37 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
 
         std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
         // depth cloud visualization
-        if (this->visualize == 1) this->searcher->session_visualizer3->display_image(this->searcher->session_visualizer3->display_points_with_depth_coloring(point_cloud));
+        if (this->visualize == 1) { this->searcher->session_visualizer3->display_image(this->searcher->session_visualizer3->display_points_with_depth_coloring(point_cloud)); }
 
         Logger::Instance()->Trace("Number of point cloud points before filter (out of a possible 92x160 = 14,720): {}",
                                   point_cloud->get_data()->cols());
 
         // std::shared_ptr<Eigen::Matrix3Xd> initial_local_data = point_cloud->get_data();
 
-
-
-
-
-
         // transform depth cloud into the OccupancyMap
-        std::vector<std::vector<int> > occupancy_map;
         // TODO: don't hardcode, use recipe
         int occupancy_map_width = 5;
         int occupancy_map_height = 5;
+        std::make_shared<std::vector<std::vector<int>>> occupancy_map = generate_occupancy_map(
+            point_cloud,
+            occupancy_map_width,
+            occupancy_map_height,
+            lfb_vision_config->LFB_bag_width,
+            lfb_vision_config->LFB_bag_length);
 
-        std::vector<int> column;
-        // for each column in map create a vector of int depths
-        for (int x = 0; x < occupancy_map_width; x++) {
-            Logger::Instance()->Trace("Occupancy map loop x = {}", x);
-            column.clear();
-            for (int y = 0; y < occupancy_map_height; y++) {
-                Logger::Instance()->Trace("Occupancy map loop y = {}", y);
-                // int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(point_cloud, x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
-                column.push_back(x + y);
-            }
-            occupancy_map.push_back(column);
-        }
+        //std::vector<std::vector<int> > occupancy_map;
+        // std::vector<int> column;
+        // // for each column in map create a vector of int depths
+        // for (int x = 0; x < occupancy_map_width; x++) {
+        //     Logger::Instance()->Trace("Occupancy map loop x = {}", x);
+        //     column.clear();
+        //     for (int y = 0; y < occupancy_map_height; y++) {
+        //         Logger::Instance()->Trace("Occupancy map loop y = {}", y);
+        //         // int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(point_cloud, x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+        //         column.push_back(x + y);
+        //     }
+        //     occupancy_map.push_back(column);
+        // }
 
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width,
                                   occupancy_map_height);
