@@ -582,6 +582,14 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
 
 
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
+int get_point_closest_to_mouth_of_bag(std::shared_ptr<LocalPointCloud> point_cloud, int square_coord_x, int square_coord_y, int square_width, int square_height) {
+    // default point = 0,0,-inf or whatever
+    // for each point in the cloud
+        // if point is in the x'th width and the y'th height
+            // track if max
+    // return max
+    return 0;
+}
 
 std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
                                                         std::shared_ptr<std::string> primary_key_id,
@@ -595,61 +603,94 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
     (base_directory_input) ? *base_directory_input : "","Side_Drop_Camera", *primary_key_id);
-    std::string error_code_file = ("Side_Post_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
+    std::string error_code_file = ("Side_Pre_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
     try {
         Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
 
-        this->session->refresh(); // need to refresh the session to get updated frames
+        // need to refresh the session to get updated frames
+        this->session->refresh();
 
-        //get image for live viewer
-        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
-            this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
+        // get color image for live viewer - TODO for side
+        // if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
+        //     this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
 
         std::shared_ptr<DataGenerator> generator;
-        std::string data_destination = (base_directory / "Post_Drop_Image").string();
+        std::string data_destination = (base_directory / "Side_Pre_Drop_Image").string();
 
         generate_request_data(generate_data, data_destination, std::make_shared<std::string>(*time_stamp_string), request_json);
 
+
+        // depth & marker container
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
+        Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
+
         Logger::Instance()->Debug("Getting container for algorithm now");
-        // bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
-        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(
-            lfb_vision_config, this->session, false);
-        //
-        // this->cached_post_container = container; //cache container for potential use in prepostcomparison later
-        // this->cached_post_request = request_json;
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, false);
 
-        //generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
-    
-    // depth & marker container
-    
-    // depth cloud visualization
+        this->cached_pre_container = container; //cache container for potential use in prepostcomparison later
+        this->cached_pre_request = request_json;
 
-    // transform depth cloud into the OccupancyMap
-    std::vector<std::vector<int>> occupancy_map;
-    // TODO: don't hardcode
-    int occupancy_map_width = 5;
-    int occupancy_map_height = 5;
+        Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
+        std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
+        this->searcher->session_visualizer1->wait_time = 0;
+        if (this->visualize == 1) { this->searcher->session_visualizer1->display_rgb_image(RGB_matrix); }
 
-    std::vector<int> column;
-    // for each column in map create a vector of int depths
-    for (int x = 0; x < occupancy_map_width; x++) {
-        Logger::Instance()->Debug("Occupancy map loop x = {}", x);
-        column.clear();
-        for (int y = 0; y < occupancy_map_height; y++) {
-            Logger::Instance()->Debug("Occupancy map loop y = {}", y);
-            //        int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
-            column.push_back(x+y);
+        // detect Aruco markers in RGB stream
+        if (this->visualize == 1)
+        {
+            std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker> > > markers = container->get_markers();
+            this->searcher->session_visualizer2->draw_detected_markers(
+                container->marker_detector->dictionary,
+                markers,
+                container->region_max_x,
+                container->region_min_x,
+                container->region_max_y,
+                container->region_min_y);
         }
-        occupancy_map.push_back(column);
-    }
 
-    Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width, occupancy_map_height);
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        // depth cloud visualization
+        if (this->visualize == 1) this->searcher->session_visualizer3->display_image(this->searcher->session_visualizer3->display_points_with_depth_coloring(point_cloud));
 
-    return std::make_shared<SideDropResult>(request_id, 
-        std::make_shared<std::vector<std::vector<int>>>(occupancy_map),
-        SideDispenseErrorCodes::Success, "");
+        Logger::Instance()->Trace("Number of point cloud points before filter (out of a possible 92x160 = 14,720): {}",
+                                  point_cloud->get_data()->cols());
+
+        // std::shared_ptr<Eigen::Matrix3Xd> initial_local_data = point_cloud->get_data();
+
+
+
+
+
+
+        // transform depth cloud into the OccupancyMap
+        std::vector<std::vector<int> > occupancy_map;
+        // TODO: don't hardcode, use recipe
+        int occupancy_map_width = 5;
+        int occupancy_map_height = 5;
+
+        std::vector<int> column;
+        // for each column in map create a vector of int depths
+        for (int x = 0; x < occupancy_map_width; x++) {
+            Logger::Instance()->Trace("Occupancy map loop x = {}", x);
+            column.clear();
+            for (int y = 0; y < occupancy_map_height; y++) {
+                Logger::Instance()->Trace("Occupancy map loop y = {}", y);
+                // int point_closest_to_mouth_of_bag = get_point_closest_to_mouth_of_bag(point_cloud, x, y, bag_width / occupancy_map_width, bag_height / occupancy_map_height);
+                column.push_back(x + y);
+            }
+            occupancy_map.push_back(column);
+        }
+
+        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width,
+                                  occupancy_map_height);
+
+        generate_error_code_result_data(generate_data, error_code_file, post_drop_result->get_success_code());
+
+        return std::make_shared<SideDropResult>(request_id,
+                                                std::make_shared<std::vector<std::vector<int> > >(occupancy_map),
+                                                SideDispenseErrorCodes::Success, "");
     }
     catch (const rs2::unrecoverable_error& e)
     {
