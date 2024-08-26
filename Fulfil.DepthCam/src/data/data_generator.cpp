@@ -123,7 +123,7 @@ void DataGenerator::save_json_data(const std::string& dest_directory_name, const
         FileSystemUtil::join_append(json_file_name, dest_file_name);
         Logger::Instance()->Trace("JSON file saving to {}", json_file_name);
         std::ofstream file(json_file_name);
-        file << json_to_write;
+        file << *json_to_write;
     }
 }
 

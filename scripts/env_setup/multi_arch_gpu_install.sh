@@ -12,7 +12,7 @@ YLW='\033[1;33m'
 BLU='\033[1;34m'
 PRP='\033[1;35m'
 NC='\033[0m' # No Color
-
+PATH=/usr/local/cuda-11/bin:${PATH} # make sure cuda is in path
 function continue_or_skip {
   while true ; do
     read -p "Do you want to continue? (y/n) " yn
