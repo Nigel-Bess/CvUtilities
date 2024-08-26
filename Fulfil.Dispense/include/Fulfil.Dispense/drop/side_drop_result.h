@@ -9,6 +9,7 @@
 #include <vector>
 #include <fstream>
 #include <Fulfil.CPPUtils/point_3d.h>
+#include <Fulfil.DepthCam/aruco/marker_detector_container.h>
 
 namespace fulfil::dispense::drop
 {
@@ -27,17 +28,27 @@ class SideDropResult
    * the given request id and marks the result as a failure.
    * @param request_id pointer to string with request id.
    */
-  explicit SideDropResult(std::shared_ptr<std::string> request_id,
-   std::shared_ptr<std::vector<std::vector<int>>> occupancy_map,
+   explicit SideDropResult(std::shared_ptr<std::string> request_id,
+    std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+    int error_code,
+    const std::string &error_description);
+
+  SideDropResult(std::shared_ptr<std::string> request_id,
+   std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+   std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container,
    int error_code,
    const std::string &error_description);
+
+
 
   /**
    * The id of the request.
    */
   std::shared_ptr<std::string> request_id;
 
-  std::shared_ptr<std::vector<std::vector<int>>> occupancy_map;
+  std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
+
+  std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container;
   /**
    * Defines success of drop search algorithm
    *  0 = success

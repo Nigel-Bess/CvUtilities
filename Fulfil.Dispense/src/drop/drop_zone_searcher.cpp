@@ -10,9 +10,11 @@
 #include <Fulfil.DepthCam/visualization.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.Dispense/drop/drop_grid.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
 using fulfil::depthcam::aruco::MarkerDetector;
@@ -30,6 +32,9 @@ using fulfil::dispense::drop_target_error_codes::DropTargetError;
 using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
+using fulfil::dispense::drop::SideDropResult;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::Logger;
@@ -45,7 +50,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
                                    int debug, int min_bag_filtering_threshold, float white_region_depth_adjust_from_min,
                                    int empty_bag_threshold,
                                    float interference_depth_tolerance, int num_interference_points_tolerance,
-                                  float interference_region_length_factor,
+                                   float interference_region_length_factor,
                                    bool visualize_interference_zone, float max_acceptable_Z_above_marker_surface,
                                    float significant_variance_regression, float moderate_variance_regression,
                                    float moderate_variance_improvement, float significant_variance_improvement,
@@ -311,7 +316,7 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(const std::shared_ptr<std::
     // the 0th index is greatest, last index is smallest
     for (int i = 1; i < depth_list->size(); i++)
     {
-//        Logger::Instance()->Debug("Depth Point is (x: {}, y: {}, z: {})", depth_list->at(i).x, depth_list->at(i).y, depth_list->at(i).z);
+        // Logger::Instance()->Debug("Depth Point is (x: {}, y: {}, z: {})", depth_list->at(i).x, depth_list->at(i).y, depth_list->at(i).z);
         // if the current depth point is within the threshold of the depth point to compare
         if (abs(depth_to_compare - depth_list->at(i).z) <= threshold_depth_distance_from_max)
         {
@@ -454,35 +459,12 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
       if (!is_outer_bag) {
           if (local_y >= 0 && local_x >= 0) {
               inner_front_right_depth_list = update_max_depth_list(inner_front_right_depth_list, local_x, local_y, local_z);
-
-//              if (local_z > max_depth_points.front_right.z) {
-//                  max_depth_points.front_right.x = local_x;
-//                  max_depth_points.front_right.y = local_y;
-//                  max_depth_points.front_right.z = local_z;
-//              }
           } else if (local_y >= 0 && local_x < 0) {
               inner_front_left_depth_list = update_max_depth_list(inner_front_left_depth_list, local_x, local_y, local_z);
-
-//              if (local_z > max_depth_points.front_left.z) {
-//                  max_depth_points.front_left.x = local_x;
-//                  max_depth_points.front_left.y = local_y;
-//                  max_depth_points.front_left.z = local_z;
-//              }
           } else if (local_y < 0 && local_x >= 0) {
               inner_back_right_depth_list = update_max_depth_list(inner_back_right_depth_list, local_x, local_y, local_z);
-
-//              if (local_z > max_depth_points.back_right.z) {
-//                  max_depth_points.back_right.x = local_x;
-//                  max_depth_points.back_right.y = local_y;
-//                  max_depth_points.back_right.z = local_z;
-//              }
           } else {
               inner_back_left_depth_list = update_max_depth_list(inner_back_left_depth_list, local_x, local_y, local_z);
-//              if (local_z > max_depth_points.back_left.z) {
-//                  max_depth_points.back_left.x = local_x;
-//                  max_depth_points.back_left.y = local_y;
-//                  max_depth_points.back_left.z = local_z;
-//              }
           }
       // if this IS outer bag
       } else {
@@ -928,17 +910,17 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
                                                                          std::shared_ptr<Session> session,
                                                                          bool extend_region_over_markers)
 {
-  int region_max_x = ; // lfb_vision_config->region_max_x;
-  int region_min_x = 0; // lfb_vision_config->region_min_x;
-  int region_max_y = ??; // lfb_vision_config->region_max_y;
-  int region_min_y = 0; // lfb_vision_config->region_min_y;
+  int region_max_x = lfb_vision_config->region_max_x;
+  int region_min_x = lfb_vision_config->region_min_x;
+  int region_max_y = lfb_vision_config->region_max_y;
+  int region_min_y = lfb_vision_config->region_min_y;
 
-  int num_markers = 7; // lfb_vision_config->num_markers;
+  int num_markers = lfb_vision_config->num_markers;
   int marker_size = lfb_vision_config->marker_size;
   int min_marker_count_for_validation = lfb_vision_config->min_marker_count_for_validation;
 
-  float marker_depth = 0.300; //lfb_vision_config->marker_depth;
-  float marker_depth_tolerance = 0.5; //lfb_vision_config->marker_depth_tolerance;
+  float marker_depth = lfb_vision_config->marker_depth;
+  float marker_depth_tolerance = lfb_vision_config->marker_depth_tolerance;
 
   float container_length = lfb_vision_config->container_length;
   float container_width = lfb_vision_config->container_width;
@@ -1972,4 +1954,152 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   }
 
   return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
+}
+
+
+std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int occupancy_map_width, int occupancy_map_height, float bag_width, float bag_height) {
+    // initialize occupancy map with default -99999m
+    // TODO does this need to be shared ptr of vec of shared ptr or is the outermost one good enough
+    std::vector depth_map_so_far(occupancy_map_height, std::vector<float>(occupancy_map_width, -99999));
+
+    std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
+    std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
+
+    // cycle through all points in bag and log the max depth points in each region
+    for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
+        cv::Point2f pixel = *pixels->at(current_pixel_index);
+        float local_x = (*local_cloud_data)(0, current_pixel_index);
+        float local_y = (*local_cloud_data)(1, current_pixel_index);
+        float local_z = (*local_cloud_data)(2, current_pixel_index);
+
+        for (int map_square_x = 0; map_square_x < occupancy_map_width; ++map_square_x) {
+            float square_width = bag_width / occupancy_map_width;
+            float min_x_coord = map_square_x * square_width;
+            float max_x_coord = (map_square_x + 1) * square_width;
+            for (int map_square_y = 0; map_square_y < occupancy_map_height; ++map_square_y) {
+                float square_height = bag_height / occupancy_map_height;
+                float min_y_coord = map_square_y * square_height;
+                float max_y_coord = (map_square_y + 1) * square_height;
+                if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
+                    depth_map_so_far.at(map_square_x).at(map_square_y) = std::max(depth_map_so_far.at(map_square_x).at(map_square_y), local_z);
+                    Logger::Instance()->Trace("Occupancy map loop map_square_x = {}, map_square_y = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
+                        map_square_x, map_square_y, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_x).at(map_square_y));
+                }
+            }
+        }
+    }
+    // default point = 0,0,-inf or whatever
+    // for each point in the cloud
+        // if point is in the x'th width and the y'th height
+            // track if max
+    // return max
+    return std::make_shared<std::vector<std::vector<float>>>(depth_map_so_far);
+}
+
+
+std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<std::string> primary_key_id,
+    std::shared_ptr<nlohmann::json> request_json,
+    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config)
+{
+    try {
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        std::shared_ptr<MarkerDetectorContainer> container = this->get_container(lfb_vision_config, this->session, false);
+
+        Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
+        std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
+        if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
+
+        // detect Aruco markers in RGB stream
+        if (this->visualize == 1)
+        {
+            std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
+            this->session_visualizer2->draw_detected_markers(
+                container->marker_detector->dictionary,
+                markers,
+                container->region_max_x,
+                container->region_min_x,
+                container->region_max_y,
+                container->region_min_y);
+        }
+
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        // depth cloud visualization
+        if (this->visualize == 1) { this->session_visualizer3->display_image(this->session_visualizer3->display_points_with_depth_coloring(point_cloud)); }
+
+        Logger::Instance()->Trace("Number of point cloud points before filter (out of a possible 92x160 = 14,720): {}",
+                                  point_cloud->get_data()->cols());
+
+        // std::shared_ptr<Eigen::Matrix3Xd> initial_local_data = point_cloud->get_data();
+
+        // transform depth cloud into the OccupancyMap
+        // TODO: don't hardcode, use recipe or request json
+        int occupancy_map_width = 5;
+        int occupancy_map_height = 5;
+        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map = generate_occupancy_map(
+            point_cloud,
+            occupancy_map_width,
+            occupancy_map_height,
+            lfb_vision_config->LFB_bag_width,
+            lfb_vision_config->LFB_bag_length);
+
+        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width,
+                                  occupancy_map_height);
+        return std::make_shared<SideDropResult>(request_id,
+                                                occupancy_map,
+                                                container,
+                                                (int)SideDispenseErrorCodes::Success,
+                                                std::string(""));
+    }
+    catch (const rs2::unrecoverable_error& e)
+    {
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+    }
+    catch (const rs2::recoverable_error& e)
+    {
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Error(error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+    }
+    catch (const std::invalid_argument& e)
+    {
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+    }
+    catch (SideDispenseError& e)
+    {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+
+        // TODO: should the occupancy map be written here?
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
+
+        // TODO: should the occupancy map be written here?
+        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
+    }
+    catch (const std::exception &e) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
+                                  e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+    }
+    catch (...) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+    }
 }
