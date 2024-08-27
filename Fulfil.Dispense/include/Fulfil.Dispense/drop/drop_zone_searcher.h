@@ -10,6 +10,7 @@
 #include <Fulfil.CPPUtils/point_3d.h>
 #include <Fulfil.DepthCam/aruco.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 #include<Fulfil.DepthCam/visualization.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <Fulfil.Dispense/commands/dispense_request.h>
@@ -313,7 +314,11 @@ public:
                                   float item_mass, float minimum_max_depth, bool should_search_right_to_left, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, bool visualize_flag = true,
                                   bool live_viewer_flag = false, bool should_check_empty = false, bool force_adjustment = false);
 
-
+  std::shared_ptr<SideDropResult> handle_pre_side_dispense(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<std::string> primary_key_id,
+    std::shared_ptr<nlohmann::json> request_json,
+    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
 };
 } // namespace fulfil

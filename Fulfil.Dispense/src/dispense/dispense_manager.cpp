@@ -1069,7 +1069,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
 
     std::shared_ptr<fulfil::dispense::drop::SideDropResult>
         side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id,
-        // request_json,
+        request_json,
         base_directory, time_stamp_string, false);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
