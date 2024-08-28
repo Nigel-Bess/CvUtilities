@@ -117,7 +117,7 @@ void DropManager::generate_request_data(bool generate_data,
     }
 }
 
-void DropManager::generate_pre_drop_target_data(bool generate_data,
+void DropManager::generate_request_handling_data(bool generate_data,
                                                 std_filesystem::path base_directory,
                                                 const std::shared_ptr<std::string> &time_stamp,
                                                 std::shared_ptr<nlohmann::json> request_json,
@@ -238,7 +238,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
 
-        generate_pre_drop_target_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
+        generate_request_handling_data(generate_data, base_directory, time_stamp, request_json,  std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
 
         Logger::Instance()->Debug("Getting container for algorithm now");
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
@@ -348,8 +348,7 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
     std::shared_ptr<DataGenerator> generator;
 	std::string data_destination = (base_directory / "Post_Drop_Image").string();
 
-	generate_request_data(generate_data, data_destination, std::make_shared<std::string>(time_stamp), request_json);
-
+    generate_request_handling_data(generate_data, data_destination, std::make_shared<std::string>(time_stamp), request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
     std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
