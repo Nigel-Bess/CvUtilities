@@ -72,7 +72,7 @@ class DropManager
                                   const std::shared_ptr<std::string> &time_stamp,
                                   std::shared_ptr<nlohmann::json> request_json);
 
-  void generate_pre_drop_target_data(bool generate_data,
+  void generate_request_handling_data(bool generate_data,
                                      std_filesystem::path base_directory,
                                      const std::shared_ptr<std::string> &time_stamp,
                                      std::shared_ptr<nlohmann::json> request_json,
