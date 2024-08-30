@@ -9,9 +9,9 @@
  * the extrinsics and intrinsics to convert that into depth pixel
  * data.
  */
-#include "depth_pixel_point_cloud.h"
 #include <librealsense2/rsutil.h>
 #include <Fulfil.CPPUtils/eigen/matrix3xd_builder.h>
+#include <Fulfil.DepthCam/point_cloud/depth_pixel_point_cloud.h>
 
 using fulfil::depthcam::pointcloud::DepthPixelPointCloud;
 using fulfil::depthcam::pointcloud::CameraPointCloud;

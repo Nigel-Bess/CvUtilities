@@ -10,9 +10,9 @@
  * already translated.
  */
 #include <iostream>
-#include "untranslated_point_cloud.h"
-#include "translated_point_cloud.h"
-#include "depth_pixel_point_cloud.h"
+#include <Fulfil.DepthCam/point_cloud/untranslated_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/translated_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/depth_pixel_point_cloud.h>
 
 using fulfil::depthcam::pointcloud::TranslatedPointCloud;
 using fulfil::depthcam::pointcloud::UntranslatedPointCloud;

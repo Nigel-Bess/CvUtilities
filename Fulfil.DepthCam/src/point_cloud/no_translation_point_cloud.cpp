@@ -8,15 +8,16 @@
  * a local point cloud and a camera point cloud because
  * they are the same data.
  */
-#include "no_translation_point_cloud.h"
-#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
-#include <Fulfil.CPPUtils/file_system_util.h>
-#include "untranslated_point_cloud.h"
-#include <vector>
 #include <eigen3/Eigen/Geometry>
+#include <vector>
+#include <Fulfil.CPPUtils/file_system_util.h>
+#include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include "Fulfil.DepthCam/coders/extrinsics_coder.h"
-#include "depth_pixel_point_cloud.h"
+#include <Fulfil.DepthCam/point_cloud/depth_pixel_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/no_translation_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/untranslated_point_cloud.h>
+
 
 using fulfil::depthcam::pointcloud::NoTranslationPointCloud;
 using fulfil::depthcam::pointcloud::Matrix3xdCoder;
