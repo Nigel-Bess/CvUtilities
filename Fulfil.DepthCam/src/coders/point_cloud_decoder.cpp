@@ -6,16 +6,16 @@
  * This file contains the implementation of decoding a point
  * cloud from a directory.
  */
-#include "Fulfil.DepthCam/point_cloud/point_cloud_decoder.h"
-#include "../point_cloud/untranslated_point_cloud.h"
-#include "../point_cloud/no_translation_point_cloud.h"
+#include <Fulfil.CPPUtils/file_system_util.h>
 #include "Fulfil.DepthCam/coders/affine3d_coder.h"
 #include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include "Fulfil.DepthCam/coders/intrinsics_coder.h"
-#include <Fulfil.CPPUtils/file_system_util.h>
-#include <vector>
 #include "Fulfil.DepthCam/coders/extrinsics_coder.h"
+#include "Fulfil.DepthCam/point_cloud/point_cloud_decoder.h"
+#include <Fulfil.DepthCam/point_cloud/untranslated_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/no_translation_point_cloud.h>
 #include <iostream>
+#include <vector>
 
 using fulfil::depthcam::pointcloud::PointCloudDecoder;
 using fulfil::utils::FileSystemUtil;

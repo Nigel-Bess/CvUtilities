@@ -7,19 +7,20 @@
  * reads the data required for a session from a directory and
  * allows it to be treated as a regular session.
  */
-#include "Fulfil.DepthCam/mocks/mock_session.h"
+#include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
+#include <Fulfil.CPPUtils/logging.h>
 #include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include "Fulfil.DepthCam/coders/extrinsics_coder.h"
 #include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
-#include <memory>
-#include <random>
-#include "../point_cloud/no_translation_point_cloud.h"
-#include "../point_cloud/untranslated_point_cloud.h"
+#include "Fulfil.DepthCam/mocks/mock_session.h"
+#include <Fulfil.DepthCam/point_cloud/no_translation_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/untranslated_point_cloud.h>
 #include <Fulfil.DepthCam/point_cloud/camera_point_cloud.h>
 #include "Fulfil.DepthCam/point_cloud/point_cloud_decoder.h"
-#include <Fulfil.CPPUtils/eigen.h>
-#include <Fulfil.CPPUtils/logging.h>
+
+#include <memory>
+#include <random>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::mocks::MockSession;

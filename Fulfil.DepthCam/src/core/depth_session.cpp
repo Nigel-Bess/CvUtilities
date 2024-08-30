@@ -6,16 +6,15 @@
  * This file contains the implementation of the depth session
  * and the interactions with the depth sensor.
  */
-
+#include <Fulfil.CPPUtils/file_system_util.h>
+#include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.DepthCam/core/depth_sensor.h>
 #include <Fulfil.DepthCam/core/depth_session.h>
-#include "../point_cloud/no_translation_point_cloud.h"
-#include<eigen3/Eigen/Dense>
-#include<memory>
-#include "../point_cloud/translated_point_cloud.h"
-#include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.DepthCam/point_cloud/no_translation_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/translated_point_cloud.h>
+#include <eigen3/Eigen/Dense>
 #include <librealsense2/rs.hpp>
-#include <Fulfil.CPPUtils/file_system_util.h>
+#include <memory>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::DepthSession;

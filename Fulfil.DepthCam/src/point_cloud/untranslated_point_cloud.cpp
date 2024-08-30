@@ -7,16 +7,16 @@
  * cloud. This class represents a point cloud that has a translation
  * matrix associated with it but has not been translated.
  */
-#include "untranslated_point_cloud.h"
-#include "translated_point_cloud.h"
+#include <vector>
+#include <iostream>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include "Fulfil.DepthCam/coders/matrix3xd_coder.h"
 #include "Fulfil.DepthCam/coders/affine3d_coder.h"
-#include <vector>
-#include <iostream>
 #include "Fulfil.DepthCam/coders/intrinsics_coder.h"
 #include "Fulfil.DepthCam/coders/extrinsics_coder.h"
-#include "depth_pixel_point_cloud.h"
+#include <Fulfil.DepthCam/point_cloud/untranslated_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/translated_point_cloud.h>
+#include <Fulfil.DepthCam/point_cloud/depth_pixel_point_cloud.h>
 
 using fulfil::depthcam::pointcloud::UntranslatedPointCloud;
 using std::make_shared;
