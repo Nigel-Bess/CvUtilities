@@ -24,6 +24,7 @@ namespace pointcloud
 class LocalPointCloud;
 class CameraPointCloud;
 class PixelPointCloud;
+// interface for all the specific types of point clouds
 class PointCloud
 {
  public:
