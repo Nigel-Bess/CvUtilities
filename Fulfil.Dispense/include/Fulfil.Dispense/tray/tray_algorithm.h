@@ -132,6 +132,7 @@ class TrayAlgorithm
    float wheel_diameter_correction_mm;
    float tongue_wheel_adjustment_mm;
    bool save_tray_visualizations;
+   cv::Mat FED_visualization_image, TV_visualization_image;
    // TODO push to init
    std::shared_ptr<fulfil::depthcam::visualization::AdditiveSessionVisualizer> combo_visualizer;
 
@@ -323,7 +324,9 @@ class TrayAlgorithm
             fulfil::dispense::tray::Tray &current_tray);
 
 
-
+    // getters for tray visualization data
+    cv::Mat get_FED_visualization_image();
+    cv::Mat get_TV_visualization_image();
 
 };
 

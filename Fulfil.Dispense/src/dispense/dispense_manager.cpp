@@ -723,12 +723,18 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
 
     /** run algorithms **/
     auto run_fed_processing = [&tray_cam = this->tray_session,
-                               &section_reader, &tray](request_from_vlsg::TrayRequest &lane_req)
+                               &section_reader, &tray, 
+                               is_pre_dispense, single_lane_val_req, this](request_from_vlsg::TrayRequest &lane_req)
     {
         try
         {
             TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
-            return tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
+            auto tray_algo_status = tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
+            // push visualizations for Pre/Post FED to GCP
+            auto image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_FED : ViewerImageType::Tray_Post_FED;
+            if (this->live_viewer)
+                this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm.get_FED_visualization_image()), image_code, single_lane_val_req.get_primary_key_id(), true);
+            return tray_algo_status;
         }
         catch (const std::exception &e)
         {
@@ -843,6 +849,12 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
                                      tray_validation_request.get_primary_key_id(), exp_max, max_height_detected_in_tray, count_response.m_height_info.m_confidence,
                                      detected_expected_height_diff, error_over_exp);
             Logger::Instance()->Info("Return body from Tray Validation count api query:\n\t{}.", nlohmann::json(count_response).dump());
+            // push visualizations for tray validation to GCP
+            if (this->live_viewer)
+            {
+                request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
+                this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm->get_TV_visualization_image()), ViewerImageType::Tray_Validation, single_lane_val_req.get_primary_key_id(), true);
+            }
             return count_response;
         }
         catch (const std::exception &e)

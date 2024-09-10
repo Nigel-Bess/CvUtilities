@@ -21,12 +21,12 @@ namespace fulfil::dispense::visualization
 /**
  * The number of entries in the ViewerImageType enum
  */
-const int VIEWER_IMAGE_TYPE_COUNT = 14;
+const int VIEWER_IMAGE_TYPE_COUNT = 17;
 enum ViewerImageType {
   LFB_RGB, LFB_Depth, LFB_Damage_Risk, LFB_Filter,
   LFB_Target, Tray_Result, LFB_Pre_Dispense, Tray_Pre_Dispense,
   LFB_Post_Dispense, Tray_Post_Dispense, LFB_Item_Detection, LFB_Markers,
-  Info, LFB_Floor_View
+  Info, LFB_Floor_View, Tray_Pre_FED, Tray_Post_FED, Tray_Validation
 };
 
 struct ABISVisualizationSettings
