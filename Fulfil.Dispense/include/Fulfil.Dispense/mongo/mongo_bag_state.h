@@ -8,7 +8,7 @@
 
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
-#include <opencv2/opencv.hpp>
+#include<opencv2/opencv.hpp>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.Dispense/mongo/packing_state.h>
 #include "Fulfil.Dispense/recipes/lfb_vision_configuration.h"
@@ -44,8 +44,7 @@ class CvBagState final
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            if (json.value("LfbConfig", "NOT FOUND") == "NOT FOUND") {
-
+            if (is_offline_test_run) {
                 Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>();
             } else {
                 Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
@@ -76,12 +75,13 @@ class CvBagState final
             json["PercentBagFull"] = PercentBagFull;
             json["PackingEfficiency"] = PackingEfficiency;
             json["NumberDamageRejections"] = NumberDamageRejections;
-            if (Config) {
-                json["LfbConfig"] = *Config->config_json;
-            }
+//            if (include_lfb_vision_config) {
+//                nlohmann::json config_json;
+//                config_json
+//                json["LfbConfig"] = config_json;
+//            }
             return json;
         }
-
         std::string ToString(){
             return nlohmann::to_string(this->ToJson());
         }

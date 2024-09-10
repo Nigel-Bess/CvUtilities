@@ -1,20 +1,24 @@
 ////
 //// Created by jessv on 3/8/24.
 ////
-
+//
 #include <memory>
-#include <string>
 #include <vector>
 #include <Fulfil.CPPUtils/logging.h>
+//#include "Fulfil.Dispense/json.hpp"
 #include "Fulfil.Dispense/recipes/lfb_vision_configuration.h"
-
+//
 using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::utils::Logger;
+//
+//using namespace std::string_view_literals;
+//
+
+//ItemDimensions::ItemDimensions(float L, float W, float H) : m_L{L}, m_W{W}, m_H{H} {}
 
 LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::json>& input_json) :
 
     // NOTE: The currently defined defaults are for LFB 3.1 as of March 2024.
-	config_json{input_json},
 
     // metadata
     mongo_id{input_json->value("MongoID", std::string("999999999999999999999999"))},
@@ -132,3 +136,43 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     V_low{input_json->value("HsvValueLow", (float)0.0)},
     V_high{input_json->value("HsvValueHigh", (float)255.0)}
 {}
+//    // TODO - a check that no extra keys are present and unhandled? - can pass in count of expected fields from FC which is automatable in C#, not in C++ tho
+//    // TODO - verify loud log statement for any missing keys, should it be a different level?
+//    if (this->missing_keys.empty())
+//    {
+//        Logger::Instance()->Error("LfbVisionConfiguration (Mongo ID: {}) has all of the expected keys", this->mongo_id);
+//
+//    } else
+//    {
+//        Logger::Instance()->Error("LfbVisionConfiguration (Mongo ID: {}) is missing the following keys: {}", this->mongo_id, this->get_missing_keys());
+//    }
+//}
+//
+//template<typename T> T LfbVisionConfiguration::get_value(const nlohmann::json &input_json, std::string key, const T &default_value)
+//{
+//    try {
+//        Logger::Instance()->Debug("Getting key {}", key);
+//        // TODO - need a check for if the default value is the same type found in the JSON? or autohandled by T type?
+//        // TODO - is there any level of input validation needed here? how to do that without an if statement per field
+//        // TODO - cease and desist for now. get amber's idea
+//        return input_json.at(key.c_str());
+//    } catch (nlohmann::json::out_of_range &e)
+//    {
+//        Logger::Instance()->Error("LfbVisionConfiguration error when trying to get the key '{}''s value: {}", key, e.what());
+//        this->missing_keys.push_back(key);
+//        return default_value;
+//    }
+//}
+//
+//std::string LfbVisionConfiguration::get_missing_keys()
+//{
+//    std::string output;
+//    for(const auto & key : this->missing_keys)
+//    {
+//        output += key;
+//        output += ",";
+//    }
+//    output.pop_back();
+//    return output;
+//}
+//
