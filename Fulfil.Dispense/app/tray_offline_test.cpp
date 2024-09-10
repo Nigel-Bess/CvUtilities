@@ -47,12 +47,12 @@ struct TrayRootData {
 struct FEDTestResultLog {
     std_filesystem::path m_result_image_path{};
     std::string m_pkid{};
-    float m_front_edge_distance{-1};
+    int m_front_edge_distance{-1};
     float m_execution_time_ms{0};
     bool m_has_tongue{false};
     bool m_had_test_data{false};
     FEDTestResultLog() = default;
-    FEDTestResultLog(float front_edge_distance, std::string pkid, bool has_tongue,
+    FEDTestResultLog(int front_edge_distance, std::string pkid, bool has_tongue,
         std_filesystem::path result_image_path, float execution_time_ms);
     friend std::ostream & operator << (std::ostream &out, const FEDTestResultLog &res_log);
 };
@@ -77,7 +77,7 @@ struct TongueResultLog {
 
 // Definitions
 
-FEDTestResultLog::FEDTestResultLog(float front_edge_distance, std::string pkid, bool has_tongue,
+FEDTestResultLog::FEDTestResultLog(int front_edge_distance, std::string pkid, bool has_tongue,
     std_filesystem::path result_image_path, float execution_time_ms) :
                                m_result_image_path{result_image_path}, m_pkid{pkid}, m_front_edge_distance{front_edge_distance},
                                m_has_tongue{has_tongue}, m_execution_time_ms{execution_time_ms}, m_had_test_data{true} {}
