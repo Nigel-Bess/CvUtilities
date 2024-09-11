@@ -181,11 +181,7 @@ std::tuple<std::string, double> LiveViewer::image_name_and_presets(size_t image_
     { "LFB_RGB",           "LFB_Depth",          "LFB_Damage_Risk",    "LFB_Filter",
       "LFB_Target",        "Tray_Result",        "LFB_Pre_Dispense",   "Tray_Pre_Dispense",
       "LFB_Post_Dispense", "Tray_Post_Dispense", "LFB_Item_Detection", "LFB_Markers",
-<<<<<<< HEAD
-       "Info", "LFB_Floor_View", "Pre_FED", "Post_FED", "Tray_Validation"
-=======
        "Info", "LFB_Floor_View", "Tray_Pre_FED", "Tray_Post_FED", "Tray_Validation"
->>>>>>> 886e3614c129c78a8ec8aed61f381f4b496cb167
     };
   std::array<double, VIEWER_IMAGE_TYPE_COUNT> resize_presets {
     lfb,  lfb,   1,   lfb,
