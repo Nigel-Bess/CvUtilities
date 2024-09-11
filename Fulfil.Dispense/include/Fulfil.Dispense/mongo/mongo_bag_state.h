@@ -8,7 +8,7 @@
 
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 
-#include<opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.Dispense/mongo/packing_state.h>
 #include "Fulfil.Dispense/recipes/lfb_vision_configuration.h"
@@ -40,13 +40,18 @@ class CvBagState final
 
             ItemMap3 = json["ItemMap3"].get<std::vector<int>>();
 
+            std::cout << "About to parse packedItemsVolume " << std::endl;
             PackedItemsVolume = json["PackedItemsVolume"].get<int>();
             PercentBagFull = json["PercentBagFull"].get<int>();
             PackingEfficiency = json["PackingEfficiency"].get<int>();
             NumberDamageRejections = json["NumberDamageRejections"].get<int>();
-            if (is_offline_test_run) {
-                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>();
+
+            if (json.dump().find("LfbConfig") != std::string::npos) {
+                std::cout << "About to parse LfbConfig " << std::endl;
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
             } else {
+                Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>();
+                std::cout << "About to parse LfbConfig " << std::endl;
                 Config = std::make_shared<fulfil::configuration::lfb::LfbVisionConfiguration>(std::make_shared<nlohmann::json>(json["LfbConfig"]));
             }
             std::cout << "CvBagState updated: LFB Gen is " << Config->lfb_generation << std::endl;
@@ -75,13 +80,12 @@ class CvBagState final
             json["PercentBagFull"] = PercentBagFull;
             json["PackingEfficiency"] = PackingEfficiency;
             json["NumberDamageRejections"] = NumberDamageRejections;
-//            if (include_lfb_vision_config) {
-//                nlohmann::json config_json;
-//                config_json
-//                json["LfbConfig"] = config_json;
-//            }
+            if (Config) {
+                json["LfbConfig"] = *Config->config_json;
+            }
             return json;
         }
+
         std::string ToString(){
             return nlohmann::to_string(this->ToJson());
         }

@@ -15,23 +15,7 @@ namespace fulfil::configuration::lfb {
      * Configuration of all LfbVisionConfiguration values, received in the RequestBagState request, sent from FC.
      */
     struct LfbVisionConfiguration {
-//        /**
-//         * The expected keys that are missing from the request JSON. Will be an empty vector if no expected keys were missing.
-//         */
-//        std::vector<std::string> missing_keys;
-
-//        /**
-//         * Gets the value of the given key in the given JSON. If the key isn't present,
-//         * the given default value will be returned, and the key will be added to the missing_keys field.
-//         * @tparam T type of the value to get
-//         * @param request_json JSON to parse value from
-//         * @param key JSON key corresponding to the value in the request_json
-//         * @param default_value value to be returned if not found in the JSON
-//         * @return value found in the JSON or the default value if missing
-//         */
-//        template<typename T>
-//        T get_value(const nlohmann::json &request_json, std::string key, const T &default_value);
-
+        std::shared_ptr<nlohmann::json> config_json {nullptr};
         // metadata
         /** The Mongo ID of the corresponding LfbVisionConfiguration document */
         std::string mongo_id;

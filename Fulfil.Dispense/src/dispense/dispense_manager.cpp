@@ -895,8 +895,10 @@ int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKey
 
         auto bag = nlohmann::to_string((*request_json)["Bag_State"]);
         std::cout << "CvBagState JSON from FC: " << bag << std::endl;
-        auto cvbag = fulfil::mongo::CvBagState((*request_json)["Bag_State"]);
+        fulfil::mongo::CvBagState cvbag = fulfil::mongo::CvBagState((*request_json)["Bag_State"]);
+        std::cout << "SET EQUAL TO BAG_STATE, pre parse" << std::endl;
         this->drop_manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+        std::cout << "post parse" << std::endl;
         this->bag_id = this->drop_manager->mongo_bag_state->raw_mongo_doc->BagId;
         return 0;
     }
