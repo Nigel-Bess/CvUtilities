@@ -1,37 +1,43 @@
+PROC=$(shell nproc)
+
+LOCAL_DOCKER_IMAGE=fulfil_dc_api
+IMAGE_TAG=latest
+BASE_IMAGE=gcr.io/fulfil-web/$(LOCAL_DOCKER_IMAGE)/base:latest
+DOCKER_IMAGE=gcr.io/fulfil-web/$(LOCAL_DOCKER_IMAGE)/runner:$(IMAGE_TAG)
 
 
-.phony : all
+.PHONY : all
 all:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target main -- -j 6
+	cmake --build build --target main -- -j $(PROC)
 
-.phony : calibrate
+.PHONY : calibrate
 calibrate:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target auto_tray_calibration -- -j 6
+	cmake --build build --target auto_tray_calibration -- -j $(PROC)
 
-.phony : client
+.PHONY : client
 client:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -H .
-	cmake --build build --target dispense_test_client -- -j 6
+	cmake --build build --target dispense_test_client -- -j $(PROC)
 
-.phony : offline_bag
+.PHONY : offline_bag
 offline_bag:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target offline_test -- -j 6
+	cmake --build build --target offline_test -- -j $(PROC)
 
-.phony : offline_tray
+.PHONY : offline_tray
 offline_tray:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target tray_offline_simulation -- -j 6
+	cmake --build build --target tray_offline_simulation -- -j $(PROC)
 
-.phony : offline_all
+.PHONY : offline_all
 offline_all:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target tray_offline_simulation -- -j 6
-	cmake --build build --target offline_test -- -j 6
+	cmake --build build --target tray_offline_simulation -- -j $(PROC)
+	cmake --build build --target offline_test -- -j $(PROC)
 
-.phony : deploy
+.PHONY : deploy
 deploy:
 	rsync -avP build/app/main root@10.10.103.83:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main
 	rsync -avP build/app/main root@10.10.103.88:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/app/main
@@ -40,12 +46,12 @@ deploy:
 	# rsync -avP build/app/main root@10.10.103.88:/usr/bin/dc-test-main
 	# rsync -avP build/app/main root@10.10.103.62:/usr/bin/dc-test-main
 
-.phony : stark
+.PHONY : stark
 stark:	
-	cmake --build build --target stark_test -- -j 6
+	cmake --build build --target stark_test -- -j $(PROC)
 	rsync -avP build/app/stark_test root@192.168.1.242:/usr/bin/dc-main
 
-.phony : clean
+.PHONY : clean
 clean:
 	rm -r build && mkdir -p build && cd build && cmake .. && cd ..
 
@@ -56,7 +62,11 @@ update:
 	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.pb.h
 	@cd ../Fulfil.CPPUtils/src/comm && cp depthCams.grpc.pb.h ../../include/Fulfil.CPPUtils/comm/depthCams.grpc.pb.h
 
-.phony : local
+.PHONY : docker-update
+docker-update:
+	docker run -v $(shell dirname $(shell pwd))/:/home/fulfil/code/Fulfil.ComputerVision/ -w /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense $(BASE_IMAGE) make update
+
+.PHONY : local
 local: 
 	rsync -avp build/app/main root@192.168.1.242:/usr/bin/dc-main
 	# rsync -avP src/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src
@@ -67,3 +77,36 @@ local:
 	# rsync -avP libs/Fulfil.MongoCpp/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.MongoCpp/include
 	# rsync -avP libs/Fulfil.DepthCam/src/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.DepthCam/src
 	# rsync -avP libs/Fulfil.DepthCam/include/ root@192.168.1.242:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/libs/Fulfil.DepthCam/include
+
+
+.PHONY : build
+build:
+	docker build --load -t $(LOCAL_DOCKER_IMAGE) -f ../Dockerfile.runner ..
+
+.PHONY : up
+# build was taking ~15 seconds, so we removed it from dependencies
+up: #build
+	docker compose up -d
+
+.PHONY : down
+down:
+	docker compose down
+
+.PHONY: reset
+reset: down up
+
+.PHONY : shell
+shell: up
+	docker compose exec -it $(LOCAL_DOCKER_IMAGE) bash
+
+.PHONY : run
+run: up
+	docker compose exec -it $(LOCAL_DOCKER_IMAGE) ./Fulfil.Dispense/build/app/main
+
+.PHONY : tag
+tag: build
+	docker tag $(LOCAL_DOCKER_IMAGE) $(DOCKER_IMAGE)
+
+.PHONY : push
+push: tag
+	docker push $(DOCKER_IMAGE)

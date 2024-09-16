@@ -1,0 +1,28 @@
+# Dockerfile
+ARG TAG=latest
+
+# Pull the base image from GCR
+FROM gcr.io/fulfil-web/fulfil_dc_api/base:${TAG}
+
+RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision && mkdir -p /home/fulfil/code/Fulfil.ComputerVision
+
+# Set the working directory inside the container
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
+
+COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
+COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
+COPY Fulfil.Dispense/ ./Fulfil.Dispense/
+COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
+COPY third-party/ ./third-party/
+
+RUN cd Fulfil.Dispense \
+    && rm -rf build/* \
+    && make update \
+    && cmake -DCMAKE_BUILD_TYPE=Release -B build -S . \
+	&& cmake --build build --target main -- -j $(nproc)
+
+# Development
+# CMD ["sleep", "7200"] 
+# PROD
+CMD ["./build/app/main"] 
+

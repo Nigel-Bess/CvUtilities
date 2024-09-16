@@ -1,0 +1,9 @@
+services:
+  fulfil_dc_api:
+    image: fulfil_dc_api
+    platform: linux/amd64
+    # Once we get this working, we can remove this command and just use the app command in the CMD
+    command: /bin/bash -c "while true; do sleep 30; done;"
+
+
+# keep the Fulfil.Computervision as the root dir

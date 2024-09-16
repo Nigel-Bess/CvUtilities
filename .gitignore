@@ -1,5 +1,6 @@
 # IDE settings
 .vscode
+.vs
 .idea
 .clang*
 
@@ -22,6 +23,9 @@ launch_build.sh
 logs
 *.log
 rs-core-logs
+
+# Data
+data
 
 # Configuration
 secret

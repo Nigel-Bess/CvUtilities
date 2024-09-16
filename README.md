@@ -51,3 +51,29 @@ tmux a -t depthcam
 ```
 If the api fails to start, run `rs-fw-update -l` to list out all four cameras and ensure that they are allowing basic 
 queries. If that command fails, you may need to power cycle the board.
+
+
+### Setup
+
+```
+gcloud auth login
+gcloud config set project fulfil-web
+gcloud auth configure-docker
+```
+
+### New development workflow
+
+```
+make build
+make run
+```
+
+### Useful make commands
+make shell: ssh into the container
+make docker-update: re-generates C++ files from protos in your local both inside and outside the container (🔑)
+make push: builds the container and pushes to the registry
+make tag: tags the container (mostly for deployment)
+make push: pushes the image to GCR (mostly for deployment)
+make up: starts the container
+make down: stops the container
+make reset: restarts the container
