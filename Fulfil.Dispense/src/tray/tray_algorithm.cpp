@@ -170,24 +170,24 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
     if (!this->save_tray_visualizations)  return;
     auto timer = utils::timing::Timer("TrayAlgorithm::run_visualizers " + id_sequence_step);
     this->combo_visualizer->add_points_with_local_depth_coloring(tray_point_cloud); // main diff here is that we apply the cloud before the split
-    FED_visualization_image = this->combo_visualizer->get_current_base_image_state();
+    cv::Mat& FED_visualization_image_ref = this->get_FED_visualization_image();
+    FED_visualization_image_ref = this->combo_visualizer->get_current_base_image_state();
     this->combo_visualizer->apply_mask(mask);
     this->combo_visualizer->add_line(center_line[0], center_line[1]); // TODO This does not happen in the FED version: could make param
     if (!detections.empty()) {
 
-        std::for_each(detections.cbegin(), detections.cend()-1, [this](cv::Point pix)
+        std::for_each(detections.cbegin(), detections.cend()-1, [this, &FED_visualization_image_ref](cv::Point pix)
         {
             this->combo_visualizer->add_circle(pix, 0, 255, 0, 3, 10);
-            cv::circle(this->FED_visualization_image, pix, 3, cv::Scalar(0,255,0), 10);
+            cv::circle(FED_visualization_image_ref, pix, 3, cv::Scalar(0,255,0), 10);
         });
         auto pix = detections.back();
         this->combo_visualizer->add_circle(pix, 255, 128, 0, 2, 7);
-        cv::circle(FED_visualization_image, pix, 2, cv::Scalar(0,128, 255), 7);
+        cv::circle(FED_visualization_image_ref, pix, 2, cv::Scalar(0,128, 255), 7);
     }
 
-
-    cv::hconcat(FED_visualization_image, this->combo_visualizer->get_current_base_image_state(), FED_visualization_image);
-    save_mask(id_sequence_step, FED_visualization_image, "fed_results");
+    cv::hconcat(FED_visualization_image_ref, this->combo_visualizer->get_current_base_image_state(), FED_visualization_image_ref);
+    save_mask(id_sequence_step, FED_visualization_image_ref, "fed_results");
 }
 
 results_to_vlsg::LaneItemDistance
@@ -771,17 +771,18 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     auto min_of_maxes = log_max_height_in_tray(local_pix2pt, back_pt, tray_vlsg_request.expected_max_height());
 
     // Complete Visualization
-    TV_visualization_image = this->combo_visualizer->get_current_base_image_state();
+    cv::Mat& TV_visualization_image_ref = this->get_TV_visualization_image();
+    TV_visualization_image_ref = this->combo_visualizer->get_current_base_image_state();
 
     this->combo_visualizer->apply_mask(tongue_color_mask);
     this->combo_visualizer->add_points_with_local_depth_coloring(tray_point_cloud);
     cv::Mat masked_result = this->combo_visualizer->get_current_base_image_state();
     visualize_height(masked_result, absolute_max,  selection,  min_of_maxes);
-    visualize_height(TV_visualization_image, absolute_max,  selection,  min_of_maxes);
+    visualize_height(TV_visualization_image_ref, absolute_max,  selection,  min_of_maxes);
 
 
-    cv::hconcat(TV_visualization_image, masked_result, TV_visualization_image);
-    save_mask(tray_vlsg_request.m_context.get_id_tagged_sequence_step(), TV_visualization_image, "tvr_results");
+    cv::hconcat(TV_visualization_image_ref, masked_result, TV_visualization_image_ref);
+    save_mask(tray_vlsg_request.m_context.get_id_tagged_sequence_step(), TV_visualization_image_ref, "tvr_results");
     return std::make_tuple(center_line_objs, tongue_detections, fulfil::measure::to_rounded_millimeters(std::max(-1*space_pt[2], 0.0f)));
 }
 
@@ -979,6 +980,6 @@ void TrayAlgorithm::load_eigen_matrix(Eigen::Matrix3Xd &matrix, const std::strin
 }
 
 
-cv::Mat TrayAlgorithm::get_FED_visualization_image() { return FED_visualization_image; }
+cv::Mat& TrayAlgorithm::get_FED_visualization_image() { return this->FED_visualization_image; }
 
-cv::Mat TrayAlgorithm::get_TV_visualization_image() { return TV_visualization_image; }
+cv::Mat& TrayAlgorithm::get_TV_visualization_image() { return this->TV_visualization_image; }

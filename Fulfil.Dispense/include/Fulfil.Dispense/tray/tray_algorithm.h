@@ -325,9 +325,8 @@ class TrayAlgorithm
 
 
     // getters for tray visualization data
-    cv::Mat get_FED_visualization_image();
-    cv::Mat get_TV_visualization_image();
-
+    cv::Mat& get_FED_visualization_image();
+    cv::Mat& get_TV_visualization_image();
 };
 
 } // namespace fulfil
