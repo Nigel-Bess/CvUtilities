@@ -165,7 +165,7 @@ int RunMotorRoutines(Trinamic motor_controller)
 
 int main(void)
 {
-  Logger* logger = Logger::Instance(Logger::default_logging_dir,"dispense_logs",Logger::Level::Debug,Logger::Level::Debug);
+  Logger* logger = Logger::Instance(Logger::default_logging_dir, log_file_name, Logger::Level::Debug,Logger::Level::Debug);
 
   INIReader motion_config_reader = INIReader("motion_config.ini", true);
   uint32_t baud = motion_config_reader.GetInteger("motion_parameters", "baud", -1);

@@ -153,7 +153,7 @@ void open_viewer(std::string base_path, int position, std::string window_name)
 
 int main(int argc, char** argv)
 {
-  Logger* logger = Logger::Instance(Logger::default_logging_dir,"dispense_logs",Logger::Level::Info,Logger::Level::Debug);
+  Logger* logger = Logger::Instance(Logger::default_logging_dir, log_file_name, Logger::Level::Info,Logger::Level::Debug);
 
     // Get configs
   std::shared_ptr<INIReader> reader = std::make_shared<INIReader>("main_config.ini", true);

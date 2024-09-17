@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 
   // Basic logging and config set up
   std::string config_section = "device_specific";
-  Logger* logger = Logger::Instance(Logger::default_logging_dir,"dispense_logs",Logger::Level::TurnOff,Logger::Level::Debug);
+  Logger* logger = Logger::Instance(Logger::default_logging_dir, log_file_name, Logger::Level::TurnOff,Logger::Level::Debug);
   auto ini_parse_log = [&logger] (std::string_view filename) {
       logger->Fatal("Failure to read and parse {} in directory {}, check path.", filename, INIReader::get_compiled_default_dir_prefix());
   };

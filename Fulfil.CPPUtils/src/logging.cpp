@@ -67,22 +67,22 @@ void Logger::ThrowException(std::string msg)
 }
 int Logger::SetFileLogLevel(Logger::Level file_level)
 {
-  return SetLogLevel("log_inst_daily_file", file_level);
+  return SetLogLevel(file_log_inst, file_level);
 }
 
 int Logger::SetConsoleLogLevel(Logger::Level console_level)
 {
-  return SetLogLevel("log_inst_console", console_level);
+  return SetLogLevel(console_log_inst, console_level);
 }
 
 int Logger::SetFileLogLevel(const std::string& file_level)
 {
-  return SetLogLevel("log_inst_daily_file", file_level);
+  return SetLogLevel(file_log_inst, file_level);
 }
 
 int Logger::SetConsoleLogLevel(const std::string& console_level)
 {
-  return SetLogLevel("log_inst_console", console_level);
+  return SetLogLevel(console_log_inst, console_level);
 }
 
 
@@ -99,20 +99,22 @@ Logger::Logger(std::string log_dir, std::string file_prefix, Logger::Level file_
   char hostname[HOST_NAME_MAX];
   gethostname(hostname, HOST_NAME_MAX);
 
+  auto max_size = 1048576 * 10; //10Mb
+  auto max_files = 3;
   // TODO add release version to pattern (and verify that trace doesn't slow down code too much)
   std::string prefix_pattern = "[%m-%dT%H:%M:%S.%e] [%^-%l-%$] [%t] %v";
 
   // Create a daily logger - a new file is created every day at 11:59pm
   std::string log_file_path = log_dir + "/" + file_prefix + ".log";
 
-  auto daily_logger = spdlog::daily_logger_mt("log_inst_daily_file", log_file_path, 23, 59);
+  auto daily_logger = spdlog::rotating_logger_mt(file_log_inst, log_file_path, max_size, max_files);
   daily_logger->set_pattern(prefix_pattern);
-  SetLogLevel("log_inst_daily_file", file_level, true);
+  SetLogLevel(file_log_inst, file_level, true);
 
   // Create console logger
-  auto console_logger = spdlog::stdout_color_mt("log_inst_console");
+  auto console_logger = spdlog::stdout_color_mt(console_log_inst);
   console_logger->set_pattern(prefix_pattern);
-  SetLogLevel("log_inst_console", console_level, true);
+  SetLogLevel(console_log_inst, console_level, true);
 
 
 }
@@ -145,11 +147,11 @@ int Logger::SetLogLevel(const std::string& logger_name, Logger::Level level, boo
     default:
       if (first_level_set) {
         this->Warn("Attempted to create logger with invalid level enum for {} reporting, using default Debug level.",
-                   (logger_name == "log_inst_console" ? "console" : "file"));
+                   (logger_name == console_log_inst ? "console" : "file"));
         spdlog::get(logger_name)->set_level(spdlog::level::debug);
       } else {
         this->Warn("Attempted to change {} logger level with invalid level enum, no change made to current level.",
-                   (logger_name == "log_inst_console" ? "console" : "file"));
+                   (logger_name == console_log_inst ? "console" : "file"));
       }
       return 1;
   }
@@ -178,7 +180,7 @@ int Logger::SetLogLevel(const std::string& logger_name, const std::string& level
     this->Warn(
             "Attempted to change {} logger with invalid input level string '{}'. Please choose from the following levels:\n\t"
             "TRACE, DEBUG, INFO, WARN, ERROR, FATAL, TURN_OFF\nNo change made to current log level.",
-            (logger_name == "log_inst_console" ? "console" : "file"), level);
+            (logger_name == console_log_inst ? "console" : "file"), level);
     return 1;
   }
   return 0;

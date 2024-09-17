@@ -13,7 +13,7 @@ using ff_mongo_cpp::mongo_objects::MongoObjectID;
 
 MongoBagState::MongoBagState()
 {
-  Logger::Instance()->Error("This constructor should not currently be used!"); // TODO why ? is this up to date? context needed
+  Logger::Instance()->Info("Starkey says this constructor SHOULD be used!"); // TODO why ? is this up to date? context needed
   this->collection_name = "BagStates";
   this->db_name = "Inventory";
   this->update_required = false;

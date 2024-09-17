@@ -8,7 +8,7 @@ echo -e "\nDispense API expected init:"
 # use today's log file, but if it doesn't exist then loop through the last week to find the latest log file
 LOG_DATE=$(date +'%Y-%m-%d')
 while [ "$LOG_DATE" != "$(date -d '-1 week' '+%Y-%m-%d')" ]; do
-  LOG_FILE_PATH="logs/dispense_logs_$LOG_DATE.log"
+  LOG_FILE_PATH="logs/cv_logs.log"
   echo "Looking for camera init in $LOG_FILE_PATH..."
   if [ -e $LOG_FILE_PATH ]; then
     # actual output of camera init

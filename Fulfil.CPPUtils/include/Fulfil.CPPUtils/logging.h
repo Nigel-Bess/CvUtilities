@@ -7,8 +7,9 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/daily_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
+static const std::string log_file_name = "cv_logs";
 
 namespace fulfil::utils
     {
@@ -24,6 +25,8 @@ namespace fulfil::utils
              * SetConsoleLogLevel to change the level of messages reported by the logger)
              * */
             enum class Level{Trace, Debug, Info, Warn, Error, Fatal, TurnOff};
+            const std::string file_log_inst = "rolling_log_inst";
+            const std::string console_log_inst = "console_log_inst";
 
             /**
              *  Log message levels ordered by severity, type handling is forwarded to spdlog
@@ -36,54 +39,54 @@ namespace fulfil::utils
             {
               // TODO might want to push trace logger to different sink?
               // log anything without worrying about performance impact, never set in prod
-              spdlog::get("log_inst_console")->trace(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->trace(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->trace(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->trace(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             template<typename... Args>
             void Debug(Args&& ... args)
             {
               // might want to log in production when searching for issues
-              spdlog::get("log_inst_console")->debug(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->debug(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->debug(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->debug(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             template<typename... Args>
             void Info(Args&& ... args)
             {
               // should log in production
-              spdlog::get("log_inst_console")->info(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->info(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->info(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->info(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             template<typename... Args>
             void Warn(Args&& ... args)
             {
               // logs issue that might require action
-              spdlog::get("log_inst_console")->warn(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->warn(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->warn(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->warn(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             template<typename... Args>
             void Error(Args&& ... args)
             {
               // log issue that requires action
-              spdlog::get("log_inst_console")->error(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->error(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->error(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->error(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             template<typename... Args>
             void Fatal(Args&& ... args)
             {
               // logs issue that has likely killed application, or is very severe
-              spdlog::get("log_inst_console")->critical(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->critical(std::forward<Args>(args)...);
-              spdlog::get("log_inst_daily_file")->flush();
+              spdlog::get(console_log_inst)->critical(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->critical(std::forward<Args>(args)...);
+              spdlog::get(file_log_inst)->flush();
             }
 
             // Throw LOGGING error specifically (to report and issue with the logger itself)
