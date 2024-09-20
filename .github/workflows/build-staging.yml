@@ -1,0 +1,43 @@
+name: Build and deploy CV Staging
+on: [push]
+
+env:
+  ACTIONS_STEP_DEBUG: true
+  APP_NAME: fulfil_dc_api
+  STAGING_IMAGE_NAME: gcr.io/fulfil-web-staging-296222/fulfil_dc_api/${{ github.ref_name }}
+  TARGET_ENV: staging
+
+jobs:
+  build:
+    name: Build Staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Authenticate Docker to GCR-Staging
+        env:
+          GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
+        run: echo $GCLOUD_SERVICE_KEY | docker login -u _json_key --password-stdin https://gcr.io
+
+      - name: Authenticate Docker to GCR-Prod
+        env:
+          GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_PROD_SA }}
+        run: echo $GCLOUD_SERVICE_KEY | docker login -u _json_key --password-stdin https://gcr.io
+
+      - name: Build Staging
+        run: |
+          cd Fulfil.Dispense
+          make build LOCAL_DOCKER_IMAGE=${STAGING_IMAGE_NAME}
+      - name: Tag image
+        run: |
+          cd Fulfil.Dispense
+          make tag LOCAL_DOCKER_IMAGE=${STAGING_IMAGE_NAME} IMAGE_TAG=${GITHUB_SHA}
+
+      - name: Push image to Staging
+        run: |
+          cd Fulfil.Dispense
+          make push-staging DOCKER_IMAGE=${STAGING_IMAGE_NAME} IMAGE_TAG=${GITHUB_SHA}

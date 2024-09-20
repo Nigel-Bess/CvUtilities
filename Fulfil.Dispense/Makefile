@@ -105,8 +105,9 @@ run: up
 
 .PHONY : tag
 tag: build
-	docker tag $(LOCAL_DOCKER_IMAGE) $(DOCKER_IMAGE)
+	docker tag $(LOCAL_DOCKER_IMAGE) $(LOCAL_DOCKER_IMAGE):$(IMAGE_TAG)
 
-.PHONY : push
-push: tag
-	docker push $(DOCKER_IMAGE)
+.PHONY : push-staging
+push-staging: tag
+	docker push $(DOCKER_IMAGE):$(IMAGE_TAG)
+	docker push $(DOCKER_IMAGE):latest
