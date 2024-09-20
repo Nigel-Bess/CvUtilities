@@ -39,4 +39,3 @@ html
 scripts/env_setup/mongo*
 
 node_modules/
-package-lock.json

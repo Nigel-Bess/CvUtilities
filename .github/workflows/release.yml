@@ -39,6 +39,5 @@ jobs:
           # The service account key of google cloud.
           GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_PROD_SA }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd Fulfil.Dispense
+        run:
           make release
