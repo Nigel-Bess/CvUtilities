@@ -1,0 +1,30 @@
+# https://semantic-release.gitbook.io/semantic-release/usage/configuration
+branches:
+  - "+([0-9])?(.{+([0-9]),x}).x"
+  - master
+  - name: beta
+    prerelease: true
+
+# Plugins to run to process a release.
+# NOTE: The order of the plugins matters. Plugins get executed in order per
+# stage. Ensure that plugins that produce output are run first.
+plugins:
+  # Analyzes commits to determine what kind of release to do (e.g. patch, feature, major)
+  - "@semantic-release/commit-analyzer"
+  # Generates release notes that get published with the release.
+  - "@semantic-release/release-notes-generator"
+  # Creates a changelog file with all changes. This is published by the 'git'
+  # plugin.
+  - - "@semantic-release/changelog"
+    - changelogFile: "CHANGELOG.md"
+  # Executes shell scripts to build and publish the Docker image.
+  - - "@semantic-release/exec"
+    - shell: true
+      prepareCmd: "IMAGE_TAG=v${nextRelease.version} make login image"
+      publishCmd: "IMAGE_TAG=v${nextRelease.version} make push"
+  # Commits changes to the repository upon release.
+  - - "@semantic-release/git"
+    - assets:
+      - CHANGELOG.md
+  # Publishes a GitHub release with the given assets attached to the release.
+  - - "@semantic-release/github"
