@@ -234,10 +234,18 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   int depth_points_above_threshold_to_count_as_item_protruding = lfb_vision_config->depth_points_above_threshold_to_count_as_item_protruding;
   bool use_y_coordinates_orientation_check = lfb_vision_config->use_y_coordinates_orientation_check;
 
-  Logger::Instance()->Debug("Bag Item Count is input as 0, target will be set at front left corner of bag");
-
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
+
+  // 21 is extra fragile
+  if (details->item_damage_code == 21) {
+    Logger::Instance()->Debug("Bag Item Count is input as 0, item is marked as extra fragile, so target will be set at the center of bag");
+    return std::make_shared<Point3D>(0.0f, 0.0f, target_Z);
+  } 
+
+  Logger::Instance()->Debug("Bag Item Count is input as 0, target will be set at front left corner of bag");
+
+
   float target_x;
   float wide_side_target_offset = lfb_vision_config->front_edge_target_offset; // TODO
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
