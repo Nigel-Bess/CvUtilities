@@ -299,6 +299,7 @@ namespace comms_context {
         //identifiers::TrayPositionName m_tray_position_name{};
         int m_request_type;
         int m_calibration_mode{2};
+        bool m_is_at_induction{false};
         comms_context::OidString m_primary_key_id;
         comms_context::OidString m_tray_id;
         std::string m_image_prefix;
@@ -313,6 +314,7 @@ namespace comms_context {
         [[nodiscard]] std::string get_sequence_step() const;
         [[nodiscard]] std::string get_id_tagged_sequence_step() const;
         [[nodiscard]] std::string get_primary_key_id() const;
+        [[nodiscard]] std::string to_string() const;
         [[nodiscard]] nlohmann::json to_mongo_format() const;
 
 
@@ -320,6 +322,7 @@ namespace comms_context {
         explicit RequestContextInfo(
                 int requestType,
                 int calibrationMode,
+                bool isAtInduction,
                 const comms_context::OidString &primaryKeyId,
                 const comms_context::OidString &trayId,
                 const std::string &imagePrefix,
@@ -353,7 +356,8 @@ namespace comms_context {
                             { "Primary_Key_ID", contextInfo.m_primary_key_id },
                             { "Tray_ID", contextInfo.m_tray_id },
                             { "Request_Name", contextInfo.get_request_name() },// TODO delete?
-                            { "Calibration_Mode", contextInfo.m_calibration_mode } };
+                            { "Calibration_Mode", contextInfo.m_calibration_mode },
+                            { "Is_At_Induction", contextInfo.m_is_at_induction || false} };
         if (!contextInfo.m_image_prefix.empty()) { j["Image_Prefix"] = contextInfo.m_image_prefix; }
         j["Image_Tag"] = contextInfo.get_id_tagged_sequence_step();//(contextInfo.m_image_tag.empty()) ? contextInfo.get_id_tagged_sequence_step() : contextInfo.m_image_tag;
     }
@@ -364,6 +368,7 @@ namespace comms_context {
         contextInfo.m_image_prefix = j.value("Image_Prefix", "");
         contextInfo.m_request_type = j.value("Type", 0);
         contextInfo.m_calibration_mode = j.value("Calibration_Mode", 2);
+        contextInfo.m_is_at_induction = j.value("Is_At_Induction", false);
         contextInfo.m_image_tag = j.value("Image_Tag", contextInfo.get_id_tagged_sequence_step());
         if (j.contains("Tray_ID")) {
             contextInfo.m_tray_id = j["Tray_ID"].template get<comms_context::OidString>(); }
@@ -391,6 +396,7 @@ namespace request_from_vlsg {
         dimensional_info::TrayRecipe m_tray_recipe {};
         [[nodiscard]] std::string get_primary_key_id() const;
         [[nodiscard]] std::string get_sequence_step() const;
+        [[nodiscard]] std::string to_string() const;
         [[nodiscard]] float expected_max_height() const;
         TrayRequest()=default;
         TrayRequest(const comms_context::RequestContextInfo &reqContext,
@@ -486,6 +492,10 @@ namespace results_to_vlsg {
         std::vector<int> m_errors {0};
         int m_num_algorithm_counts {0};
         bool m_has_tongue{false};
+        // new fields added by new ML models in Sep 2024
+        bool m_new_has_tongue{false};
+        bool m_new_has_spacer{false};
+        int m_counts{-1};
         // TODO (int m_has_tongue{-1}) 0 is false, 1 is true and <0 don't report
         [[nodiscard]] dimensional_info::LaneIndex get_lane_id() const;
 
@@ -494,7 +504,7 @@ namespace results_to_vlsg {
             std::vector<int> errors,
             int laneCounts,
             bool has_tongue);
-        explicit LaneCounts(int index, int error, int laneCounts, bool has_tongue);
+        explicit LaneCounts(int index, int error, int laneCounts, bool has_tongue, bool new_has_tongue=false, bool new_has_spacer=false, int counts=-1);
     };
 
     struct TrayHeight {
@@ -509,9 +519,10 @@ namespace results_to_vlsg {
     {
         std::vector<int> m_errors{ { 0 } };
         std::vector<results_to_vlsg::LaneCounts> m_lanes{};
+        int m_dispense_count{-1};
         results_to_vlsg::TrayHeight m_height_info{};
         TrayValidationCounts() = default;
-        TrayValidationCounts(std::vector<int> laneErrors, std::vector<results_to_vlsg::LaneCounts> algoLaneCounts);
+        TrayValidationCounts(std::vector<int> laneErrors, std::vector<results_to_vlsg::LaneCounts> algoLaneCounts, int dispenseCount);
         void update_lane_tongue_detections(std::vector<bool> tongue_detections);
 
 
@@ -555,6 +566,9 @@ namespace results_to_vlsg {
             j["Index"] = lane_count_res.m_index.m_val;
             j["Num_Algorithm_Counts"] = lane_count_res.m_num_algorithm_counts;
             j["Has_Tongue"] = lane_count_res.m_has_tongue;
+            j["New_Has_Tongue"] = lane_count_res.m_new_has_tongue;
+            j["New_Has_Spacer"] = lane_count_res.m_new_has_spacer;
+            j["New_Item_Count"] = lane_count_res.m_counts;
         } //else { j = nlohmann::json({}); }
         j["Errors"] = json_parser::mongo_utils::format_obj_error_list_to_json_array(lane_count_res.m_errors);
 
@@ -567,7 +581,9 @@ namespace results_to_vlsg {
         lane_count_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         lane_count_res.m_index = j.template get<dimensional_info::LaneIndex>();
         lane_count_res.m_num_algorithm_counts = j.value("Num_Algorithm_Counts", -1);
-
+        lane_count_res.m_new_has_tongue = j.value("New_Has_Tongue", false);
+        lane_count_res.m_new_has_spacer = j.value("New_Has_Spacer", false);
+        lane_count_res.m_counts = j.value("New_Item_Count", -1);
         if (lane_count_res.m_num_algorithm_counts < 0) {
             std::cerr << "\nAttempted to parse missing/invalid Num_Algorithm_Counts in LaneCounts from the "
                       << "following document:\n\t" << j << "\nCreating default m_error val!";
@@ -601,6 +617,7 @@ namespace results_to_vlsg {
     {
         tray_count_res.m_errors = j.value("Errors", std::vector<int>{ 0 });
         tray_count_res.m_height_info =  j.value("TrayHeight", TrayHeight{});
+        tray_count_res.m_dispense_count = j.value("dispense_count", -1);
         auto contains_array_at_elem = [] (const BasicJsonType &cur_json_elem, auto key) {
             auto elem_at_key = cur_json_elem.find(key);
             if (elem_at_key == cur_json_elem.end()) { return false; }

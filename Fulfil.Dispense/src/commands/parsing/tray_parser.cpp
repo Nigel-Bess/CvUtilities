@@ -110,11 +110,12 @@ namespace comms_context {
     RequestContextInfo::RequestContextInfo(
             int requestType,
             int calibrationMode,
+            bool isAtInduction,
             const comms_context::OidString &primaryKeyId,
             const comms_context::OidString &trayId,
             const std::string &imagePrefix,
             const std::string &imageTag)
-            :   m_request_type{requestType}, m_calibration_mode{calibrationMode}, m_primary_key_id{primaryKeyId},  m_tray_id{trayId},
+            :   m_request_type{requestType}, m_calibration_mode{calibrationMode}, m_is_at_induction{isAtInduction}, m_primary_key_id{primaryKeyId},  m_tray_id{trayId},
                 m_image_prefix{imagePrefix},  m_image_tag{imageTag} {}
 
     const char *RequestContextInfo::get_request_name() const
@@ -153,15 +154,20 @@ namespace comms_context {
         return m_primary_key_id.m_val;
     }
 
+    std::string RequestContextInfo::to_string() const {
+        return std::string("{ Request ") + get_request_name() + "PKID: " + get_primary_key_id() + " for Tray " + m_tray_id.m_val + " and sequence step " + get_sequence_step() + " }";
+    }
+
 //TODO change to class and find less repetitious way to implement.
     nlohmann::json RequestContextInfo::to_mongo_format() const {
         auto mongo_formatted_request_info = nlohmann::json{
                 { "Type", m_request_type },
                 { "Primary_Key_ID", m_primary_key_id.to_mongo_format() },
-                {"Image_Prefix", m_image_prefix},
+                { "Image_Prefix", m_image_prefix },
                 { "Request_Name", get_request_name() },// TODO delete?
                 { "Tray_ID", m_tray_id.to_mongo_format() },
                 { "Calibration_Mode", m_calibration_mode },
+                { "Is_At_Induction", m_is_at_induction || false },
                 { "Tray_Position", get_tray_position_name() },
                 { "Image_Tag", (m_image_tag.empty()) ? get_id_tagged_sequence_step() : m_image_tag}
         };
@@ -192,6 +198,10 @@ namespace request_from_vlsg {
 
     std::string TrayRequest::get_sequence_step() const {
         return m_context.get_sequence_step();
+    }
+
+    std::string TrayRequest::to_string() const {
+        return m_context.to_string();
     }
 
 }// namespace request_from_vlsg
@@ -229,8 +239,8 @@ namespace results_to_vlsg {
     LaneCounts::LaneCounts(dimensional_info::LaneIndex index, std::vector<int> errors, int laneCounts, bool has_tongue)
         : m_index{index}, m_errors{std::move(errors)}, m_num_algorithm_counts{laneCounts} {}
 
-    LaneCounts::LaneCounts(int index, int error, int laneCounts, bool has_tongue)
-        : m_index{index}, m_errors{std::vector<int>{error}},  m_num_algorithm_counts{laneCounts} {}
+    LaneCounts::LaneCounts(int index, int error, int laneCounts, bool has_tongue, bool new_has_tongue, bool new_has_spacer, int counts)
+        : m_index{index}, m_errors{std::vector<int>{error}},  m_num_algorithm_counts{laneCounts}, m_new_has_tongue{new_has_tongue}, m_new_has_spacer{new_has_spacer}, m_counts{counts} {}
 
     dimensional_info::LaneIndex LaneCounts::get_lane_id() const { return m_index; }
 
@@ -245,7 +255,7 @@ namespace results_to_vlsg {
     //TrayHeight::TrayHeight(float max_height, float max_item_height)
 
     TrayValidationCounts::TrayValidationCounts(std::vector<int> laneErrors,
-                                               std::vector<results_to_vlsg::LaneCounts> algoLaneCounts) : m_errors{ laneErrors}, m_lanes{algoLaneCounts} {}
+                                               std::vector<results_to_vlsg::LaneCounts> algoLaneCounts, int dispenseCount) : m_errors{ laneErrors}, m_lanes{algoLaneCounts}, m_dispense_count{dispenseCount} {}
     void TrayValidationCounts::update_lane_tongue_detections(std::vector<bool> tongue_detections) {
       std::transform(m_lanes.begin(), m_lanes.end(), tongue_detections.cbegin(),
           m_lanes.begin(), [&](results_to_vlsg::LaneCounts lane, bool detection) {
