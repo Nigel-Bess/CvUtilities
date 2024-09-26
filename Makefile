@@ -2,7 +2,7 @@ PROC=$(shell nproc)
 
 LOCAL_DOCKER_IMAGE=fulfil_dc_api
 IMAGE_TAG=latest
-BASE_IMAGE=gcr.io/fulfil-web/$(LOCAL_DOCKER_IMAGE)/base:latest
+BASE_IMAGE=gcr.io/fulfil-web-staging-296222/$(LOCAL_DOCKER_IMAGE)/base_v2:latest
 DOCKER_IMAGE=gcr.io/fulfil-web/$(LOCAL_DOCKER_IMAGE)/runner:$(IMAGE_TAG)
 DOCKER_FILE=./Dockerfile.runner
 

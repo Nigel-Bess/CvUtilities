@@ -2,7 +2,7 @@
 ARG TAG=latest
 
 # Pull the base image from GCR
-FROM gcr.io/fulfil-web/fulfil_dc_api/base:${TAG}
+FROM gcr.io/fulfil-web-staging-296222/fulfil_dc_api/base_v2:${TAG}
 
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision && mkdir -p /home/fulfil/code/Fulfil.ComputerVision
 
