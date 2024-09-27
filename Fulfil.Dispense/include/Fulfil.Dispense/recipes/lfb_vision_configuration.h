@@ -131,6 +131,10 @@ namespace fulfil::configuration::lfb {
         // TODO
         float marker_depth_tolerance {0.5};
 
+        // this is the maximum allowable depth on top of the highest valid depth found.
+        // it is used to remove high depth points from the local point cloud
+        float threshold_above_highest_valid_depth = 0.15;
+
         // virtual marker variables
         /**
          * These are the coordinates in meters of the specific feature points of Aruco markers 0 - 7 in the local LFR container frame.

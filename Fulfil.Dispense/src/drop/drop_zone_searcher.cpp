@@ -1833,6 +1833,96 @@ std::shared_ptr<DropZoneSearcher::FloorAnalysisResult> DropZoneSearcher::detect_
 	return std::make_shared<DropZoneSearcher::FloorAnalysisResult>(result);
 }
 
+// remove high depth points
+/*
+Description for the algorithm-
+
+1) The local point cloud is originally scaled such that the bot marker surface has 
+   depth 0.0. Hence to avoid negative values, I rescaled using LFB_cavity_height 
+   such that the zero is at the bottom of the cavity.
+2) Create the histogram for the depth values using the rescaled local point cloud.
+3) Find the peaks in the histogram. Since the point cloud is local to the bot, 
+   hence the idea is that the bot surface and/or the objects inside/at surface of 
+   the bot will form some kind of distribution and the outliers will not.
+4) Discard all the point cloud data which are 150mm above the maximum peak.
+*/
+void DropZoneSearcher::remove_high_depth_points(std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> &point_cloud, cv::Size size, float LFB_cavity_height, float threshold_above_highest_valid_depth)
+{
+  std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
+  std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
+
+  // creating a depth image by re-scaling the point cloud data such that the zero is 
+  // at the bottom of the cavity and is expressed in mm. Also, finding the max depth value.
+  cv::Mat point_cloud_as_depth = cv::Mat(size, CV_16UC1, cv::Scalar(0));
+  int min_val = 0, max_val = INT_MIN;
+  for (int i = 0; i < pixels->size(); ++i)
+  {
+    float local_z = (*local_cloud_data)(2, i);
+    cv::Point2f pixel = *pixels->at(i);
+    unsigned short val = (unsigned short)((local_z + LFB_cavity_height)*1000.0f);
+    max_val = val > max_val ? val : max_val;
+    point_cloud_as_depth.at<unsigned short>(round(pixel.y), round(pixel.x)) = val;
+  }
+
+  // 16 bit to 8 bit
+  cv::Mat point_cloud_as_depth_8bit;
+  point_cloud_as_depth.convertTo(point_cloud_as_depth_8bit, CV_8U, 255.0 / (double)max_val);
+
+  // create histogram
+  int hist_size = 256;
+  float range[] = { 0.0f, (float)hist_size };
+  const float* hist_range = { range };
+  cv::Mat hist;
+  cv::calcHist(&point_cloud_as_depth_8bit, 1, 0, cv::Mat(), hist, 1, &hist_size, &hist_range);
+
+  // find peaks in histogram
+  std::vector<int> peaks_vec;
+  int window_size = 7; // radius of the distribution for which we're finding the peak
+  for (int i = window_size; i < hist.rows - window_size; ++i) 
+  {
+    bool is_peak = true;
+    int count_zeros = 0;
+    // at every potential peak, the inner loop finds if it's a peak and also how dense the distribution is 
+    for (int j = -window_size; j <= window_size; ++j) 
+    {
+      if (hist.at<float>(i + j) == 0.0f)
+        ++count_zeros;
+      if (j == 0)
+        continue;
+      if (hist.at<float>(i) < hist.at<float>(i + j)) 
+      {
+        is_peak = false;
+        break;
+      }
+    }
+    int distribution_density_threshold = (int)round((2*window_size + 1)*0.35f);
+    if (is_peak && (count_zeros < distribution_density_threshold)) // 65% of the data in the window should be non-zero
+    {
+      // calculate start and end of the bin
+      // bin is a way of quantizing the high resolution data to express in lower resolutions
+      // bin size depends on the min/max depth values and the number of levels in a histogram (I choose 256).
+      float bin_width = (max_val - min_val) / (float)hist_size;
+      float bin_start = min_val + i*bin_width;
+      float bin_end = bin_start + bin_width;
+      peaks_vec.push_back((int)((bin_start + bin_end) / 2.0f));
+    }
+  }
+
+  // sort vector in descending order
+  std::sort(peaks_vec.begin(), peaks_vec.end(), std::greater<int>());
+  if (peaks_vec.size() == 0)
+    return;
+
+  // prune local point cloud
+  unsigned short highest_valid_depth = peaks_vec[0];
+  for (int i = 0; i < pixels->size(); ++i)
+  {
+    unsigned short local_z = (unsigned short)(((*local_cloud_data)(2, i) + LFB_cavity_height)*1000.0f);
+    if (local_z > (highest_valid_depth + (threshold_above_highest_valid_depth*1000.0f)))
+      point_cloud->set_depth_value(i, 0.0f);
+  }
+}
+
 std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::find_max_Z(std::shared_ptr<MarkerDetectorContainer> container, std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::shared_ptr<mongo::MongoBagState> mongo_bag_state,
                                                                std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<std::vector<std::string>> cached_info,
@@ -1868,6 +1958,9 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 
 
   std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+
+  // remove depth points from local point cloud that are higher than 150mm above the valid depth (marker surface mostly).
+  this->remove_high_depth_points(point_cloud, RGB_matrix->size(), LFB_cavity_height, lfb_vision_config->threshold_above_highest_valid_depth);
 
   if (this->visualize == 1) session_visualizer3->display_image(session_visualizer3->display_points_with_depth_coloring(point_cloud));
 

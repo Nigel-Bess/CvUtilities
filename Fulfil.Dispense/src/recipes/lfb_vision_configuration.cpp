@@ -70,6 +70,9 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     marker_depth{input_json->value("MarkerDepthMeters", (float)0.82)},
     marker_depth_tolerance{input_json->value("MarkerDepthToleranceMeters", (float)0.5)},
 
+    // it is used to remove high depth points from the local point cloud
+    threshold_above_highest_valid_depth{input_json->value("DepthThresholdAboveValidDepthMeters", (float)0.15)},
+
     // virtual marker variables
     marker_coordinates_x{input_json->value("MarkerCoordinatesX", std::vector<float>({ 0.23425, -0.23425, -0.23425, -0.248, -0.248, 0.248, 0.248, 0.23425 }))},
     marker_coordinates_y{input_json->value("MarkerCoordinatesY", std::vector<float>({ -0.125, -0.125, -0.015, 0.044, 0.125, 0.125, 0.015, -0.044 }))},

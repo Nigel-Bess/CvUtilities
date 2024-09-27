@@ -166,8 +166,12 @@ class DropZoneSearcher
   void validate_marker_positions(bool nominal_bot_rotation, std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>> markers,
                                  std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
+  /**
+   * Remove high depth points from local point cloud
+   */
+  void remove_high_depth_points(std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> &point_cloud, cv::Size size, float LFB_cavity_height, float threshold_above_highest_valid_depth);
 
-
+  
   std::shared_ptr<fulfil::depthcam::Session> session;
   int debug;
   int visualize;
