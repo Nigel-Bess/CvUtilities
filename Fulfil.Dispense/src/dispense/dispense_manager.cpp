@@ -120,6 +120,11 @@ DispenseManager::DispenseManager(
         Logger::Instance()->Info("AGX specific ini file indicates to use tray config section {}", this->tray_dimension_type);
 
         this->tray_manager = tray_manager;
+
+        // read AGX_specific_main.ini to read token for rotating induction camera image
+        std::unique_ptr<INIReader> agx_reader = std::make_unique<INIReader>("AGX_specific_main.ini", true);
+        float image_rotation_angle_from_camera_placement = agx_reader->GetFloat("device_specific", "image_rotation_angle_from_camera_placement", 0.0f);
+        this->tray_manager->set_image_rotation_angle(image_rotation_angle_from_camera_placement);
     }
 
     if (LFB_session)

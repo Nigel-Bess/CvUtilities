@@ -53,7 +53,11 @@ TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
       tongue_wheel_adjustment_mm(tray_config_reader.get_value("tongue_wheel_adjustment_mm", 8.0f)),
 
       save_tray_visualizations(tray_config_reader.get_value("flags", "save_tray_visualizations", true))
-{}
+{
+  // read AGX_specific_main.ini to read token for rotating induction camera image
+    std::unique_ptr<INIReader> agx_reader = std::make_unique<INIReader>("AGX_specific_main.ini", true);
+    image_rotation_angle_from_camera_placement = agx_reader->GetFloat("device_specific", "image_rotation_angle_from_camera_placement", 0.0f);
+}
 
 
 
@@ -780,8 +784,24 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     visualize_height(masked_result, absolute_max,  selection,  min_of_maxes);
     visualize_height(TV_visualization_image_ref, absolute_max,  selection,  min_of_maxes);
 
-
     cv::hconcat(TV_visualization_image_ref, masked_result, TV_visualization_image_ref);
+
+    // rotate image if needed for 90 degree clockwise, 90 degree anti-clockwise & 180 degree
+    int rotate_code = 0;
+    if (image_rotation_angle_from_camera_placement == 90.0f)
+      rotate_code = cv::ROTATE_90_CLOCKWISE;
+    else if (image_rotation_angle_from_camera_placement == -90.0f)
+      rotate_code = cv::ROTATE_90_COUNTERCLOCKWISE;
+    else if (image_rotation_angle_from_camera_placement == 180.0f)
+      rotate_code = cv::ROTATE_180;
+      
+    if (image_rotation_angle_from_camera_placement != 0.0f)
+    {
+      cv::Mat rotated_image;
+      cv::rotate(TV_visualization_image_ref, rotated_image, rotate_code);
+      TV_visualization_image_ref = rotated_image.clone();
+    }
+
     save_mask(tray_vlsg_request.m_context.get_id_tagged_sequence_step(), TV_visualization_image_ref, "tvr_results");
     return std::make_tuple(center_line_objs, tongue_detections, fulfil::measure::to_rounded_millimeters(std::max(-1*space_pt[2], 0.0f)));
 }

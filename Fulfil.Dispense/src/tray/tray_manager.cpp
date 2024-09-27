@@ -31,6 +31,21 @@ bool fulfil::dispense::tray::TrayManager::save_tray_audit_image(
     try {
         auto timer = fulfil::utils::timing::Timer("TrayManager::save_tray_audit_image " + path_suffix.string() );
         cv::Mat color_mat = this->session->grab_color_frame();
+        // rotate image if needed for 90 degree clockwise, 90 degree anti-clockwise & 180 degree
+        int rotate_code = 0;
+        if (this->image_rotation_angle_from_camera_placement == 90.0f)
+            rotate_code = cv::ROTATE_90_CLOCKWISE;
+        else if (this->image_rotation_angle_from_camera_placement == -90.0f)
+            rotate_code = cv::ROTATE_90_COUNTERCLOCKWISE;
+        else if (this->image_rotation_angle_from_camera_placement == 180.0f)
+            rotate_code = cv::ROTATE_180;
+        
+        if (this->image_rotation_angle_from_camera_placement != 0.0f)
+        {
+            cv::Mat rotated_image;
+            cv::rotate(color_mat, rotated_image, rotate_code);
+            color_mat = rotated_image.clone();
+        }
         if (scale_resize < 1 ){ cv::resize(color_mat, color_mat, cv::Size(), scale_resize, scale_resize); }
         std_filesystem::create_directories(tray_audit_local_file.parent_path());
         fulfil::utils::Logger::Instance()->Debug("Saving tray audit image to {}", tray_audit_local_file.string());
@@ -102,3 +117,6 @@ results_to_vlsg::TrayValidationCounts fulfil::dispense::tray::TrayManager::dispa
     return doc.get<results_to_vlsg::TrayValidationCounts>();
 
 }
+
+
+void fulfil::dispense::tray::TrayManager::set_image_rotation_angle(float angle) { this->image_rotation_angle_from_camera_placement = angle; }

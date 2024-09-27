@@ -20,6 +20,7 @@ namespace fulfil::dispense::tray {
         private:
             std::shared_ptr<fulfil::depthcam::Session> session;
             fulfil::configuration::tray::TrayDimensions tray_builder;
+            float image_rotation_angle_from_camera_placement = 0.0f;
 
           public:
                TrayManager(
@@ -64,7 +65,8 @@ namespace fulfil::dispense::tray {
                   const std::vector<tray_count_api_comms::LaneCenterLine> &transformed_lane_center_pixels,
                   const std::string &saved_images_base_directory);
 
-
+              // set image rotation angle to compensate for rotated cameras
+              void set_image_rotation_angle(float angle);
 
 
 

@@ -133,6 +133,7 @@ class TrayAlgorithm
    float tongue_wheel_adjustment_mm;
    bool save_tray_visualizations;
    cv::Mat FED_visualization_image, TV_visualization_image;
+   float image_rotation_angle_from_camera_placement = 0.0f;
    // TODO push to init
    std::shared_ptr<fulfil::depthcam::visualization::AdditiveSessionVisualizer> combo_visualizer;
 
