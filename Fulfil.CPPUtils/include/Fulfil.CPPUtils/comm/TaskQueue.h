@@ -48,12 +48,12 @@ public:
     void PackRead(DcRequest rx){
         auto msg = std::make_shared<DcRequest>(rx);
         if(msg->type() != MESSAGE_TYPE_HEARTBEAT)
-            Logger::Instance()->Info("---grpc--> {} type {}", msg->command_id(), DepthCameras::MessageType_Name(msg->type()));
+            fulfil::utils::Logger::Instance()->Info("---grpc--> {} type {}", msg->command_id(), DepthCameras::MessageType_Name(msg->type()));
         switch(msg->type()){
             case MESSAGE_TYPE_UNSPECIFIED:
                 switch(msg->dc_cmd_type()){
                     case DC_COMMAND_UNSPECIFIED:
-                        Logger::Instance()->Info("Received stream break lock command");//don't ack
+                        fulfil::utils::Logger::Instance()->Info("Received stream break lock command");//don't ack
                     return;
                     default://handle in mars base
 
@@ -110,7 +110,7 @@ public:
         cmd.set_command_id(id);
         cmd.set_status_code(code);
         cmd.SerializeToString(&msg);
-        Logger::Instance()->Info("Status update for %s [%s: %s]\n",function.c_str(), id.c_str(), DcStatusCodes_Name(code).c_str());
+        fulfil::utils::Logger::Instance()->Info("Status update for %s [%s: %s]\n",function.c_str(), id.c_str(), DcStatusCodes_Name(code).c_str());
         AddStatusUpdate(MESSAGE_TYPE_COMMAND_STATUS, msg, id);
     }
 

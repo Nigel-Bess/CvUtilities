@@ -81,7 +81,7 @@ class DepthCamServiceImpl: public AsyncConnection{
         inline void CheckConnection(){
             auto ip = ctx_.peer();
             if(!Connected){
-                Logger::Instance()->Info("A gRPC client has connected at {}!", ip);            
+                fulfil::utils::Logger::Instance()->Info("A gRPC client has connected at {}!", ip);            
             }
             Connected = true;
         }
@@ -124,6 +124,10 @@ public:
 
     void AddStatusUpdate(DepthCameras::MessageType t, std::string str, std::string id){
         tasks_.AddStatusUpdate(t, str, id);
+    }
+
+    bool IsConnected(){
+        return dcServiceHandle->Connected;
     }
 
 private:
