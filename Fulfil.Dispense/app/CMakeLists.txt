@@ -51,9 +51,6 @@ target_compile_definitions(main PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
 target_compile_definitions(main PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
 target_compile_definitions(main PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
 
-add_executable(stark_test EXCLUDE_FROM_ALL av_tester.cpp)
-target_link_libraries(stark_test Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread  ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
-
 # testing interface that sends requests to a running API. Requires free socket connection
 add_executable(dispense_test_client dispense_test_client.cpp)
 target_link_libraries(dispense_test_client PRIVATE
