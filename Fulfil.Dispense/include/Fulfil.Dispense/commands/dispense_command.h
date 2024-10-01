@@ -53,7 +53,7 @@ namespace fulfil::dispense::commands
         /// Images bag post side dispense
         post_side_dispense = 33,
         /// May get deprecated soon. Pre side dispense image
-        pre_side_dispense = 34
+        pre_side_dispense = 34,
         /// Bag release image at repack cabinet
         bag_release = 35
 
