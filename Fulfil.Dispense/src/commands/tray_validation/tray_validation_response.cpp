@@ -24,31 +24,13 @@ TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> comm
   memcpy(response, json_text, json_length);
   response[json_length] = '\0';
   this->payload = std::make_shared<std::string>(response);
-  this->first_item_edge_distance = -1;
   delete [] response;
-}
-
-TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> payload,
-                                               int first_item_edge_distance)
-{
-    this->command_id = command_id;
-
-    std::string json_string = *payload;
-    int json_length = json_string.size();
-    const char* json_text = json_string.c_str();
-    char* response = new char[json_length + 1];
-    memcpy(response, json_text, json_length);
-    response[json_length] = '\0';
-    this->payload = std::make_shared<std::string>(response);
-    this->first_item_edge_distance = first_item_edge_distance;
-    delete [] response;
 }
 
 TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, int success_code) {
   this->command_id = command_id;
   this->payload = std::make_shared<std::string>("{\"Error\":" + std::to_string(success_code) + "}");
 }
-
 
 std::shared_ptr<std::string> TrayValidationResponse::get_command_id()
 {

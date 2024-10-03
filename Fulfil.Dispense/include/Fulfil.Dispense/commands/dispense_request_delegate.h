@@ -13,7 +13,6 @@
 #include <Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_response.h>
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include <Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h>
-#include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>

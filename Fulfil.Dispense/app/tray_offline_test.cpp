@@ -262,6 +262,7 @@ std::vector<TongueResultLog> test_TVR_tongue_detection(std_filesystem::path sim_
 
 // Assumes a single camera per file. Will only supply serial for first found
 std::string get_serial_number_from_calibration(INIReader tray_reader){
+
     auto calibration_section = std::find_if(std::begin(tray_reader.Sections()), std::end(tray_reader.Sections()),
             [](std::string section) {
         std::string tray_suffix = "_tray_coordinates";
@@ -269,10 +270,12 @@ std::string get_serial_number_from_calibration(INIReader tray_reader){
         return (section.length() > 28  && (std::equal(tray_suffix.rbegin(), tray_suffix.rend(), section.rbegin()) ||
             std::equal(tray_suffix.rbegin(), tray_suffix.rend(), section.rbegin())));
     });
+    Logger::Instance()->Info("Before returning serial number result");
     if (calibration_section != std::end(tray_reader.Sections())) return calibration_section->substr(0, 12);
     return"";
 }
 
+// verifies that the given directory has the 3 file/folders expected (2 calibration configs & camera data folder)
 std::optional<TrayRootData> root_data_files(std_filesystem::path test_data_dir) {
     TrayRootData data_dir_info{ test_data_dir, "tray_calibration_data_hover.ini",
                                 "tray_calibration_data_dispense.ini", "Tray_Camera" };
@@ -305,13 +308,17 @@ template<typename TestOp, typename TestRecords>
 TestRecords run_test_over_input_examples_directory(std_filesystem::path test_data_dir, std::shared_ptr<INIReader> reader,
                                                     TestOp run_test, TestRecords algo_results) {
     if (auto test_data_info = root_data_files(test_data_dir)) { //Base
+        // read tray data root directory
         auto command_seqs = std_filesystem::directory_iterator{test_data_info->m_data_dir};
+        // read in tray configs
         if (auto tray_reader = build_tray_reader(test_data_info.value())) {
             tray_reader->appendReader(*reader);
+            Logger::Instance()->Info("[test][{}] Reader appended", TEST_START_TIME);
             auto mock_serial = get_serial_number_from_calibration(tray_reader.value());
             Logger::Instance()->Info("[test][{}] Using mock serial: {}", TEST_START_TIME, mock_serial);
             std::string vls_tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "2.1");
             log_tray_config_params(tray_reader.value(), vls_tray_generation);
+            // Logger::Instance()->Info("Command sequences start: {}, end: {}", std::string(command_seqs));
             std::transform(std_filesystem::begin(command_seqs), std_filesystem::end(command_seqs), std::back_inserter(algo_results),
                 [&](auto command_dir) {
                   Logger::Instance()->Info("[test][{}] Starting test cycle {}", TEST_START_TIME);

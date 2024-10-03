@@ -19,7 +19,6 @@
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
 #include <Fulfil.Dispense/drop/side_drop_result.h>
-#include <Fulfil.Dispense/tray/item_edge_distance_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
@@ -55,7 +54,6 @@ using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
-using fulfil::dispense::tray::ItemEdgeDistanceResult;
 using fulfil::dispense::tray::Tray;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::visualization::LiveViewer;
@@ -78,10 +76,6 @@ DispenseManager::DispenseManager(
                                                                          dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader)
 {
     Logger::Instance()->Trace("DispenseManager Constructor Called");
-
-    // TODO was this a weird merge conflict or can we get rid of these
-    //      this->dispense_man_reader = dispense_man_reader;
-    //      this->tray_config_reader =  tray_config_reader;
 
     // setting up networking stuff
     //  TODO Once needs stabilize, we should probably just add data members in reader to interface
@@ -110,12 +104,14 @@ DispenseManager::DispenseManager(
 
     if (tray_session)
     {
+        // Sensor is connected
+        Logger::Instance()->Trace("Tray session is not null");
         this->tray_session = tray_session;
         std::cout << "Setting service tray" << std::endl;
         this->tray_session->set_service(this->socket_manager->service_);
 
-            // read specific tray configuration
-            std::string tray_config_type = this->dispense_reader->Get("device_specific", "tray_config_type");
+        // read specific tray configuration
+        std::string tray_config_type = this->dispense_reader->Get("device_specific", "tray_config_type");
         this->tray_dimension_type = "tray_dimensions_" + tray_config_type;
         Logger::Instance()->Info("AGX specific ini file indicates to use tray config section {}", this->tray_dimension_type);
 
@@ -130,7 +126,7 @@ DispenseManager::DispenseManager(
     if (LFB_session)
     {
         // Sensor is connected
-        Logger::Instance()->Trace("LFB session.");
+        Logger::Instance()->Trace("LFB session is not null");
         this->LFB_session = LFB_session;
         std::cout << "Setting service LFB" << std::endl;
         this->LFB_session->set_service(this->socket_manager->service_);
@@ -165,6 +161,7 @@ DispenseManager::DispenseManager(
     // this->stop_tray_video_delay = std::make_shared<int>(0);
     this->tray_upload_generator = std::make_shared<UploadGenerator>(0);
 
+    // TODO WHY ?????
     if (this->LFB_session != nullptr)
     {
         this->LFB_session->set_emitter(false); // by default turn the LFB projector emitter to the OFF state
@@ -391,6 +388,27 @@ std::shared_ptr<DispenseResponse> DispenseManager::process_request(std::shared_p
     return request->execute();
 }
 
+std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagenerator_basedir()
+{
+    std::shared_ptr<std::string> base_directory = std::make_shared<std::string>(this->dispense_reader->Get(dispense_reader->get_default_section(), "data_gen_image_base_dir", ""));
+    if (base_directory->length() == 0)
+    {
+        Logger::Instance()->Fatal("Could not find data_gen_image_base_dir value in section {} of main_config.ini!", dispense_reader->get_default_section());
+        throw std::runtime_error("Issue getting config settings.");
+    }
+    if (base_directory->back() == '/')
+        base_directory->pop_back();
+    base_directory->append("_").append(*FileSystemUtil::create_datetime_string(true));
+
+    return base_directory;
+}
+
+bool DispenseManager::check_motor_in_position()
+{
+    return true;
+}
+
+#pragma region bag_cam
 std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
 {
 
@@ -614,11 +632,25 @@ void DispenseManager::handle_start_lfb_video(std::shared_ptr<std::string> Primar
     lfb_video_recorder_thread.detach();
 }
 
+void DispenseManager::handle_stop_lfb_video()
+{
+    Logger::Instance()->Debug("Stopping LFB Video Generators with delay: 0 ms");
+    this->lfb_upload_generator->stop_video_delay = 0;
+    this->lfb_upload_generator->stop_video_saving = true;
+    // use a signal type instead of sleep
+    // TODO: this value should be based on the fps value for the video generator (e.g. 5fps = 200ms, 300ms > 200ms)
+    usleep(400000); // sleep for long enough for stop flag to take effect, even with framerate pause in save_many_frames
+    Logger::Instance()->Debug("Stopping LFB video handling is returning now");
+}
+#pragma endregion bag_cam
+
+#pragma region tray_cam
 void DispenseManager::handle_start_tray_video(std::shared_ptr<std::string> PrimaryKeyID)
 {
     std::string base_directory = this->dispense_reader->Get(dispense_reader->get_default_section(), "vid_gen_base_buffer_dir");
     if (!this->tray_session or !this->tray_upload_generator)
     {
+        // TODO - error code
         Logger::Instance()->Warn("Bouncing Bay {} Tray Camera Video; Either missing session or generator", this->machine_name);
         return;
     }
@@ -643,21 +675,10 @@ void DispenseManager::handle_start_tray_video(std::shared_ptr<std::string> Prima
                             auto local_video_path = make_media::paths::join_as_path(base_directory, remote_video_path);
                             Logger::Instance()->Info("Tray Camera Video for {} starting!", *PrimaryKeyID);
 
-                            this->tray_upload_generator->save_many_frames(this->tray_session,sender, 60, 5, local_video_path,
+                            this->tray_upload_generator->save_many_frames(this->tray_session, sender, 60, 5, local_video_path,
                                                                           remote_video_path, false, true);
                             Logger::Instance()->Info("Tray Camera Video for {} Ended!", *PrimaryKeyID); });
     tray_video_recorder_thread.detach();
-}
-
-void DispenseManager::handle_stop_lfb_video()
-{
-    Logger::Instance()->Debug("Stopping LFB Video Generators with delay: 0 ms");
-    this->lfb_upload_generator->stop_video_delay = 0;
-    this->lfb_upload_generator->stop_video_saving = true;
-    // use a signal type instead of sleep
-    // TODO: this value should be based on the fps value for the video generator (e.g. 5fps = 200ms, 300ms > 200ms)
-    usleep(400000); // sleep for long enough for stop flag to take effect, even with framerate pause in save_many_frames
-    Logger::Instance()->Debug("Stopping LFB video handling is returning now");
 }
 
 void DispenseManager::handle_stop_tray_video(int delay)
@@ -676,6 +697,7 @@ void DispenseManager::handle_stop_request(std::shared_ptr<std::string> command_i
     this->processing_queue->purge_queue(predicate);
 }
 
+// TODO this is unused, make it useful
 results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_ptr<fulfil::dispense::tray::TrayManager> &tray_manager,
                                                             std::string &saved_images_base_directory, const request_from_vlsg::TrayRequest &tray_req,
                                                             std::vector<tray_count_api_comms::LaneCenterLine> &center_pixels, std::vector<bool> &tongue_detections)
@@ -704,71 +726,63 @@ results_to_vlsg::TrayValidationCounts dispatch_to_count_api(const std::shared_pt
 std::shared_ptr<ItemEdgeDistanceResponse>
 DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
 {
-
+    // serialize the request
     request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_item_edge_distance for " + this->machine_name + " request " + single_lane_val_req.m_context.get_id_tagged_sequence_step());
     Logger::Instance()->Debug("Handling {} Dispense Lane Processing {} for Bay: {}", single_lane_val_req.get_sequence_step(), single_lane_val_req.get_primary_key_id(), this->machine_name);
 
     if (!this->tray_session)
     {
+        // TODO fault on this error code in FC
         Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->machine_name);
         return std::make_shared<ItemEdgeDistanceResponse>(command_id, 12);
     }
+    // only refresh once at the beginning of the request handling
+    this->tray_session->refresh();
 
-    auto is_pre_dispense = single_lane_val_req.get_sequence_step().at(2) == 'e';
-    auto image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_Dispense : ViewerImageType::Tray_Post_Dispense;
+    bool is_pre_dispense = single_lane_val_req.get_sequence_step().substr(2,3) == "Pre";
+    ViewerImageType image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_Dispense : ViewerImageType::Tray_Post_Dispense;
     if (this->live_viewer)
     {
         this->live_viewer->update_image(std::make_shared<cv::Mat>(this->tray_session->grab_color_frame()), image_code, single_lane_val_req.get_primary_key_id(), true);
     }
-    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
+    std::string saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
     IniSectionReader section_reader{*this->tray_config_reader, this->tray_dimension_type};
-    // TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
     Tray tray = this->tray_manager->create_tray(single_lane_val_req.m_tray_recipe);
 
-    /** run algorithms **/
-    auto run_fed_processing = [&tray_cam = this->tray_session,
-                               &section_reader, &tray, 
-                               is_pre_dispense, single_lane_val_req, this](request_from_vlsg::TrayRequest &lane_req)
-    {
-        try
-        {
-            TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
-            auto tray_algo_status = tray_algorithm.run_tray_algorithm(tray_cam, lane_req, tray);
-            // push visualizations for Pre/Post FED to GCP
-            auto image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_FED : ViewerImageType::Tray_Post_FED;
-            if (this->live_viewer)
-                this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm.get_FED_visualization_image()), image_code, single_lane_val_req.get_primary_key_id(), true);
-            return tray_algo_status;
-        }
-        catch (const std::exception &e)
-        {
-            return std::make_tuple(results_to_vlsg::LaneItemDistance{},
-                                   std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
-            // return std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>> {
-            //         results_to_vlsg::LaneItemDistance{}, std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{}};
-        }
-    };
-
-    auto do_all_tray_processing = [&tm = tray_manager, &single_lane_val_req,
-                                   &command_id, &saved_images_base_directory](auto fed_process)
-    {
-        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = fed_process(single_lane_val_req);
-        // results_to_vlsg::TrayValidationCounts count_response = count_dispatch(single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
-        results_to_vlsg::TrayValidationCounts count_response = dispatch_to_count_api(tm, saved_images_base_directory,
-                                                                                     single_lane_val_req, transformed_lane_center_pixels, tongue_detections);
-        return ItemEdgeDistanceResponse(fed_result, count_response, command_id);
-    };
-
-    this->tray_session->refresh();
     /** Save Data from generator */
-    DataGenerator single_lane_tray_data_generator = tray_manager->build_tray_data_generator(
+    DataGenerator single_lane_tray_data_generator = this->tray_manager->build_tray_data_generator(
         request_json,
-        tray_manager->make_default_datagen_path(saved_images_base_directory, single_lane_val_req) / single_lane_val_req.
+        this->tray_manager->make_default_datagen_path(saved_images_base_directory, 
+        single_lane_val_req) / single_lane_val_req.
         get_sequence_step());
     single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
 
-    auto tray_result = std::make_shared<ItemEdgeDistanceResponse>(do_all_tray_processing(run_fed_processing));
+    // run first edge distance processing
+    results_to_vlsg::LaneItemDistance fed_result;
+    std::vector<tray_count_api_comms::LaneCenterLine> transformed_lane_center_pixels;
+    std::vector<bool> tongue_detections;
+    try 
+    {
+        TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
+        // TODO remove tray session from this func
+        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = tray_algorithm.run_tray_algorithm(this->tray_session, single_lane_val_req, tray);
+        // push visualizations for Pre/Post FED to GCP
+        ViewerImageType image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_FED : ViewerImageType::Tray_Post_FED;
+        if (this->live_viewer)
+            this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm.get_FED_visualization_image()), image_code, single_lane_val_req.get_primary_key_id(), true);
+    } catch (const std::exception &e)
+    {
+        // TODO add error code here and make this an object/struct
+        Logger::Instance()->Error("Tray algorithm run_tray_algorithm and update_image threw exception: {}", e.what());
+        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = std::make_tuple(results_to_vlsg::LaneItemDistance{},
+                                std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
+    }
+    // do all tray processing
+    results_to_vlsg::TrayValidationCounts count_response = this->tray_manager->dispatch_request_to_count_api(single_lane_val_req, 
+                                                                                 transformed_lane_center_pixels, 
+                                                                                 saved_images_base_directory);
+    std::shared_ptr<ItemEdgeDistanceResponse> tray_result = std::make_shared<ItemEdgeDistanceResponse>(fed_result, count_response, command_id);
 
     Logger::Instance()->Info("Finished handling Single Lane Dispense command. Result: "
                              "Bay: {} PKID: {} Distance {}",
@@ -780,12 +794,7 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
 std::shared_ptr<TrayValidationResponse>
 DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
 {
-    auto make_null_tray_validation_result = [command_id]() { // by value since it's a fuckin ptr
-        auto tray_result = nlohmann::json(results_to_vlsg::TrayValidationCounts{});
-        tray_result["Error"] = 12;
-        return std::make_shared<TrayValidationResponse>(command_id, std::make_shared<std::string>(tray_result.dump()));
-    };
-
+    // todo make trayrequest a TrayValidationRequest
     request_from_vlsg::TrayRequest tray_validation_request = request_json->get<request_from_vlsg::TrayRequest>();
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_tray_validation for " + this->machine_name + " request " + tray_validation_request.get_primary_key_id());
     Logger::Instance()->Debug("Handling Tray Validation Command {} for Bay: {}", tray_validation_request.get_primary_key_id(), this->machine_name);
@@ -793,97 +802,80 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     if (!this->tray_session)
     {
         Logger::Instance()->Warn("No Tray Session: Bouncing Tray Validation Request");
-        return make_null_tray_validation_result();
+        auto tray_result = nlohmann::json(results_to_vlsg::TrayValidationCounts{});
+        tray_result["Error"] = 12;
+        return std::make_shared<TrayValidationResponse>(command_id, std::make_shared<std::string>(tray_result.dump()));
     }
 
-    auto saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
+    this->tray_session->refresh();
+
+    std::string saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
     double resize_factor = 1;
     /** Send Data Function */
     std::string local_base_path = this->dispense_reader->Get(dispense_reader->get_default_section(), "upload_file_dir", "");
 
-    auto send_color_mat = [&](double scale_resize)
-    {
-        try
-        {
-            if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, scale_resize))
-            {
-                return this->tray_manager->upload_tray_data(tray_validation_request.m_context, local_base_path, GCSSender(this->cloud_media_bucket, this->store_id));
-            }
-        }
-        catch (const std::exception &e)
-        {
-            Logger::Instance()->Error("Caught exception in tvr audit upload: \n\t{}", e.what());
-        }
-        return -1;
-    };
-
     /** Save Data from generator */
     DataGenerator tray_validation_data_generator = tray_manager->build_tray_data_generator(
         request_json, tray_manager->make_default_datagen_path(saved_images_base_directory, tray_validation_request) / tray_validation_request.get_sequence_step());
-    auto save_data_fn = [&tray_validation_data_generator, seq_step = tray_validation_request.get_sequence_step()]()
-    {
-        tray_validation_data_generator.save_data(std::make_shared<std::string>());
-    };
 
     IniSectionReader section_reader{*this->tray_config_reader, this->tray_dimension_type};
     std::shared_ptr<TrayAlgorithm> tray_algorithm = std::make_shared<TrayAlgorithm>(section_reader);
     Tray tray = this->tray_manager->create_tray(tray_validation_request.m_tray_recipe);
 
-    /** run algorithms **/
-    auto dispatch_to_count_api = [&tray_validation_request, &saved_images_base_directory, tm = tray_manager](auto center_pixels)
+    // upload tray validation data
+    try 
     {
-        return tm->dispatch_request_to_count_api(tray_validation_request, center_pixels, saved_images_base_directory);
-    };
+        if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor))
+        {
+            this->tray_manager->upload_tray_data(tray_validation_request.m_context, local_base_path, GCSSender(this->cloud_media_bucket, this->store_id));
+        }
+    } catch (const std::exception &e)
+    {
+        Logger::Instance()->Error("Issue uploading Tray Validation audit data for {}, with exception: {}", tray_validation_request.get_primary_key_id(), e.what());
+    }
 
-    auto do_all_tray_processing = [&](auto save_function, auto run_function)
+    results_to_vlsg::TrayValidationCounts count_response;
+    try
     {
-        try
+        tray_validation_data_generator.save_data(std::make_shared<std::string>());
+        auto [transformed_lane_center_pixels, tongue_detections, max_height_detected_in_tray] =
+            tray_algorithm->get_pixel_lane_centers_and_tongue_detections(
+                this->tray_session, tray_validation_request, tray);
+        
+        count_response = this->tray_manager->dispatch_request_to_count_api(tray_validation_request, transformed_lane_center_pixels, saved_images_base_directory);
+        count_response.update_lane_tongue_detections(tongue_detections);
+        auto exp_max = tray_validation_request.expected_max_height();
+        count_response.m_height_info = results_to_vlsg::TrayHeight(max_height_detected_in_tray, exp_max);
+        float detected_expected_height_diff = max_height_detected_in_tray - exp_max;
+        float error_over_exp = max_height_detected_in_tray / exp_max;
+        Logger::Instance()->Info("Request {} has tallest item tray buffer of {}, and returned height of tray is {} with the confidence {}."
+                                    " After adjusting for tray inset, error is {} and detected height is {:0.4f} of expected height.",
+                                    tray_validation_request.get_primary_key_id(), exp_max, max_height_detected_in_tray, count_response.m_height_info.m_confidence,
+                                    detected_expected_height_diff, error_over_exp);
+        Logger::Instance()->Info("Return body from Tray Validation count api query:\n\t{}.", nlohmann::json(count_response).dump());
+        // push visualizations for tray validation to GCP
+        if (this->live_viewer)
         {
-            save_function();
-            auto [transformed_lane_center_pixels, tongue_detections, max_height_detected_in_tray] =
-                tray_algorithm->get_pixel_lane_centers_and_tongue_detections(
-                    this->tray_session, tray_validation_request, tray);
-            results_to_vlsg::TrayValidationCounts count_response = run_function(transformed_lane_center_pixels);
-            count_response.update_lane_tongue_detections(tongue_detections);
-            auto exp_max = tray_validation_request.expected_max_height();
-            count_response.m_height_info = results_to_vlsg::TrayHeight(max_height_detected_in_tray, exp_max);
-            float detected_expected_height_diff = max_height_detected_in_tray - exp_max;
-            float error_over_exp = max_height_detected_in_tray / exp_max;
-            Logger::Instance()->Info("Request {} has tallest item tray buffer of {}, and returned height of tray is {} with the confidence {}."
-                                     " After adjusting for tray inset, error is {} and detected height is {:0.4f} of expected height.",
-                                     tray_validation_request.get_primary_key_id(), exp_max, max_height_detected_in_tray, count_response.m_height_info.m_confidence,
-                                     detected_expected_height_diff, error_over_exp);
-            Logger::Instance()->Info("Return body from Tray Validation count api query:\n\t{}.", nlohmann::json(count_response).dump());
-            // push visualizations for tray validation to GCP
-            if (this->live_viewer)
-            {
-                request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
-                this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm->get_TV_visualization_image()), ViewerImageType::Tray_Validation, single_lane_val_req.get_primary_key_id(), true);
-            }
-            return count_response;
+            request_from_vlsg::TrayRequest single_lane_val_req = request_json->get<request_from_vlsg::TrayRequest>();
+            this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm->get_TV_visualization_image()), ViewerImageType::Tray_Validation, single_lane_val_req.get_primary_key_id(), true);
         }
-        catch (const std::exception &e)
-        {
-            Logger::Instance()->Error("Issue saving or uploading data from Tray Validation Request: \n\t{}", e.what());
-        }
+    }
+    catch (const std::exception &e)
+    {
+        // TODO error code
+        Logger::Instance()->Error("Issue saving or uploading data from Tray Validation Request: \n\t{}", e.what());
         Logger::Instance()->Info("Sending nominal response in Tray Validation Request");
-        return results_to_vlsg::TrayValidationCounts{};
-    };
+        count_response = results_to_vlsg::TrayValidationCounts{};
+    }
 
-    if (send_color_mat(resize_factor) < 0)
-    {
-        Logger::Instance()->Error("Issue uploading Tray Validation audit data for {}", tray_validation_request.get_primary_key_id());
-    };
+    nlohmann::json tray_result = nlohmann::json(count_response);
 
-    this->tray_session->refresh();
-    auto tray_result = nlohmann::json(do_all_tray_processing(save_data_fn, dispatch_to_count_api));
-
-    tray_result["Error"] = 0;
     std::shared_ptr<std::string> payload = std::make_shared<std::string>(tray_result.dump());
     Logger::Instance()->Debug("Finished handling Tray Validation Command for Bay: {} PKID: {} Json response:\n\t{}",
                               this->machine_name, tray_validation_request.get_primary_key_id(), *payload);
     return std::make_shared<TrayValidationResponse>(command_id, payload);
 }
+#pragma endregion tray_cam
 
 int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
 {
@@ -917,11 +909,6 @@ int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKey
         Logger::Instance()->Error("Unspecified error in handle_get_state");
         return 1;
     }
-}
-
-bool DispenseManager::check_motor_in_position()
-{
-    return true;
 }
 
 std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
@@ -959,8 +946,8 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
 
     try
     {
-        float remaining_platform = (*request_json)["Remaining_Platform"].get<float>();
-        Logger::Instance()->Debug("Remaining_Platform: {}", remaining_platform);
+        float remaining_platform = request_json->value("Remaining_Platform", 0.0);
+        Logger::Instance()->Debug("Remaining_Platform from Pre_LFR / PreDropImage request: {}", remaining_platform);
 
         // this->LFB_session->set_emitter(true); //turn on emitter for imaging
         this->LFB_session->refresh();
@@ -1030,20 +1017,6 @@ std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::DispenseMan
     return this->shared_from_this();
 }
 
-std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagenerator_basedir()
-{
-    std::shared_ptr<std::string> base_directory = std::make_shared<std::string>(this->dispense_reader->Get(dispense_reader->get_default_section(), "data_gen_image_base_dir", ""));
-    if (base_directory->length() == 0)
-    {
-        Logger::Instance()->Fatal("Could not find data_gen_image_base_dir value in section {} of main_config.ini!", dispense_reader->get_default_section());
-        throw std::runtime_error("Issue getting config settings.");
-    }
-    if (base_directory->back() == '/')
-        base_directory->pop_back();
-    base_directory->append("_").append(*FileSystemUtil::create_datetime_string(true));
-
-    return base_directory;
-}
 
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
 

@@ -402,7 +402,6 @@ namespace request_from_vlsg {
         TrayRequest(const comms_context::RequestContextInfo &reqContext,
                     const std::vector<dimensional_info::LaneInformation>& trayLanes,
                     dimensional_info::TrayRecipe trayRecipe);
-
     };
 
     template<typename BasicJsonType>

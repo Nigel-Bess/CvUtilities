@@ -5,19 +5,19 @@
 
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_BAY_MANAGER_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_BAY_MANAGER_H_
+#include <iostream>
 #include <memory>
-#include <vector>
 #include <thread>
+#include <vector>
 #include <curl/curl.h>
 
+#include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.CPPUtils/logging.h>
-
 #include <Fulfil.Dispense/bays/bay_runner.h>
 #include <Fulfil.Dispense/bays/sensor_manager.h>
 #include <Fulfil.Dispense/bays/bay_runner_factory.h>
 #include <Fulfil.Dispense/bays/bay_parser.h>
-#include <Fulfil.CPPUtils/inih/INIReader.h>
-#include <iostream>
+#include <Fulfil.Dispense/dispense/realsense_bay_parser.h>
 
 namespace fulfil
 {

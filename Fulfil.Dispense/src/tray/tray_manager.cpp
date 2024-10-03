@@ -8,21 +8,23 @@
 #include <Fulfil.CPPUtils/timer.h>
 #include <Fulfil.DepthCam/data/gcs_sender.h>
 #include <utility>
+
+using fulfil::dispense::tray::Tray;
+using fulfil::dispense::tray::TrayManager;
 namespace std_filesystem = std::experimental::filesystem;
 
 
-fulfil::dispense::tray::TrayManager::TrayManager(
+TrayManager::TrayManager(
     const std::shared_ptr<fulfil::depthcam::Session>& session,
     const fulfil::configuration::tray::TrayDimensions &trayBuilder)
     : session(session), tray_builder(trayBuilder) {}
 
-
-
+#pragma region data_saving
 std_filesystem::path make_tray_audit_image_basename(const comms_context::RequestContextInfo &request_context){
     return make_media::paths::join_as_path("trays", request_context.m_tray_id.m_val, request_context.get_primary_key_id() + ".jpg");
 }
 
-bool fulfil::dispense::tray::TrayManager::save_tray_audit_image(
+bool TrayManager::save_tray_audit_image(
   const comms_context::RequestContextInfo &request_context, std::string local_root_path, double scale_resize)
 {
     std_filesystem::path const path_suffix {make_tray_audit_image_basename(request_context)};
@@ -59,7 +61,7 @@ bool fulfil::dispense::tray::TrayManager::save_tray_audit_image(
 
 // TODO the intention is to wrap this as a lambda, make free or include store_id
 //  in state? Considering a context params struct with path info
-int fulfil::dispense::tray::TrayManager::upload_tray_data(const comms_context::RequestContextInfo &request_context,
+int TrayManager::upload_tray_data(const comms_context::RequestContextInfo &request_context,
                                                           std::string local_root_path,
                                                           depthcam::data::GCSSender tray_gcs_sender) {
     std_filesystem::path path_suffix {make_tray_audit_image_basename(request_context)};
@@ -72,9 +74,9 @@ int fulfil::dispense::tray::TrayManager::upload_tray_data(const comms_context::R
 
 }
 
+#pragma endregion data_saving
 
-
-httplib::Result fulfil::dispense::tray::TrayManager::query_item_counts(
+httplib::Result TrayManager::query_item_counts(
     const request_from_vlsg::TrayRequest &tray_request_obj,
     const std::vector<tray_count_api_comms::LaneCenterLine> &transformed_lane_center_pixels,
     const std::string &image_to_count) {
@@ -89,13 +91,13 @@ httplib::Result fulfil::dispense::tray::TrayManager::query_item_counts(
     to_count_api_request["ImagePath"] = image_to_count;
   return cli.Post("/inference/locatetrayitems", httplib::Headers(), to_count_api_request.dump(), "application/json");
 }
-fulfil::dispense::tray::Tray fulfil::dispense::tray::TrayManager::create_tray(
+
+Tray TrayManager::create_tray(
     dimensional_info::TrayRecipe tray_recipe) {
     return this->tray_builder.build_tray_from_recipe(std::move(tray_recipe));
 }
 
-
-results_to_vlsg::TrayValidationCounts fulfil::dispense::tray::TrayManager::dispatch_request_to_count_api(
+results_to_vlsg::TrayValidationCounts TrayManager::dispatch_request_to_count_api(
   const request_from_vlsg::TrayRequest &tray_request_obj,
   const std::vector<tray_count_api_comms::LaneCenterLine> &transformed_lane_center_pixels,
   const std::string &saved_images_base_directory)
@@ -118,5 +120,4 @@ results_to_vlsg::TrayValidationCounts fulfil::dispense::tray::TrayManager::dispa
 
 }
 
-
-void fulfil::dispense::tray::TrayManager::set_image_rotation_angle(float angle) { this->image_rotation_angle_from_camera_placement = angle; }
+void TrayManager::set_image_rotation_angle(float angle) { this->image_rotation_angle_from_camera_placement = angle; }
