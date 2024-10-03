@@ -132,9 +132,9 @@ cv::Mat calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, 
 /*
 * Determines whether the bot in the image at the given filepath is ready for release into the factory
 * This is a check to make sure the bot is fully empty and no items or spills are present
-* @return boolean value denoting is the bag empty
+* @return a tuple with int representing the success_code, boolean value denoting is the bag empty and string for error description
 */
-bool is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image);
+std::tuple<int, bool, std::string> is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image);
 
 };
 

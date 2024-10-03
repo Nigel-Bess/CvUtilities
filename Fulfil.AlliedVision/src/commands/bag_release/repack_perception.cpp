@@ -15,6 +15,7 @@
 #include <cmath>
 #include <Fulfil.CPPUtils/logging.h>
 #include "repack_perception.h"
+#include <tuple>
 
 
 using fulfil::dispense::commands::RepackPerception;
@@ -63,6 +64,21 @@ const float shrink_factor_X = 0.78f;
 */
 const float shrink_factor_Y = 0.92f;
 
+/*
+** Success_code - default 0 id the code runs without exceptions, 10 otherwise
+*/
+int success_code = 0;
+
+/*
+** Bag Empty result flag
+*/
+bool is_bag_empty = false;
+
+/*
+** Error description string
+*/
+std::string error_description = " ";
+
 RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation) {
     this->bot_generation = lfb_generation;
     if (*bot_generation == "LFB-3.1") edge_threshold = 4500;
@@ -88,6 +104,11 @@ cv::Mat RepackPerception::load_image(std::string image_path) {
     try {
         cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
         if (image.empty() || !image_has_color(image)) {
+            success_code = 10;
+            error_description = " ";
+            error_description = std::string("Error: ") + std::to_string(success_code);
+            error_description += std::string(" Invalid Image Path in load_image.");
+            Logger::Instance()->Error(error_description);
             throw;
         }
         std::string log_string = "Input Image has height " + std::to_string(image.rows) + " and width " + std::to_string(image.cols);
@@ -95,7 +116,10 @@ cv::Mat RepackPerception::load_image(std::string image_path) {
         return image;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Invalid Image Path: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Invalid Image Path in load_image : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -110,20 +134,24 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> rejected;
         cv::aruco::detectMarkers(img, dictionary, corners, ids, parameters, rejected);
-        std::string info = std::string("Ids size : ") + std::to_string(ids.size());
-        Logger::Instance()->Info(info);
         if (rejected.size() > 0) {
             cv::aruco::drawDetectedMarkers(img, rejected, ids, cv::Scalar(0, 255, 0));
         }
         else {
-            std::string error_description = std::string("No markers detected.");
+            success_code = 10;
+            error_description = " ";
+            error_description = std::string("Error: ") + std::to_string(success_code);
+            error_description += std::string(" No markers detected.");
             Logger::Instance()->Error(error_description);
             throw;
         }
         return rejected;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in detect_aruco_markers : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -151,7 +179,10 @@ cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points
         return centroid_points;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in calculate_centroid : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -174,7 +205,10 @@ std::vector<cv::Point2f> RepackPerception::shrink_polygon(std::vector<cv::Point2
         return shrunk_polygon;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in shrink_polygon : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -192,7 +226,10 @@ cv::Mat RepackPerception::process_image(cv::Mat region_of_interest, int kernel_h
         return gaussian_image;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error : {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in process_image : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -216,7 +253,10 @@ bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_thr
         return bag_empty;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in canny_edge_detection : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -274,7 +314,10 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         return points;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in left_inner_corner_coordinates : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -301,7 +344,10 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
         return points;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in right_inner_corner_coordinates : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
@@ -331,20 +377,23 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         cv::bitwise_and(image, image, region_of_interest, mask);
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
-        std::string log_string = "Region of Interest has height {height} and width {width}";
+        std::string log_string = "Region of Interest has height " + std::to_string(width) + " and width " + std::to_string(width);
         Logger::Instance()->Info(log_string);
         return region_of_interest;
     }
     catch (std::exception& e) {
-        std::string error_description = std::string("Error: {}") + e.what();
+        success_code = 10;
+        error_description = " ";
+        error_description = std::string("Error: ") + std::to_string(success_code);
+        error_description += std::string(" Error in calculate_roi : ") + e.what();
         Logger::Instance()->Error(error_description);
         throw;
     }
 }
 
-bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image) {
+std::tuple<int, bool, std::string> RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image) {
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
-    bool is_bag_empty = true;
+    std::tuple<int, bool, std::string> result(success_code, is_bag_empty, error_description);
     std::string image_path = " ";
     try {
         cv::Mat image = *bag_image;
@@ -357,9 +406,17 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
             kernel_width , sigmaX);
         is_bag_empty = canny_edge_detection(gaussian_image, edge_threshold,
             lower_threshold, upper_threshold);
-        return is_bag_empty;
+        //setting the success code to 0 which means empty bag calculation was successful
+        success_code = 0;
+        std::string log = std::string("Success Code: ") + std::to_string(success_code);
+        log += std::string(" Is Bot Empty: ") + std::to_string(is_bag_empty);
+        Logger::Instance()->Info(log);
+        return result;
     }
     catch (std::exception& e) {
-        return is_bag_empty;
+        std::string log = std::string("Success Code: ") + std::to_string(success_code);
+        log += std::string(" Is Bot Empty: ") + std::to_string(is_bag_empty);
+        Logger::Instance()->Info(log);
+        return result;
     }
 }

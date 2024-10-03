@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-
+#include <tuple>
 #include "commands/bag_release/repack_perception.h"
 
 using namespace fulfil::dispense::commands;
@@ -123,8 +123,11 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                 RepackPerception repack_percep(lfb_generation);
                 auto image = cam->GetImageBlocking();
                 try {
-                    bool release_bot = repack_percep.is_bot_ready_for_release(image);
-                    response = BagReleaseResponse(cmd_id, pkid, 0, release_bot);
+                    std::tuple<int, bool, std::string> release_bot = repack_percep.is_bot_ready_for_release(image);
+                    int success_code = std::get<0>(release_bot);
+                    bool is_bag_empty_result = std::get<1>(release_bot);
+                    std::string error_description = std::get<2>(release_bot);
+                    response = BagReleaseResponse(cmd_id, pkid, success_code, is_bag_empty_result, error_description);
                 }
                 catch (const std::exception& e){
                     log_->Error("Issue handling bot release request: \n\t{}", e.what());
