@@ -16,7 +16,7 @@ find_package(OpenCV 4.5.5 REQUIRED)
 message("-- Found OpenCV lib ${OpenCV_VERSION}!")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-include(~/VimbaX_2023-4/api/examples/cmake/vmb_cmake_prefix_paths.cmake)
+include(/home/fulfil/VimbaX_2023-4/api/examples/cmake/vmb_cmake_prefix_paths.cmake)
 find_package(Vmb REQUIRED COMPONENTS CPP NAMES Vmb VmbC VmbCPP VmbImageTransform)
 message(STATUS "Using Vmb ${Vmb_VERSION}")
 

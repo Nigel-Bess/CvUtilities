@@ -13,13 +13,12 @@ COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
+COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
 COPY third-party/ ./third-party/
 
-RUN cd Fulfil.Dispense \
-    && rm -rf build/* \
-    && make update \
-    && cmake -DCMAKE_BUILD_TYPE=Release -B build -S . \
-	&& cmake --build build --target main -- -j $(nproc)
+RUN cd Fulfil.AlliedVision/ \
+    && mkdir build/ \
+    && make
 
 # Development
 # CMD ["sleep", "7200"] 
