@@ -142,11 +142,11 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                 RepackPerception repack_percep(lfb_generation);
                 auto image = cam->GetImageBlocking();
                 cv::Mat cam_image = *image;
-                std::string directory_path = "/home/starkey/data/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
+                std::string directory_path = "/home/fulfil/data/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
                 if (!std::filesystem::exists(directory_path)) {
                     if (std::filesystem::create_directory(directory_path)) {
                         log_->Info("Directory created : {}", directory_path);
-                        std::string image_path = directory_path + "/" + std::string(cam->name_);
+                        std::string image_path = directory_path + "color_image";
                         SaveImages(cam_image, image_path);
                     }
                     else {
