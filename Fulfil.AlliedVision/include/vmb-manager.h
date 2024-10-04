@@ -30,6 +30,7 @@ class VmbManager{
         std::map<int, std::shared_ptr<VmbCamera>> cameras_;
         fulfil::utils::Logger* log_;        
         VmbCPP::VmbSystem& vmb_system = VmbCPP::VmbSystem::GetInstance();
+        void SaveImages(cv::Mat bag_image, std::string image_path);
         void HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request);
         std::shared_ptr<GrpcService> service_;
 

@@ -90,10 +90,10 @@ void VmbCamera::SaveLastImage(std::string path){
 
     }
     catch(const std::exception &ex){
-        std::cout << ex.what() << std::endl;
+        log_->Error("VmbManager::SaveLastImage caught error: {}", ex.what());
     }
     catch(...){
-        std::cout << "Error saving image" << std::endl;
+        log_->Error("VmbManager::SaveLastImage hit error in catch(...)");
     }
 }
 
@@ -132,7 +132,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
             return last_image_;
         }
         catch(const std::exception &ex){
-            std::cout << ex.what() << std::endl;
+            log_->Error("VmbManager::GetImageBlocking caught error: {}", ex.what());
         }
     }
     return empty;

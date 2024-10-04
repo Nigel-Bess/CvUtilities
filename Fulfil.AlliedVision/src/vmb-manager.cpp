@@ -5,6 +5,7 @@
 #include <string.h>
 #include <tuple>
 #include "commands/bag_release/repack_perception.h"
+#include <filesystem>
 
 using namespace fulfil::dispense::commands;
 
@@ -99,6 +100,24 @@ void VmbManager::SendResponse(std::string cmd_id, std::string response){
     api_resp->set_message_data(response.data(), response.size());
     service_->QueueResponse(api_resp);
 }
+void VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
+    try {
+        std::string img_name = image_path + ".bmp";
+        if (bag_image.size().empty()) {
+            log_->Error("Cannot save emtpy image to {}", img_name);
+            return;
+        }
+        cv::imwrite(img_name, bag_image);
+        log_->Info("{} saved successfully!!!", img_name);
+
+    }
+    catch (const std::exception& ex) {
+        log_->Error("VmbManager::SaveImages caught error: {}", ex.what());
+    }
+    catch (...) {
+        log_->Error("VmbManager::SaveImages hit error in catch(...)");
+    }
+}
 
 void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request){
     std::string payload(request->message_data().data(), request->message_size());
@@ -122,6 +141,19 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                                         cam->name_, *pkid, *cmd_id, *lfb_generation);
                 RepackPerception repack_percep(lfb_generation);
                 auto image = cam->GetImageBlocking();
+                cv::Mat cam_image = *image;
+                std::string directory_path = "/home/starkey/data/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
+                if (!std::filesystem::exists(directory_path)) {
+                    if (std::filesystem::create_directory(directory_path)) {
+                        log_->Info("Directory created : {}", directory_path);
+                        std::string image_path = directory_path + "/" + std::string(cam->name_);
+                        SaveImages(cam_image, image_path);
+                    }
+                    else {
+                        log_->Error("Failed to create Directory : {}", directory_path);
+                    }
+                }
+                
                 try {
                     std::tuple<int, bool, std::string> release_bot = repack_percep.is_bot_ready_for_release(image);
                     int success_code = std::get<0>(release_bot);
