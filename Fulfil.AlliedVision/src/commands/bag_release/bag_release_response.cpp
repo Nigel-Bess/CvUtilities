@@ -15,7 +15,8 @@ void BagReleaseResponse::encode_payload()
   (*result_json)["Error"] = this->success_code;
   (*result_json)["Error_Description"] = this->error_description;
   (*result_json)["Primary_Key_ID"] = *this->primary_key_id;
-  (*result_json)["Is_Bag_Empty"] = this->is_bag_empty;
+  (*result_json)["Is_Bag_Empty"] = true;
+  (*result_json)["Is_Empty_Result"] = this->is_bag_empty;
 
   std::string json_string = result_json->dump();
   Logger::Instance()->Info("Encoding BagReleaseResponse as: {}", json_string);

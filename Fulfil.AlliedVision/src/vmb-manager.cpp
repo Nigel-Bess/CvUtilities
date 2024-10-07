@@ -125,7 +125,7 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload.c_str()));
     auto type = (*request_json)["Type"].get<DispenseCommand>();
     auto pkid = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
-    log_->Info("VmbManager::HandleRequest new request {} with pkid {}", (int)type, *pkid);
+    log_->Info("VmbManager::HandleRequest new request {} with pkid {} and payload: {}", (int)type, *pkid, payload);
     switch(type){
         case DispenseCommand::bag_release:
         {
