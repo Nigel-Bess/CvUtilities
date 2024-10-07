@@ -254,7 +254,7 @@ namespace fulfil::configuration::lfb {
         float depth_total_threshold {0.115};
 
         // post-drop RGB channel comparisons
-/** These values define how the Pre/Post image RGB channel comparisons occur.
+        /** These values define how the Pre/Post image RGB channel comparisons occur.
          * This comparison is only used if the depth comparison is inconclusive, so it is not changed as frequently. TODO
          */
         int bg_sub_history {5000};

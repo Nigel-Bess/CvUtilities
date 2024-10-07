@@ -26,6 +26,7 @@ rs-core-logs
 
 # Data
 data
+Fulfil.Dispense/data
 
 # Configuration
 secret

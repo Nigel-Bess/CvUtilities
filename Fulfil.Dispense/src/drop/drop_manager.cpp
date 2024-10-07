@@ -344,14 +344,16 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
 
     //get image for live viewer
     if(this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, PrimaryKeyID);
+ 
 
     std::shared_ptr<DataGenerator> generator;
-	std::string data_destination = (base_directory / "Post_Drop_Image").string();
+    std::string data_destination = (base_directory / "Post_Drop_Image").string();
 
     generate_request_handling_data(generate_data, data_destination, std::make_shared<std::string>(time_stamp), request_json, std::make_shared<nlohmann::json>(this->mongo_bag_state->GetStateAsJson()));
     Logger::Instance()->Debug("Getting container for algorithm now");
     bool extend_depth_analysis_over_markers = lfb_vision_config->extend_depth_analysis_over_markers;
     std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
+
 
     this->cached_post_container = container; //cache container for potential use in prepostcomparison later
     this->cached_post_request = request_json;

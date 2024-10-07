@@ -351,8 +351,10 @@ fulfil::utils::Point3D get_max_z_that_is_not_outlier(const std::shared_ptr<std::
     return max_depth_point;
 }
 
-DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, std::shared_ptr<LocalPointCloud> input_cloud,
-                                                  float item_mass, float platform_in_LFB_coords,
+DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::shared_ptr<cv::Mat> RGB_matrix, 
+                                                  std::shared_ptr<LocalPointCloud> input_cloud,
+                                                  float item_mass, 
+                                                  float platform_in_LFB_coords,
                                                   bool should_search_right_to_left,
                                                   std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
                                                   bool visualize_flag, bool live_viewer_flag, bool should_check_empty, bool force_adjustment)  //Todo: if widely applicable should move this function into implementations NoTranslationPointCloud, TranslatedPointCloud, Untranslated, DepthPixelpointCloud
@@ -370,12 +372,24 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   cvtColor(*RGB_matrix, mask, cv::COLOR_BGR2GRAY);
   inRange(mask, this->min_bag_filtering_threshold, 255, mask);
 
-  if(this->visualize == 1 and visualize_flag == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(mask));
-  Logger::Instance()->Trace("temporary debug log: update live viewer image #7");
-  if (this->drop_live_viewer != nullptr and live_viewer_flag) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(mask), ViewerImageType::LFB_Filter, this->PKID);
+  Logger::Instance()->Trace("temporary debug log: update live viewer image #7"); // foolish mortal there's no such thing as temporary debug logs
+  // this "LFB_filter" image is the plain depth map visualized
+  cv::Mat depth_visualization;
+  cv::Mat depth_mat = *this->session->get_depth_mat();
+  Logger::Instance()->Trace("Retrieved depth mat");
+
+  double minVal, maxVal;
+  cv::minMaxLoc(depth_mat, &minVal, &maxVal);  // Find the minimum and maximum depth values
+  depth_mat.convertTo(depth_visualization, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));  // Normalizing
+  cv::applyColorMap(depth_visualization, depth_visualization, cv::COLORMAP_MAGMA);  // You can try other colormaps too
+
+  // depth_mat.convertTo(depth_mat, CV_8UC1);
+  // cv::applyColorMap(depth_mat, depth_visualization, cv::COLORMAP_MAGMA);
+
+  if(this->visualize == 1 and visualize_flag == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(depth_visualization));
+  if (this->drop_live_viewer != nullptr and live_viewer_flag) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, this->PKID);
 
   Logger::Instance()->Trace("temporary debug log: start looping through pixels");
-
   // initialize struct for max detected depth points
   Max_Z_Points max_depth_points{Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
                                 Point3D(0,0,platform_in_LFB_coords), Point3D(0,0,platform_in_LFB_coords),
@@ -424,15 +438,15 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
   bool should_adjust_depth = (item_mass > this->item_mass_threshold) or force_adjustment;
   if(should_adjust_depth)
   {
-    Logger::Instance()->Debug("Adjusting white regions to platform in LFB coords: {:.3f} + depth offset: {:.3f}", platform_in_LFB_coords, this->white_region_depth_adjust_from_min);
+    Logger::Instance()->Debug("Historically these conditions would adjust white regions to platform in LFB coords: {:.3f} + depth offset: {:.3f}", platform_in_LFB_coords, this->white_region_depth_adjust_from_min);
   }
   else
   {
     Logger::Instance()->Info("Item mass is below threshold and no force depth adjust indicated. Will still count white points but not adjust depth values.");
   }
 
-    // TODO - total revamp of this function. optimize for computational speeds
-    // TODO - account for bag crumpling, and rename this function because it doesn't adjust any depths in bagless bags
+  // TODO - total revamp of this function. optimize for computational speeds
+  // TODO - account for bag crumpling, and rename this function because it doesn't adjust any depths in bagless bags
 
   // forward cycle left to right if not should_search_right_to_left
   // backward cycle right to left if should_search_right_to_left
@@ -841,8 +855,8 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           get_quadrant_of_point(current_target_region->x, current_target_region->y),
           quadrant_preference_order);
 
-    bool range_diff_improvement = range_diff > 0.005;
-    bool range_diff_regression = range_diff < -0.010;
+  bool range_diff_improvement = range_diff > 0.005;
+  bool range_diff_regression = range_diff < -0.010;
   bool is_better = (current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
           (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
           (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and

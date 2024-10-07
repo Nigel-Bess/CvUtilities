@@ -76,7 +76,7 @@ std::shared_ptr<nlohmann::json> read_in_request_json(std::string directory_path,
 }
 
 void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path, std::vector<int> test_items,
-									 std::shared_ptr<INIReader> reader, std::shared_ptr<INIReader> LFB_config_reader) {
+									 std::shared_ptr<INIReader> reader) {
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
 	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
 	start_mock_session(directory_path, mock_session, mock_serial);
@@ -173,8 +173,7 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 }
 
 
-void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader,
-								std::shared_ptr<INIReader> LFB_config_reader) {
+void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_tray;
 	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
@@ -200,7 +199,7 @@ void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std
 
 
 void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::shared_ptr<std::string> directory_path,
-							std::shared_ptr<INIReader> reader, std::shared_ptr<INIReader> LFB_config_reader) {
+							std::shared_ptr<INIReader> reader) {
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
 	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
 	start_mock_session(directory_path, mock_session, mock_serial);
@@ -248,8 +247,7 @@ void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::sh
 
 int
 test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::shared_ptr<std::string> directory_path_post,
-					  std::shared_ptr<std::string> directory_path_target, std::shared_ptr<INIReader> reader,
-					  std::shared_ptr<INIReader> LFB_config_reader) {
+					  std::shared_ptr<std::string> directory_path_target, std::shared_ptr<INIReader> reader) {
 	Logger::Instance()->Fatal("This test is not currently supported!");
 //    //TODO: needs many modifications
 //  std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_pre;
@@ -543,31 +541,6 @@ int main(int argc, char **argv) {
 	reader->set_default_section(config_section);
 
 
-	//reader for LFB configuration
-	std::string LFB_config_type = reader->Get(config_section, "LFB_config_type", "3");
-	Logger::Instance()->Info("LFB_Config_type in test_func.ini is set to use LFB configs {}", LFB_config_type);
-
-	std::shared_ptr<INIReader> LFB_config_reader;
-	if (LFB_config_type == "1") {
-		LFB_config_reader = std::make_shared<INIReader>("LFB1_config.ini", true);
-	} else if (LFB_config_type == "1b") {
-		LFB_config_reader = std::make_shared<INIReader>("LFB1b_config.ini", true);
-	} else if (LFB_config_type == "2") {
-		LFB_config_reader = std::make_shared<INIReader>("LFB2_config.ini", true);
-	} else if (LFB_config_type == "3") {
-		LFB_config_reader = std::make_shared<INIReader>("LFB3_config.ini", true);
-	} else {
-		Logger::Instance()->Fatal("LFB_config_type must be 1 or 1b or 2, check test_func ini file");
-		throw std::runtime_error("LFB config file type not specified correctly");
-	}
-
-
-	if (LFB_config_reader->ParseError() < 0) {
-		test_logger->Fatal("Can't load LFB_config.ini, check path. Is {} correct?",
-						   INIReader::get_compiled_default_dir_prefix() + "/LFB_config.ini");
-		throw std::runtime_error("Failure to parse ini file...");
-	}
-
 	/**
 	 * End of test set-up
 	 * */
@@ -604,7 +577,7 @@ int main(int argc, char **argv) {
 					for (auto td: *timestamp_dirs) {
 						test_logger->Info("Starting Simulation of directory: {}", *td);
 						//Todo: add check for color image being present before calling test_image_routine
-						test_pre_drop_routine_json(td, reader, LFB_config_reader);
+						test_pre_drop_routine_json(td, reader);
 					}
 				} else if (test_type == 1) //run pre-drop algorithm using simulated items
 				{
@@ -618,7 +591,7 @@ int main(int argc, char **argv) {
 					for (auto td: *timestamp_dirs) {
 						test_logger->Info("Starting Simulation of directory: {}", *td);
 						//Todo: add check for color image being present before calling test_image_routine
-						test_pre_drop_routine_simulated(td, test_items, reader, LFB_config_reader);
+						test_pre_drop_routine_simulated(td, test_items, reader);
 					}
 				} else if (test_type == 2) //run post-drop algorithm for checking MaxZ height
 				{
@@ -631,8 +604,7 @@ int main(int argc, char **argv) {
 					for (auto td: *timestamp_dirs) {
 						test_logger->Info("Offline Post-Drop Test: Starting Simulation of directory: {}", *td);
 						//Todo: add check for color image being present before calling test_image_routine
-						test_post_drop_routine(std::make_shared<std::string>(test_data_path), td, reader,
-											   LFB_config_reader);
+						test_post_drop_routine(std::make_shared<std::string>(test_data_path), td, reader);
 					}
 				} else if (test_type == 3) //run pre-drop w/json followed by post-drop for performance evaluation
 				{
@@ -650,7 +622,7 @@ int main(int argc, char **argv) {
 					for (auto td: *timestamp_dirs) {
 						test_logger->Info("Starting Simulation of directory: {}", *td);
 						//Todo: add check for color image being present before calling test_image_routine
-						test_pre_drop_routine_json(td, reader, LFB_config_reader);
+						test_pre_drop_routine_json(td, reader);
 					}
 					// Back track to start before iterating over the pre drop images
 					test_data_path = make_media::paths::join_as_path(test_data_dir, ent->d_name);
@@ -663,8 +635,7 @@ int main(int argc, char **argv) {
 									  exact_test_data_path);
 					//Todo: add check for color image being present before calling test_image_routine
 					test_post_drop_routine(std::make_shared<std::string>(test_data_path),
-										   std::make_shared<std::string>(exact_test_data_path), reader,
-										   LFB_config_reader);
+										   std::make_shared<std::string>(exact_test_data_path), reader);
 				} else if (test_type == 4) //run pre/post comparison
 				{
 					/**
@@ -694,7 +665,7 @@ int main(int argc, char **argv) {
 					totalNumDispenses++;
 					int res = test_compare_pre_post(timestamp_dirs->at(0), timestamp_dirs_2->at(0),
 													timestamp_dirs_3->at(0),
-													reader, LFB_config_reader);
+													reader);
 					accuracy += res;
 				}
 			}

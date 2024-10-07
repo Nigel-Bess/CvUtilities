@@ -305,7 +305,6 @@ void MarkerDetectorContainer::setup_cached_container()
   /** WARNING: see notes in marker_detector_container.h helper file
    *  For now, this boolean changes nothing
    *  TODO: restructure code to handle this differently, without risk of mistakenly passing around cached expanded-region containers
-   *  TODO: the extend values should be moved to LFR config files, not hard-coded. Values below are for LFR3 only
    *  TODO: the extend values may need to be changed in the future if LFR gets closer to VLS / dispense and leads to mistaken detections
    */
   if (this->extend_region_over_markers)
