@@ -107,7 +107,7 @@ namespace fulfil::utils
              * */
 
             static Logger* Instance();
-            static Logger* Instance(std::string log_dir, std::string file_prefix = "daily_logger",
+            static Logger* Instance(std::string log_dir, std::string file_prefix = log_file_name,
                     Level file_level = Level::Debug, Level console_level = Level::Debug);
 
             static std::string default_logging_dir;
