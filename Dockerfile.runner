@@ -18,10 +18,11 @@ COPY third-party/ ./third-party/
 
 RUN cd Fulfil.AlliedVision/ \
     && mkdir build/ \
+    && mkdir -p /code/mars/vimba \
     && make
 
 # Development
-# CMD ["sleep", "7200"] 
+# CMD ["sleep", "7200"]
 # PROD
-CMD ["./build/app/main"] 
+CMD ["./build/stark_test"]
 

@@ -32,12 +32,12 @@ jobs:
       - name: Release
         env:
           IMAGE_NAME: gcr.io/fulfil-web/fulfil_dc_api
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN  }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN }}
           NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
           SEMANTIC_RELEASE: '1'
           # The service account key of google cloud.
           GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_PROD_SA }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN }}
         run:
           make release
