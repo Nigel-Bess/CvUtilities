@@ -142,7 +142,8 @@ namespace comms_context {
     std::string RequestContextInfo::get_id_tagged_sequence_step() const
     {
         return json_parser::mongo_utils::make_sequence_step_tag(m_image_prefix,
-                                                              std::string(get_request_name()), get_primary_key_id());
+                                                                std::string(get_request_name()), 
+                                                                get_primary_key_id());
     }
 
     std::string RequestContextInfo::get_sequence_step() const

@@ -56,7 +56,7 @@ std::shared_ptr<std::string> ItemEdgeDistanceResponse::dispense_payload()
 
 
 int fulfil::dispense::commands::ItemEdgeDistanceResponse::get_fed_value() const {
-    return lane_distance_info.m_first_item_distance;
+    return this->lane_distance_info.m_first_item_distance;
 }
 
 
@@ -67,5 +67,5 @@ ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> 
 fulfil::dispense::commands::ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
         results_to_vlsg::LaneItemDistance lane_item_distance, results_to_vlsg::TrayValidationCounts lane_count_result,
         std::shared_ptr<std::string> command_id) :
-        command_id{std::move(command_id)}, count_result(std::move(lane_count_result)), lane_distance_info(std::move(lane_item_distance)) {}
+        lane_distance_info(std::move(lane_item_distance)), count_result(std::move(lane_count_result)), command_id{std::move(command_id)} {}
 

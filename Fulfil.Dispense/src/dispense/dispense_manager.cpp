@@ -116,11 +116,6 @@ DispenseManager::DispenseManager(
         Logger::Instance()->Info("AGX specific ini file indicates to use tray config section {}", this->tray_dimension_type);
 
         this->tray_manager = tray_manager;
-
-        // read AGX_specific_main.ini to read token for rotating induction camera image
-        std::unique_ptr<INIReader> agx_reader = std::make_unique<INIReader>("AGX_specific_main.ini", true);
-        float image_rotation_angle_from_camera_placement = agx_reader->GetFloat("device_specific", "image_rotation_angle_from_camera_placement", 0.0f);
-        this->tray_manager->set_image_rotation_angle(image_rotation_angle_from_camera_placement);
     }
 
     if (LFB_session)
@@ -532,7 +527,7 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
             std::cout << specific_error_message << std::endl;
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, message);
 
-            Logger::Instance()->Debug("Handle Drop Target Failed!");
+            Logger::Instance()->Debug("Handle Drop Target Failed with code {}", get_error_name_from_code((DropTargetErrorCodes)drop_result->success_code));
         }
     }
     else // case for valid drop target result without error
@@ -759,33 +754,37 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     single_lane_tray_data_generator.save_data(std::make_shared<std::string>());
 
     // run first edge distance processing
-    results_to_vlsg::LaneItemDistance fed_result;
-    std::vector<tray_count_api_comms::LaneCenterLine> transformed_lane_center_pixels;
-    std::vector<bool> tongue_detections;
+    // results_to_vlsg::LaneItemDistance fed_result{};
+    // std::vector<tray_count_api_comms::LaneCenterLine> transformed_lane_center_pixels{};
+    // std::vector<bool> tongue_detections{};
+    TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
+    // TODO remove tray session from this func
+    auto [fed_result, transformed_lane_center_pixels, tongue_detections] = tray_algorithm.run_tray_algorithm(this->tray_session, single_lane_val_req, tray);
+    Logger::Instance()->Debug("Tray algorithm run_tray_algorithm returned FED: {}, now updating image", fed_result.m_first_item_distance);
+    // push visualizations for Pre/Post FED to GCP
+    // TODO reduce number of these try catches 
     try 
     {
-        TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
-        // TODO remove tray session from this func
-        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = tray_algorithm.run_tray_algorithm(this->tray_session, single_lane_val_req, tray);
-        // push visualizations for Pre/Post FED to GCP
         ViewerImageType image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_FED : ViewerImageType::Tray_Post_FED;
         if (this->live_viewer)
             this->live_viewer->update_image(std::make_shared<cv::Mat>(tray_algorithm.get_FED_visualization_image()), image_code, single_lane_val_req.get_primary_key_id(), true);
+        Logger::Instance()->Debug("Tray algorithm updating image succeeded, FED: {}", fed_result.m_first_item_distance);
     } catch (const std::exception &e)
     {
-        // TODO add error code here and make this an object/struct
-        Logger::Instance()->Error("Tray algorithm run_tray_algorithm and update_image threw exception: {}", e.what());
-        auto [fed_result, transformed_lane_center_pixels, tongue_detections] = std::make_tuple(results_to_vlsg::LaneItemDistance{},
-                                std::vector<tray_count_api_comms::LaneCenterLine>{}, std::vector<bool>{});
+        // TODO add error code here
+        Logger::Instance()->Error("Tray algorithm update_image threw exception: {}", e.what());
     }
+    
     // do all tray processing
+    Logger::Instance()->Debug("Tray algorithm dispatching request ot TC API, FED: {}", fed_result.m_first_item_distance);
     results_to_vlsg::TrayValidationCounts count_response = this->tray_manager->dispatch_request_to_count_api(single_lane_val_req, 
                                                                                  transformed_lane_center_pixels, 
                                                                                  saved_images_base_directory);
+    Logger::Instance()->Trace("FED is still: {}", fed_result.m_first_item_distance);
     std::shared_ptr<ItemEdgeDistanceResponse> tray_result = std::make_shared<ItemEdgeDistanceResponse>(fed_result, count_response, command_id);
 
-    Logger::Instance()->Info("Finished handling Single Lane Dispense command. Result: "
-                             "Bay: {} PKID: {} Distance {}",
+    Logger::Instance()->Trace("Tray result FED is {}, FED result is {}", tray_result->get_fed_value(), fed_result.m_first_item_distance);
+    Logger::Instance()->Info("Finished handling Single Lane Dispense command. Result on Bay: {} PKID: {} First Edge Distance: {}",
                              this->machine_name, single_lane_val_req.get_primary_key_id(), tray_result->get_fed_value());
     return tray_result;
 }
@@ -812,7 +811,7 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     std::string saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
     double resize_factor = 1;
     /** Send Data Function */
-    std::string local_base_path = this->dispense_reader->Get(dispense_reader->get_default_section(), "upload_file_dir", "");
+    std::string local_base_path = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "upload_file_dir", "");
 
     /** Save Data from generator */
     DataGenerator tray_validation_data_generator = tray_manager->build_tray_data_generator(
@@ -822,10 +821,31 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     std::shared_ptr<TrayAlgorithm> tray_algorithm = std::make_shared<TrayAlgorithm>(section_reader);
     Tray tray = this->tray_manager->create_tray(tray_validation_request.m_tray_recipe);
 
+    // rotate image as needed based on the config
+    std::shared_ptr<cv::RotateFlags> rotate_code(nullptr);
+    int image_rotation_angle_from_camera_placement = this->dispense_reader->GetInteger("device_specific", "image_rotation_angle_from_camera_placement", 0);
+    switch (image_rotation_angle_from_camera_placement) {
+        case 90:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_90_CLOCKWISE); // 0
+            break;
+        case 180:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_180); // 1
+            break;
+        case -90:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_90_COUNTERCLOCKWISE); // 2
+            break;
+        default:
+            rotate_code = nullptr;
+            break;
+    }
+    Logger::Instance()->Debug("Dispense manager image_rotation_angle_from_camera_placement config is {}, and rotate_code RotateFlag is: {}", 
+        std::to_string(image_rotation_angle_from_camera_placement), !rotate_code ? "NULL" : std::to_string(*rotate_code));
+
     // upload tray validation data
     try 
     {
-        if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor))
+        //save_tray_audit_image
+        if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor, rotate_code))
         {
             this->tray_manager->upload_tray_data(tray_validation_request.m_context, local_base_path, GCSSender(this->cloud_media_bucket, this->store_id));
         }
@@ -840,7 +860,7 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
         tray_validation_data_generator.save_data(std::make_shared<std::string>());
         auto [transformed_lane_center_pixels, tongue_detections, max_height_detected_in_tray] =
             tray_algorithm->get_pixel_lane_centers_and_tongue_detections(
-                this->tray_session, tray_validation_request, tray);
+                this->tray_session, tray_validation_request, tray, rotate_code);
         
         count_response = this->tray_manager->dispatch_request_to_count_api(tray_validation_request, transformed_lane_center_pixels, saved_images_base_directory);
         count_response.update_lane_tongue_detections(tongue_detections);

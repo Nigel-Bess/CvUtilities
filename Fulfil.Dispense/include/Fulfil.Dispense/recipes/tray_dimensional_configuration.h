@@ -30,8 +30,7 @@ namespace fulfil::configuration::tray {
           // Generic to allow use of parsed or json obj
           template <typename Recipe>
           fulfil::dispense::tray::Tray build_tray_from_recipe(Recipe tray_data){
-              return fulfil::dispense::tray::Tray(tray_data,
-                                                this->tray_width, this->fiducial_width_offset);
+              return fulfil::dispense::tray::Tray(tray_data, this->tray_width, this->fiducial_width_offset);
           }
 
           [[nodiscard]] float get_length() const;
@@ -40,12 +39,10 @@ namespace fulfil::configuration::tray {
           [[nodiscard]] float get_dispense_arm_popthru_height() const;
           [[nodiscard]] float get_lane_inset_from_edge() const;
     };
-}
-namespace fulfil::configuration::tray {
 
-    fulfil::configuration::tray::TrayDimensions set_bay_wide_tray_dimensions(const std::shared_ptr<INIReader> &tray_config_reader,
-                                                const std::string &tray_generation_key);
-
+    fulfil::configuration::tray::TrayDimensions set_bay_wide_tray_dimensions(
+        const std::shared_ptr<INIReader> &tray_config_reader,
+        const std::string &tray_generation_key);
 }
 
 #endif // FULFIL_DISPENSE_TRAY_DIMENSIONAL_CONFIGURATION_H

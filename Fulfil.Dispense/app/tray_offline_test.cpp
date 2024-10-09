@@ -5,8 +5,11 @@
 #include <Fulfil.CPPUtils/inih/ini_utils.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.DepthCam/mocks.h>
+#include "Fulfil.Dispense/dispense/dispense_manager.h"
+#include <Fulfil.Dispense/recipes/tray_dimensional_configuration.h>
 #include <Fulfil.Dispense/tray/tray.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
+#include <Fulfil.Dispense/tray/tray_manager.h>
 //#include <Fulfil.MongoCpp/mongo_connection.h>
 #include <experimental/filesystem>
 #include <fstream>
@@ -18,12 +21,11 @@ using fulfil::utils::Logger;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::data::DataGenerator;
+using fulfil::dispense::DispenseManager;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::tray::Tray;
 namespace std_filesystem = std::experimental::filesystem;
 using fulfil::utils::ini::IniSectionReader;
-
-
 
 // Declarations
 std::string TEST_START_TIME = make_media::paths::get_datetime_str();
@@ -125,7 +127,7 @@ std::shared_ptr<fulfil::depthcam::mocks::MockSession> make_mock_session(
         std::string directory_path, const std::string& mock_serial)
 {
     if (! mock_serial.empty()){
-      Logger::Instance()->Info("[test][{}] Using mock serial: {}",
+      Logger::Instance()->Info("[test][{}] Using mock serial: {} to make mock session",
           TEST_START_TIME, mock_serial);
         return std::make_unique<fulfil::depthcam::mocks::MockSession>(std::make_shared<std::string>(directory_path), mock_serial); }
     Logger::Instance()->Info("[tr] No mock serial, was supplied in test ini. To avoid manual input in the future, add to ini.");
@@ -147,7 +149,7 @@ std::optional<INIReader> parse_reader(std_filesystem::path config_file, bool use
 }
 
 nlohmann::json parse_request_file_to_json(std_filesystem::path json_file_path) {
-        // Parse request Json
+    // Parse request Json
     json_file_path /=  "json_request.json";
     std::ifstream json_file(json_file_path);
     nlohmann::json json_obj_data;
@@ -155,9 +157,9 @@ nlohmann::json parse_request_file_to_json(std_filesystem::path json_file_path) {
     return json_obj_data;
 }
 
-void log_tray_config_params(INIReader tray_reader, std::string vls_tray_generation) {
+void log_tray_config_params(INIReader tray_reader, std::string tray_generation) {
     auto float_value = [&] (auto field) {
-        return tray_reader.GetFloat(vls_tray_generation, field);
+        return tray_reader.GetFloat(tray_generation, field);
     };
   Logger::Instance()->Info("[test][{}] Tray Config Params:\n\t* [tc] tray_config_type={}"
                    "\n\t* [tc] fiducial_width_offset={}\n\t* [tc] dispense_arm_height={}"
@@ -165,7 +167,7 @@ void log_tray_config_params(INIReader tray_reader, std::string vls_tray_generati
                     "\n\t* [tc] absolute_min_search_height_cutoff={}\n\t* [tc] relative_width_extents={}"
                     "\n\t* [tc] safe_absolute_height={}\n\t* [tc] start_deadzone={}\n\t* [tc] len_deadzone={}"
                     "\n\t* [tc] wheel_diameter_correction_mm={}\n",
-                    TEST_START_TIME, vls_tray_generation,
+                    TEST_START_TIME, tray_generation,
                     float_value("fiducial_width_offset"),float_value("dispense_arm_height"),float_value("relative_max_height"),
                     float_value("relative_search_height"),float_value("relative_min_height"),
                     float_value("absolute_min_search_height_cutoff"),float_value("relative_width_extents"),
@@ -183,17 +185,14 @@ FEDTestResultLog test_FED_algo(std_filesystem::path sim_data_command_dir, const 
 
     Logger::Instance()->Info("[test][{}] Testing against data from: {}",
                              TEST_START_TIME, std::string(sim_data_command_dir));
+    auto start = std::chrono::high_resolution_clock::now();
 
     auto mock_session = make_mock_session(sim_data_command_dir, mock_serial);
-
-    // Get Mock Session
     auto request_obj = parse_request_file_to_json(sim_data_command_dir);
-
-    auto start = std::chrono::high_resolution_clock::now();
-    std::string vls_tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "2.1");
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
 
     request_from_vlsg::TrayRequest single_lane_val_req = request_obj.get<request_from_vlsg::TrayRequest>();
-    IniSectionReader section_reader {*tray_reader, vls_tray_generation};
+    IniSectionReader section_reader {*tray_reader, tray_generation};
     TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
     Tray tray { single_lane_val_req.m_tray_recipe, section_reader.at<float>("tray_width"),
       section_reader.at<float>( "fiducial_width_offset") } ;
@@ -207,6 +206,36 @@ FEDTestResultLog test_FED_algo(std_filesystem::path sim_data_command_dir, const 
     result_image_path /= "PreFrontEdgeDistance_" +  single_lane_val_req.get_primary_key_id() + ".jpg" ;
     return {fed_result.m_first_item_distance, single_lane_val_req.get_primary_key_id(),
                      single_lane_val_req.m_lanes[0].m_has_tongue, result_image_path, execution_time_ms.count() };
+}
+
+FEDTestResultLog test_FED_dispense_manager(std_filesystem::path sim_data_command_dir, const std::string& mock_serial,
+        std::shared_ptr<INIReader> tray_reader, std::shared_ptr<INIReader> reader)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    sim_data_command_dir /= "PreFrontEdgeDistance";
+    if (!std_filesystem::is_directory(sim_data_command_dir)) return {};
+    auto mock_session = make_mock_session(sim_data_command_dir, mock_serial);
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+    fulfil::configuration::tray::TrayDimensions tray_builder =
+        fulfil::configuration::tray::set_bay_wide_tray_dimensions(tray_reader, tray_generation);
+    auto tray_manager = std::make_shared<fulfil::dispense::tray::TrayManager>(mock_session, tray_builder);
+    DispenseManager dispense_manager(0, nullptr, mock_session, reader, tray_reader, tray_manager);
+    std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
+    auto request_json = std::make_shared<nlohmann::json>(parse_request_file_to_json(sim_data_command_dir));
+
+    auto response = dispense_manager.handle_item_edge_distance(command_id, request_json);
+    Logger::Instance()->Debug("FED Response Payload: {}", *response->dispense_payload());
+
+    auto fed = request_json->value("First_Item_Distance", -999); 
+    std::chrono::duration<float, std::milli> execution_time_ms = (std::chrono::high_resolution_clock::now() - start);
+
+    auto pkid = request_json->value("Primary_Key_ID", "");
+
+    IniSectionReader section_reader {*tray_reader, tray_generation};
+    std_filesystem::path result_image_path { section_reader.at<std::string>("flags", "save_data_base_path") };
+    result_image_path /= "fed_results_" + make_media::paths::get_day_str();
+    result_image_path /= "PreFrontEdgeDistance_" + pkid + ".jpg" ;
+    return {fed, pkid, false, result_image_path, execution_time_ms.count() };
 }
 
 std::vector<TongueResultLog> test_TVR_tongue_detection(std_filesystem::path sim_data_command_dir, const std::string& mock_serial,
@@ -224,19 +253,38 @@ std::vector<TongueResultLog> test_TVR_tongue_detection(std_filesystem::path sim_
     auto json_file = sim_data_command_dir /  "json_request.json";
 
     auto start = std::chrono::high_resolution_clock::now();
-    std::string vls_tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "2.1");
-    IniSectionReader section_reader {*tray_reader, vls_tray_generation};
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+    IniSectionReader section_reader {*tray_reader, tray_generation};
 
     auto detection_threshold = section_reader.at<float>("bead_tongue_color_limit");
     request_from_vlsg::TrayRequest tongue_det_request = request_obj.get<request_from_vlsg::TrayRequest>();
     Logger::Instance()->Info("[test][{}] Using tray dimension type: {}",
-        TEST_START_TIME, vls_tray_generation);
+        TEST_START_TIME, tray_generation);
+
+    std::shared_ptr<cv::RotateFlags> rotate_code(nullptr);
+    int image_rotation_angle_from_camera_placement = reader->GetInteger("device_specific", "image_rotation_angle_from_camera_placement", 0);
+    switch (image_rotation_angle_from_camera_placement) {
+        case 90:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_90_CLOCKWISE); // 0
+            break;
+        case 180:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_180); // 1
+            break;
+        case -90:
+            rotate_code = std::make_shared<cv::RotateFlags>(cv::ROTATE_90_COUNTERCLOCKWISE); // 2
+            break;
+        default:
+            rotate_code = nullptr;
+            break;
+    }
+    Logger::Instance()->Debug("Dispense manager image_rotation_angle_from_camera_placement config is {}, and rotate_code RotateFlag is: {}", 
+        std::to_string(image_rotation_angle_from_camera_placement), !rotate_code ? "NULL" : std::to_string(*rotate_code));
 
     TrayAlgorithm tray_algorithm = TrayAlgorithm(section_reader);
     Tray tray { tongue_det_request.m_tray_recipe, section_reader.at<float>("tray_width"),
       section_reader.at<float>("fiducial_width_offset") } ;
     auto [transformed_lane_center_pixels, tongue_detections, tray_height] =
-        tray_algorithm.get_pixel_lane_centers_and_tongue_detections(mock_session, tongue_det_request, tray);
+        tray_algorithm.get_pixel_lane_centers_and_tongue_detections(mock_session, tongue_det_request, tray, rotate_code);
     std::chrono::duration<double, std::milli> execution_time_ms = (std::chrono::high_resolution_clock::now() - start);
     auto exp_max = tongue_det_request.expected_max_height();
 
@@ -316,8 +364,8 @@ TestRecords run_test_over_input_examples_directory(std_filesystem::path test_dat
             Logger::Instance()->Info("[test][{}] Reader appended", TEST_START_TIME);
             auto mock_serial = get_serial_number_from_calibration(tray_reader.value());
             Logger::Instance()->Info("[test][{}] Using mock serial: {}", TEST_START_TIME, mock_serial);
-            std::string vls_tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "2.1");
-            log_tray_config_params(tray_reader.value(), vls_tray_generation);
+            std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+            log_tray_config_params(tray_reader.value(), tray_generation);
             // Logger::Instance()->Info("Command sequences start: {}, end: {}", std::string(command_seqs));
             std::transform(std_filesystem::begin(command_seqs), std_filesystem::end(command_seqs), std::back_inserter(algo_results),
                 [&](auto command_dir) {

@@ -12,7 +12,7 @@ namespace fulfil {
             class BQUpload {
             public:
                 int upload_traycount_record(nlohmann::json validation_request, nlohmann::json validation_response,
-                                            std::string vls_name, std::string calibration);
+                                            std::string machine_name, std::string calibration);
                 int upload_record(const std::string table_name, nlohmann::json data);
             };
         }

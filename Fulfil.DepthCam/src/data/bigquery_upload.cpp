@@ -9,13 +9,13 @@ using fulfil::depthcam::data::BQUpload;
 using fulfil::utils::Logger;
 
 int BQUpload::upload_traycount_record(nlohmann::json validation_request, nlohmann::json validation_response,
-                                      std::string vls_name, std::string calibration){
+                                      std::string machine_name, std::string calibration){
 
     BQUpload uploader;
 
     nlohmann::json bq_doc = validation_request;
     bq_doc["CalibrationId"] = calibration;
-    bq_doc["vls_name"] = vls_name;
+    bq_doc["vls_name"] = machine_name; // TODO remove VLS
     bq_doc.update(validation_response, true);
 
     return uploader.upload_record("fulfil-web.factory0.TrayCounts", bq_doc);

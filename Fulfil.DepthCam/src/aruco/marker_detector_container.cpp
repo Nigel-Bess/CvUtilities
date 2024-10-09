@@ -305,7 +305,7 @@ void MarkerDetectorContainer::setup_cached_container()
   /** WARNING: see notes in marker_detector_container.h helper file
    *  For now, this boolean changes nothing
    *  TODO: restructure code to handle this differently, without risk of mistakenly passing around cached expanded-region containers
-   *  TODO: the extend values may need to be changed in the future if LFR gets closer to VLS / dispense and leads to mistaken detections
+   *  TODO: the extend values may need to be changed in the future if LFR gets closer to DAB / dispense and leads to mistaken detections
    */
   if (this->extend_region_over_markers)
   {
@@ -313,8 +313,6 @@ void MarkerDetectorContainer::setup_cached_container()
     this->width = this->outer_width;
     Logger::Instance()->Debug("Container logic has opted in to container region extension over markers. The new MarkerDetectorContainer length is {} and the width is {}", this->outer_length, this->outer_width);
     //Logger::Instance()->Error("CONTAINER REGION EXTENSION FUNCTIONALITY NEEDS REFACTORING. EXTENSION NOT EXECUTED!!!");
-    // this->length = this->length + 0.01; // value for LFR3, VLS 3.1
-    // this->width = this->width + 0.1;    // value for LFR3, VLS 3.1
   }
 
   Logger::Instance()->Debug("Getting transform now in setup_cached_container");

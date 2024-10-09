@@ -25,7 +25,7 @@ std_filesystem::path make_tray_audit_image_basename(const comms_context::Request
 }
 
 bool TrayManager::save_tray_audit_image(
-  const comms_context::RequestContextInfo &request_context, std::string local_root_path, double scale_resize)
+  const comms_context::RequestContextInfo &request_context, std::string local_root_path, double scale_resize, std::shared_ptr<cv::RotateFlags> rotate_code)
 {
     std_filesystem::path const path_suffix {make_tray_audit_image_basename(request_context)};
     std_filesystem::path const tray_audit_local_file { local_root_path / path_suffix } ;
@@ -33,19 +33,12 @@ bool TrayManager::save_tray_audit_image(
     try {
         auto timer = fulfil::utils::timing::Timer("TrayManager::save_tray_audit_image " + path_suffix.string() );
         cv::Mat color_mat = this->session->grab_color_frame();
-        // rotate image if needed for 90 degree clockwise, 90 degree anti-clockwise & 180 degree
-        int rotate_code = 0;
-        if (this->image_rotation_angle_from_camera_placement == 90.0f)
-            rotate_code = cv::ROTATE_90_CLOCKWISE;
-        else if (this->image_rotation_angle_from_camera_placement == -90.0f)
-            rotate_code = cv::ROTATE_90_COUNTERCLOCKWISE;
-        else if (this->image_rotation_angle_from_camera_placement == 180.0f)
-            rotate_code = cv::ROTATE_180;
         
-        if (this->image_rotation_angle_from_camera_placement != 0.0f)
+        // rotate the image if needed
+        if (rotate_code != nullptr)
         {
             cv::Mat rotated_image;
-            cv::rotate(color_mat, rotated_image, rotate_code);
+            cv::rotate(color_mat, rotated_image, *rotate_code);
             color_mat = rotated_image.clone();
         }
         if (scale_resize < 1 ){ cv::resize(color_mat, color_mat, cv::Size(), scale_resize, scale_resize); }
@@ -119,5 +112,3 @@ results_to_vlsg::TrayValidationCounts TrayManager::dispatch_request_to_count_api
     return doc.get<results_to_vlsg::TrayValidationCounts>();
 
 }
-
-void TrayManager::set_image_rotation_angle(float angle) { this->image_rotation_angle_from_camera_placement = angle; }

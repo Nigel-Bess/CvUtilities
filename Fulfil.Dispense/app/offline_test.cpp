@@ -48,7 +48,6 @@ float to_meters(float millimeters) {
 	return (millimeters) / 1000.F;
 }
 
-
 void start_mock_session(std::shared_ptr<std::string> directory_path,
 						std::shared_ptr<fulfil::depthcam::mocks::MockSession> &mock_session,
 						const std::string &mock_serial) {

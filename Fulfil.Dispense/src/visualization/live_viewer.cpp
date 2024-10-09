@@ -181,13 +181,15 @@ std::tuple<std::string, double> LiveViewer::image_name_and_presets(size_t image_
     { "LFB_RGB",           "LFB_Depth",          "LFB_Damage_Risk",    "LFB_Filter",
       "LFB_Target",        "Tray_Result",        "LFB_Pre_Dispense",   "Tray_Pre_Dispense",
       "LFB_Post_Dispense", "Tray_Post_Dispense", "LFB_Item_Detection", "LFB_Markers",
-       "Info", "LFB_Floor_View", "Tray_Pre_FED", "Tray_Post_FED", "Tray_Validation"
+      "Info",              "LFB_Floor_View",     "Tray_Pre_FED",       "Tray_Post_FED", 
+      "Tray_Validation"
     };
   std::array<double, VIEWER_IMAGE_TYPE_COUNT> resize_presets {
-    lfb,  lfb,   1,   lfb,
-    lfb,  tray,  lfb, tray,
-    lfb,  tray,  1,   lfb,
-    lfb, lfb, tray, tray, tray
+    lfb,  lfb,   1,    lfb,
+    lfb,  tray,  lfb,  tray,
+    lfb,  tray,  1,    lfb,
+    lfb,  lfb,  tray, tray, 
+    tray
   };
   if (image_code > VIEWER_IMAGE_TYPE_COUNT + 1) return {"", 0};
   return {image_name_map[image_code], resize_presets[image_code]};
@@ -201,7 +203,6 @@ std_filesystem::path name_visualization(std_filesystem::path base_path, const st
   save_vis_path.replace_extension(".jpg");
   return save_vis_path;
 }
-
 
 std_filesystem::path pkid_filename(std::string_view PKID, std::string_view image_name) {
   std_filesystem::path save_vis_path = std_filesystem::path {PKID} / std_filesystem::path {image_name};
@@ -231,7 +232,10 @@ int LiveViewer::publish(size_t image_number, std::string PKID){
 
 
 int LiveViewer::update_image(std::shared_ptr<cv::Mat> input_image,
-  size_t image_number, std::string PKID, bool publish_now, std::shared_ptr<std::vector<std::string>> message)
+  size_t image_number, 
+  std::string PKID, 
+  bool publish_now, 
+  std::shared_ptr<std::vector<std::string>> message)
 {
 
   auto [image_name, resize] = image_name_and_presets(image_number);

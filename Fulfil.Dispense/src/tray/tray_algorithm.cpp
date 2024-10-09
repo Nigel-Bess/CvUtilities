@@ -46,13 +46,8 @@ TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
       y_distance_search_limit(tray_config_reader.get_value("y_distance_search_limit", 0.620f)),
       wheel_diameter_correction_mm(tray_config_reader.get_value("wheel_diameter_correction_mm", 35.0f)),
       tongue_wheel_adjustment_mm(tray_config_reader.get_value("tongue_wheel_adjustment_mm", 8.0f)),
-
       save_tray_visualizations(tray_config_reader.get_value("flags", "save_tray_visualizations", true))
-{
-  // read AGX_specific_main.ini to read token for rotating induction camera image
-    std::unique_ptr<INIReader> agx_reader = std::make_unique<INIReader>("AGX_specific_main.ini", true);
-    image_rotation_angle_from_camera_placement = agx_reader->GetFloat("device_specific", "image_rotation_angle_from_camera_placement", 0.0f);
-}
+{}
 
 double TrayAlgorithm::meters_from_tray_front(double y_meters) const {
     return (this->tray_length / 2) - y_meters;
@@ -190,20 +185,27 @@ results_to_vlsg::LaneItemDistance TrayAlgorithm::get_first_item_distance_from_co
 {
     if (item_edge_coordinates.empty()) {
       Logger::Instance()->Error("Tray algorithm get_first_item_distance_from_coordinate_matrix had no item_edge_coordinates, returning FED = -1 for lane with ID: {}", lane.lane_id());
-      // TODO return an error 
+      // TODO return an error code
       return {lane.lane_id(), 0, -1};
     }
     double y_dist = meters_from_tray_front(item_edge_coordinates.front().y());
     double item_distance = fulfil::measure::to_rounded_millimeters(y_dist);
+
     auto tongue_wheel_correction = (lane.has_tongue()) ? this->wheel_diameter_correction_mm + this->tongue_wheel_adjustment_mm : this->wheel_diameter_correction_mm;
 
     int item_corrected_distance = static_cast<int>(std::max(item_distance - tongue_wheel_correction, 0.0));
     int item_length = static_cast<int>(fulfil::measure::to_rounded_millimeters(item_edge_coordinates.front().y() - item_edge_coordinates.back().y()));
-    if (y_dist > this->y_distance_search_limit) {  item_corrected_distance = -1; item_length = 0; }
-     Logger::Instance()->Debug("Distance of item using tray center reference frame {:0.3f}, where the back of tray is {:0.3f}. The item {} the lane boundary. "
+    Logger::Instance()->Debug("Item found at {}m from tray front, corrected to {} for tongue wheel, and item length is detected to be {}", item_distance, item_corrected_distance, item_length);
+    if (y_dist > this->y_distance_search_limit) {  
+      // TODO make an error code
+      Logger::Instance()->Error("Item found at {}m from tray front, which is less than search limit of {} so setting FED = -1", item_distance, fulfil::measure::to_rounded_millimeters(this->y_distance_search_limit));
+      item_corrected_distance = -1; 
+      item_length = 0; 
+    }
+    Logger::Instance()->Debug("Distance of item using tray center reference frame {:0.3f}, where the back of tray is {:0.3f}. The item {} the lane boundary. "
                                "The distance in mm from front of tray is {}. After correcting for the wheel diameter (set to {}) the belt distance "
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
-			       (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
+                               (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
     return {lane.lane_id(), 0, item_corrected_distance, item_length};
 
@@ -734,7 +736,8 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     TrayAlgorithm::get_pixel_lane_centers_and_tongue_detections(
         const std::shared_ptr<fulfil::depthcam::Session> &session,
         const request_from_vlsg::TrayRequest &tray_vlsg_request,
-        Tray &current_tray)
+        Tray &current_tray,
+        std::shared_ptr<cv::RotateFlags> rotate_code)
 {
     Logger::Instance()->Debug("Getting Lane centers for {} request at position {}.", tray_vlsg_request.get_sequence_step(),
                                                                 tray_vlsg_request.m_context.get_tray_position_name());
@@ -793,18 +796,10 @@ std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>,
     cv::hconcat(TV_visualization_image_ref, masked_result, TV_visualization_image_ref);
 
     // rotate image if needed for 90 degree clockwise, 90 degree anti-clockwise & 180 degree
-    int rotate_code = 0;
-    if (image_rotation_angle_from_camera_placement == 90.0f)
-      rotate_code = cv::ROTATE_90_CLOCKWISE;
-    else if (image_rotation_angle_from_camera_placement == -90.0f)
-      rotate_code = cv::ROTATE_90_COUNTERCLOCKWISE;
-    else if (image_rotation_angle_from_camera_placement == 180.0f)
-      rotate_code = cv::ROTATE_180;
-      
-    if (image_rotation_angle_from_camera_placement != 0.0f)
+    if (rotate_code != nullptr)
     {
       cv::Mat rotated_image;
-      cv::rotate(TV_visualization_image_ref, rotated_image, rotate_code);
+      cv::rotate(TV_visualization_image_ref, rotated_image, *rotate_code);
       TV_visualization_image_ref = rotated_image.clone();
     }
 
@@ -888,7 +883,7 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   // Moved from analyze lane
   results_to_vlsg::LaneItemDistance lane_item_distance =
     get_first_item_distance_from_coordinate_matrix(edge_coordinates, current_lane);
-  Logger::Instance()->Info("Lane {}: & Closest item is {} mm away from front.",
+  Logger::Instance()->Info("Lane {}: Closest item is {} mm away from front.",
     current_lane.lane_id(),
     lane_item_distance.m_first_item_distance);
   // Moved from analyze lane
@@ -903,7 +898,8 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
       pixel_lane_centers.at(current_lane.lane_id() + current_tray.get_lane_count())
     });
 
-    lane_item_distance.m_roi_points = tray_count_api_comms::LaneImageRegion(lane_bounds[0], 720.0F, 1280.0F);
+    std::vector<cv::Point2i> zeroth_lane_bounds = lane_bounds[0];
+    lane_item_distance.m_roi_points = tray_count_api_comms::LaneImageRegion(zeroth_lane_bounds, 720.0F, 1280.0F);
     /*std::transform(lane_bounds.front().begin(), lane_bounds.front().end(), std::back_inserter(lane_item_distance.m_roi_points),
                    [&](cv::Point2f pix) { return std::array<float, 2>{pix.y, pix.x}; });*/
 
@@ -918,8 +914,9 @@ cv::Mat TrayAlgorithm::make_tongue_color_selection(cv::Mat rgb_selection) {
      * */
     std::vector<int> low = this->tray_config_section.get_value("low_tongue_mask", std::vector<int>({150, 103, 110}));
     std::vector<int> high = this->tray_config_section.get_value( "high_tongue_mask", std::vector<int>({167, 255, 255}));
-    cv::Mat tongue_color_mask = filterUtils::make_selection_by_color(
-rgb_selection, cv::Scalar(low[0], low[1], low[2]), cv::Scalar(high[0], high[1], high[2]));
+    cv::Mat tongue_color_mask = filterUtils::make_selection_by_color(rgb_selection, 
+                                                                     cv::Scalar(low[0], low[1], low[2]), 
+                                                                     cv::Scalar(high[0], high[1], high[2]));
     return tongue_color_mask;
 }
 
@@ -943,13 +940,17 @@ std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat 
     float bead_mask_rate_limit = this->tray_config_section.get_value( "bead_tongue_color_limit", 0.08f);
     Logger::Instance()->Debug("Analyzing {} lane ROIs and {} tray lanes", lane_bounds.size(), tray_lanes.size());
     //todo add check for 13 lane
-    std::transform(tray_lanes.cbegin(), tray_lanes.cend(), lane_bounds.cbegin(),
-                    std::back_inserter(tongue_check_res), [&]
-                   (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) {
-          Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}. {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead",
-                                    polygon_print(lane_outline));
-           return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
-    });
+    std::transform(tray_lanes.cbegin(), 
+                   tray_lanes.cend(), 
+                   lane_bounds.cbegin(),
+                   std::back_inserter(tongue_check_res), 
+                   [&] (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) 
+                   {
+                    Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}. {}", 
+                      pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead", polygon_print(lane_outline));
+                    return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
+                   }
+    );
     return tongue_check_res;
 }
 
@@ -964,15 +965,18 @@ std::vector<bool> TrayAlgorithm::validate_tongues_in_lane_on_tray(const cv::Mat 
   std::vector<bool> tongue_check_res; tongue_check_res.reserve(tray_lanes.size());
   float bead_mask_rate_limit = this->tray_config_section.get_value( "bead_tongue_color_limit", 0.08f);
   //todo add check for 13 lane
-  std::transform(tray_lanes.cbegin(), tray_lanes.cend(), lane_bounds.cbegin(),
-                  std::back_inserter(tongue_check_res), [&]
-                          (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) {
-              Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead");
-              return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
-          });
+  std::transform(
+    tray_lanes.cbegin(), 
+    tray_lanes.cend(), 
+    lane_bounds.cbegin(),
+    std::back_inserter(tongue_check_res), 
+    [&] (const TrayLane cl, const std::vector<cv::Point2i>& lane_outline) 
+    {
+      Logger::Instance()->Debug("Analyzing {} Lane {}, expecting {}", pkid, cl.lane_id(), cl.has_tongue()? "tongue" : "bead");
+      return check_roi_for_tongue(tongue_color_mask, lane_outline, cl.has_tongue(), bead_mask_rate_limit);
+    });
   return tongue_check_res;
 }
-
 
 void TrayAlgorithm::load_eigen_matrix(Eigen::Matrix3Xd &matrix, const std::string &section){
   std::vector<float> dims; // num_calib_coordinates x height x width x depth

@@ -126,7 +126,6 @@ class TrayAlgorithm
     float tongue_wheel_adjustment_mm;
     bool save_tray_visualizations;
     cv::Mat FED_visualization_image, TV_visualization_image;
-    float image_rotation_angle_from_camera_placement = 0.0f;
     // TODO push to init
     std::shared_ptr<fulfil::depthcam::visualization::AdditiveSessionVisualizer> combo_visualizer;
 
@@ -304,7 +303,8 @@ class TrayAlgorithm
     std::tuple<std::vector<tray_count_api_comms::LaneCenterLine>, std::vector<bool>, float>
         get_pixel_lane_centers_and_tongue_detections(const std::shared_ptr<fulfil::depthcam::Session> &session,
             const request_from_vlsg::TrayRequest &tray_vlsg_request,
-            fulfil::dispense::tray::Tray &current_tray);
+            fulfil::dispense::tray::Tray &current_tray,
+            std::shared_ptr<cv::RotateFlags> rotate_code);
 
 
     // getters for tray visualization data

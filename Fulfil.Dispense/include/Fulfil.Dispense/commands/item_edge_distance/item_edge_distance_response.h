@@ -45,8 +45,8 @@ namespace fulfil::dispense::commands
         explicit ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code);
 
         ItemEdgeDistanceResponse(results_to_vlsg::LaneItemDistance lane_item_distance,
-                                    results_to_vlsg::TrayValidationCounts lane_count_result,
-                                    std::shared_ptr<std::string> command_id);
+                                 results_to_vlsg::TrayValidationCounts lane_count_result,
+                                 std::shared_ptr<std::string> command_id);
 
         std::shared_ptr<std::string> get_command_id() override;
 
