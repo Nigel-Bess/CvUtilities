@@ -64,25 +64,18 @@ const float shrink_factor_X = 0.78f;
 */
 const float shrink_factor_Y = 0.92f;
 
-/*
-** Success_code - default 0 if the code runs without exceptions, 10 otherwise
-*/
-int success_code = 0;
-
-/*
-** Bag Empty result flag
-*/
-bool is_bag_empty = false;
-
-/*
-** Error description string
-*/
-std::string error_description = " ";
-
 RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation) {
     this->bot_generation = lfb_generation;
-    if (*bot_generation == "LFB-3.1") edge_threshold = 4500;
-    else edge_threshold = 4900;
+    if (*bot_generation == "LFB-3.1") {
+        edge_threshold = 4500; 
+    } else {
+        edge_threshold = 4900;
+    }
+
+    // defaults for the BagReleaseResponse
+    this->success_code = 0;
+    this->is_bag_empty = false;
+    this->error_description = "";
 }
 
 bool RepackPerception::image_has_color(cv::Mat image) {
@@ -111,10 +104,9 @@ cv::Mat RepackPerception::load_image(std::string image_path) {
         return image;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Caught exception in load_image:") + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -137,10 +129,9 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
         return rejected;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Caught exception in detect_aruco_markers: ") + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -167,10 +158,9 @@ cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points
         return centroid_points;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Caught exception in calculate_centroid: ") + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
  }
@@ -192,10 +182,9 @@ std::vector<cv::Point2f> RepackPerception::shrink_polygon(std::vector<cv::Point2
         return shrunk_polygon;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in shrink_polygon : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in shrink_polygon : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -212,10 +201,9 @@ cv::Mat RepackPerception::process_image(cv::Mat region_of_interest, int kernel_h
         return gaussian_image;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in process_image : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in process_image : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -238,10 +226,9 @@ bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_thr
         return bag_empty;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in canny_edge_detection : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in canny_edge_detection : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -271,11 +258,18 @@ std::vector<cv::Point2f> RepackPerception::get_hull_coordinates(std::vector<cv::
     coordinates.push_back(points_left[7]);
     coordinates.push_back(points_left[0]);
     coordinates.push_back(points_right[0]);
-    std::string log_string = "Got Hull coordinates";
-    Logger::Instance()->Info(log_string);
+    Logger::Instance()->Info("Got Hull coordinates successfully");
     return coordinates;
 }
 
+int get_marker_corners_count(std::vector<std::vector<cv::Point2f>> marker_corners) {
+    int detected_markers_count = marker_corners.size();
+    Logger::Instance()->Debug("RepackPerception's get_marker_corners_count: Expecting 8 marker corners and got {}", detected_markers_count);
+    if (detected_markers_count < 8) {
+        throw std::runtime_error(std::string("In get_marker_corners_count: Is no bot in image? Expecting 8 marker corners but got ") + std::to_string(detected_markers_count));
+    } 
+    return detected_markers_count;
+}
 
 std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::vector<std::vector<cv::Point2f>> marker_corners) {
     try {
@@ -283,7 +277,8 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         std::vector<cv::Point2f> points_left;
         std::vector<cv::Point2f> points;
         bool with_respect_to_X = true;
-        for (int i = 0; i < 8; i++) {
+        int num_markers_to_examine = std::min(8, get_marker_corners_count(marker_corners));
+        for (int i = 0; i < num_markers_to_examine; i++) {
             std::vector<cv::Point2f> corner = marker_corners[i];
             points_left = sort_marker_pixel_coordinates(corner, with_respect_to_X);
             if (points_left[0].x < 800) {
@@ -293,15 +288,13 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         }
         with_respect_to_X = false;
         points = sort_marker_pixel_coordinates(left_coordinates, with_respect_to_X);
-        std::string log_string = "Got Left Inner Coordinates";
-        Logger::Instance()->Info(log_string);
+        Logger::Instance()->Info("Got Left Inner Coordinates");
         return points;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in left_inner_corner_coordinates : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -312,7 +305,8 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
         std::vector<cv::Point2f> points_right;
         std::vector<cv::Point2f> points;
         bool with_respect_to_X = true;
-        for (int i = 0; i < 8; i++) {
+        int num_markers_to_examine = std::min(8, get_marker_corners_count(marker_corners));
+        for (int i = 0; i < num_markers_to_examine; i++) {
             std::vector<cv::Point2f> corner = marker_corners[i];
             points_right = sort_marker_pixel_coordinates(corner, with_respect_to_X);
             if (corner[0].x > 800) {
@@ -327,10 +321,9 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
         return points;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in right_inner_corner_coordinates : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in right_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
@@ -359,58 +352,41 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         cv::bitwise_and(image, image, region_of_interest, mask);
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
-        std::string log_string = "Region of Interest has height " + std::to_string(width) + " and width " + std::to_string(width);
-        Logger::Instance()->Info(log_string);
+        Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
         return region_of_interest;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        error_description = std::string("Error in calculate_roi : ") + std::to_string(success_code) + ": " + e.what();
-        Logger::Instance()->Error(error_description);
+        this->success_code = 10;
+        this->error_description = std::string("Error in calculate_roi : ") + std::to_string(this->success_code) + ": " + e.what();
+        Logger::Instance()->Error(this->error_description);
         throw;
     }
 }
 
-std::tuple<int, bool, std::string> RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image) {
+void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image) {
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
-    std::tuple<int, bool, std::string> result(success_code, is_bag_empty, error_description);
-    std::string image_path = " ";
     try {
         cv::Mat image = *bag_image;
+        // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
         std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image);
         std::vector<cv::Point2f> points_left = left_inner_corner_coordinates(marker_corners);
         std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners);
         std::vector<cv::Point2f> hull_coordinates = get_hull_coordinates(points_right, points_left);
         cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y);
-        cv::Mat gaussian_image = process_image(region_of_interest, kernel_height,
-            kernel_width , sigmaX);
-        is_bag_empty = canny_edge_detection(gaussian_image, edge_threshold,
-            lower_threshold, upper_threshold);
-        //setting the success code to 0 which means empty bag calculation was successful
-        success_code = 0;
-        std::string log = std::string("Success Code: ") + std::to_string(success_code);
-        log += std::string(" Is Bot Empty: ") + std::to_string(is_bag_empty);
-        error_description = log;
-        Logger::Instance()->Info(error_description);
-        return result;
+        cv::Mat gaussian_image = process_image(region_of_interest, kernel_height, kernel_width , sigmaX);
+        this->is_bag_empty = canny_edge_detection(gaussian_image, edge_threshold, lower_threshold, upper_threshold);
+        return;
     }
     catch (const std::exception& e) {
-        success_code = 10;
-        error_description = " ";
-        std::string log = std::string("In catch! Success Code: ") + std::to_string(success_code);
-        log += std::string(" Is Bot Empty: ") + std::to_string(is_bag_empty);
-        error_description = log;
-        Logger::Instance()->Info(error_description);
-        return result;
+        this->success_code = 10;
+        this->error_description = std::string("Caught exception in is_bot_ready_for_release: ") + e.what();
+        Logger::Instance()->Error(this->error_description);
+        return;
     }
     catch (...) {
-        success_code = 10;
-        error_description = " ";
-        std::string log = std::string("In catch(...)! Success Code: ") + std::to_string(success_code);
-        log += std::string(" Is Bot Empty: ") + std::to_string(is_bag_empty);
-        error_description = log;
-        Logger::Instance()->Info(error_description);
-        return result;
+        this->success_code = 10;
+        this->error_description = std::string("Caught error in is_bot_ready_for_release in catch(...)!");
+        Logger::Instance()->Error(this->error_description);
+        return;
     }
 }

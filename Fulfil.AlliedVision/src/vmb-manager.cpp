@@ -100,22 +100,27 @@ void VmbManager::SendResponse(std::string cmd_id, std::string response){
     api_resp->set_message_data(response.data(), response.size());
     service_->QueueResponse(api_resp);
 }
-void VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
+
+/* Returns true if image saving was successful, false otherwise */
+bool VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
     try {
         std::string img_name = image_path + ".bmp";
         if (bag_image.size().empty()) {
-            log_->Error("Cannot save emtpy image to {}", img_name);
-            return;
+            log_->Error("Cannot save empty image to {}", img_name);
+            return false;
         }
         cv::imwrite(img_name, bag_image);
         log_->Info("{} saved successfully!!!", img_name);
+        return true;
 
     }
     catch (const std::exception& ex) {
         log_->Error("VmbManager::SaveImages caught error: {}", ex.what());
+        return false;
     }
     catch (...) {
         log_->Error("VmbManager::SaveImages hit error in catch(...)");
+        return false;
     }
 }
 
@@ -147,19 +152,35 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                     if (std::filesystem::create_directory(directory_path)) {
                         log_->Info("Directory created : {}", directory_path);
                         std::string image_path = directory_path + "color_image";
-                        SaveImages(cam_image, image_path);
+                        bool saved_image_successfully = SaveImages(cam_image, image_path);
+                        if (!saved_image_successfully) {
+                            repack_percep.success_code = 10;
+                            repack_percep.error_description = "Failed to save image successfully, likely the image was empty!";
+                        }
                     }
                     else {
                         log_->Error("Failed to create Directory : {}", directory_path);
+                        repack_percep.success_code = 10;
+                        repack_percep.error_description = "Failed to create Directory : " + directory_path;
                     }
                 }
                 
                 try {
-                    std::tuple<int, bool, std::string> release_bot = repack_percep.is_bot_ready_for_release(image);
-                    int success_code = std::get<0>(release_bot);
-                    bool is_bag_empty_result = std::get<1>(release_bot);
-                    std::string error_description = std::get<2>(release_bot);
-                    response = BagReleaseResponse(cmd_id, pkid, success_code, is_bag_empty_result, error_description);
+                    // don't run the algorithm if the setup encountered issues
+                    if (repack_percep.success_code == 0) 
+                    {
+                        log_->Info("About to run is_bot_ready_for_release");
+                        repack_percep.is_bot_ready_for_release(image);
+                        log_->Info("Results from is_bot_ready_for_release are success code: {}, is_bag_empty: {}, error_description: {}", 
+                            repack_percep.success_code, 
+                            repack_percep.is_bag_empty, 
+                            repack_percep.error_description);
+                    } else 
+                    {
+                        log_->Debug("RepackPerception success code is {}, Not going to proceed with is_bot_ready_for_release", repack_percep.success_code);
+                    }
+                    
+                    response = BagReleaseResponse(cmd_id, pkid, repack_percep.success_code, repack_percep.is_bag_empty, repack_percep.error_description);
                 }
                 catch (const std::exception& e){
                     log_->Error("Issue handling bot release request: \n\t{}", e.what());
