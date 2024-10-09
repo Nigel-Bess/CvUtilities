@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.1.0...v1.2.0) (2024-10-09)
+
+
+### Features
+
+* **exposure:** Set before frame grab ([7d37af3](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/7d37af3fbb9e636efb56af3a3847d7aca0a2fe15))
+
 # [1.1.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.0.0...v1.1.0) (2024-10-07)
 
 
