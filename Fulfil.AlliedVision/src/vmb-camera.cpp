@@ -107,9 +107,10 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     }
     auto count = 0;
     auto err = VmbErrorCustom;
-    
+
     std::lock_guard<std::mutex> lock(_lock);
     {
+        SetFeature("ExposureAuto", "Once");
         while(err != VmbErrorSuccess || count < 1){
             err = camera_->AcquireSingleImage(frame_ptr_, 5000);
             
