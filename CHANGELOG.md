@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.0...v1.2.1) (2024-10-09)
+
+
+### Bug Fixes
+
+* **semver:** tag the image w/ the semver release version ([#127](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/127)) ([1519460](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/1519460c970826b9c35c48b0edb1fc87bd70c0b0))
+
 # [1.2.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.1.0...v1.2.0) (2024-10-09)
 
 
