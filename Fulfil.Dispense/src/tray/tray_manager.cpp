@@ -25,7 +25,8 @@ std_filesystem::path make_tray_audit_image_basename(const comms_context::Request
 }
 
 bool TrayManager::save_tray_audit_image(
-  const comms_context::RequestContextInfo &request_context, std::string local_root_path, double scale_resize, std::shared_ptr<cv::RotateFlags> rotate_code)
+  const comms_context::RequestContextInfo &request_context, std::string local_root_path, double scale_resize, std::shared_ptr<cv::RotateFlags> rotate_code,
+  float tray_width, float tray_length, int induction_cam_distance_from_tray)
 {
     std_filesystem::path const path_suffix {make_tray_audit_image_basename(request_context)};
     std_filesystem::path const tray_audit_local_file { local_root_path / path_suffix } ;
@@ -33,6 +34,9 @@ bool TrayManager::save_tray_audit_image(
     try {
         auto timer = fulfil::utils::timing::Timer("TrayManager::save_tray_audit_image " + path_suffix.string() );
         cv::Mat color_mat = this->session->grab_color_frame();
+
+        // crop image
+        crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
         
         // rotate the image if needed
         if (rotate_code != nullptr)
@@ -111,4 +115,34 @@ results_to_vlsg::TrayValidationCounts TrayManager::dispatch_request_to_count_api
     doc.update(tray_request_obj.m_context);
     return doc.get<results_to_vlsg::TrayValidationCounts>();
 
+}
+
+// crop image
+void TrayManager::crop_image(cv::Mat &input_image, float tray_width, float tray_length, int induction_cam_distance_from_tray)
+{
+    int width_offset = ((tray_width*1000.0f) * session->get_depth_stream_intrinsics()->fx) / (2*induction_cam_distance_from_tray);
+    int height_offset = ((tray_length*1000.0f) * session->get_depth_stream_intrinsics()->fy) / (2*induction_cam_distance_from_tray);
+    // find the center of the image
+    int center_x = input_image.cols / 2;
+    int center_y = input_image.rows / 2;
+    // define cropping dimensions
+    int crop_buffer = 100; // in pixels
+    int left_offset = width_offset + crop_buffer;
+    int right_offset = width_offset + crop_buffer;
+    int top_offset = height_offset + crop_buffer;
+    int bottom_offset = height_offset + crop_buffer;
+    // calculate the cropping rectangle boundaries
+    int x_start = center_x - left_offset;
+    int y_start = center_y - top_offset;
+    int crop_width = left_offset + right_offset;
+    int crop_height = top_offset + bottom_offset;
+    // ensure the cropping rectangle stays within the image bounds
+    x_start = std::max(0, x_start);
+    y_start = std::max(0, y_start);
+    crop_width = std::min(crop_width, input_image.cols - x_start);
+    crop_height = std::min(crop_height, input_image.rows - y_start);
+    // create the cropping rectangle (ROI)
+    cv::Rect roi(x_start, y_start, crop_width, crop_height);
+    // crop the image
+    input_image = input_image(roi).clone();
 }

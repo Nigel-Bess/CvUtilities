@@ -22,6 +22,9 @@ namespace fulfil::dispense::tray
     std::shared_ptr<fulfil::depthcam::Session> session;
     fulfil::configuration::tray::TrayDimensions tray_builder;
 
+    // crop image
+    void crop_image(cv::Mat &input_image, float tray_width, float tray_length, int induction_cam_distance_from_tray);
+
   public:
     TrayManager(
         const std::shared_ptr<fulfil::depthcam::Session> &session,
@@ -54,7 +57,10 @@ namespace fulfil::dispense::tray
     bool save_tray_audit_image(const comms_context::RequestContextInfo &request_context,
                                std::string local_root_path,
                                double scale_resize, 
-                               std::shared_ptr<cv::RotateFlags> rotate_code);
+                               std::shared_ptr<cv::RotateFlags> rotate_code,
+                               float tray_width,
+                               float tray_length,
+                               int induction_cam_distance_from_tray);
 
     // TODO make a std::optional? Also almost certain I can move the
     //  center generation out of algo

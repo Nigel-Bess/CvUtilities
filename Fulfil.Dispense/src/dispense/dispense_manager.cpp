@@ -821,6 +821,10 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     std::shared_ptr<TrayAlgorithm> tray_algorithm = std::make_shared<TrayAlgorithm>(section_reader);
     Tray tray = this->tray_manager->create_tray(tray_validation_request.m_tray_recipe);
 
+    // tray parameters for image cropping
+    float tray_width = section_reader.at<float>("tray_width"); 
+    float tray_length = section_reader.at<float>("tray_length");
+
     // rotate image as needed based on the config
     std::shared_ptr<cv::RotateFlags> rotate_code(nullptr);
     int image_rotation_angle_from_camera_placement = this->dispense_reader->GetInteger("device_specific", "image_rotation_angle_from_camera_placement", 0);
@@ -845,7 +849,7 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     try 
     {
         //save_tray_audit_image
-        if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor, rotate_code))
+        if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor, rotate_code, tray_width, tray_length, this->get_induction_cam_distance_from_tray()))
         {
             this->tray_manager->upload_tray_data(tray_validation_request.m_context, local_base_path, GCSSender(this->cloud_media_bucket, this->store_id));
         }
@@ -1122,3 +1126,5 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     data_generator.save_data(std::make_shared<std::string>());
     return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id);
 }
+
+int fulfil::dispense::DispenseManager::get_induction_cam_distance_from_tray() { return this->induction_cam_distance_from_tray; }
