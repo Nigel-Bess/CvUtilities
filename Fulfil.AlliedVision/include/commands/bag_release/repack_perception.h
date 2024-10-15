@@ -126,6 +126,11 @@ namespace fulfil::dispense::commands {
         std::vector<cv::Point2f> get_hull_coordinates(std::vector<cv::Point2f> points_right, std::vector<cv::Point2f> points_left);
 
         /*
+        * Returns the count of markers in the given vector and handles all exceptions about marker count
+        */
+        int get_marker_count(std::vector<std::vector<cv::Point2f>> marker_coordinate_points);
+
+        /*
         * Calculate the left inner corner coordinates for the Hull
         * @param Aruco Tag corner coordinates
         * @return Left 2 Hull Coordinates

@@ -141,9 +141,9 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
             std::string image_path = directory_path + "markers_detected.bmp";
             SaveImages(img, image_path);
         }
-        else {
-            throw std::logic_error("Error in detect_aruco_markers. Markers not found");
-        }
+        int num_markers = get_marker_count(rejected);
+        Logger::Instance()->Info("RepackPerception's detect_aruco_markers detected {} markers", num_markers);
+        
         return rejected;
     }
     catch (const std::exception& e) {
@@ -280,12 +280,22 @@ std::vector<cv::Point2f> RepackPerception::get_hull_coordinates(std::vector<cv::
     return coordinates;
 }
 
-int get_marker_corners_count(std::vector<std::vector<cv::Point2f>> marker_corners) {
-    int detected_markers_count = marker_corners.size();
-    Logger::Instance()->Debug("RepackPerception's get_marker_corners_count: Expecting 8 marker corners and got {}", detected_markers_count);
+int RepackPerception::get_marker_count(std::vector<std::vector<cv::Point2f>> marker_coordinate_points) {
+    int detected_markers_count = marker_coordinate_points.size();
+    std::string count_log = "RepackPerception's get_marker_count: Expecting 8 marker corners and got " + std::to_string(detected_markers_count);
+    Logger::Instance()->Debug(count_log);
+    // if less markers present than the bot number, the algorithm will have weird behavior
     if (detected_markers_count < 8) {
-        throw std::runtime_error(std::string("In get_marker_corners_count: Is no bot in image? Expecting 8 marker corners but got ") + std::to_string(detected_markers_count));
-    } 
+        // not enough markers detected code
+        this->success_code = 2;
+        
+        // 1 marker detected may be the grid's april tag, not a bot
+        if (detected_markers_count < 2) { this->success_code = 1; }
+
+        this->error_description = std::string("Error in get_marker_count with success code " ) + std::to_string(this->success_code) + ": " + count_log;
+        Logger::Instance()->Error(this->error_description);
+        throw std::runtime_error(std::string("In get_marker_count: Is no bot in image? " + count_log));
+    }
     return detected_markers_count;
 }
 
@@ -295,7 +305,7 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         std::vector<cv::Point2f> points_left;
         std::vector<cv::Point2f> points;
         bool with_respect_to_X = true;
-        int num_markers_to_examine = std::min(8, get_marker_corners_count(marker_corners));
+        int num_markers_to_examine = std::min(8, get_marker_count(marker_corners));
         for (int i = 0; i < num_markers_to_examine; i++) {
             std::vector<cv::Point2f> corner = marker_corners[i];
             points_left = sort_marker_pixel_coordinates(corner, with_respect_to_X);
@@ -310,9 +320,11 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         return points;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
-        Logger::Instance()->Error(this->error_description);
+        if (this->success_code == 0) {
+            this->success_code = 10;
+            this->error_description = std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
+            Logger::Instance()->Error(this->error_description);
+        }
         throw;
     }
 }
@@ -323,7 +335,7 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
         std::vector<cv::Point2f> points_right;
         std::vector<cv::Point2f> points;
         bool with_respect_to_X = true;
-        int num_markers_to_examine = std::min(8, get_marker_corners_count(marker_corners));
+        int num_markers_to_examine = std::min(8, get_marker_count(marker_corners));
         for (int i = 0; i < num_markers_to_examine; i++) {
             std::vector<cv::Point2f> corner = marker_corners[i];
             points_right = sort_marker_pixel_coordinates(corner, with_respect_to_X);
@@ -400,15 +412,25 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         return;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught exception in is_bot_ready_for_release: ") + e.what();
-        Logger::Instance()->Error(this->error_description);
+        Logger::Instance()->Trace("RepackPerception is_bot_ready_for_release in catch exception");
+        if (this->success_code == 0) {
+            this->success_code = 10;
+            this->error_description = std::string("Caught exception in is_bot_ready_for_release: ") + e.what();
+            Logger::Instance()->Error(this->error_description);
+        } else {
+            Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
+        }
         return;
     }
     catch (...) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught error in is_bot_ready_for_release in catch(...)!");
-        Logger::Instance()->Error(this->error_description);
+        Logger::Instance()->Trace("RepackPerception is_bot_ready_for_release in catch (...) block");
+        if (this->success_code == 0) {
+            this->success_code = 10;
+            this->error_description = std::string("Caught error in is_bot_ready_for_release in catch(...)!");
+            Logger::Instance()->Error(this->error_description);
+        } else {
+            Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);
+        }
         return;
     }
 }
