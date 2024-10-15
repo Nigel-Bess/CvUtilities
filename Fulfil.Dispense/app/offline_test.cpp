@@ -80,28 +80,14 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
 	start_mock_session(directory_path, mock_session, mock_serial);
 	if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
-
 	//NOTE that width and length of container are given in meters
-
 	// Creating the DropManager
 	std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
 			mock_session, reader, nullptr);
-
 	// Creating the requests
 	std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
-
-//  std::ifstream ifs("LFB3_bag_state_default.json");
-//  std::string content( (std::istreambuf_iterator<char>(ifs) ),
-//                       (std::istreambuf_iterator<char>()    ) );
-//  std::string bag_state_json_str = "LFB3_bag_state_default.json";
-//  nlohmann::json bag_state_json = nlohmann::json::parse(bag_state_json_str);
-//  Logger::Instance()->Info("Bag state JSON: ", bag_state_json["LfbConfig"]);
-//  auto cvbag = fulfil::mongo::CvBagState(bag_state_json);
-//  manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
-
 	std::vector<std::shared_ptr<fulfil::dispense::commands::DropTargetDetails>> requests;
 	// id numbers for request on right
-
 	for (auto it = test_items.begin(); it != test_items.end(); ++it) {
 		std::cout << std::endl;
 		Logger::Instance()->Info("Handling request #{}", *it);
@@ -110,59 +96,11 @@ void test_pre_drop_routine_simulated(std::shared_ptr<std::string> directory_path
 		*/
 		std::shared_ptr<nlohmann::json> request_json = read_in_request_json(*directory_path, "json_request.json");
 		requests.push_back(std::make_shared<DropTargetDetails>(request_json, request_id));
-
-//    Logger::Instance()->Debug("Reading json request from file now");
-//    std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
-//    file_path->append(*directory_path);
-//    *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
-//    Logger::Instance()->Debug("File location is: {}", *file_path);
-//    std::ifstream ifs( *file_path);
-//    std::string req_content((std::istreambuf_iterator<char>(ifs) ),
-//                        (std::istreambuf_iterator<char>()));
-//    Logger::Instance()->Debug("Request JSON content is: {}", req_content);
-//    std::shared_ptr<nlohmann::json> request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(req_content.c_str()));
-
-//      std::ifstream ifs("LFB3_bag_state_default.json");
-
 		std::shared_ptr<nlohmann::json> bag_state_json = read_in_request_json(*directory_path, "bag_state.json");
-//    std::shared_ptr<std::string> bag_state_file_path = std::make_shared<std::string>();  //read json from file
-//    bag_state_file_path->append(*directory_path);
-//    *bag_state_file_path = make_media::paths::join_as_path(*bag_state_file_path, "bag_state.json");
-////      /home/jessv/code/Fulfil.Dispense/data/apr04/660eee5f027cca9aea0c17e8/Drop_Target_Image/2024_04_04_H11_M16_S00
-//    Logger::Instance()->Debug("File location is: {}", *bag_state_file_path);
-//    std::ifstream bag( *bag_state_file_path);
-//    std::string content( (std::istreambuf_iterator<char>(bag) ),
-//                         (std::istreambuf_iterator<char>()    ) );
-////      std::string bag_state_json_str = "LFB3_bag_state_default.json";
-//    Logger::Instance()->Info("Bag state JSON: ", content);
-
-//    nlohmann::json bag_state_json = nlohmann::json::parse(content.c_str());
-//      nlohmann::json empty = nlohmann::json({});
-
-//      *bag_state_json = bag_state_json->value("Bag_State", empty);
-		//    Logger::Instance()->Info("Bag state JSON: ", content);
-//      Logger::Instance()->Debug("JSON contents is: {}", bag_state_json->dump());
-
-
 		Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
 		Logger::Instance()->Debug("BagId string is: {}", (*bag_state_json)["BagId"].get<std::string>());
-//    Logger::Instance()->Debug("MongoID string is: {}", (*bag_state_json)["MongoID"].get<std::string>());
-//    (*bag_state_json)["LfbConfig"] = empty;
-//    Logger::Instance()->Debug("LfbConfig string is: {}", std::string((*bag_state_json)));
-
 		auto cvbag = std::make_shared<fulfil::mongo::CvBagState>(*bag_state_json);
-		// read in default lfb vision config json
-		// pass in!
-		/**
-		 * LFB Vision config json default :cry: but also is the default file even needed bc tecnically it should work without any file
-		 */
-//      std::string prefix = DEFAULT_FULFIL_INI_DIR;
-//      if (prefix.back() != '/') prefix.append("/");
-//      filename = (filename.front() == '/') ? prefix.append(&filename[1]) : prefix.append(filename);
-//    cvbag->Config =
 		manager->mongo_bag_state->parse_in_values(cvbag);
-//            std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
-
 		manager->handle_drop_request(request_json,
 									 requests.at(*it),
 									 directory_path, FileSystemUtil::create_datetime_string(),
@@ -189,6 +127,12 @@ void test_pre_drop_routine_json(std::shared_ptr<std::string> directory_path, std
 	std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> offline_drop_details =
 			std::make_shared<fulfil::dispense::commands::DropTargetDetails>(request_json, request_id);
 
+	std::shared_ptr<nlohmann::json> bag_state_json = read_in_request_json(*directory_path, "bag_state.json");
+	Logger::Instance()->Debug("BagId is: {}", bag_state_json->value("BagId", "NONE"));
+	Logger::Instance()->Debug("BagId string is: {}", (*bag_state_json)["BagId"].get<std::string>());
+
+	auto cvbag = std::make_shared<fulfil::mongo::CvBagState>(*bag_state_json);
+	manager->mongo_bag_state->parse_in_values(cvbag);
 	std::cout << std::endl;
 	Logger::Instance()->Info("Handling request now");
 	manager->handle_drop_request(request_json, offline_drop_details, directory_path,
@@ -227,226 +171,127 @@ void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::sh
 	ff_mongo_cpp::mongo_objects::MongoObjectID bag_oid = ff_mongo_cpp::mongo_objects::MongoObjectID(
 			"5e6fe411b901a80c5481d4e5");
 	std::shared_ptr<fulfil::mongo::MongoBagState> doc = std::make_shared<fulfil::mongo::MongoBagState>(bag_oid, false);
-//  manager->handle_post_LFR(post_request_json, base_directory, request_id, false);
 	manager->searcher->find_max_Z(container, request_id, lfb_vision_config, doc, post_request_json, nullptr,
 								  base_directory); // parameters
-
-
-	/**
-	 * Add additional check for products fitting in bag
-	 */
-//   manager->cached_post_container = container;
-//   std::vector<int> products_to_overflow = manager->check_products_for_fit_in_bag(LFB_config_reader, post_request_json);
-//   std::cout << "offline test for product fit included " << products_to_overflow.size() << " products" << std::endl;
-//
-//   PostLFRResponse test_response = PostLFRResponse(request_id, 0);
-//   test_response.set_products_to_overflow(products_to_overflow);
-//   test_response.dispense_payload();
 }
 
 int
 test_compare_pre_post(std::shared_ptr<std::string> directory_path_pre, std::shared_ptr<std::string> directory_path_post,
 					  std::shared_ptr<std::string> directory_path_target, std::shared_ptr<INIReader> reader) {
 	Logger::Instance()->Fatal("This test is not currently supported!");
-//    //TODO: needs many modifications
-//  std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_pre;
-//  std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_post;
-//  std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
-//  if (mock_serial == "NOT USED")
-//  {
-//    Logger::Instance()->Info(
-//        "No mock serial, was supplied in test ini. To avoid manual input in the future, add to ini.");
-//    mock_session_pre = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_pre);
-//    mock_session_post = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_post);
-//  }
-//  else
-//  {
-//    mock_session_pre = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_pre, mock_serial);
-//    mock_session_post = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_post, mock_serial);
-//  }
-//
-//  //load request_json files from pre and post saved data //TODO: create a separate function for reading json files from directory and storing in request_json pointer. Used above as well
-//  Logger::Instance()->Debug("Reading pre json request from file now");
-//  std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
-//  file_path->append(*directory_path_pre);
-//  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
-//  Logger::Instance()->Debug("File location is: {}", *file_path);
-//  std::ifstream ifs( *file_path);
-//  std::shared_ptr<nlohmann::json> pre_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs));
-//  Logger::Instance()->Debug("PRE JSON REQUEST:{}", pre_request_json->dump());
-//
-//  Logger::Instance()->Debug("Reading post json request from file now");
-//  file_path = std::make_shared<std::string>();  //read json from file
-//  file_path->append(*directory_path_post);
-//  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
-//  Logger::Instance()->Debug("File location is: {}", *file_path);
-//  std::ifstream ifs2( *file_path);
-//  std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
-//  Logger::Instance()->Debug("POST JSON REQUEST:{}", post_request_json->dump());
-//
-//  Logger::Instance()->Debug("Reading drop target json request from file now");
-//  file_path = std::make_shared<std::string>();  //read json from file
-//  file_path->append(*directory_path_target);
-//  *file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
-//  Logger::Instance()->Debug("File location is: {}", *file_path);
-//  std::ifstream ifs3( *file_path);
-//  std::shared_ptr<nlohmann::json> drop_target_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs3));
-//  Logger::Instance()->Debug("DROP TARGET JSON REQUEST:{}", drop_target_json->dump());
-//
-//
-//  Logger::Instance()->Debug("Reading error code and (if available) target X and Y values now");
-//  file_path = std::make_shared<std::string>();  //read json from file
-//  file_path->append(*directory_path_pre);
-//  *file_path = make_media::paths::join_as_path(*file_path, "error_code");
-//  Logger::Instance()->Debug("File location is: {}", *file_path);
-//  std::ifstream ifs_error( *file_path);
-//  std::string s;
-//  std::getline(ifs_error, s);
-//
-//  //if error code = 0, then read in the given target info. Otherwise pass in values of -1 as invalid target data
-//  int error_code = std::stoi(s);
-//  float target_x;
-//  float target_y;
-//
-//  if (error_code != 0)
-//  {
-//    target_x = -1;
-//    target_y = -1;
-//  }
-//  else
-//  {
-//    file_path = std::make_shared<std::string>();  //read json from file
-//    file_path->append(*directory_path_target);
-//    *file_path = make_media::paths::join_as_path(*file_path, "target_center");
-//    Logger::Instance()->Debug("Target file location is: {}", *file_path);
-//    std::ifstream ifs_target( *file_path);
-//    std::string target_x_line;
-//    std::string target_y_line;
-//    std::getline(ifs_target, target_x_line);
-//    std::getline(ifs_target, target_y_line);
-//    target_x = std::stof(target_x_line) / 1000; //target coordinates converted to meters
-//    target_y = std::stof(target_y_line) / 1000;
-//  }
-//
-//  Logger::Instance()->Debug("Read target data as X: {}, Y: {}", target_x, target_y);
-//
-//  Logger::Instance()->Trace("Creating DropManager from mock_session_post now");
-//  // Creating the DropManager
-//  std::shared_ptr<fulfil::dispense::drop::DropManager>
-//      manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session_post, reader, nullptr);
-//
-//  std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
-//  Logger::Instance()->Trace("Calling dropzonesearcher compare_pre_post now");
-//
-//  bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
-//
-//  std::shared_ptr<MarkerDetectorContainer> pre_container = manager->searcher->get_container(LFB_config_reader, mock_session_pre, extend_depth_analysis_over_markers);
-//  std::shared_ptr<MarkerDetectorContainer> post_container = manager->searcher->get_container(LFB_config_reader, mock_session_post, extend_depth_analysis_over_markers);
-//
-//  std::shared_ptr<cv::Mat> result_mat = nullptr;
-//  int target_item_overlap = 0;
-//  int result = manager->pre_post_compare->run_comparison(pre_container, post_container, LFB_config_reader, pre_request_json,
-//                                                         post_request_json, drop_target_json, cv::Point2f(target_x,target_y),
-//                                                         &result_mat, &target_item_overlap); // parameters
-//  Logger::Instance()->Debug("Percentage of item that landed on target is: {}", target_item_overlap);
-//
-//  if(result == 0)
-//  {
-//    std::cout << "No items were detected" << std::endl;
-//  }
-//  else
-//  {
-//    std::cout << result << std::endl;
-//  }
-//
-//  cv::waitKey(0);
-//  cv::destroyAllWindows();
-//
-//  Logger::Instance()->Debug("Pre Post Compare finished in offline_test");
+    //TODO: needs many modifications
+  //std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_pre;
+  //std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_post;
+  //std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
+  //if (mock_serial == "NOT USED")
+  //{
+  //  Logger::Instance()->Info(
+  //      "No mock serial, was supplied in test ini. To avoid manual input in the future, add to ini.");
+  //  mock_session_pre = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_pre);
+  //  mock_session_post = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_post);
+  //}
+  //else
+  //{
+  //  mock_session_pre = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_pre, mock_serial);
+  //  mock_session_post = std::make_shared<fulfil::depthcam::mocks::MockSession>(directory_path_post, mock_serial);
+  //}
 
-//  return result;
-	return 0;
-//  Logger::Instance()->Debug("Reading post json request from file now");
-//  std::shared_ptr<nlohmann::json> post_request_json = read_in_request_json(*directory_path_post, "json_request.json");
-//  Logger::Instance()->Debug("POST JSON REQUEST:{}", post_request_json->dump());
-//
-//  Logger::Instance()->Debug("Reading drop target json request from file now");
-//  std::shared_ptr<nlohmann::json> drop_target_json = read_in_request_json(*directory_path_target, "json_request.json");
-//  Logger::Instance()->Debug("DROP TARGET JSON REQUEST:{}", drop_target_json->dump());
-//
-//
-//  Logger::Instance()->Debug("Reading error code and (if available) target X and Y values now");
-//  std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
-//  file_path->append(*directory_path_pre);
-//  *file_path = make_media::paths::join_as_path(*file_path, "error_code");
-//  Logger::Instance()->Debug("File location is: {}", *file_path);
-//  std::ifstream ifs_error( *file_path);
-//  std::string s;
-//  std::getline(ifs_error, s);
-//
-//  //if error code = 0, then read in the given target info. Otherwise pass in values of -1 as invalid target data
-//  int error_code = std::stoi(s);
-//  float target_x;
-//  float target_y;
-//
-//  if (error_code != 0)
-//  {
-//    target_x = -1;
-//    target_y = -1;
-//  }
-//  else
-//  {
-//    file_path = std::make_shared<std::string>();  //read json from file
-//    file_path->append(*directory_path_target);
-//    *file_path = make_media::paths::join_as_path(*file_path, "target_center");
-//    Logger::Instance()->Debug("Target file location is: {}", *file_path);
-//    std::ifstream ifs_target( *file_path);
-//    std::string target_x_line;
-//    std::string target_y_line;
-//    std::getline(ifs_target, target_x_line);
-//    std::getline(ifs_target, target_y_line);
-//    target_x = std::stof(target_x_line) / 1000; //target coordinates converted to meters
-//    target_y = std::stof(target_y_line) / 1000;
-//  }
-//
-//  Logger::Instance()->Debug("Read target data as X: {}, Y: {}", target_x, target_y);
-//
-//  Logger::Instance()->Trace("Creating DropManager from mock_session_post now");
-//  // Creating the DropManager
-//  std::shared_ptr<fulfil::dispense::drop::DropManager>
-//      manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session_post, reader, nullptr);
-//
-//  std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
-//  Logger::Instance()->Trace("Calling dropzonesearcher compare_pre_post now");
-//
-//  bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
-//
-//  std::shared_ptr<MarkerDetectorContainer> pre_container = manager->searcher->get_container(LFB_config_reader, mock_session_pre, extend_depth_analysis_over_markers);
-//  std::shared_ptr<MarkerDetectorContainer> post_container = manager->searcher->get_container(LFB_config_reader, mock_session_post, extend_depth_analysis_over_markers);
-//
-//  std::shared_ptr<cv::Mat> result_mat = nullptr;
-//  int target_item_overlap = 0;
-//  int result = manager->pre_post_compare->run_comparison(pre_container, post_container, LFB_config_reader, pre_request_json,
-//                                                         post_request_json, drop_target_json, cv::Point2f(target_x,target_y),
-//                                                         &result_mat, &target_item_overlap); // parameters
-//  Logger::Instance()->Debug("Percentage of item that landed on target is: {}", target_item_overlap);
-//
-//  if(result == 0)
-//  {
-//    std::cout << "No items were detected" << std::endl;
-//  }
-//  else
-//  {
-//    std::cout << result << std::endl;
-//  }
-//
-//
-//  cv::waitKey(0);
-//  cv::destroyAllWindows();
-//
-//  Logger::Instance()->Debug("Pre Post Compare finished in offline_test");
-//
-//  return result;
+  ////load request_json files from pre and post saved data //TODO: create a separate function for reading json files from directory and storing in request_json pointer. Used above as well
+  //Logger::Instance()->Debug("Reading pre json request from file now");
+  //std::shared_ptr<std::string> file_path = std::make_shared<std::string>();  //read json from file
+  //file_path->append(*directory_path_pre);
+  //*file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
+  //Logger::Instance()->Debug("File location is: {}", *file_path);
+  //std::ifstream ifs( *file_path);
+  //std::shared_ptr<nlohmann::json> pre_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs));
+  //Logger::Instance()->Debug("PRE JSON REQUEST:{}", pre_request_json->dump());
+
+  //Logger::Instance()->Debug("Reading post json request from file now");
+  //file_path = std::make_shared<std::string>();  //read json from file
+  //file_path->append(*directory_path_post);
+  //*file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
+  //Logger::Instance()->Debug("File location is: {}", *file_path);
+  //std::ifstream ifs2( *file_path);
+  //std::shared_ptr<nlohmann::json> post_request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs2));
+  //Logger::Instance()->Debug("POST JSON REQUEST:{}", post_request_json->dump());
+
+  //Logger::Instance()->Debug("Reading drop target json request from file now");
+  //file_path = std::make_shared<std::string>();  //read json from file
+  //file_path->append(*directory_path_target);
+  //*file_path = make_media::paths::join_as_path(*file_path, "json_request.json");
+  //Logger::Instance()->Debug("File location is: {}", *file_path);
+  //std::ifstream ifs3( *file_path);
+  //std::shared_ptr<nlohmann::json> drop_target_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(ifs3));
+  //Logger::Instance()->Debug("DROP TARGET JSON REQUEST:{}", drop_target_json->dump());
+
+
+  //Logger::Instance()->Debug("Reading error code and (if available) target X and Y values now");
+  //file_path = std::make_shared<std::string>();  //read json from file
+  //file_path->append(*directory_path_pre);
+  //*file_path = make_media::paths::join_as_path(*file_path, "error_code");
+  //Logger::Instance()->Debug("File location is: {}", *file_path);
+  //std::ifstream ifs_error( *file_path);
+  //std::string s;
+  //std::getline(ifs_error, s);
+
+  ////if error code = 0, then read in the given target info. Otherwise pass in values of -1 as invalid target data
+  //int error_code = std::stoi(s);
+  //float target_x;
+  //float target_y;
+
+  //if (error_code != 0)
+  //{
+  //  target_x = -1;
+  //  target_y = -1;
+  //}
+  //else
+  //{
+  //  file_path = std::make_shared<std::string>();  //read json from file
+  //  file_path->append(*directory_path_target);
+  //  *file_path = make_media::paths::join_as_path(*file_path, "target_center");
+  //  Logger::Instance()->Debug("Target file location is: {}", *file_path);
+  //  std::ifstream ifs_target( *file_path);
+  //  std::string target_x_line;
+  //  std::string target_y_line;
+  //  std::getline(ifs_target, target_x_line);
+  //  std::getline(ifs_target, target_y_line);
+  //  target_x = std::stof(target_x_line) / 1000; //target coordinates converted to meters
+  //  target_y = std::stof(target_y_line) / 1000;
+  //}
+
+  //Logger::Instance()->Debug("Read target data as X: {}, Y: {}", target_x, target_y);
+  //Logger::Instance()->Trace("Creating DropManager from mock_session_post now");
+  //// Creating the DropManager
+  //std::shared_ptr<fulfil::dispense::drop::DropManager>
+  //    manager = std::make_shared<fulfil::dispense::drop::DropManager>(mock_session_post, reader, nullptr);
+
+  //std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
+  //Logger::Instance()->Trace("Calling dropzonesearcher compare_pre_post now");
+
+  //bool extend_depth_analysis_over_markers = LFB_config_reader->GetBoolean("LFB_config", "extend_depth_analysis_over_markers", false);
+
+  //std::shared_ptr<MarkerDetectorContainer> pre_container = manager->searcher->get_container(LFB_config_reader, mock_session_pre, extend_depth_analysis_over_markers);
+  //std::shared_ptr<MarkerDetectorContainer> post_container = manager->searcher->get_container(LFB_config_reader, mock_session_post, extend_depth_analysis_over_markers);
+
+  //std::shared_ptr<cv::Mat> result_mat = nullptr;
+  //int target_item_overlap = 0;
+  //int result = manager->pre_post_compare->run_comparison(pre_container, post_container, LFB_config_reader, pre_request_json,
+  //                                                       post_request_json, drop_target_json, cv::Point2f(target_x,target_y),
+  //                                                       &result_mat, &target_item_overlap); // parameters
+  //Logger::Instance()->Debug("Percentage of item that landed on target is: {}", target_item_overlap);
+
+  //if(result == 0)
+  //{
+  //  std::cout << "No items were detected" << std::endl;
+  //}
+  //else
+  //{
+  //  std::cout << result << std::endl;
+  //}
+  //cv::waitKey(0);
+  //cv::destroyAllWindows();
+  //Logger::Instance()->Debug("Pre Post Compare finished in offline_test");
+  return 0;
 }
 
 void test_item_on_ground_post_drop(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {

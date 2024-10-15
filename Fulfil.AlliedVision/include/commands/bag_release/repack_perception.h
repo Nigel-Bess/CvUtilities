@@ -54,6 +54,11 @@ namespace fulfil::dispense::commands {
         bool image_has_color(cv::Mat image);
 
         /*
+        * Saves the image to the given filepath
+        * @param image, image_path
+        */
+        void SaveImages(cv::Mat image, std::string image_path);
+        /*
         * Load the input image to the algorithm 
         * @param input image path
         * @return input image
@@ -65,7 +70,7 @@ namespace fulfil::dispense::commands {
         * @param input image captured from the repack station camera
         * @return Marker Corner Coordinates for all the Aruco markers
         */
-        std::vector<std::vector<cv::Point2f>> detect_aruco_markers(cv::Mat img);
+        std::vector<std::vector<cv::Point2f>> detect_aruco_markers(cv::Mat img, std::string directory_path);
 
         /*
         * Calculate centroid from aruco coordinates
@@ -143,14 +148,14 @@ namespace fulfil::dispense::commands {
         * @param Shrink Factor for Y axes
         * @return Region of Interest of the input image
         */
-        cv::Mat calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y);
+        cv::Mat calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y, std::string directory_path);
 
         /*
         * Determines whether the bot in the image at the given filepath is ready for release into the factory
         * This is a check to make sure the bot is fully empty and no items or spills are present
         * @return a tuple with int representing the success_code, boolean value denoting is the bag empty and string for error description
         */
-        void is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image);
+        void is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path);
 
 };
 

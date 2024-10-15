@@ -93,6 +93,22 @@ bool RepackPerception::image_has_color(cv::Mat image) {
     return false;
 }
 
+void RepackPerception::SaveImages(cv::Mat image, std::string image_path) {
+    try {
+        if (image.size().empty()) {
+            Logger::Instance()->Error("Cannot save empty image to {}", image_path);
+        }
+        cv::imwrite(image_path, image);
+        Logger::Instance()->Info("{} saved successfully!!!", image_path);
+    }
+    catch (const std::exception& ex) {
+        Logger::Instance()->Error("RepackPerception::SaveImages caught error: {}", ex.what());
+    }
+    catch (...) {
+        Logger::Instance()->Error("RepackPerception::SaveImages hit error in catch(...)");
+    }
+}
+
 cv::Mat RepackPerception::load_image(std::string image_path) {
     try {
         cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
@@ -111,7 +127,7 @@ cv::Mat RepackPerception::load_image(std::string image_path) {
     }
 }
 
-std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv::Mat img) {
+std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv::Mat img, std::string directory_path) {
     try {
         cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
         parameters->minCornerDistanceRate = 0.24;
@@ -122,6 +138,8 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
         cv::aruco::detectMarkers(img, dictionary, corners, ids, parameters, rejected);
         if (rejected.size() > 0) {
             cv::aruco::drawDetectedMarkers(img, rejected, ids, cv::Scalar(0, 255, 0));
+            std::string image_path = directory_path + "markers_detected.bmp";
+            SaveImages(img, image_path);
         }
         else {
             throw std::logic_error("Error in detect_aruco_markers. Markers not found");
@@ -328,7 +346,7 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
     }
 }
 
-cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y) {
+cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y, std::string directory_path) {
     try {
         cv::Mat region_of_interest;
         std::vector<cv::Point2f> hull_points2f;
@@ -349,10 +367,14 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         cv::Mat mask = cv::Mat(image.size(), CV_8U, 1);
         mask.setTo(cv::Scalar(0));
         cv::fillConvexPoly(mask, shrink_hull, cv::Scalar(255, 255, 255));
+        std::string path = directory_path + "hull_image.bmp";
+        SaveImages(image, path);
         cv::bitwise_and(image, image, region_of_interest, mask);
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
         Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
+        std::string image_path = directory_path + "region_of_interest.bmp";
+        SaveImages(region_of_interest, image_path);
         return region_of_interest;
     }
     catch (const std::exception& e) {
@@ -363,16 +385,16 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
     }
 }
 
-void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image) {
+void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path) {
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
     try {
         cv::Mat image = *bag_image;
         // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
-        std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image);
+        std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image, directory_path);
         std::vector<cv::Point2f> points_left = left_inner_corner_coordinates(marker_corners);
         std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners);
         std::vector<cv::Point2f> hull_coordinates = get_hull_coordinates(points_right, points_left);
-        cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y);
+        cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y, directory_path);
         cv::Mat gaussian_image = process_image(region_of_interest, kernel_height, kernel_width , sigmaX);
         this->is_bag_empty = canny_edge_detection(gaussian_image, edge_threshold, lower_threshold, upper_threshold);
         return;
