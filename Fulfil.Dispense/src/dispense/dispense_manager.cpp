@@ -735,7 +735,8 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     // only refresh once at the beginning of the request handling
     this->tray_session->refresh();
 
-    bool is_pre_dispense = single_lane_val_req.get_sequence_step().substr(2,3) == "Pre";
+    bool is_pre_dispense = single_lane_val_req.get_sequence_step().substr(0,3) == "Pre";
+    Logger::Instance()->Debug("{} Is Pre Dispense: {}", single_lane_val_req.get_sequence_step(), is_pre_dispense); 
     ViewerImageType image_code = is_pre_dispense ? ViewerImageType::Tray_Pre_Dispense : ViewerImageType::Tray_Post_Dispense;
     if (this->live_viewer)
     {
