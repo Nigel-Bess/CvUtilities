@@ -147,7 +147,13 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                 RepackPerception repack_percep(lfb_generation);
                 auto image = cam->GetImageBlocking();
                 cv::Mat cam_image = *image;
-                std::string directory_path = "/home/fulfil/data/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
+                time_t now = time(0);
+                tm* local_time = localtime(&now);
+                int day = local_time->tm_mday;
+                int month = local_time->tm_mon + 1; // tm_mon starts from 0
+                int year = local_time->tm_year + 1900; // tm_year is years since 1900
+                std::string date_path = "repack_images_" + std::to_string(year) + "_" + std::to_string(month) + "_" + std::to_string(day);
+                std::string directory_path = "/home/fulfil/data/" + date_path + "/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
                 if (!std::filesystem::exists(directory_path)) {
                     if (std::filesystem::create_directory(directory_path)) {
                         log_->Info("Directory created : {}", directory_path);

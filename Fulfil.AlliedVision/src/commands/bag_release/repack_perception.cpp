@@ -69,13 +69,18 @@ RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation) 
     if (*bot_generation == "LFB-3.1") {
         edge_threshold = 4500; 
     } else {
-        edge_threshold = 4900;
+        edge_threshold = 4950;
     }
 
     // defaults for the BagReleaseResponse
     this->success_code = 0;
     this->is_bag_empty = false;
     this->error_description = "";
+}
+
+float RepackPerception::calculate_square_area(float x1, float x2, float y1, float y2) {
+    float edge_length = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+    return pow(edge_length, 2);
 }
 
 bool RepackPerception::image_has_color(cv::Mat image) {
@@ -149,6 +154,28 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
     catch (const std::exception& e) {
         this->success_code = 10;
         this->error_description = std::string("Caught exception in detect_aruco_markers: ") + e.what();
+        Logger::Instance()->Error(this->error_description);
+        throw;
+    }
+}
+
+std::vector<std::vector<cv::Point2f>> RepackPerception::marker_selection(std::vector<std::vector<cv::Point2f>> marker_corners) {
+    try {
+        std::vector<std::vector<cv::Point2f>> markers;
+        for (int i = 0; i < marker_corners.size(); i++) {
+            float x1 = marker_corners[i][0].x;
+            float x2 = marker_corners[i][1].x;
+            float y1 = marker_corners[i][0].y;
+            float y2 = marker_corners[i][1].y;
+            float area = calculate_square_area(x1, x2, y1, y2);
+            if (area > 9500.0) markers.push_back(marker_corners[i]);
+            Logger::Instance()->Info("Area of marker " + std::to_string(i) + " : " + std::to_string(area));
+        }
+        return markers;
+    }
+    catch (const std::exception& e) {
+        this->success_code = 10;
+        this->error_description = std::string("Caught exception in marker_selection: ") + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -403,8 +430,9 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         cv::Mat image = *bag_image;
         // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
         std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image, directory_path);
-        std::vector<cv::Point2f> points_left = left_inner_corner_coordinates(marker_corners);
-        std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners);
+        std::vector<std::vector<cv::Point2f>> marker_corners_selected = marker_selection(marker_corners);
+        std::vector<cv::Point2f> points_left = left_inner_corner_coordinates(marker_corners_selected);
+        std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners_selected);
         std::vector<cv::Point2f> hull_coordinates = get_hull_coordinates(points_right, points_left);
         cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y, directory_path);
         cv::Mat gaussian_image = process_image(region_of_interest, kernel_height, kernel_width , sigmaX);

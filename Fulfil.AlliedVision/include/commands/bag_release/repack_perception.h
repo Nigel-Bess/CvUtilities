@@ -46,6 +46,13 @@ namespace fulfil::dispense::commands {
         RepackPerception(std::shared_ptr<std::string> lfb_generation);
 
         /*
+        * Calculates the area of the arucos marker
+        * @param x & y pixels for 2 corner coordinates of an aruco
+        * @return float representing the area of the aruco tag
+        */
+        float calculate_square_area(float x1, float x2, float y1, float y2);
+        
+        /*
         * Checks if the image has some color except just black
         * Useful in detecting if the image got processed without any errors
         * @param input image
@@ -72,6 +79,12 @@ namespace fulfil::dispense::commands {
         */
         std::vector<std::vector<cv::Point2f>> detect_aruco_markers(cv::Mat img, std::string directory_path);
 
+        /*
+        * Calculates area of each aruco and selects the top 8 arucos with the biggest area(>9500)
+        * @param marker corners of all the arucos detecetd
+        * @return Marker Corner Coordinates for all the selected Aruco markers
+        */
+        std::vector<std::vector<cv::Point2f>> marker_selection(std::vector<std::vector<cv::Point2f>> marker_corners);
         /*
         * Calculate centroid from aruco coordinates
         * @param Aruco marker's edge pixel coordinates
