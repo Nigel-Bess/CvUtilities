@@ -186,8 +186,8 @@ cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points
     try {
         if (points.size() == 0) throw std::invalid_argument("Invalid input in calculate_centroid function: points was empty");
         cv::Point2f centroid_points;
-        float centroidX;
-        float centroidY;
+        float centroidX = 0.0;
+        float centroidY = 0.0;
         for (cv::Point2f vertex : points) {
             centroidX = centroidX + vertex.x;
         }

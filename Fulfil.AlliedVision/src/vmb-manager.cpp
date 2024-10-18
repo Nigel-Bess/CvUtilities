@@ -155,7 +155,7 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                 std::string date_path = "repack_images_" + std::to_string(year) + "_" + std::to_string(month) + "_" + std::to_string(day);
                 std::string directory_path = "/home/fulfil/data/" + date_path + "/" + std::string(cam->name_) + "/" + std::string(*pkid) + "/";
                 if (!std::filesystem::exists(directory_path)) {
-                    if (std::filesystem::create_directory(directory_path)) {
+                    if (std::filesystem::create_directories(directory_path)) {
                         log_->Info("Directory created : {}", directory_path);
                         std::string image_path = directory_path + "color_image";
                         bool saved_image_successfully = SaveImages(cam_image, image_path);
