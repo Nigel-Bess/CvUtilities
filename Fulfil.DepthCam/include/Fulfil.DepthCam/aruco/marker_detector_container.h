@@ -160,6 +160,11 @@ class MarkerDetectorContainer : public Container
 
   std::shared_ptr<rs2_extrinsics> get_depth_to_color_extrinsics() override;
 
+  /*Select 2 unique parallel arucos based on the distance between them
+  * @param vector of parallel Markers with ids that are parallel to each other (one at a time) (0-1, 2-7, 3-6, 4-5)
+  */
+  std::vector<std::shared_ptr<Marker>> marker_selection(std::vector<std::shared_ptr<Marker>> parallel_markers);
+
   /** validates that detected markers were within acceptable search region and at expected depth
    *
    * @param markers is the vector of markers detected in the complete RGB image

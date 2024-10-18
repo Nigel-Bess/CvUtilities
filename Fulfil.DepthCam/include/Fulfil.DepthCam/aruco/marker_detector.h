@@ -29,6 +29,7 @@ class MarkerDetector
    * a hard coded aruco dictionary.
    */
   MarkerDetector(int nMarkers, int markerSize);
+
   /**
    * The dictionary used to determine which aruco markers will be detected.
    */

@@ -1217,18 +1217,14 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
   if(this->visualize == 1) session_visualizer1->display_rgb_image(RGB_matrix);
   if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(RGB_matrix, ViewerImageType::LFB_RGB, this->PKID);
-
   // Visualization for detected valid markers
   std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers(!bot_has_already_rotated);
   std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(container->marker_detector->dictionary, markers, container->region_max_x, container->region_min_x, container->region_max_y, container->region_min_y);
-
   if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, this->PKID);
   if(this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
-
   std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
 
   int original_candidate_count = point_cloud->get_data()->cols();
-
   std::shared_ptr<cv::Mat> image3 = session_visualizer3->display_points_with_depth_coloring(point_cloud);
   if(this->visualize == 1) session_visualizer3->display_image(image3);
   if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, this->PKID);
