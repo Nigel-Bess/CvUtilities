@@ -35,12 +35,11 @@ bool TrayManager::save_tray_audit_image(
         auto timer = fulfil::utils::timing::Timer("TrayManager::save_tray_audit_image " + path_suffix.string() );
         cv::Mat color_mat = this->session->grab_color_frame();
 
-        // crop image
-        crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
-        
         // rotate the image if needed
         if (rotate_code != nullptr)
         {
+            // crop image
+            crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
             cv::Mat rotated_image;
             cv::rotate(color_mat, rotated_image, *rotate_code);
             color_mat = rotated_image.clone();
