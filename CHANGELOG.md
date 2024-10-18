@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.1...v1.2.2) (2024-10-18)
+
+
+### Bug Fixes
+
+* **scripts:** add copy file from pod utility ([#135](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/135)) ([da3cda5](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/da3cda5f749588ed6890b6815e503152498323ef))
+
 ## [1.2.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.0...v1.2.1) (2024-10-09)
 
 
