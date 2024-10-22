@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.2...v1.3.0) (2024-10-22)
+
+
+### Features
+
+* **repack:** Add all camera bays ([#142](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/142)) ([f3b301f](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/f3b301f8f9340434caab1d80356bbdbbd4994c68))
+
 ## [1.2.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.1...v1.2.2) (2024-10-18)
 
 
