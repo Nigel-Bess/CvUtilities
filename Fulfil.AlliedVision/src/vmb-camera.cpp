@@ -34,10 +34,19 @@ void VmbCamera::RunSetup(){
     // SetFeature("ExposureTime", 15000.0);
     SetFeature("PixelFormat", "BGR8");
     SetFeature("ExposureAuto", "Once");
-    SetFeature("ExposureTime", 19985.98);
-    SetFeature("Gamma", 0.6);
-    SetFeature("Hue", -2.0);
-    SetFeature("Saturation", 1.0);
+    //custom camera settings for bay 03
+    if (name_ == "RepackBay03" or name_ == "RepackBay06" or name_ == "RepackBay07") {
+        SetFeature("ExposureTime", 25000.00);
+        SetFeature("Gamma", 0.6);
+        SetFeature("Hue", -2.0);
+        SetFeature("Saturation", 1.0);
+    }
+    else {
+        SetFeature("ExposureTime", 19985.98);
+        SetFeature("Gamma", 0.6);
+        SetFeature("Hue", -2.0);
+        SetFeature("Saturation", 1.0);
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
     AdjustPacketSize();
     connected_ = true;
@@ -84,7 +93,7 @@ void VmbCamera::AddCameraStatus(DepthCameras::DcCameraStatusCodes code){
 
 void VmbCamera::SaveLastImage(std::string path){
     try{
-        std::string img_name = path + ".bmp";
+        std::string img_name = path + ".jpeg";
         if(last_mat_.size().empty()){
             log_->Error("Cannot save emtpy image to {}", img_name);
             return;
@@ -115,10 +124,18 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     std::lock_guard<std::mutex> lock(_lock);
     {
         SetFeature("ExposureAuto", "Once");
-        SetFeature("ExposureTime", 19985.98);
-        SetFeature("Gamma", 0.6);
-        SetFeature("Hue", -2.0);
-        SetFeature("Saturation", 1.0);
+        if (name_ == "RepackBay03" or name_ == "RepackBay06" or name_ == "RepackBay07") {
+            SetFeature("ExposureTime", 25000.00);
+            SetFeature("Gamma", 0.6);
+            SetFeature("Hue", -2.0);
+            SetFeature("Saturation", 1.0);
+        }
+        else {
+            SetFeature("ExposureTime", 19985.98);
+            SetFeature("Gamma", 0.6);
+            SetFeature("Hue", -2.0);
+            SetFeature("Saturation", 1.0);
+        }
         while(err != VmbErrorSuccess || count < 1){
             err = camera_->AcquireSingleImage(frame_ptr_, 5000);
             

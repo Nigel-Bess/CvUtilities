@@ -104,7 +104,7 @@ void VmbManager::SendResponse(std::string cmd_id, std::string response){
 /* Returns true if image saving was successful, false otherwise */
 bool VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
     try {
-        std::string img_name = image_path + ".bmp";
+        std::string img_name = image_path + ".jpeg";
         if (bag_image.size().empty()) {
             log_->Error("Cannot save empty image to {}", img_name);
             return false;

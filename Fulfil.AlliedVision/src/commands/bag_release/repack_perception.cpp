@@ -143,7 +143,7 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
         cv::aruco::detectMarkers(img, dictionary, corners, ids, parameters, rejected);
         if (rejected.size() > 0) {
             cv::aruco::drawDetectedMarkers(img, rejected, ids, cv::Scalar(0, 255, 0));
-            std::string image_path = directory_path + "markers_detected.bmp";
+            std::string image_path = directory_path + "markers_detected.jpeg";
             SaveImages(img, image_path);
         }
         int num_markers = get_marker_count(rejected);
@@ -406,13 +406,13 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         cv::Mat mask = cv::Mat(image.size(), CV_8U, 1);
         mask.setTo(cv::Scalar(0));
         cv::fillConvexPoly(mask, shrink_hull, cv::Scalar(255, 255, 255));
-        std::string path = directory_path + "hull_image.bmp";
+        std::string path = directory_path + "hull_image.jpeg";
         SaveImages(image, path);
         cv::bitwise_and(image, image, region_of_interest, mask);
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
         Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
-        std::string image_path = directory_path + "region_of_interest.bmp";
+        std::string image_path = directory_path + "region_of_interest.jpeg";
         SaveImages(region_of_interest, image_path);
         return region_of_interest;
     }
