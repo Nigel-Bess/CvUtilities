@@ -815,9 +815,8 @@ bool current_target_quadrant_preferred(std::shared_ptr<std::string> best_quadran
     // default false if a quadrant isn't in the preference list, or if the quadrants are the same
     // true if the current quadrant is higher in the priority list than the current quadrant
     bool better = (!(best_quad == quadrant_preference_order->end()) and
-        !(current_quad == quadrant_preference_order->end()) and
-        !(best_quad == current_quad) and
-        (current_quad < best_quad));
+        !(current_quad == quadrant_preference_order->end()) and !(best_quad == current_quad));
+        //(current_quad < best_quad));
     // this is a little too verbose. leaving commented for easy re-enabling of log
 //    Logger::Instance()->Trace("Best quad: {} and current quad: {} was an improvement: {}",*best_quadrant, *current_quadrant, better);
     return better;
@@ -854,19 +853,20 @@ bool DropZoneSearcher::compare_candidates(std::shared_ptr<DropZoneSearcher::Targ
           get_quadrant_of_point(best_target_region->x, best_target_region->y),
           get_quadrant_of_point(current_target_region->x, current_target_region->y),
           quadrant_preference_order);
-
   bool range_diff_improvement = range_diff > 0.005;
   bool range_diff_regression = range_diff < -0.010;
-  bool is_better = (current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
-          (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
-          (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
-          ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count));
-//          Historically, this has been:
-//          (rotation_improved and significant_variance_improvement) or
-//                   (crazy_depth_regression and !significant_variance_regression) or
-//                   (significant_depth_regression and !moderate_variance_regression) or
-//                   (equivalent_depth and moderate_variance_improvement);
-
+  bool is_better = false;
+  if ((current_target_region->range_depth - 0.005 < best_target_region->range_depth) and
+      (current_target_region->max_Z - 0.005 < best_target_region->max_Z) and
+      (current_target_region->average_depth - 0.005 < best_target_region->average_depth) and
+      ((current_target_region->interference_points_count <= 30) or (current_target_region->interference_points_count <= best_target_region->interference_points_count))) {
+      is_better = true;
+  }
+         //          Historically, this has been:
+         //          (rotation_improved and significant_variance_improvement) or
+         //                   (crazy_depth_regression and !significant_variance_regression) or
+         //                   (significant_depth_regression and !moderate_variance_regression) or
+         //                   (equivalent_depth and moderate_variance_improvement);
   return (use_quadrant_preference_order) ? current_quadrant_preferred and is_better : is_better;
 }
 
@@ -1648,7 +1648,6 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                               current_target_ptr,
                                                               details->use_quadrant_preference_order,
                                                               details->quadrant_preference_order);
-
     if (update_flag)
     {
       candidate_found = true;
