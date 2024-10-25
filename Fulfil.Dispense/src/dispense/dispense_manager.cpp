@@ -89,11 +89,11 @@ DispenseManager::DispenseManager(
     this->machine_id = safe_get_dispense_string_val("_id", "000000000000000000000000");
     int port = this->dispense_reader->GetInteger(dispense_name, "port", 9500);
 
-    auto safe_get_tray_string_val =
-        [&tray_dim_type = this->tray_dimension_type, &tray_config = this->tray_config_reader](auto key, std::string default_value)
-    { return tray_config->Get(tray_dim_type, key, default_value); };
-    this->store_id = safe_get_tray_string_val("store_id", "f0");
-    this->cloud_media_bucket = safe_get_tray_string_val("cloud_media_bucket", "factory-media");
+    // auto safe_get_tray_string_val =
+    //     [&tray_dim_type = this->tray_dimension_type, &tray_config = this->tray_config_reader](auto key, std::string default_value)
+    // { return tray_config->Get(tray_dim_type, key, default_value); };
+    // this->store_id = safe_get_tray_string_val("store_id", "f0");
+    // this->cloud_media_bucket = safe_get_tray_string_val("cloud_media_bucket", "factory-media");
 
     Logger::Instance()->Info("Initializing socket network manager at configured port {} for machine {}", port, this->machine_name);
 
@@ -156,10 +156,9 @@ DispenseManager::DispenseManager(
     // this->stop_tray_video_delay = std::make_shared<int>(0);
     this->tray_upload_generator = std::make_shared<UploadGenerator>(0);
 
-    // TODO WHY ?????
     if (this->LFB_session != nullptr)
     {
-        this->LFB_session->set_emitter(false); // by default turn the LFB projector emitter to the OFF state
+        this->LFB_session->set_emitter(true); // by default turn the LFB projector emitter to the OFF state
     }
 
     if (this->tray_session != nullptr)
@@ -195,6 +194,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     std::cout << "payload---> " << payload.get()->c_str() << std::endl;
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload->c_str()));
     auto type = (*request_json)["Type"].get<fulfil::dispense::commands::DispenseCommand>();
+
     auto pkid = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
     std::shared_ptr<DispenseResponse> response;
     switch (type)
@@ -282,7 +282,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     {
         Logger::Instance()->Info("Received Pre Side Dispense Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
-        response = handle_pre_side_dispense(command_id, pkid, request_json);
+        response = handle_pre_side_dispense(command_id, request_json);
         break;
     }
     case DispenseCommand::post_side_dispense:
@@ -541,6 +541,142 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
 
     Logger::Instance()->Debug("Finished handling Drop Target Request for Bay: {}", this->machine_name);
     return drop_result;
+}
+
+
+int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
+{
+    Logger::Instance()->Trace("Handle Get State called in Dispense Manager");
+    if (!this->LFB_session)
+    {
+        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Get State");
+        return 12;
+    }
+
+    this->bot_already_rotated_for_current_dispense = false; // get state indicates a new bot, reset this flag here
+    try
+    {
+
+        auto bag = nlohmann::to_string((*request_json)["Bag_State"]);
+        std::cout << "CvBagState JSON from FC: " << bag << std::endl;
+        fulfil::mongo::CvBagState cvbag = fulfil::mongo::CvBagState((*request_json)["Bag_State"]);
+        std::cout << "SET EQUAL TO BAG_STATE, pre parse" << std::endl;
+        this->drop_manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+        std::cout << "post parse" << std::endl;
+        this->bag_id = this->drop_manager->mongo_bag_state->raw_mongo_doc->BagId;
+        return 0;
+    }
+    catch (const std::exception &e) // TODO: update error handling here with different parsing / building errors
+    {
+        Logger::Instance()->Error("Issue handling get state request: \n\t{}", e.what());
+        return 1;
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Unspecified error in handle_get_state");
+        return 1;
+    }
+}
+
+std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
+{
+    Logger::Instance()->Trace("Handle Update State called in Dispense Manager");
+    try
+    {
+        if (this->drop_manager->mongo_bag_state->raw_mongo_doc == nullptr)
+            this->drop_manager->mongo_bag_state->raw_mongo_doc = std::make_shared<fulfil::mongo::CvBagState>();
+
+        return this->drop_manager->mongo_bag_state->GetStateAsString();
+    }
+    catch (const std::exception &e)
+    {
+        Logger::Instance()->Error("Issue handling update state request: \n\t{}", e.what());
+        return "-1";
+    }
+    catch (...)
+    {
+        return "-2";
+    }
+}
+
+int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
+                                    std::shared_ptr<nlohmann::json> request_json)
+{
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->machine_name);
+
+    if (!this->LFB_session)
+    {
+        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Pre LFR");
+        return 12; // TODO CHANGE CODE TO BE USEFUL !!!!
+    }
+
+    try
+    {
+        float remaining_platform = request_json->value("Remaining_Platform", 0.0);
+        Logger::Instance()->Debug("Remaining_Platform from Pre_LFR / PreDropImage request: {}", remaining_platform);
+
+        // this->LFB_session->set_emitter(true); //turn on emitter for imaging
+        this->LFB_session->refresh();
+        // this->LFB_session->set_emitter(false); //turn off emitter after imaging
+
+        Logger::Instance()->Debug("Getting container for caching now");
+        std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->LFB_session);
+        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->drop_manager->mongo_bag_state->raw_mongo_doc->Config,
+                                                                                                         mock_session_pre,
+                                                                                                         this->drop_manager->mongo_bag_state->raw_mongo_doc->Config->extend_depth_analysis_over_markers);
+
+        this->drop_manager->cached_pre_container = container;  // cache for potential use in prepostcomparison later
+        this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
+
+        /**
+         *  Send images to Live Viewer
+         */
+        if (this->live_viewer != nullptr)
+        {
+            this->live_viewer->update_image(this->LFB_session->get_color_mat(), ViewerImageType::LFB_Pre_Dispense, *PrimaryKeyID);
+        }
+
+        /**
+         *  Data generation. Todo: refactor to reduce total code (mostly repeated code in drop_manager)
+         */
+        std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
+
+        std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+
+        FileSystemUtil::join_append(base_directory, "Drop_Camera");
+        FileSystemUtil::join_append(base_directory, *PrimaryKeyID);
+        FileSystemUtil::join_append(base_directory, "Pre_Drop_Image");
+
+        // Setting up error code file saving
+        std::shared_ptr<std::string> error_code_file = std::make_shared<std::string>(*base_directory);
+        FileSystemUtil::join_append(error_code_file, *time_stamp);
+        FileSystemUtil::join_append(error_code_file, "error_code");
+
+        Logger::Instance()->Trace("Base directory is {}", *base_directory);
+        std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
+                                                                                   base_directory,
+                                                                                   request_json);
+        generator->save_data(time_stamp);
+
+        Logger::Instance()->Trace("Saving error code file with code 0 at path {}", *error_code_file);
+        std::ofstream error_file(*error_code_file);
+        error_file << "0";
+
+        return 0;
+    }
+    catch (const std::exception &e)
+    {
+        Logger::Instance()->Error("Issue handling pre dispense request: \n\t{}", e.what());
+
+        return 1;
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Unspecified error caught during pre dispense request handling");
+
+        return 1;
+    }
 }
 
 std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_ptr<std::string> PrimaryKeyID,
@@ -902,149 +1038,13 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
 }
 #pragma endregion tray_cam
 
-int DispenseManager::handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
-{
-    Logger::Instance()->Trace("Handle Get State called in Dispense Manager");
-    if (!this->LFB_session)
-    {
-        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Get State");
-        return 12;
-    }
-
-    this->bot_already_rotated_for_current_dispense = false; // get state indicates a new bot, reset this flag here
-    try
-    {
-
-        auto bag = nlohmann::to_string((*request_json)["Bag_State"]);
-        std::cout << "CvBagState JSON from FC: " << bag << std::endl;
-        fulfil::mongo::CvBagState cvbag = fulfil::mongo::CvBagState((*request_json)["Bag_State"]);
-        std::cout << "SET EQUAL TO BAG_STATE, pre parse" << std::endl;
-        this->drop_manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
-        std::cout << "post parse" << std::endl;
-        this->bag_id = this->drop_manager->mongo_bag_state->raw_mongo_doc->BagId;
-        return 0;
-    }
-    catch (const std::exception &e) // TODO: update error handling here with different parsing / building errors
-    {
-        Logger::Instance()->Error("Issue handling get state request: \n\t{}", e.what());
-        return 1;
-    }
-    catch (...)
-    {
-        Logger::Instance()->Error("Unspecified error in handle_get_state");
-        return 1;
-    }
-}
-
-std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json)
-{
-    Logger::Instance()->Trace("Handle Update State called in Dispense Manager");
-    try
-    {
-        if (this->drop_manager->mongo_bag_state->raw_mongo_doc == nullptr)
-            this->drop_manager->mongo_bag_state->raw_mongo_doc = std::make_shared<fulfil::mongo::CvBagState>();
-
-        return this->drop_manager->mongo_bag_state->GetStateAsString();
-    }
-    catch (const std::exception &e)
-    {
-        Logger::Instance()->Error("Issue handling update state request: \n\t{}", e.what());
-        return "-1";
-    }
-    catch (...)
-    {
-        return "-2";
-    }
-}
-
-int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
-                                    std::shared_ptr<nlohmann::json> request_json)
-{
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
-    Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->machine_name);
-
-    if (!this->LFB_session)
-    {
-        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Pre LFR");
-        return 12; // TODO CHANGE CODE TO BE USEFUL !!!!
-    }
-
-    try
-    {
-        float remaining_platform = request_json->value("Remaining_Platform", 0.0);
-        Logger::Instance()->Debug("Remaining_Platform from Pre_LFR / PreDropImage request: {}", remaining_platform);
-
-        // this->LFB_session->set_emitter(true); //turn on emitter for imaging
-        this->LFB_session->refresh();
-        // this->LFB_session->set_emitter(false); //turn off emitter after imaging
-
-        Logger::Instance()->Debug("Getting container for caching now");
-        std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->LFB_session);
-        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->drop_manager->mongo_bag_state->raw_mongo_doc->Config,
-                                                                                                         mock_session_pre,
-                                                                                                         this->drop_manager->mongo_bag_state->raw_mongo_doc->Config->extend_depth_analysis_over_markers);
-
-        this->drop_manager->cached_pre_container = container;  // cache for potential use in prepostcomparison later
-        this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
-
-        /**
-         *  Send images to Live Viewer
-         */
-        if (this->live_viewer != nullptr)
-        {
-            this->live_viewer->update_image(this->LFB_session->get_color_mat(), ViewerImageType::LFB_Pre_Dispense, *PrimaryKeyID);
-        }
-
-        /**
-         *  Data generation. Todo: refactor to reduce total code (mostly repeated code in drop_manager)
-         */
-        std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
-
-        std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
-
-        FileSystemUtil::join_append(base_directory, "Drop_Camera");
-        FileSystemUtil::join_append(base_directory, *PrimaryKeyID);
-        FileSystemUtil::join_append(base_directory, "Pre_Drop_Image");
-
-        // Setting up error code file saving
-        std::shared_ptr<std::string> error_code_file = std::make_shared<std::string>(*base_directory);
-        FileSystemUtil::join_append(error_code_file, *time_stamp);
-        FileSystemUtil::join_append(error_code_file, "error_code");
-
-        Logger::Instance()->Trace("Base directory is {}", *base_directory);
-        std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->LFB_session,
-                                                                                   base_directory,
-                                                                                   request_json);
-        generator->save_data(time_stamp);
-
-        Logger::Instance()->Trace("Saving error code file with code 0 at path {}", *error_code_file);
-        std::ofstream error_file(*error_code_file);
-        error_file << "0";
-
-        return 0;
-    }
-    catch (const std::exception &e)
-    {
-        Logger::Instance()->Error("Issue handling pre dispense request: \n\t{}", e.what());
-
-        return 1;
-    }
-    catch (...)
-    {
-        Logger::Instance()->Error("Unspecified error caught during pre dispense request handling");
-
-        return 1;
-    }
-}
-
 std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::DispenseManager::get_shared_ptr()
 {
     return this->shared_from_this();
 }
 
-
+#pragma region side_bag
 // ***** ALL SIDE DISPENSE-SPECIFIC FUNCTIONALITY FOUND BELOW *****
-
 std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse>
 fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<std::string> request_id,
                                                                std::shared_ptr<nlohmann::json> request_json)
@@ -1062,23 +1062,28 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
 
 std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse>
 fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> request_id,
-                                                            std::shared_ptr<std::string> primary_key_id,
                                                             std::shared_ptr<nlohmann::json> request_json)
 {
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + *primary_key_id);
-    Logger::Instance()->Debug("Handling PreSideDispense Command {} for Bay: {}", *primary_key_id, this->machine_name);
-    if (!this->LFB_session)
-    {
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name); // + " request " + *primary_key_id);
+    Logger::Instance()->Debug("Handling PreSideDispense Command for Bay: {}", this->machine_name);
+    auto pkid = (*request_json)["Primary_Key_ID"].get<std::string>();
+    auto primary_key_id = std::make_shared<std::string>(pkid);
+
+    if (!this->LFB_session) {
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
         // TODO - make this more useful and obvious, panic the DAB In FC
         // TODO: do we even return a response here or just throw a big ol' exception
         return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id,
                                                          primary_key_id,
                                                          nullptr,
+                                                         -1, -1,
                                                          SideDispenseErrorCodes::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
                                                          // TODO: have specific error code // TODO: move to throw/catch format, log data
     }
+    Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
+    // need to refresh the session to get updated frames
+    this->LFB_session->refresh();
 
     // create file path variables for data generation
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
@@ -1090,7 +1095,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
         base_directory, time_stamp_string, false);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
-        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, SideDispenseErrorCodes::Success);
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, SideDispenseErrorCodes::Success);
 
     // if algorithm failed, upload available visualizations immediately
     if (pre_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
@@ -1123,9 +1128,11 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
                         (*request_json)["Primary_Key_ID"].get<std::string>();
     data_fs_path /= "Post_Side_Dispense";
     this->LFB_session->refresh();
+    
     auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
     data_generator.save_data(std::make_shared<std::string>());
     return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id);
 }
+#pragma endregion side_bag
 
 int fulfil::dispense::DispenseManager::get_induction_cam_distance_from_tray() { return this->induction_cam_distance_from_tray; }

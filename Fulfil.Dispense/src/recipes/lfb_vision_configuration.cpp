@@ -21,6 +21,7 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     lfb_generation{input_json->value("LfbGeneration", "LFB-3.1")},
 
     // physical dimensions
+    is_side_dispense{input_json->value("IsSideDispense", false)},
     LFB_width{input_json->value("LfbWidthMeters", 0.53F)},
     LFB_length{input_json->value("LfbLengthMeters", 0.4F)},
     LFB_bag_width{input_json->value("LfbBagWidthMeters",   0.45F)},

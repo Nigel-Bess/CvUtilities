@@ -62,11 +62,6 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
 
   std::cout << "payload---> " << payload.get()->c_str() << std::endl;
   int type = (*request_json)["Type"].get<int>();
-  if (type > (int)DispenseCommand::pre_side_dispense || type < 0)  //check that type is within expected bounds
-  {
-    Logger::Instance()->Error("Invalid dispense request type, outside of expected bounds");
-    throw std::invalid_argument("Invalid Command Type");
-  }
 
   std::shared_ptr<std::string> PrimaryKeyID =  std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
 

@@ -55,11 +55,6 @@ namespace fulfil::dispense {
              */
             std::shared_ptr<fulfil::utils::networking::SocketNetworkManager<std::shared_ptr<fulfil::dispense::commands::DispenseRequest>>> network_manager;
             /**
-             * The object that handles all of the functionality for processing
-             * drop requests.
-             */
-            std::shared_ptr<fulfil::dispense::drop::DropManager> drop_manager;
-            /**
              * Encapsulates functionality construct tray relevant objects and run
              * tray algorithms
              */
@@ -152,6 +147,13 @@ namespace fulfil::dispense {
               std::shared_ptr<INIReader> tray_config_reader,
               std::shared_ptr<fulfil::dispense::tray::TrayManager>
                   tray_manager);
+
+            /**
+             * The object that handles all of the functionality for processing
+             * drop requests.
+             */
+            std::shared_ptr<fulfil::dispense::drop::DropManager> drop_manager;
+            
             ///Mark: Bay Runner Functions
             /**
              * For each object owned by this object where this object should
@@ -220,7 +222,7 @@ namespace fulfil::dispense {
 
             int handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
 
-            std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<std::string> primary_key_id, std::shared_ptr<nlohmann::json> request_json) override;
+            std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
             std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override;
 

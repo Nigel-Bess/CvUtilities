@@ -103,7 +103,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   std::shared_ptr<std::pair <int, int>> window_size = std::make_shared<std::pair <int, int>>(960,540); // 960, 540   //1280,  720 for one monitor,  960, 540  for laptop
   std::shared_ptr<std::pair <int, int>> window_size2 = std::make_shared<std::pair <int, int>>(250,325);
 
-  int no_wait = 1;
+  int no_wait = 10;
   int yes_wait = 0;
 
   std::shared_ptr<std::string> window_name_1 = std::make_shared<std::string>("Window 1: Raw RGB Image");
@@ -118,17 +118,17 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
   std::shared_ptr<std::string> window_name_9 = std::make_shared<std::string>("Window 9: Candidates, post Damage Risk Filter");
   std::shared_ptr<std::string> window_name_9andahalf = std::make_shared<std::string>("Window 9.5: Item on Ground Region of Interest");
 
-  this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, no_wait);
-  this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, no_wait);
-  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size,no_wait);
+  this->session_visualizer1 = std::make_shared<SessionVisualizer>(session, window_name_1, location_top_left, window_size, yes_wait);
+  this->session_visualizer2 = std::make_shared<SessionVisualizer>(session, window_name_2, location_top_left, window_size, yes_wait);
+  this->session_visualizer3 = std::make_shared<SessionVisualizer>(session, window_name_3, location_top_right, window_size, yes_wait);
   this->session_visualizer4 = std::make_shared<SessionVisualizer>(session, window_name_4, location_top_right, window_size, yes_wait);
-  this->session_visualizer5 = std::make_shared<SessionVisualizer>(session, window_name_5, location_bottom_left, window_size, no_wait);
-  this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, no_wait);
-  this->session_visualizer7 = std::make_shared<SessionVisualizer>(session, window_name_7, location_top_right, window_size, no_wait);
+  this->session_visualizer5 = std::make_shared<SessionVisualizer>(session, window_name_5, location_bottom_left, window_size, yes_wait);
+  this->session_visualizer6 = std::make_shared<SessionVisualizer>(session, window_name_6, location_bottom_right, window_size, yes_wait);
+  this->session_visualizer7 = std::make_shared<SessionVisualizer>(session, window_name_7, location_top_right, window_size, yes_wait);
   this->session_visualizer8 = std::make_shared<SessionVisualizer>(session, window_name_8, location_bottom_right, window_size, yes_wait);
   this->session_visualizer8andahalf = std::make_shared<SessionVisualizer>(session, window_name_8andahalf, location_bottom_right, window_size, yes_wait);
-  this->session_visualizer9 = std::make_shared<SessionVisualizer>(session, window_name_9, location_bottom_left, window_size, no_wait);
-  this->session_visualizer9andahalf = std::make_shared<SessionVisualizer>(session, window_name_9andahalf, location_bottom_left, window_size, no_wait);
+  this->session_visualizer9 = std::make_shared<SessionVisualizer>(session, window_name_9, location_bottom_left, window_size, yes_wait);
+  this->session_visualizer9andahalf = std::make_shared<SessionVisualizer>(session, window_name_9andahalf, location_bottom_left, window_size, yes_wait);
 }
 
 void DropZoneSearcher::check_inputs(float shadow_length,
@@ -932,6 +932,7 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
                                                                          std::shared_ptr<Session> session,
                                                                          bool extend_region_over_markers)
 {
+  bool is_side_dispense = lfb_vision_config->is_side_dispense;
   int region_max_x = lfb_vision_config->region_max_x;
   int region_min_x = lfb_vision_config->region_min_x;
   int region_max_y = lfb_vision_config->region_max_y;
@@ -962,7 +963,7 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
 
   Logger::Instance()->Trace("Drop Zone Searcher: marker detector container constructor called");
   std::shared_ptr<MarkerDetectorContainer> container = std::make_shared<MarkerDetectorContainer>(
-      marker_detector, session, true, extend_region_over_markers,
+      marker_detector, session, true, is_side_dispense, extend_region_over_markers,
       container_width, container_length, lfb_width, lfb_length,
       MarkerDetectorContainer::centers_and_sides(num_markers), marker_coordinates,
       num_markers, marker_depth, marker_depth_tolerance, min_marker_count_for_validation,
@@ -2067,7 +2068,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
 }
 
 
-std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int occupancy_map_width, int occupancy_map_height, float bag_width, float bag_height) {
+std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int occupancy_map_width, int occupancy_map_height, float square_width, float square_height) {
     // initialize occupancy map with default -99999m
     // TODO does this need to be shared ptr of vec of shared ptr or is the outermost one good enough
     std::vector depth_map_so_far(occupancy_map_height, std::vector<float>(occupancy_map_width, -99999));
@@ -2083,14 +2084,13 @@ std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::sha
         float local_z = (*local_cloud_data)(2, current_pixel_index);
 
         for (int map_square_x = 0; map_square_x < occupancy_map_width; ++map_square_x) {
-            float square_width = bag_width / occupancy_map_width;
             float min_x_coord = map_square_x * square_width;
             float max_x_coord = (map_square_x + 1) * square_width;
             for (int map_square_y = 0; map_square_y < occupancy_map_height; ++map_square_y) {
-                float square_height = bag_height / occupancy_map_height;
                 float min_y_coord = map_square_y * square_height;
                 float max_y_coord = (map_square_y + 1) * square_height;
                 if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
+                    // get the "max depth"/"tallest" point in that occupancy map grid square - the point closest to the mouth of the bag
                     depth_map_so_far.at(map_square_x).at(map_square_y) = std::max(depth_map_so_far.at(map_square_x).at(map_square_y), local_z);
                     Logger::Instance()->Trace("Occupancy map loop map_square_x = {}, map_square_y = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
                         map_square_x, map_square_y, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_x).at(map_square_y));
@@ -2098,11 +2098,6 @@ std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::sha
             }
         }
     }
-    // default point = 0,0,-inf or whatever
-    // for each point in the cloud
-        // if point is in the x'th width and the y'th height
-            // track if max
-    // return max
     return std::make_shared<std::vector<std::vector<float>>>(depth_map_so_far);
 }
 
@@ -2118,48 +2113,64 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         std::shared_ptr<MarkerDetectorContainer> container = this->get_container(lfb_vision_config, this->session, false);
 
         Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
+        // visualize the color image
         std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
 
-        // detect Aruco markers in RGB stream
-        if (this->visualize == 1)
-        {
-            std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
-            this->session_visualizer2->draw_detected_markers(
-                container->marker_detector->dictionary,
-                markers,
-                container->region_max_x,
-                container->region_min_x,
-                container->region_max_y,
-                container->region_min_y);
-        }
+        // detect Aruco markers in RGB stream     
+        std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();     
+        // Visualization for detected valid markers
+        std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(
+            container->marker_detector->dictionary, 
+            markers, 
+            container->region_max_x, 
+            container->region_min_x, 
+            container->region_max_y, 
+            container->region_min_y);
+
+        // visualize the markers
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, *primary_key_id);
+        if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
 
         std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
         // depth cloud visualization
-        if (this->visualize == 1) { this->session_visualizer3->display_image(this->session_visualizer3->display_points_with_depth_coloring(point_cloud)); }
+        std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud);
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
+        if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
 
-        Logger::Instance()->Trace("Number of point cloud points before filter (out of a possible 92x160 = 14,720): {}",
-                                  point_cloud->get_data()->cols());
+        // this "LFB_filter" image is the plain depth map visualized
+        cv::Mat depth_visualization;
+        cv::Mat depth_mat = *this->session->get_depth_mat();
+        Logger::Instance()->Trace("Retrieved depth mat");
+        double minVal, maxVal;
+        cv::minMaxLoc(depth_mat, &minVal, &maxVal);  // Find the minimum and maximum depth values
+        depth_mat.convertTo(depth_visualization, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+        cv::applyColorMap(depth_visualization, depth_visualization, cv::COLORMAP_MAGMA);
+        if (this->visualize == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(depth_visualization));
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, *primary_key_id);
 
-        // std::shared_ptr<Eigen::Matrix3Xd> initial_local_data = point_cloud->get_data();
+        Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
 
         // transform depth cloud into the OccupancyMap
-        // TODO: don't hardcode, use recipe or request json
-        int occupancy_map_width = 5;
-        int occupancy_map_height = 5;
+        int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
+        int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
+        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
+        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
         std::shared_ptr<std::vector<std::vector<float>>> occupancy_map = generate_occupancy_map(
             point_cloud,
             occupancy_map_width,
             occupancy_map_height,
-            lfb_vision_config->LFB_bag_width,
-            lfb_vision_config->LFB_bag_length);
+            square_width,
+            square_height);
 
-        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {}", occupancy_map_width,
-                                  occupancy_map_height);
+        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
+                                  occupancy_map_width, occupancy_map_height, square_width, square_height);
         return std::make_shared<SideDropResult>(request_id,
                                                 occupancy_map,
                                                 container,
-                                                (int)SideDispenseErrorCodes::Success,
+                                                square_width,
+                                                square_height,
+                                                SideDispenseErrorCodes::Success,
                                                 std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)

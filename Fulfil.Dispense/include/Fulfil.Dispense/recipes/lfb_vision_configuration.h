@@ -23,6 +23,8 @@ namespace fulfil::configuration::lfb {
         std::string lfb_generation {"LFB-3.1"};
 
         // physical dimensions
+        /** false if the bot is a drop-down dispense bot, true if the bot is angled for side dispense */
+        bool is_side_dispense{false};
         /** The outer width dimension of the physical LFB bot in meters */
         float LFB_width {0.53};
         /** The outer length dimension of the physical LFB bot in meters */

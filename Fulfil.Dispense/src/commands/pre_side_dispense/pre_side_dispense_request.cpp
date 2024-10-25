@@ -33,13 +33,12 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
 
         std::shared_ptr<PreSideDispenseResponse> response = tmp_delegate->handle_pre_side_dispense(
                                                                                   this->request_id,
-                                                                                  this->PrimaryKeyID,
                                                                                   this->request_json);
         return response;
     }
     else
     {
         std::cout << "PreSideDispense Command Delegate Expired" << std::endl;
-        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, nullptr, SideDispenseErrorCodes::CommandDelegateExpired);
+        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, nullptr, -1, -1, SideDispenseErrorCodes::CommandDelegateExpired);
     }
 }

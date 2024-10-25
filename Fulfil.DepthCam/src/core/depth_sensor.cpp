@@ -31,7 +31,7 @@ DepthSensor::DepthSensor(const std::string &serial)
 
     if (this->profile->get_device().get_info(RS2_CAMERA_INFO_NAME) == std::string_view("Intel RealSense D457")
         && depth_sensor.supports(RS2_OPTION_EMITTER_ENABLED)) {
-        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.0F); // Disable emitter (0.0f off, 1.0f on)
+        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1.0F); // Disable emitter (0.0f off, 1.0f on)
         fulfil::utils::Logger::Instance()->Info("Emitter for device {} must be disabled prior to pipeline start "
           "due to firmware issues for RS D457 devices. Sensor will support emitter once Intel resolves issue.", serial);
     }

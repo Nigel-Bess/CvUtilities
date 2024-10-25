@@ -51,6 +51,7 @@ class MarkerDetectorContainer : public Container
   int region_max_x;
   int region_min_y;
   int region_max_y;
+  bool is_side_dispense;
 
   std::shared_ptr<MarkerDetector> marker_detector;
    /**
@@ -85,6 +86,7 @@ class MarkerDetectorContainer : public Container
    MarkerDetectorContainer(std::shared_ptr<MarkerDetector> marker_detector,
                            std::shared_ptr<Session> session,
                            bool should_filter_points_outside_of_container,
+                           bool is_side_dispense,
                            bool extend_region_over_markers,
                            float width,
                            float length,
@@ -165,7 +167,13 @@ class MarkerDetectorContainer : public Container
   */
   std::vector<std::shared_ptr<Marker>> marker_selection(std::vector<std::shared_ptr<Marker>> parallel_markers);
 
-  /** validates that detected markers were within acceptable search region and at expected depth
+  /** validates that detected markers were within acceptable search region and at expected depth for the side dispense bot type
+   * @param markers is the vector of markers detected in the complete RGB image
+   * @return vector of markers with valid coordinates
+   */
+  std::shared_ptr<std::vector<std::shared_ptr<Marker>>> validate_markers_side_dispense(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> markers);
+
+  /** validates that detected markers were within acceptable search region and at expected depth for the drop-down dispense bot type
    *
    * @param markers is the vector of markers detected in the complete RGB image
    * @return vector of markers with valid coordinates

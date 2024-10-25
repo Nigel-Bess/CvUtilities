@@ -89,7 +89,6 @@ class CvBagState final
         std::string ToString(){
             return nlohmann::to_string(this->ToJson());
         }
-
         
     private:
         std::string _bag_id_string;

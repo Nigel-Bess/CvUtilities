@@ -129,8 +129,7 @@ void DropManager::generate_request_handling_data(bool generate_data,
     {
         if (bag_state_json->is_null())
         {
-            Logger::Instance()->Debug(
-                    "No bag state JSON is available, json file will not be saved along with data generation");
+            Logger::Instance()->Debug("No bag state JSON is available, json file will not be saved along with data generation");
         } else {
             std::string bag_state_file_path = make_media::paths::join_as_path(base_directory, *time_stamp, "bag_state.json");
             Logger::Instance()->Trace("Bag state JSON data generation file path: {}", bag_state_file_path);
@@ -338,8 +337,6 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
   {
     Logger::Instance()->Trace("Refresh Session Called in Dispense Manager -> Handle Post Dispense");
 
-    //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: have separate unaligned frames class variable in depth_session
-    //this->session->set_emitter(true);
     this->session->refresh(); //need to refresh the session to get updated frames
 
     //get image for live viewer
@@ -594,24 +591,25 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
-    (base_directory_input) ? *base_directory_input : "","Side_Drop_Camera", *primary_key_id);
+    (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
     std::string error_code_file = ("Side_Pre_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
     try {
-        Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
-
-        // need to refresh the session to get updated frames
-        this->session->refresh();
-
-        // get color image for live viewer - TODO for side
-        // if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
-        //     this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
+        auto bag_state = this->mongo_bag_state->GetStateAsJson();
+        Logger::Instance()->Debug("Bag state is currently: {}", bag_state.dump());
 
         std::shared_ptr<DataGenerator> generator;
         std::string data_destination = (base_directory / "Side_Pre_Drop_Image").string();
+        generate_request_handling_data(generate_data,
+            base_directory,
+            time_stamp_string,
+            request_json,
+            std::make_shared<nlohmann::json>(bag_state));
 
-        generate_request_data(generate_data, data_destination, std::make_shared<std::string>(*time_stamp_string), request_json);
+        // get color image for live viewer
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
+             this->session->get_color_mat(), ViewerImageType::LFB_Pre_Dispense, *primary_key_id);
 
         // depth & marker container
         std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
@@ -674,6 +672,95 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+    }
+}
+
+std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(std::shared_ptr<std::string> request_id,
+                                                        std::shared_ptr<std::string> primary_key_id,
+                                                        std::shared_ptr<nlohmann::json> request_json,
+                                                        std::shared_ptr<std::string> base_directory_input,
+                                                        std::shared_ptr<std::string> time_stamp_string,
+                                                        bool generate_data)
+{
+    Logger::Instance()->Debug("Starting DropManager::PostSideDispense for " + *primary_key_id);
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+
+    std_filesystem::path base_directory = make_media::paths::join_as_path(
+    (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
+    std::string error_code_file = ("Side_Post_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+
+    try {
+        auto bag_state = this->mongo_bag_state->GetStateAsJson();
+        Logger::Instance()->Debug("Bag state is currently: {}", bag_state.dump());
+
+        std::shared_ptr<DataGenerator> generator;
+        std::string data_destination = (base_directory / "Side_Post_Drop_Image").string();
+        generate_request_handling_data(generate_data,
+            base_directory,
+            time_stamp_string,
+            request_json,
+            std::make_shared<nlohmann::json>(bag_state));
+
+        // get color image for live viewer
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(
+             this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
+
+        // get lfb vision config
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
+        Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
+
+        // TODO is the error code file even used anymore
+        generate_error_code_result_data(generate_data, error_code_file, 0);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::Success, std::string(""));
+    }
+    catch (const rs2::unrecoverable_error& e)
+    {
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+    }
+    catch (const rs2::recoverable_error& e)
+    {
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Error(error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+    }
+    catch (const std::invalid_argument& e)
+    {
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+    }
+    // TODO these catch statements should just be realsense and general exceptions right?
+    catch (SideDispenseError & e)
+    {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling post side request: {}", error_desc);
+        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
+    }
+    catch (const std::exception &e) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling post side request with error:\n{}",
+                                  e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+    }
+    catch (...) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling post side request in catch(...) block");
         return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
     }
 }

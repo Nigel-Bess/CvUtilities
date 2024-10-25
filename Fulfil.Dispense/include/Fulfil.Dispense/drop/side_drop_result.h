@@ -36,6 +36,8 @@ class SideDropResult
   SideDropResult(std::shared_ptr<std::string> request_id,
    std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
    std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container,
+   float square_width,
+   float square_height,
    int error_code,
    const std::string &error_description);
 
@@ -49,6 +51,11 @@ class SideDropResult
   std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
 
   std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container;
+
+  float square_width;
+  
+  float square_height;
+
   /**
    * Defines success of drop search algorithm
    *  0 = success
@@ -59,6 +66,8 @@ class SideDropResult
    * Description of the error code thrown. Will be empty string if code is success.
    */
   std::string error_description;
+
+  std::string to_string();
   };
 }
 

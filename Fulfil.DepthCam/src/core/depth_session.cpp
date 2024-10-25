@@ -43,7 +43,7 @@ DepthSession::DepthSession(std::shared_ptr<DepthSensor> sensor)
     this->raw_depth_frame = nullptr;
     this->aligned_depth_frame = nullptr;
     this->raw_color_frame = nullptr;
-    this->emitter_control = 0;      // 0 = always OFF, 1 = always ON, 2 = toggle  TODO: can move to configs or separate functionality by camera if desired
+    this->emitter_control = 1;      // 0 = always OFF, 1 = always ON, 2 = toggle  TODO: can move to configs or separate functionality by camera if desired
 }
 
 std::shared_ptr<rs2_intrinsics> DepthSession::get_color_stream_intrinsics()
