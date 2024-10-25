@@ -89,11 +89,11 @@ DispenseManager::DispenseManager(
     this->machine_id = safe_get_dispense_string_val("_id", "000000000000000000000000");
     int port = this->dispense_reader->GetInteger(dispense_name, "port", 9500);
 
-    // auto safe_get_tray_string_val =
-    //     [&tray_dim_type = this->tray_dimension_type, &tray_config = this->tray_config_reader](auto key, std::string default_value)
-    // { return tray_config->Get(tray_dim_type, key, default_value); };
-    // this->store_id = safe_get_tray_string_val("store_id", "f0");
-    // this->cloud_media_bucket = safe_get_tray_string_val("cloud_media_bucket", "factory-media");
+    auto safe_get_tray_string_val =
+        [&tray_dim_type = this->tray_dimension_type, &tray_config = this->tray_config_reader](auto key, std::string default_value)
+    { return tray_config->Get(tray_dim_type, key, default_value); };
+    this->store_id = safe_get_tray_string_val("store_id", "f0");
+    this->cloud_media_bucket = safe_get_tray_string_val("cloud_media_bucket", "factory-media");
 
     Logger::Instance()->Info("Initializing socket network manager at configured port {} for machine {}", port, this->machine_name);
 
