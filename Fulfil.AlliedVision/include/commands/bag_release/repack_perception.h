@@ -46,6 +46,13 @@ namespace fulfil::dispense::commands {
         RepackPerception(std::shared_ptr<std::string> lfb_generation);
 
         /*
+        * Calculates the distance between 2 points in an image
+        * @param 2 points p1 and p2 to calculate the distance
+        * @return double representing the distance
+        */
+        double distance(const cv::Point2f& p1, const cv::Point2f& p2);
+
+        /*
         * Calculates the area of the arucos marker
         * @param x & y pixels for 2 corner coordinates of an aruco
         * @return float representing the area of the aruco tag
@@ -118,9 +125,10 @@ namespace fulfil::dispense::commands {
         * @param Edge Threshold
         * @param Lower Threshold for Canny Edge Detection
         * @param Upper Threshold for Canny Edge Detection
+        * @param Directory path to save result images
         * @return Print the result statements based on the edge counts
         */
-        bool canny_edge_detection(cv::Mat gaussian_image, int edge_threshold, double lower_threshold, double upper_threshold);
+        bool canny_edge_detection(cv::Mat gaussian_image, int edge_threshold, double lower_threshold, double upper_threshold, std::string directory_path);
             
         /*
         * Sorting the pixel coordinates in ascending order
@@ -164,9 +172,19 @@ namespace fulfil::dispense::commands {
         * @param Hull Coordinates
         * @param Shrink Factor for X axes
         * @param Shrink Factor for Y axes
+        * @param Directory path to save the result images
         * @return Region of Interest of the input image
         */
         cv::Mat calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y, std::string directory_path);
+
+
+        /*
+        * Check to detect items in the bag based on the rgb mask
+        * @param region of interest image
+        * @param directory_path to save the result images
+        * @return bool representing if the bag is empty
+        */
+        bool rgb_is_bag_empty_check(cv::Mat image, std::string directory_path);
 
         /*
         * Determines whether the bot in the image at the given filepath is ready for release into the factory

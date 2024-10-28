@@ -67,15 +67,19 @@ const float shrink_factor_Y = 0.92f;
 RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation) {
     this->bot_generation = lfb_generation;
     if (*bot_generation == "LFB-3.1") {
-        edge_threshold = 4500; 
+        edge_threshold = 200; 
     } else {
-        edge_threshold = 4950;
+        edge_threshold = 300;
     }
 
     // defaults for the BagReleaseResponse
     this->success_code = 0;
     this->is_bag_empty = false;
     this->error_description = "";
+}
+
+double RepackPerception::distance(const cv::Point2f& p1, const cv::Point2f& p2) {
+    return std::sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 }
 
 float RepackPerception::calculate_square_area(float x1, float x2, float y1, float y2) {
@@ -253,7 +257,7 @@ cv::Mat RepackPerception::process_image(cv::Mat region_of_interest, int kernel_h
     }
 }
 
-bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_threshold, double lower_threshold, double upper_threshold) {
+bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_threshold, double lower_threshold, double upper_threshold, std::string directory_path) {
     try {
         int height = gaussian_image.rows;
         int width = gaussian_image.cols;
@@ -268,6 +272,8 @@ bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_thr
         }
         log_string += " | Edges Detected: " + std::to_string(non_zero_edges) + " and Object Detected : " + std::to_string(!bag_empty);
         Logger::Instance()->Info(log_string);
+        std::string image_path = directory_path + "canny_edges.jpeg";
+        SaveImages(canny_edges, image_path);
         return bag_empty;
     }
     catch (const std::exception& e) {
@@ -403,12 +409,23 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         }
         cv::polylines(image, hull_points, true, cv::Scalar(0, 255, 0), 0);
         cv::polylines(image, shrink_hull, true, cv::Scalar(0, 0, 255), 0);
-        cv::Mat mask = cv::Mat(image.size(), CV_8U, 1);
-        mask.setTo(cv::Scalar(0));
-        cv::fillConvexPoly(mask, shrink_hull, cv::Scalar(255, 255, 255));
         std::string path = directory_path + "hull_image.jpeg";
         SaveImages(image, path);
-        cv::bitwise_and(image, image, region_of_interest, mask);
+        shrink_hull2f = shrink_polygon(shrink_hull2f, 0.99f, 0.99f);
+        //calculate lengths of the sides of the new ROI image
+        double top = distance(shrink_hull2f[2], shrink_hull2f[3]);
+        double bottom = distance(shrink_hull2f[0], shrink_hull2f[1]);
+        double new_width = std::max(top, bottom);
+        double left = distance(shrink_hull2f[1], shrink_hull2f[2]);
+        double right = distance(shrink_hull2f[0], shrink_hull2f[3]);
+        double new_height = std::max(left, right);
+        std::vector<cv::Point2f> roiPoints;
+        roiPoints.push_back(cv::Point2f(0, 0));
+        roiPoints.push_back(cv::Point2f(new_width, 0));
+        roiPoints.push_back(cv::Point2f(new_width, new_height));
+        roiPoints.push_back(cv::Point2f(0, new_height));
+        cv::Mat transformation_matrix = cv::getPerspectiveTransform(shrink_hull2f, roiPoints);
+        cv::warpPerspective(image, region_of_interest, transformation_matrix, cv::Size(new_width, new_height));
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
         Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
@@ -424,10 +441,40 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
     }
 }
 
+bool RepackPerception::rgb_is_bag_empty_check(cv::Mat region_of_interest, std::string directory_path) {
+    bool bag_empty = true;
+    std::vector<cv::Mat> rgb_channels;
+    cv::split(region_of_interest, rgb_channels);
+    cv::Mat red, green, blue;
+    //create a mask with the red, green and blue channels
+    cv::inRange(rgb_channels[2], cv::Scalar(100), cv::Scalar(255), red);
+    cv::inRange(rgb_channels[1], cv::Scalar(0), cv::Scalar(100), green);
+    cv::inRange(rgb_channels[0], cv::Scalar(0), cv::Scalar(100), blue);
+    cv::Mat rgb_mask = red & green & blue;
+    std::vector<cv::Vec4i> hierarchy;
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(rgb_mask, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    cv::Mat result = region_of_interest.clone();
+    cv::drawContours(result, contours, -1, cv::Scalar(0, 255, 0), 2);
+    std::string image_path = directory_path + "rgb_contours.jpeg";
+    SaveImages(rgb_mask, image_path);
+    std::string log_string = "Contour Size from RGB mask: " + std::to_string(contours.size());
+    Logger::Instance()->Info(log_string);
+    if (contours.size() > 10) {
+        bag_empty = false;
+        Logger::Instance()->Info("Item detected in RGB check!");
+    }
+    else {
+        Logger::Instance()->Info("No Item detected in RGB check. Bag may contain white/clear items or may be empty.");
+    }
+    return bag_empty;
+}
+
 void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path) {
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
     try {
         cv::Mat image = *bag_image;
+        bool bag_has_no_items = true;
         // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
         std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image, directory_path);
         std::vector<std::vector<cv::Point2f>> marker_corners_selected = marker_selection(marker_corners);
@@ -435,8 +482,20 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners_selected);
         std::vector<cv::Point2f> hull_coordinates = get_hull_coordinates(points_right, points_left);
         cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y, directory_path);
-        cv::Mat gaussian_image = process_image(region_of_interest, kernel_height, kernel_width , sigmaX);
-        this->is_bag_empty = canny_edge_detection(gaussian_image, edge_threshold, lower_threshold, upper_threshold);
+        bag_has_no_items = rgb_is_bag_empty_check(region_of_interest, directory_path);
+        std::string info = std::string("Is bot ready to release after RGB check : ") + std::to_string(bag_has_no_items);
+        Logger::Instance()->Info(info);
+        if (bag_has_no_items == true) {
+            Logger::Instance()->Info("Starting the Edge Threshold check!");
+            cv::Mat gaussian_image = process_image(region_of_interest, kernel_height,
+                kernel_width, sigmaX);
+            bag_has_no_items = canny_edge_detection(gaussian_image, edge_threshold,
+                lower_threshold, upper_threshold, directory_path);
+            std::string info = std::string("Is bot ready to release after Edge Threshold check : ") + std::to_string(bag_has_no_items);
+            Logger::Instance()->Info(info);
+        }
+        this->is_bag_empty = bag_has_no_items;
+        Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
         return;
     }
     catch (const std::exception& e) {
