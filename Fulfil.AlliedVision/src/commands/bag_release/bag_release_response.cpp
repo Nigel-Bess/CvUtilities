@@ -15,7 +15,11 @@ void BagReleaseResponse::encode_payload()
   (*result_json)["Error"] = this->success_code;
   (*result_json)["Error_Description"] = this->error_description;
   (*result_json)["Primary_Key_ID"] = *this->primary_key_id;
-  (*result_json)["Is_Bag_Empty"] = true;
+  if (this->always_approve_for_release) {
+    (*result_json)["Is_Bag_Empty"] = true;
+  } else {
+    (*result_json)["Is_Bag_Empty"] = this->is_bag_empty;
+  }
   (*result_json)["Is_Empty_Result"] = this->is_bag_empty;
 
   std::string json_string = result_json->dump();
@@ -32,12 +36,14 @@ void BagReleaseResponse::encode_payload()
 
 BagReleaseResponse::BagReleaseResponse(std::shared_ptr<std::string> command_id,
   std::shared_ptr<std::string> primary_key_id,
+  bool always_approve_for_release,
   int success_code,
   bool is_bag_empty,
   std::string error_description)
 {
   this->command_id = command_id;
   this->primary_key_id = primary_key_id;
+  this->always_approve_for_release = always_approve_for_release;
   this->success_code = success_code;
   this->is_bag_empty = is_bag_empty;
   this->error_description = error_description;

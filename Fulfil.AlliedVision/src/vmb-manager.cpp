@@ -136,7 +136,8 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
         {
             int dropoff_lane_id = request_json->value("Dropoff_Lane_Id", -1);
             auto cam = cameras_[dropoff_lane_id];
-            BagReleaseResponse response(cmd_id, pkid, 10, false, "Bay not found");
+            bool always_approve_for_release = request_json->value("Always_Approve_For_Release", false);
+            BagReleaseResponse response(cmd_id, pkid, always_approve_for_release, 10, false, "Bay not found");
             if(cam == nullptr || dropoff_lane_id < 0){
                 log_->Error("No repack bay with id {}", dropoff_lane_id);
             }
@@ -186,11 +187,11 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                         log_->Debug("RepackPerception success code is {}, Not going to proceed with is_bot_ready_for_release", repack_percep.success_code);
                     }
                     
-                    response = BagReleaseResponse(cmd_id, pkid, repack_percep.success_code, repack_percep.is_bag_empty, repack_percep.error_description);
+                    response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, repack_percep.success_code, repack_percep.is_bag_empty, repack_percep.error_description);
                 }
                 catch (const std::exception& e){
                     log_->Error("Issue handling bot release request: \n\t{}", e.what());
-                    response = BagReleaseResponse(cmd_id, pkid, 10, false, e.what());
+                    response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, 10, false, e.what());
                 }
             }
             SendResponse(*cmd_id, *response.payload);

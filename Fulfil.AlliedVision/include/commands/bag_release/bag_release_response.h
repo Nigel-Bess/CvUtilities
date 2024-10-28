@@ -24,9 +24,11 @@ namespace fulfil::dispense::commands {
     int success_code;
     std::string error_description;
     bool is_bag_empty;
+    bool always_approve_for_release;
 
     BagReleaseResponse(std::shared_ptr<std::string> command_id,
                                 std::shared_ptr<std::string> primary_key_id,
+                                bool always_approve_for_release,
                                 int success_code,
                                 bool is_bag_empty,
                                 std::string error_description=std::string(""));
