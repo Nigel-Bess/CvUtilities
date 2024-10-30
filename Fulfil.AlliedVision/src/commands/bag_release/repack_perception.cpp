@@ -16,10 +16,12 @@
 #include <Fulfil.CPPUtils/logging.h>
 #include "repack_perception.h"
 #include <tuple>
-
+#include "repack_error_codes.h"
 
 using fulfil::dispense::commands::RepackPerception;
 using fulfil::utils::Logger;
+using fulfil::dispense::commands::RepackErrorCodes;
+using fulfil::dispense::commands::get_error_name_from_code;
 
 /**
 ** Threshold for the number of edges to decide object detected
@@ -73,9 +75,9 @@ RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation) 
     }
 
     // defaults for the BagReleaseResponse
-    this->success_code = 0;
+    this->success_code = RepackErrorCodes::Success;
     this->is_bag_empty = false;
-    this->error_description = "";
+    this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code);
 }
 
 double RepackPerception::distance(const cv::Point2f& p1, const cv::Point2f& p2) {
@@ -129,8 +131,8 @@ cv::Mat RepackPerception::load_image(std::string image_path) {
         return image;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught exception in load_image:") + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in load_image:") + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -152,12 +154,11 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv:
         }
         int num_markers = get_marker_count(rejected);
         Logger::Instance()->Info("RepackPerception's detect_aruco_markers detected {} markers", num_markers);
-        
         return rejected;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught exception in detect_aruco_markers: ") + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in detect_aruco_markers: ") + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -178,8 +179,8 @@ std::vector<std::vector<cv::Point2f>> RepackPerception::marker_selection(std::ve
         return markers;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught exception in marker_selection: ") + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in marker_selection: ") + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -207,8 +208,8 @@ cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points
         return centroid_points;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Caught exception in calculate_centroid: ") + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in calculate_centroid: ") + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -231,8 +232,8 @@ std::vector<cv::Point2f> RepackPerception::shrink_polygon(std::vector<cv::Point2
         return shrunk_polygon;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in shrink_polygon : ") + std::to_string(this->success_code) + ": " + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in shrink_polygon : ") + std::to_string(this->success_code) + ": " + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -250,8 +251,8 @@ cv::Mat RepackPerception::process_image(cv::Mat region_of_interest, int kernel_h
         return gaussian_image;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in process_image : ") + std::to_string(this->success_code) + ": " + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in process_image : ") + std::to_string(this->success_code) + ": " + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -277,8 +278,8 @@ bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_thr
         return bag_empty;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in canny_edge_detection : ") + std::to_string(this->success_code) + ": " + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in canny_edge_detection : ") + std::to_string(this->success_code) + ": " + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -320,14 +321,13 @@ int RepackPerception::get_marker_count(std::vector<std::vector<cv::Point2f>> mar
     // if less markers present than the bot number, the algorithm will have weird behavior
     if (detected_markers_count < 8) {
         // not enough markers detected code
-        this->success_code = 2;
+        this->success_code = RepackErrorCodes::NotEnoughMarkersDetected;
         
         // 1 marker detected may be the grid's april tag, not a bot
-        if (detected_markers_count < 2) { this->success_code = 1; }
-
-        this->error_description = std::string("Error in get_marker_count with success code " ) + std::to_string(this->success_code) + ": " + count_log;
+        if (detected_markers_count < 2) { this->success_code = RepackErrorCodes::NoMarkersDetected; }
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in get_marker_count with success code ") + std::to_string(this->success_code) + ": " + count_log;
         Logger::Instance()->Error(this->error_description);
-        throw std::runtime_error(std::string("In get_marker_count: Is no bot in image? " + count_log));
+        throw std::runtime_error(this->error_description + " -> " + std::string("In get_marker_count: Is no bot in image? " + count_log));
     }
     return detected_markers_count;
 }
@@ -353,9 +353,9 @@ std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::ve
         return points;
     }
     catch (const std::exception& e) {
-        if (this->success_code == 0) {
-            this->success_code = 10;
-            this->error_description = std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
+        if (this->success_code == RepackErrorCodes::Success) {
+            this->success_code = RepackErrorCodes::UnspecifiedError;
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
             Logger::Instance()->Error(this->error_description);
         }
         throw;
@@ -384,9 +384,11 @@ std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::v
         return points;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in right_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
-        Logger::Instance()->Error(this->error_description);
+        if (this->success_code == RepackErrorCodes::Success) {
+            this->success_code = RepackErrorCodes::UnspecifiedError;
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in right_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
+            Logger::Instance()->Error(this->error_description);
+        }
         throw;
     }
 }
@@ -434,8 +436,8 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         return region_of_interest;
     }
     catch (const std::exception& e) {
-        this->success_code = 10;
-        this->error_description = std::string("Error in calculate_roi : ") + std::to_string(this->success_code) + ": " + e.what();
+        this->success_code = RepackErrorCodes::UnspecifiedError;
+        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in calculate_roi : ") + std::to_string(this->success_code) + ": " + e.what();
         Logger::Instance()->Error(this->error_description);
         throw;
     }
@@ -500,9 +502,9 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
     }
     catch (const std::exception& e) {
         Logger::Instance()->Trace("RepackPerception is_bot_ready_for_release in catch exception");
-        if (this->success_code == 0) {
-            this->success_code = 10;
-            this->error_description = std::string("Caught exception in is_bot_ready_for_release: ") + e.what();
+        if (this->success_code == RepackErrorCodes::Success) {
+            this->success_code = RepackErrorCodes::UnspecifiedError;
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in is_bot_ready_for_release: ") + e.what();
             Logger::Instance()->Error(this->error_description);
         } else {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
@@ -511,9 +513,9 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
     }
     catch (...) {
         Logger::Instance()->Trace("RepackPerception is_bot_ready_for_release in catch (...) block");
-        if (this->success_code == 0) {
-            this->success_code = 10;
-            this->error_description = std::string("Caught error in is_bot_ready_for_release in catch(...)!");
+        if (this->success_code == RepackErrorCodes::Success) {
+            this->success_code = RepackErrorCodes::UnspecifiedError;
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught error in is_bot_ready_for_release in catch(...)!");
             Logger::Instance()->Error(this->error_description);
         } else {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);

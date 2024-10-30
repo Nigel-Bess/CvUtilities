@@ -6,8 +6,11 @@
 #include <tuple>
 #include "commands/bag_release/repack_perception.h"
 #include <filesystem>
+#include "commands/bag_release/repack_error_codes.h"
 
 using namespace fulfil::dispense::commands;
+using fulfil::dispense::commands::RepackErrorCodes;
+using fulfil::dispense::commands::get_error_name_from_code;
 
 struct sigaction old_action;
 bool RUN = true;
@@ -161,20 +164,20 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                         std::string image_path = directory_path + "color_image";
                         bool saved_image_successfully = SaveImages(cam_image, image_path);
                         if (!saved_image_successfully) {
-                            repack_percep.success_code = 10;
+                            repack_percep.success_code = RepackErrorCodes::UnspecifiedError;
                             repack_percep.error_description = "Failed to save image successfully, likely the image was empty!";
                         }
                     }
                     else {
                         log_->Error("Failed to create Directory : {}", directory_path);
-                        repack_percep.success_code = 10;
+                        repack_percep.success_code = RepackErrorCodes::UnspecifiedError;
                         repack_percep.error_description = "Failed to create Directory : " + directory_path;
                     }
                 }
                 
                 try {
                     // don't run the algorithm if the setup encountered issues
-                    if (repack_percep.success_code == 0) 
+                    if (repack_percep.success_code == RepackErrorCodes::Success)
                     {
                         log_->Info("About to run is_bot_ready_for_release");
                         repack_percep.is_bot_ready_for_release(image, directory_path);
@@ -184,14 +187,18 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                             repack_percep.error_description);
                     } else 
                     {
+                        if (cam->camera_error_code != RepackErrorCodes::Success) {
+                            repack_percep.success_code = cam->camera_error_code;
+                            repack_percep.error_description = get_error_name_from_code((RepackErrorCodes)repack_percep.success_code) + " -> " +  cam->camera_error_description;
+                        }
                         log_->Debug("RepackPerception success code is {}, Not going to proceed with is_bot_ready_for_release", repack_percep.success_code);
                     }
                     
                     response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, repack_percep.success_code, repack_percep.is_bag_empty, repack_percep.error_description);
                 }
                 catch (const std::exception& e){
-                    log_->Error("Issue handling bot release request: \n\t{}", e.what());
-                    response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, 10, false, e.what());
+                    log_->Error("Exception caught in VmbManager. Issue handling bot release request: \n\t{}", e.what());
+                    response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, RepackErrorCodes::UnspecifiedError, false, e.what());
                 }
             }
             SendResponse(*cmd_id, *response.payload);

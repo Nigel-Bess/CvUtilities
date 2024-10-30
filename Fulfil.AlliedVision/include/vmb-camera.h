@@ -8,9 +8,10 @@
 
 #include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include "commands/bag_release/repack_error_codes.h"
 
 using namespace VmbCPP;
-
+using fulfil::dispense::commands::RepackErrorCodes;
 
 class VmbCamera{
     public:
@@ -25,7 +26,8 @@ class VmbCamera{
         std::shared_ptr<cv::Mat> last_image_;
         cv::Mat last_mat_;
         void SaveLastImage(std::string path);
-
+        int camera_error_code = RepackErrorCodes::Success;
+        std::string camera_error_description = "";
 
     private:
         VmbUchar_t* img_buffer_;
@@ -54,7 +56,6 @@ class VmbCamera{
             name_ = ss.str();
         }
         bool CameraHasBrightView(std::string name_);
-
 };
 
 

@@ -1,4 +1,8 @@
 #include "vmb-camera.h"
+#include "commands/bag_release/repack_error_codes.h"
+
+using fulfil::dispense::commands::RepackErrorCodes;
+using fulfil::dispense::commands::get_error_name_from_code;
 
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
@@ -142,12 +146,18 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         while(err != VmbErrorSuccess || count < 1){
             err = camera_->AcquireSingleImage(frame_ptr_, 5000);
             
-            if(err != VmbErrorSuccess)log_->Error("{} could not get frame with code {}", name_, GetVimbaCode(err));
+            if (err != VmbErrorSuccess) {
+                camera_error_code = RepackErrorCodes::VimbaCameraError;
+                camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
+                log_->Error(camera_error_description);
+            }
             count++;
             if(count > 3)break;
         }
         if(err != VmbErrorSuccess){
-            log_->Error("{} could not get frame with code {}", name_, GetVimbaCode(err));
+            camera_error_code = RepackErrorCodes::VimbaCameraError;
+            camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
+            log_->Error(camera_error_description);
             return empty;
         }
         try{
@@ -161,7 +171,11 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
             return last_image_;
         }
         catch(const std::exception &ex){
-            log_->Error("VmbManager::GetImageBlocking caught error: {}", ex.what());
+            if (camera_error_code == RepackErrorCodes::Success) {
+                camera_error_code = RepackErrorCodes::VimbaCameraError;
+                camera_error_description = get_error_name_from_code((RepackErrorCodes)camera_error_code) + " -> " + "VmbManager::GetImageBlocking caught error: {}", ex.what();
+            }
+            log_->Error(camera_error_description);
         }
     }
     return empty;
