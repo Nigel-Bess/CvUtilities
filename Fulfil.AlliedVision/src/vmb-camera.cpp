@@ -16,6 +16,14 @@ void VmbCamera::KillCamera(){
         camera_->Close();
 }
 
+
+//These bays have light sources right above the cameras which leads the image to be brighter
+//Applying custom settings to make the images less brighter
+bool VmbCamera::CameraHasBrightView(std::string name_) {
+    return (name_ == "RepackBay03" or name_ == "RepackBay04" or name_ == "RepackBay06" 
+        or name_ == "RepackBay07" or name_ == "RepackBay09" or name_ == "RepackBay10");
+}
+
 void VmbCamera::RunSetup(){
     log_->Info("VmbCamera starting on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
@@ -31,22 +39,19 @@ void VmbCamera::RunSetup(){
     std::string name;
     camera_->GetName(name);
     log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID"));
-    // SetFeature("ExposureTime", 15000.0);
     SetFeature("PixelFormat", "BGR8");
     SetFeature("ExposureAuto", "Once");
-    //custom camera settings for bay 03
-    if (name_ == "RepackBay03" or name_ == "RepackBay06" or name_ == "RepackBay07") {
-        SetFeature("ExposureTime", 25000.00);
-        SetFeature("Gamma", 0.6);
-        SetFeature("Hue", -2.0);
-        SetFeature("Saturation", 1.0);
+    //These values may need changes in future until a config is added
+    if (CameraHasBrightView(name_)) {
+        SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
+        SetFeature("Gamma", 0.5); //brightness factor
     }
     else {
         SetFeature("ExposureTime", 19985.98);
         SetFeature("Gamma", 0.6);
-        SetFeature("Hue", -2.0);
-        SetFeature("Saturation", 1.0);
     }
+    SetFeature("Hue", -2.0);
+    SetFeature("Saturation", 1.0);
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
     AdjustPacketSize();
     connected_ = true;
@@ -124,18 +129,16 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     std::lock_guard<std::mutex> lock(_lock);
     {
         SetFeature("ExposureAuto", "Once");
-        if (name_ == "RepackBay03" or name_ == "RepackBay06" or name_ == "RepackBay07") {
-            SetFeature("ExposureTime", 25000.00);
-            SetFeature("Gamma", 0.6);
-            SetFeature("Hue", -2.0);
-            SetFeature("Saturation", 1.0);
+        if (CameraHasBrightView(name_)) {
+            SetFeature("ExposureTime", 15000.0);
+            SetFeature("Gamma", 0.5);
         }
         else {
             SetFeature("ExposureTime", 19985.98);
             SetFeature("Gamma", 0.6);
-            SetFeature("Hue", -2.0);
-            SetFeature("Saturation", 1.0);
         }
+        SetFeature("Hue", -2.0);
+        SetFeature("Saturation", 1.0);
         while(err != VmbErrorSuccess || count < 1){
             err = camera_->AcquireSingleImage(frame_ptr_, 5000);
             

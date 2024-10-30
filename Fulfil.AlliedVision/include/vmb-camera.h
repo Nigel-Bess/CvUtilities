@@ -53,7 +53,7 @@ class VmbCamera{
             ss << "RepackBay" << std::setw(2) << std::setfill('0') << bay_;
             name_ = ss.str();
         }
-
+        bool CameraHasBrightView(std::string name_);
 
 };
 
