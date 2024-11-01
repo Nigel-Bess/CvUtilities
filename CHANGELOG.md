@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.3.0...v1.4.0) (2024-11-01)
+
+
+### Features
+
+* **testCi:** alphabetized import statements ([#152](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/152)) ([c85305b](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/c85305b7ffccb1f943dc6aaeeab0963c6785fd06))
+
 # [1.3.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.2.2...v1.3.0) (2024-10-22)
 
 
