@@ -22,6 +22,7 @@
 
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/timer.h>
+#include <Fulfil.CPPUtils/build.h>
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;

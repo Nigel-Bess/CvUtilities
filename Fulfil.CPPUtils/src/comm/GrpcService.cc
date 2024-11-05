@@ -50,7 +50,10 @@ void DepthCamServiceImpl::Process(){
 void DepthCamServiceImpl::QueueHelloMessage(){
     auto hb = std::make_shared<DcResponse>();
     hb->set_type(MESSAGE_TYPE_HEARTBEAT);
-    hb->set_command_id(GetTxObjectIdString()); 
+    hb->set_command_id(GetTxObjectIdString());
+    auto git = git_info();
+    hb->set_message_data(git.data(), git.size());
+    hb->set_message_size(git.size());
     tasks_->PackWrite(hb);
 }
 
@@ -64,7 +67,7 @@ void GrpcService::Run(uint16_t port){
     std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    Logger::Instance()->Info("GrpcServer listening on {}", server_address);
+    Logger::Instance()->Info("GrpcServer listening on {} with release {}", server_address, git_info());
     builder.RegisterService(&async_service_);
     cq_ = builder.AddCompletionQueue();
     server_ = builder.BuildAndStart();

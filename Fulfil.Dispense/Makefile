@@ -8,6 +8,7 @@ DOCKER_IMAGE=gcr.io/fulfil-web/$(LOCAL_DOCKER_IMAGE)/runner:$(IMAGE_TAG)
 
 .PHONY : all
 all:
+	$(shell ../scripts/build_date.sh)
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target main -- -j $(PROC)
 

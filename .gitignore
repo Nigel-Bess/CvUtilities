@@ -40,3 +40,4 @@ html
 scripts/env_setup/mongo*
 
 node_modules/
+Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h

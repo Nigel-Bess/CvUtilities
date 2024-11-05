@@ -1,6 +1,7 @@
 
 .phony : all
 all:
+	$(shell ../scripts/build_date.sh)
 	cd build && cmake .. && make
 
 .phony : node1
