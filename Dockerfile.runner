@@ -15,6 +15,7 @@ COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
 COPY third-party/ ./third-party/
+COPY scripts/build_date.sh ./scripts/build_date.sh
 
 RUN cd Fulfil.AlliedVision/ \
     && mkdir build/ \
