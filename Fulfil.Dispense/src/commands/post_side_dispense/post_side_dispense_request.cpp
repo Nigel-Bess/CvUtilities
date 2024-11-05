@@ -35,6 +35,11 @@ std::shared_ptr<DispenseResponse> PostSideDispenseRequest::execute()
     else
     {
         std::cout << "PostSideDispense Command Delegate Expired" << std::endl;
-        return std::make_shared<PostSideDispenseResponse>(this->request_id); //TODO: Must add error code back
+        return std::make_shared<PostSideDispenseResponse>(this->request_id,
+                                                         this->PrimaryKeyID,
+                                                         nullptr,
+                                                         -1, -1,
+                                                         SideDispenseErrorCodes::CommandDelegateExpired,
+                                                         "");
     }
 }

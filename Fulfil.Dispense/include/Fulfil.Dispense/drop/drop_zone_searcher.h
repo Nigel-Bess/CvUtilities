@@ -324,6 +324,12 @@ public:
     std::shared_ptr<nlohmann::json> request_json,
     std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
+  std::shared_ptr<SideDropResult> handle_post_side_dispense(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<std::string> primary_key_id,
+    std::shared_ptr<nlohmann::json> request_json,
+    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
+
 };
 } // namespace fulfil
 

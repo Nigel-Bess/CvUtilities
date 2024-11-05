@@ -3,6 +3,7 @@
 //
 
 #include "Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h"
+#include <Fulfil.CPPUtils/conversions.h>
 #include <Fulfil.CPPUtils/logging.h>
 
 #include <json.hpp>
@@ -11,24 +12,9 @@
 #include <vector>
 
 using fulfil::dispense::commands::PreSideDispenseResponse;
+using fulfil::utils::convert_map_to_millimeters;
 using fulfil::utils::Logger;
-
-int to_millimeters(float meters) {
-	return (int)((meters) * 1000);
-}
-
-std::shared_ptr<std::vector<std::vector<int>>> convert_map_to_millimeters(std::shared_ptr<std::vector<std::vector<float>>> map) {
-    if (map == nullptr) return nullptr;
-    // NOTE if the vector ever doesn't have same-sized vectors inside, this will be bogus
-    std::vector output(map->size(), std::vector<int>(map->at(0).size(), -99999));
-
-    for (int y = 0; y < map->at(0).size(); y++) {
-        for (int x = 0; x < map->size(); x++) {
-            output.at(x).at(y) = to_millimeters(map->at(x).at(y));
-        }
-    }
-    return std::make_shared<std::vector<std::vector<int>>>(output);
-}
+using fulfil::utils::to_millimeters;
 
 void PreSideDispenseResponse::encode_payload() {
     nlohmann::json result_json{};

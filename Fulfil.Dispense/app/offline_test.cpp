@@ -213,7 +213,7 @@ void test_pre_side_drop_routine_dispense_manager_json(std::shared_ptr<std::strin
 	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
 	std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
 	
-    auto response = dispense_manager.handle_pre_side_dispense(command_id, 
+    auto response = dispense_manager.handle_post_side_dispense(command_id, 
 														request_json);
     Logger::Instance()->Debug("Response Payload: {}", *response->dispense_payload());
 

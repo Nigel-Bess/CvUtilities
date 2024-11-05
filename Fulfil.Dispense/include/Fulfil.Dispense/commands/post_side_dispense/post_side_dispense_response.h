@@ -5,24 +5,36 @@
 #ifndef FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
 #define FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
 #include <Fulfil.Dispense/commands/dispense_response.h>
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
+
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 
 namespace fulfil::dispense::commands {
     class PostSideDispenseResponse final : public fulfil::dispense::commands::DispenseResponse
     {
     private:
-
+        std::shared_ptr<std::string> payload;
+        void encode_payload();
+    public:
         std::shared_ptr<std::string> request_id;
+        std::shared_ptr<std::string> primary_key_id;
+        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
+        float square_width{-1};
+        float square_height{-1};
         int items_dispensed{1};
         int bag_full_percent{0};
         int item_on_target_percent{0};
         std::vector<int> products_to_overflow{};
-        int success_code{0};
+        SideDispenseErrorCodes success_code{SideDispenseErrorCodes::Success};
         std::string error_description{};
-        std::shared_ptr<std::string> payload;
-        void encode_payload();
-    public:
 
-        explicit PostSideDispenseResponse(std::shared_ptr<std::string> request_handshake_id);
+        explicit PostSideDispenseResponse(std::shared_ptr<std::string> request_id,
+            std::shared_ptr<std::string> primary_key_id,
+            std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+            float square_width,
+            float square_height,
+            SideDispenseErrorCodes success_code,
+            std::string error_description);
         int dispense_payload_size() override;
         std::shared_ptr<std::string> get_command_id() override;
         std::shared_ptr<std::string> dispense_payload() override;

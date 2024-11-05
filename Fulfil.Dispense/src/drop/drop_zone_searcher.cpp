@@ -2117,6 +2117,21 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
 
+        // this "LFB_filter" image is the plain depth map visualized
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        cv::Mat depth_visualization;
+        cv::Mat depth_mat = *this->session->get_depth_mat();
+        Logger::Instance()->Trace("Retrieved depth mat");
+        double minVal, maxVal;
+        cv::minMaxLoc(depth_mat, &minVal, &maxVal);  // Find the minimum and maximum depth values
+        depth_mat.convertTo(depth_visualization, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+        cv::applyColorMap(depth_visualization, depth_visualization, cv::COLORMAP_MAGMA);
+        if (this->visualize == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(depth_visualization));
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, *primary_key_id);
+
+        Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
+
+
         // detect Aruco markers in RGB stream     
         std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();     
         // Visualization for detected valid markers
@@ -2132,10 +2147,117 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, *primary_key_id);
         if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
 
-        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
         // depth cloud visualization
         std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud);
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
+        if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
+
+        // transform depth cloud into the OccupancyMap
+        int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
+        int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
+        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
+        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
+        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map = generate_occupancy_map(
+            point_cloud,
+            occupancy_map_width,
+            occupancy_map_height,
+            square_width,
+            square_height);
+
+        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
+                                  occupancy_map_width, occupancy_map_height, square_width, square_height);
+        return std::make_shared<SideDropResult>(request_id,
+                                                occupancy_map,
+                                                container,
+                                                square_width,
+                                                square_height,
+                                                SideDispenseErrorCodes::Success,
+                                                std::string(""));
+    }
+    catch (const rs2::unrecoverable_error& e)
+    {
+        std::string error_descrip = std::string("Realsense Exception: `") + e.what() +
+                             std::string("`\nIn function: `") + e.get_failed_function() +
+                             std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Fatal(error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+    }
+    catch (const rs2::recoverable_error& e)
+    {
+        std::string error_msg = std::string("Realsense Exception: `") + e.what() +
+                         std::string("`\nIn function: `") + e.get_failed_function() +
+                         std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
+        Logger::Instance()->Error(error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+    }
+    catch (const std::invalid_argument& e)
+    {
+        std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
+        Logger::Instance()->Error(error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+    }
+    catch (SideDispenseError& e)
+    {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+
+        // TODO: should the occupancy map be written here?
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+    }
+    // TODO - remove. this is horrible. sincerely, jess
+    catch (std::tuple<int, std::string> & e)
+    {
+        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
+        std::string error_desc = std::get<std::string>(e);
+        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
+
+        // TODO: should the occupancy map be written here?
+        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
+        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
+    }
+    catch (const std::exception &e) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
+                                  e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+    }
+    catch (...) {
+        Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+    }
+}
+
+std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<std::string> primary_key_id,
+    std::shared_ptr<nlohmann::json> request_json,
+    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config)
+{
+    try {
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        std::shared_ptr<MarkerDetectorContainer> container = this->get_container(lfb_vision_config, this->session, false);
+
+        Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
+        // visualize the color image
+        std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
+        if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
+
+        // detect Aruco markers in RGB stream     
+        std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();     
+        // Visualization for detected valid markers
+        std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(
+            container->marker_detector->dictionary, 
+            markers, 
+            container->region_max_x, 
+            container->region_min_x, 
+            container->region_max_y, 
+            container->region_min_y);
+
+        // visualize the markers but don't upload
+        if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
+
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        // depth cloud visualization but don't upload
+        std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud);
         if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
 
         // this "LFB_filter" image is the plain depth map visualized
@@ -2147,7 +2269,6 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         depth_mat.convertTo(depth_visualization, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
         cv::applyColorMap(depth_visualization, depth_visualization, cv::COLORMAP_MAGMA);
         if (this->visualize == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(depth_visualization));
-        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, *primary_key_id);
 
         Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
 

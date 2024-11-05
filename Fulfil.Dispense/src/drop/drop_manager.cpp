@@ -590,6 +590,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
+// needs data destination of 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
     (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
     std::string error_code_file = ("Side_Pre_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
@@ -690,6 +691,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
     (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
     std::string error_code_file = ("Side_Post_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    // /home/fulfil/Videos/saved_images_2024_11_04/Side_Bag_Camera/671a8c713c760011e22754e6
 
     try {
         auto bag_state = this->mongo_bag_state->GetStateAsJson();
@@ -711,8 +713,10 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
         std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
         Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
 
-        // TODO is the error code file even used anymore
-        generate_error_code_result_data(generate_data, error_code_file, 0);
+        std::shared_ptr<SideDropResult> result = this->searcher->handle_post_side_dispense(request_id, primary_key_id, request_json, lfb_vision_config);
+        this->cached_post_container = result->container; // cache container for potential use in prepostcomparison later
+        this->cached_post_request = request_json;
+
         return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::Success, std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)

@@ -51,6 +51,7 @@ using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
+using fulfil::dispense::drop::SideDropResult;
 using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
@@ -384,7 +385,7 @@ std::shared_ptr<DispenseResponse> DispenseManager::process_request(std::shared_p
 }
 
 std::shared_ptr<std::string> fulfil::dispense::DispenseManager::create_datagenerator_basedir()
-{
+{   
     std::shared_ptr<std::string> base_directory = std::make_shared<std::string>(this->dispense_reader->Get(dispense_reader->get_default_section(), "data_gen_image_base_dir", ""));
     if (base_directory->length() == 0)
     {
@@ -457,7 +458,7 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
     return floor_result;
 }
 
-std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
+std::shared_ptr<DropResult> DispenseManager::handle_drop_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
                                                                                         std::shared_ptr<nlohmann::json> request_json)
 {
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
@@ -510,7 +511,7 @@ std::shared_ptr<fulfil::dispense::drop::DropResult> DispenseManager::handle_drop
      */
 
     // call drop target algorithm
-    std::shared_ptr<fulfil::dispense::drop::DropResult>
+    std::shared_ptr<DropResult>
         drop_result = this->drop_manager->handle_drop_request(request_json, details, base_directory, time_stamp_string,
                                                               true, this->bot_already_rotated_for_current_dispense);
 
@@ -1064,22 +1065,19 @@ std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse>
 fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std::string> request_id,
                                                             std::shared_ptr<nlohmann::json> request_json)
 {
-    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name); // + " request " + *primary_key_id);
-    Logger::Instance()->Debug("Handling PreSideDispense Command for Bay: {}", this->machine_name);
     auto pkid = (*request_json)["Primary_Key_ID"].get<std::string>();
     auto primary_key_id = std::make_shared<std::string>(pkid);
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_side_dispense for " + this->machine_name + " request " + pkid);
+    Logger::Instance()->Debug("Handling PreSideDispense Command for Bay: {} Request: {}", this->machine_name, pkid);
 
     if (!this->LFB_session) {
-        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
-        // TODO - make this more useful and obvious, panic the DAB In FC
-        // TODO: do we even return a response here or just throw a big ol' exception
+        Logger::Instance()->Warn("No LFB Session. Check all cameras registering and serial numbers match!");
         return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id,
                                                          primary_key_id,
                                                          nullptr,
                                                          -1, -1,
                                                          SideDispenseErrorCodes::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
-                                                         // TODO: have specific error code // TODO: move to throw/catch format, log data
     }
     Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
     // need to refresh the session to get updated frames
@@ -1089,10 +1087,13 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
     std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
-    std::shared_ptr<fulfil::dispense::drop::SideDropResult>
-        side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id,
-        request_json,
-        base_directory, time_stamp_string, false);
+    // std_filesystem::path base_directory = make_media::paths::join_as_path(
+    // (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
+            
+    // auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
+    // data_generator.save_data(std::make_shared<std::string>());
+
+    std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, false);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
         std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, SideDispenseErrorCodes::Success);
@@ -1122,16 +1123,65 @@ std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse>
 fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std::string> request_id,
                                                              std::shared_ptr<nlohmann::json> request_json)
 {
+    auto pkid = (*request_json)["Primary_Key_ID"].get<std::string>();
+    auto primary_key_id = std::make_shared<std::string>(pkid);
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_post_side_dispense for " + this->machine_name + " request " + pkid);
+    Logger::Instance()->Debug("Handling PostSideDispense Command for Bay: {} Request ID: {}", this->machine_name, pkid);
+
+    if (!this->LFB_session) {
+        Logger::Instance()->Fatal("No LFB Session. Check all cameras registering and serial numbers match!");
+        return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id,
+                                                         primary_key_id,
+                                                         nullptr,
+                                                         -1, -1,
+                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError,
+                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
+    }
+    this->LFB_session->refresh();
+
     auto data_fs_path = make_media::paths::add_basedir_date_suffix_and_join(
                             this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir"),
                             "Side_Bag_Camera/") /
-                        (*request_json)["Primary_Key_ID"].get<std::string>();
+                            pkid;
     data_fs_path /= "Post_Side_Dispense";
-    this->LFB_session->refresh();
-    
     auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
     data_generator.save_data(std::make_shared<std::string>());
-    return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id);
+    std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
+
+
+    std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
+    std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_post_side_dispense_request(
+            request_id, 
+            primary_key_id,
+            request_json,
+            base_directory, 
+            time_stamp_string, 
+            false);
+
+    std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> post_side_dispense_response =
+        std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id, 
+            primary_key_id, 
+            side_drop_result->occupancy_map, 
+            side_drop_result->square_width, 
+            side_drop_result->square_height, 
+            SideDispenseErrorCodes::Success, 
+            "");
+
+    // if algorithm failed, upload available visualizations immediately
+    if (post_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
+    {
+        if (this->live_viewer != nullptr)
+        {
+            std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
+            std::string error_line = "Target: Error ID " + std::to_string(post_side_dispense_response->success_code);
+            message->push_back(error_line);
+            std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)post_side_dispense_response->success_code);
+            message->push_back(specific_error_message);
+            Logger::Instance()->Error("Handle PostSideDispense Failed: {}!", specific_error_message);
+            this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, *primary_key_id, true, message);
+        }
+    }
+    return post_side_dispense_response;
 }
 #pragma endregion side_bag
 
