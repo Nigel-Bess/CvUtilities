@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.4.0...v1.5.0) (2024-11-05)
+
+
+### Bug Fixes
+
+* **build:** Copy build_data.sh ([06609df](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/06609dfaf1899918498a39412bde13b2eed5ce43))
+
+
+### Features
+
+* **releases:** Add git info for FC ([#153](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/153)) ([96c3700](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/96c3700edafe30f738468ed3a8153095024a32ea))
+
 # [1.4.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.3.0...v1.4.0) (2024-11-01)
 
 
