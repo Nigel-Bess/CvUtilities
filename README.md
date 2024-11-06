@@ -20,7 +20,6 @@ from the `Fulfil.ComputerVision` project root.
 
 
 ## Starting the Mars API
-
 Log on as the fulfil user (or run the command from fulfil userspace). Run the dc-startup script to cycle 
 the services. G-Dabs run on `.83`, F-Dabs run on `.88`, Induction Loop runs off of `.62`. 
 **Beware the system is set to auto start on boot, which normally takes ~45 seconds to a minute to initiate. 
