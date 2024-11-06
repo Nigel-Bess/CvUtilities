@@ -2,7 +2,7 @@ name: Create Release Branch Every Monday
 
 on:
   schedule:
-    - cron: '0 1 * * 2'  # Run every Monday at 6pm EDT. Marks as "Tuesday" beacuse of UTC conversion
+    - cron: '0 23 * * 4'  # Run every Monday at 6pm EDT. Marks as "Tuesday" beacuse of UTC conversion
 
 jobs:
   create-release-branch:
