@@ -3,7 +3,7 @@
 name: Release
 on:
   schedule:
-    - cron: '0 20 15 * 3' # 4:15pm Eastern, Wednesday
+    - cron: '45 20 * * 3' # 4pm Eastern, Thursday
 jobs:
   release:
     name: Release
