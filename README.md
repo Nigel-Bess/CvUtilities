@@ -1,6 +1,6 @@
 # Fulfil.ComputerVision
 
-New monorepo for Depth Cam repositories. Previously tracked as 4 individual repositories: 
+Monorepo for Depth Cam repositories. Previously tracked as 4 individual repositories: 
 Fulfil.Dispense, Fulfil.DepthCam, Fulfil.CPPUtils, FulfilMongoCpp. Current repo specific to Mars systems 
 (not backwards compatible with 3.1).
 
