@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.0...v1.5.1) (2024-11-06)
+
+
+### Bug Fixes
+
+* **update:** cv workflow ([#155](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/155)) ([53cc6a8](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/53cc6a8abd251bf74bce5217f566aba7e6bc15fd))
+
 # [1.5.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.4.0...v1.5.0) (2024-11-05)
 
 
