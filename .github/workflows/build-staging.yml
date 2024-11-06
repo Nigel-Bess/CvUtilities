@@ -1,5 +1,7 @@
 name: Build and deploy CV Staging
-on: [push]
+on:
+  schedule:
+    - cron: '0 20 30 * 3' # 4:30pm Eastern, Wednesday
 
 env:
   ACTIONS_STEP_DEBUG: true
