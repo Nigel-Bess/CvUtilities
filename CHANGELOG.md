@@ -1,3 +1,12 @@
+## [1.5.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.1...v1.5.2) (2024-11-06)
+
+
+### Bug Fixes
+
+* **change:** test ([#157](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/157)) ([b4c399c](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/b4c399cd127218b731f614353c740ed64ceffa3b))
+* **readme:** remove new ([#158](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/158)) ([430819b](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/430819bb9be70841b882c98470f7999fb2ccfa59))
+* **release:** workflow ([#156](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/156)) ([bcd9847](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/bcd98476c6b4c2b3319ed2a6c13472f02f0b0fc6))
+
 ## [1.5.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.0...v1.5.1) (2024-11-06)
 
 
