@@ -1,0 +1,37 @@
+name: Create Release Branch Every Monday
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'  # Run every Monday at noon UTC
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Git for the actions
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+
+      # Step 3: Create a new release branch
+      - name: Create release branch
+        run: |
+          # Get the current date and format it
+          DATE=$(date +'%Y-%m-%d')
+          
+          # Define the branch name (you can adjust this to suit your naming convention)
+          BRANCH_NAME="release/$DATE"
+          
+          # Create a new branch based on the main branch (or whatever default branch you're using)
+          git checkout main  # Adjust to your default branch name if it's not 'main'
+          git pull origin main  # Ensure you have the latest changes
+          git checkout -b $BRANCH_NAME  # Create the new release branch
+          
+          # Push the new branch to the repository
+          git push origin $BRANCH_NAME
