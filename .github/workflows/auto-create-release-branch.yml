@@ -9,26 +9,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Git for the actions
       - name: Set up Git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@users.noreply.github.com"
 
-      # Step 3: Create a new release branch
+      - name: Determine next version
+        id: version
+        run: |
+          # Get the latest tag (semantic versioning)
+          latest_tag=$(git describe --tags --abbrev=0)
+          
+          # Default to 0.0.0 if no tags exist yet
+          if [ -z "$latest_tag" ]; then
+            latest_tag="0.0.0"
+          fi
+
+          echo "Latest tag is: $latest_tag"
+          
+          # Increment the patch version (you can modify this logic if needed)
+          # Split the version into major, minor, patch components
+          IFS='.' read -r major minor patch <<< "$latest_tag"
+          new_patch=$((patch + 1))  # Increment the patch version
+          
+          # Create the new version (we're incrementing the patch version here)
+          new_version="$major.$minor.$new_patch"
+          
+          echo "Next version: $new_version"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+
       - name: Create release branch
         run: |
-          # Get the current date and format it
-          DATE=$(date +'%Y-%m-%d')
+          # Get the new version from the environment variable
+          BRANCH_NAME="release/v${{ env.new_version }}"
           
-          # Define the branch name (you can adjust this to suit your naming convention)
-          BRANCH_NAME="release/$DATE"
-          
-          # Create a new branch based on the main branch (or whatever default branch you're using)
+          # Create and push the new release branch
           git checkout main  # Adjust to your default branch name if it's not 'main'
           git pull origin main  # Ensure you have the latest changes
           git checkout -b $BRANCH_NAME  # Create the new release branch
