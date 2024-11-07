@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.2...v1.5.3) (2024-11-07)
+
+
+### Bug Fixes
+
+* **release:** cron time ([#159](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/159)) ([88f2c62](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/88f2c62a330c05d80a04e31c82b8ddacbce85803))
+
 ## [1.5.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.1...v1.5.2) (2024-11-06)
 
 
