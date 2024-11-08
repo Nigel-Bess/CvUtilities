@@ -2,6 +2,7 @@
 #include <memory>
 #include <tuple>
 #include <vector>
+#include <Fulfil.CPPUtils/conversions.h>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
 #include <Fulfil.CPPUtils/logging.h>
@@ -37,6 +38,7 @@ using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::convert_map_to_millimeters;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 
@@ -2067,14 +2069,39 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
 }
 
+std::string grid_map_to_str(std::vector<std::shared_ptr<std::vector<int>>> map) {
+    std::string output = "";
+    std::string val;
+    for (int y = 0; y < map.size(); y++) {
+        output += "| ";
+        for (int x = 0; x < map.at(0)->size(); x++) {
+            val = std::to_string(map.at(y)->at(x));
+            output += val + std::string(2, ' ') + "| ";
+        }
+        output += "\n";
+    }
+    return output;
+}
 
-std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int occupancy_map_width, int occupancy_map_height, float square_width, float square_height) {
+// TODO add helper for cleanliness
+// float get_max_depth_in_square(point_cloud, )
+
+
+// occupancy map width = num_cols 
+// occupancy map height = num rows
+// TODO optimize
+std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int num_cols, int num_rows, float bag_width, float bag_length) {
     // initialize occupancy map with default -99999m
-    // TODO does this need to be shared ptr of vec of shared ptr or is the outermost one good enough
-    std::vector depth_map_so_far(occupancy_map_height, std::vector<float>(occupancy_map_width, -99999));
+    std::vector<std::shared_ptr<std::vector<float>>> depth_map_so_far;
+    for (int r = 0; r < num_rows; r++) {
+      depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
+    }
 
     std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
     std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
+    
+    float square_width = bag_width / num_cols;
+    float square_height = bag_length / num_rows;
 
     // cycle through all points in bag and log the max depth points in each region
     for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
@@ -2083,22 +2110,27 @@ std::shared_ptr<std::vector<std::vector<float>>> generate_occupancy_map(std::sha
         float local_y = (*local_cloud_data)(1, current_pixel_index);
         float local_z = (*local_cloud_data)(2, current_pixel_index);
 
-        for (int map_square_x = 0; map_square_x < occupancy_map_width; ++map_square_x) {
-            float min_x_coord = map_square_x * square_width;
-            float max_x_coord = (map_square_x + 1) * square_width;
-            for (int map_square_y = 0; map_square_y < occupancy_map_height; ++map_square_y) {
-                float min_y_coord = map_square_y * square_height;
-                float max_y_coord = (map_square_y + 1) * square_height;
+        for (int map_square_col = 0; map_square_col < num_cols; ++map_square_col) {
+            float min_x_coord = map_square_col * square_width - bag_width/2;
+            float max_x_coord = (map_square_col + 1) * square_width - bag_width/2;
+            for (int map_square_row = 0; map_square_row < num_rows; ++map_square_row) {
+                float min_y_coord = map_square_row * square_height - bag_length/2;
+                float max_y_coord = (map_square_row + 1) * square_height - bag_length/2;
                 if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
-                    // get the "max depth"/"tallest" point in that occupancy map grid square - the point closest to the mouth of the bag
-                    depth_map_so_far.at(map_square_x).at(map_square_y) = std::max(depth_map_so_far.at(map_square_x).at(map_square_y), local_z);
-                    Logger::Instance()->Trace("Occupancy map loop map_square_x = {}, map_square_y = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
-                        map_square_x, map_square_y, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_x).at(map_square_y));
+                    // get the "max depth"/"tallest"/"shallowest" point in that occupancy map grid square - the point closest to the mouth of the bag
+                    depth_map_so_far.at(map_square_row)->at(map_square_col) = std::max(depth_map_so_far.at(map_square_row)->at(map_square_col), local_z);
+                    // This log will spam the output, keeping here for easy uncommenting for debugging offline
+                    // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
+                    //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row).at(map_square_col));
                 }
             }
         }
     }
-    return std::make_shared<std::vector<std::vector<float>>>(depth_map_so_far);
+    auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
+    if (num_rows > 0) {    
+        Logger::Instance()->Fatal(grid_map_to_str(*convert_map_to_millimeters(grid)));
+    }
+    return grid;
 }
 
 
@@ -2155,14 +2187,15 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         // transform depth cloud into the OccupancyMap
         int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
         int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
-        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
-        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
-        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map = generate_occupancy_map(
+        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map = generate_occupancy_map(
             point_cloud,
             occupancy_map_width,
             occupancy_map_height,
-            square_width,
-            square_height);
+            lfb_vision_config->LFB_bag_width,
+            lfb_vision_config->LFB_bag_length);
+        
+        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
+        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
 
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
                                   occupancy_map_width, occupancy_map_height, square_width, square_height);
@@ -2275,15 +2308,15 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
         // transform depth cloud into the OccupancyMap
         int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
         int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
-        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
-        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
-        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map = generate_occupancy_map(
+        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map = generate_occupancy_map(
             point_cloud,
             occupancy_map_width,
             occupancy_map_height,
-            square_width,
-            square_height);
+            lfb_vision_config->LFB_bag_width,
+            lfb_vision_config->LFB_bag_length);
 
+        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
+        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
                                   occupancy_map_width, occupancy_map_height, square_width, square_height);
         return std::make_shared<SideDropResult>(request_id,

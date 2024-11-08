@@ -25,7 +25,12 @@ void PreSideDispenseResponse::encode_payload() {
     result_json["Grid_Square_Height_Mm"] = to_millimeters(this->square_height);
     // if there were obstacles that couldn't be overcome making the map, don't return any
     if (this->occupancy_map != nullptr) {
-        result_json["Occupancy_Map"] = *convert_map_to_millimeters(this->occupancy_map);
+        auto map = convert_map_to_millimeters(this->occupancy_map);
+        std::vector<std::vector<int>> converted_map;
+        for (int i = 0; i < map->size(); i++) {
+            converted_map.push_back(*(map->at(i)));
+        }
+        result_json["Occupancy_Map"] = converted_map;
     }
 
     std::string json_string = result_json.dump();
@@ -41,7 +46,7 @@ void PreSideDispenseResponse::encode_payload() {
 
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
                                                  std::shared_ptr<std::string> primary_key_id,
-                                                 std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+                                                 std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                                  float square_width,
                                                  float square_height,
                                                  SideDispenseErrorCodes success_code,
@@ -72,14 +77,14 @@ std::shared_ptr<std::string> PreSideDispenseResponse::dispense_payload() {
     return this->payload;
 }
 
-std::string grid_map_to_string(std::shared_ptr<std::vector<std::vector<float>>> map) {
+std::string grid_map_to_string(std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> map) {
     if (map == nullptr) return "nullptr";
     std::string output = "";
     std::string val;
-    for (int y = 0; y < map->at(0).size(); y++) {
+    for (int y = 0; y < map->at(0)->size(); y++) {
         output += "| ";
         for (int x = 0; x < map->size(); x++) {
-            val = std::to_string(map->at(x).at(y));
+            val = std::to_string(map->at(x)->at(y));
             output += val + std::string(4 - val.size(), ' ') + "| ";
         }
         output += "\n";

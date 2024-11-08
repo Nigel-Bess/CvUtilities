@@ -590,10 +590,9 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     Logger::Instance()->Debug("Starting DropManager::PreSideDispense for " + *primary_key_id);
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
 
-// needs data destination of 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
     (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
-    std::string error_code_file = ("Side_Pre_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
+    std::string error_code_file = ("Pre_Side_Dispense" / base_directory / *time_stamp_string / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
 
     try {
@@ -601,9 +600,9 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
         Logger::Instance()->Debug("Bag state is currently: {}", bag_state.dump());
 
         std::shared_ptr<DataGenerator> generator;
-        std::string data_destination = (base_directory / "Side_Pre_Drop_Image").string();
+        std::string data_destination = (base_directory / "Pre_Side_Dispense").string();
         generate_request_handling_data(generate_data,
-            base_directory,
+            data_destination,
             time_stamp_string,
             request_json,
             std::make_shared<nlohmann::json>(bag_state));
@@ -685,22 +684,21 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
                                                         bool generate_data)
 {
     Logger::Instance()->Debug("Starting DropManager::PostSideDispense for " + *primary_key_id);
-    auto timer = fulfil::utils::timing::Timer("DropManager::handle_pre_side_dispense_request for " + *primary_key_id);
+    auto timer = fulfil::utils::timing::Timer("DropManager::handle_post_side_dispense_request for " + *primary_key_id);
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
     (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
-    std::string error_code_file = ("Side_Post_Drop_Image" / base_directory / *time_stamp_string / "error_code").string();
+    std::string error_code_file = ("Post_Side_Dispense" / base_directory / *time_stamp_string / "error_code").string();
     Logger::Instance()->Debug("Base directory is {}", base_directory.string());
-    // /home/fulfil/Videos/saved_images_2024_11_04/Side_Bag_Camera/671a8c713c760011e22754e6
 
     try {
         auto bag_state = this->mongo_bag_state->GetStateAsJson();
         Logger::Instance()->Debug("Bag state is currently: {}", bag_state.dump());
 
         std::shared_ptr<DataGenerator> generator;
-        std::string data_destination = (base_directory / "Side_Post_Drop_Image").string();
+        std::string data_destination = (base_directory / "Post_Side_Dispense").string();
         generate_request_handling_data(generate_data,
-            base_directory,
+            data_destination,
             time_stamp_string,
             request_json,
             std::make_shared<nlohmann::json>(bag_state));

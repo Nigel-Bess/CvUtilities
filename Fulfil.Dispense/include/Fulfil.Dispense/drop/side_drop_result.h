@@ -29,12 +29,12 @@ class SideDropResult
    * @param request_id pointer to string with request id.
    */
    explicit SideDropResult(std::shared_ptr<std::string> request_id,
-    std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+    std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
     int error_code,
     const std::string &error_description);
 
   SideDropResult(std::shared_ptr<std::string> request_id,
-   std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+   std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
    std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container,
    float square_width,
    float square_height,
@@ -48,7 +48,7 @@ class SideDropResult
    */
   std::shared_ptr<std::string> request_id;
 
-  std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
+  std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
 
   std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container;
 

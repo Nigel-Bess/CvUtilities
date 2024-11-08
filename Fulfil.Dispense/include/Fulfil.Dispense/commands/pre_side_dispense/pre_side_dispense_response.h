@@ -26,7 +26,7 @@ namespace fulfil::dispense::commands {
     public:
         explicit PreSideDispenseResponse(std::shared_ptr<std::string> request_id, 
                                          std::shared_ptr<std::string> primary_key_id,
-                                         std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+                                         std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                          float square_width,
                                          float square_height,
                                          SideDispenseErrorCodes success_code, 
@@ -36,7 +36,7 @@ namespace fulfil::dispense::commands {
         std::shared_ptr<std::string> get_command_id() override;
         std::shared_ptr<std::string> dispense_payload() override;
         std::shared_ptr<std::string> primary_key_id;
-        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
+        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
         float square_width;
         float square_height;
         SideDispenseErrorCodes success_code{SideDispenseErrorCodes::Success};

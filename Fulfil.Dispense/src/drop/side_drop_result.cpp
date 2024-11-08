@@ -13,7 +13,7 @@ using fulfil::utils::Logger;
 
 // constructor that does sets container to nullptr
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
-                               std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+                               std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                int error_code,
                                const std::string &error_description) {
     this->request_id = request_id;
@@ -24,7 +24,7 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
 }
 
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
-                               std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+                               std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                std::shared_ptr<MarkerDetectorContainer> container,
                                float square_width,
                                float square_height,

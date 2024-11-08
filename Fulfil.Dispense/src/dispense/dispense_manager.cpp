@@ -1087,13 +1087,12 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
     std::shared_ptr<std::string> time_stamp_string = FileSystemUtil::create_datetime_string();
 
-    // std_filesystem::path base_directory = make_media::paths::join_as_path(
-    // (base_directory_input) ? *base_directory_input : "","Side_Bag_Camera", *primary_key_id);
-            
-    // auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
-    // data_generator.save_data(std::make_shared<std::string>());
+    auto path = make_media::paths::join_as_path(*base_directory, "Side_Bag_Camera", pkid, "Pre_Side_Dispense");
+    Logger::Instance()->Debug("Saving PreSideDispense data at path: {}", path.string());
+    auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(path), request_json);
+    data_generator.save_data(std::make_shared<std::string>());
 
-    std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, false);
+    std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, true);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
         std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, SideDispenseErrorCodes::Success);
@@ -1156,7 +1155,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
             request_json,
             base_directory, 
             time_stamp_string, 
-            false);
+            true);
 
     std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> post_side_dispense_response =
         std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id, 

@@ -18,7 +18,7 @@ namespace fulfil::dispense::commands {
     public:
         std::shared_ptr<std::string> request_id;
         std::shared_ptr<std::string> primary_key_id;
-        std::shared_ptr<std::vector<std::vector<float>>> occupancy_map;
+        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
         float square_width{-1};
         float square_height{-1};
         int items_dispensed{1};
@@ -30,7 +30,7 @@ namespace fulfil::dispense::commands {
 
         explicit PostSideDispenseResponse(std::shared_ptr<std::string> request_id,
             std::shared_ptr<std::string> primary_key_id,
-            std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+            std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
             float square_width,
             float square_height,
             SideDispenseErrorCodes success_code,

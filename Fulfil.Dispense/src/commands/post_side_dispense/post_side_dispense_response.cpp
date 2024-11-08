@@ -14,7 +14,6 @@ using fulfil::utils::convert_map_to_millimeters;
 using fulfil::utils::Logger;
 using fulfil::utils::to_millimeters;
 
-
 void PostSideDispenseResponse::encode_payload()
 {
     nlohmann::json result_json{};
@@ -24,7 +23,12 @@ void PostSideDispenseResponse::encode_payload()
     result_json["Grid_Square_Height_Mm"] = to_millimeters(this->square_height);
     // if there were obstacles that couldn't be overcome making the map, don't return any
     if (this->occupancy_map != nullptr) {
-        result_json["Occupancy_Map"] = *convert_map_to_millimeters(this->occupancy_map);
+        auto map = convert_map_to_millimeters(this->occupancy_map);
+        std::vector<std::vector<int>> converted_map;
+        for (int i = 0; i < map->size(); i++) {
+            converted_map.push_back(*(map->at(i)));
+        }
+        result_json["Occupancy_Map"] = converted_map;
     }
     result_json["Items_Dispensed"] = this->items_dispensed;
     result_json["Bag_Full_Percent"] = this->bag_full_percent;
@@ -46,7 +50,7 @@ void PostSideDispenseResponse::encode_payload()
 PostSideDispenseResponse::PostSideDispenseResponse(
     std::shared_ptr<std::string> request_id,
     std::shared_ptr<std::string> primary_key_id,
-    std::shared_ptr<std::vector<std::vector<float>>> occupancy_map,
+    std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
     float square_width,
     float square_height,
     SideDispenseErrorCodes success_code,
