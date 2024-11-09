@@ -21,13 +21,12 @@ jobs:
         id: version
         run: |
           # Get the latest tag (semantic versioning)
-          latest_tag=$(git describe --tags --abbrev=0)
+          latest_tag=$(git tag -l | sort -V | tail -n 1)
           
           # Default to 0.0.0 if no tags exist yet
           if [ -z "$latest_tag" ]; then
             latest_tag="0.0.0"
           fi
-
           echo "Latest tag is: $latest_tag"
           
           # Increment the patch version (you can modify this logic if needed)
