@@ -157,120 +157,91 @@ void test_pre_side_drop_routine_json(std::shared_ptr<std::string> directory_path
     std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>((*bag_state_json)["LfbConfig"]));
     auto cvbag = fulfil::mongo::CvBagState(*bag_state_json);
     manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
-
+	std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
 
 	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
 	std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
 	
 	std::shared_ptr<std::string> primary_key_id = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
 
-	auto result = manager->handle_pre_side_dispense_request(request_id, 
-													 primary_key_id,
+
+    auto result = manager->searcher->handle_pre_side_dispense(command_id, 
+														  primary_key_id,
+														  request_json,
+														  lfb_vision_config);
+    Logger::Instance()->Debug("Result: {}", result->to_string());
+
+	std::cout << std::endl;
+}
+
+void test_pre_side_drop_routine_drop_manager_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
+	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
+	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
+	start_mock_session(directory_path, mock_session, mock_serial);
+	if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
+
+    std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
+
+	// Creating the DropManager
+	std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
+			mock_session, reader, nullptr);
+
+	std::shared_ptr<nlohmann::json> bag_state_json = read_in_json(*directory_path, "bag_state.json");
+    Logger::Instance()->Info("Bag state JSON's lfb config: ", (*bag_state_json)["LfbConfig"]);
+    auto cvbag = fulfil::mongo::CvBagState(*bag_state_json);
+    manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+
+	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
+	
+
+
+	auto result = manager->handle_pre_side_dispense_request(command_id, 
+													 std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
 													 request_json,
 													 directory_path,
 													 FileSystemUtil::create_datetime_string(), 
 													 false);
     Logger::Instance()->Debug("Result: {}", result->to_string());
 
-
-
 	std::cout << std::endl;
-	Logger::Instance()->Info("Handling request now");
-
-    manager->searcher->handle_pre_side_dispense(request_id,
-                                                std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
-                                                request_json,
-                                                lfb_vision_config);
-	Logger::Instance()->Info("Successfully completed routine");
-}
-
-void test_pre_side_drop_routine_dispense_manager_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
-	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
-	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_tray;
-	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
-	start_mock_session(directory_path, mock_session, mock_serial);
-	if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
-
-    // std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
-    // fulfil::configuration::tray::TrayDimensions tray_builder =
-    //     fulfil::configuration::tray::set_bay_wide_tray_dimensions(tray_reader, tray_generation);
-    // auto tray_manager = std::make_shared<fulfil::dispense::tray::TrayManager>(mock_session, tray_builder);
-    std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
-    // auto request_json = std::make_shared<nlohmann::json>(parse_request_file_to_json(sim_data_command_dir));
-
-	// Creating the DropManager
-	// std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
-	// 		mock_session, reader, nullptr);
-	DispenseManager dispense_manager(0, mock_session, nullptr, reader, nullptr, nullptr);
-
-	std::shared_ptr<nlohmann::json> bag_state_json = read_in_json(*directory_path, "bag_state.json");
-    Logger::Instance()->Info("Bag state JSON's lfb config: ", (*bag_state_json)["LfbConfig"]);
-    //std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>((*bag_state_json)["LfbConfig"]));
-    auto cvbag = fulfil::mongo::CvBagState(*bag_state_json);
-    dispense_manager.drop_manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
-
-
-	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
-	std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
-	
-    auto response = dispense_manager.handle_post_side_dispense(command_id, 
-														request_json);
-    Logger::Instance()->Debug("Response Payload: {}", *response->dispense_payload());
-
-
-
-	std::cout << std::endl;
-	// Logger::Instance()->Info("Handling request now");
-
-    // manager->searcher->handle_pre_side_dispense(request_id,
-    //                                             std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
-    //                                             request_json,
-    //                                             lfb_vision_config);
 	Logger::Instance()->Info("Successfully completed routine");
 }
 
 
 
-void test_post_side_drop_routine_dispense_manager_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
+void test_post_side_drop_routine_drop_manager_json(std::shared_ptr<std::string> directory_path, std::shared_ptr<INIReader> reader) {
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session;
-	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_tray;
+	// std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_tray;
 	std::string mock_serial = reader->Get(reader->get_default_section(), "mock_serial", "NOT USED");
 	start_mock_session(directory_path, mock_session, mock_serial);
 	if (mock_session == nullptr) Logger::Instance()->Fatal("The mock session was improperly initialized!!!");
 
-    // std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
-    // fulfil::configuration::tray::TrayDimensions tray_builder =
-    //     fulfil::configuration::tray::set_bay_wide_tray_dimensions(tray_reader, tray_generation);
-    // auto tray_manager = std::make_shared<fulfil::dispense::tray::TrayManager>(mock_session, tray_builder);
     std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
-    // auto request_json = std::make_shared<nlohmann::json>(parse_request_file_to_json(sim_data_command_dir));
 
 	// Creating the DropManager
-	// std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
-	// 		mock_session, reader, nullptr);
-	DispenseManager dispense_manager(0, mock_session, nullptr, reader, nullptr, nullptr);
+	std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
+			mock_session, reader, nullptr);
 
 	std::shared_ptr<nlohmann::json> bag_state_json = read_in_json(*directory_path, "bag_state.json");
     Logger::Instance()->Info("Bag state JSON's lfb config: ", (*bag_state_json)["LfbConfig"]);
     //std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = std::make_shared<LfbVisionConfiguration>(std::make_shared<nlohmann::json>((*bag_state_json)["LfbConfig"]));
     auto cvbag = fulfil::mongo::CvBagState(*bag_state_json);
-    dispense_manager.drop_manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+    manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
 
 
 	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
 	std::shared_ptr<std::string> request_id = std::make_shared<std::string>("000000000012");
 	
-    auto response = dispense_manager.handle_post_side_dispense(command_id, 
-															   request_json);
-    Logger::Instance()->Debug("Response Payload: {}", *response->dispense_payload());
+    auto result = manager->handle_post_side_dispense_request(command_id, 
+															std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
+															request_json,
+															directory_path, 
+															FileSystemUtil::create_datetime_string(),
+															false);
+
+    Logger::Instance()->Debug("Result: {}", result->to_string());
 
 	std::cout << std::endl;
-	// Logger::Instance()->Info("Handling request now");
-
-    // manager->searcher->handle_pre_side_dispense(request_id,
-    //                                             std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
-    //                                             request_json,
-    //                                             lfb_vision_config);
 	Logger::Instance()->Info("Successfully completed routine");
 }
 
@@ -652,29 +623,21 @@ int main(int argc, char **argv) {
 					test_data_path = make_media::paths::join_as_path(test_data_path, "Side_Dispense_Target");
 
 					test_logger->Info("Offline Pre-Side-Drop Test Using Saved .json requests in path {}", test_data_path);
-
-					//std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(
-					//		std::shared_ptr<std::string>(std::string(test_data_path)));
-					//for (auto td: *timestamp_dirs) {
-					//	test_logger->Info("Starting Simulation of directory: {}", *td);
 					test_pre_side_drop_routine_json(std::make_shared<std::string>(test_data_path), reader);
-					//}
 				} else if (test_type == 6) {
 					std::cout << std::endl;
 					std::cout << std::endl;
-					test_data_path = make_media::paths::join_as_path(test_data_path, "Side_Dispense_Target");
+					test_data_path = make_media::paths::join_as_path(test_data_path, "Pre_Side_Dispense");
 
 					test_logger->Info("Offline Pre-Side-Drop Test Using Saved .json requests in path {}", test_data_path);
-
-					test_pre_side_drop_routine_dispense_manager_json(std::make_shared<std::string>(test_data_path), reader);
+					test_pre_side_drop_routine_drop_manager_json(std::make_shared<std::string>(test_data_path), reader);
 				} else if (test_type == 7) {
 					std::cout << std::endl;
 					std::cout << std::endl;
 					test_data_path = make_media::paths::join_as_path(test_data_path, "Post_Side_Dispense");
 
 					test_logger->Info("Offline Pre-Side-Drop Test Using Saved .json requests in path {}", test_data_path);
-
-					test_pre_side_drop_routine_dispense_manager_json(std::make_shared<std::string>(test_data_path), reader);
+					test_post_side_drop_routine_drop_manager_json(std::make_shared<std::string>(test_data_path), reader);
 				}
 			}
 			catch (const std::exception &e) {

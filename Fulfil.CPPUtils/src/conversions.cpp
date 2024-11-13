@@ -8,6 +8,7 @@ int fulfil::utils::to_millimeters(float meters) {
 	return (int)((meters) * 1000);
 }
 
+/* Converts the given Z-coord depth measurement in meters to millimeters and moves the origin to be the back wall of the side dispense bag */
 int convert_to_bag_contents_depth(float z_depth) {
     z_depth = fulfil::utils::to_millimeters(z_depth);
     if (z_depth < -999) {
@@ -18,12 +19,13 @@ int convert_to_bag_contents_depth(float z_depth) {
     return z_depth + 400;
 }
 
-std::vector<int> convert_row(std::vector<float> input) {
-    std::vector<int> row(input.size());
-    for (int j = 0; j < input.size(); j++) {
-        row.push_back(convert_to_bag_contents_depth(input.at(j)));
+std::shared_ptr<std::vector<int>> convert_row(std::shared_ptr<std::vector<float>> input) {
+    std::vector<int> row;
+
+    for (int j = 0; j < input->size(); j++) {
+        row.push_back(convert_to_bag_contents_depth(input->at(j)));
     }
-    return row;
+    return std::make_shared<std::vector<int>>(row);
 }
 
 /* Generates a converted millimeter equivalent of the given grid map in meters */
@@ -35,7 +37,7 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> fulfil::utils::c
 
     std::vector<std::shared_ptr<std::vector<int>>> output;
     for (int i = 0; i < map->size(); i++) {
-      output.push_back(std::make_shared<std::vector<int>>(convert_row(*map->at(i))));
+      output.push_back(convert_row(map->at(i)));
     }
 
     // TODO add count

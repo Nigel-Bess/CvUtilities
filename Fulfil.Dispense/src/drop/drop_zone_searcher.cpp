@@ -2069,6 +2069,21 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   return std::make_unique<commands::PostLFRResponse>(request_id, 0, max_detected_Z_point, -1, bag_full_result, anomaly_present, items_on_ground, floor_analysis_confidence_score);
 }
 
+
+std::string grid_map_to_str_2(std::vector<std::vector<int>> map) {
+    std::string output = "";
+    std::string val;
+    for (int y = 0; y < map.size(); y++) {
+        output += "| ";
+        for (int x = 0; x < map.at(0).size(); x++) {
+            val = std::to_string(map.at(y).at(x));
+            output += val + std::string(2, ' ') + "| ";
+        }
+        output += "\n";
+    }
+    return output;
+}
+
 std::string grid_map_to_str(std::vector<std::shared_ptr<std::vector<int>>> map) {
     std::string output = "";
     std::string val;
@@ -2097,6 +2112,8 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
       depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
     }
 
+    std::vector num_points_in_each(num_rows, std::vector<int>(num_cols, 0));
+
     std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
     std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
     
@@ -2117,18 +2134,20 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
                 float min_y_coord = map_square_row * square_height - bag_length/2;
                 float max_y_coord = (map_square_row + 1) * square_height - bag_length/2;
                 if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
+                  num_points_in_each.at(map_square_row).at(map_square_col)++;
                     // get the "max depth"/"tallest"/"shallowest" point in that occupancy map grid square - the point closest to the mouth of the bag
                     depth_map_so_far.at(map_square_row)->at(map_square_col) = std::max(depth_map_so_far.at(map_square_row)->at(map_square_col), local_z);
                     // This log will spam the output, keeping here for easy uncommenting for debugging offline
                     // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
-                    //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row).at(map_square_col));
+                    //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
                 }
             }
         }
     }
+    Logger::Instance()->Debug("Number of points per square: \n{}", grid_map_to_str_2(num_points_in_each));
     auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
     if (num_rows > 0) {    
-        Logger::Instance()->Fatal(grid_map_to_str(*convert_map_to_millimeters(grid)));
+        Logger::Instance()->Debug("Converted occupancy map so far: \n{}", grid_map_to_str(*convert_map_to_millimeters(grid)));
     }
     return grid;
 }
