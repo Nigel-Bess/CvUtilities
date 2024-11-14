@@ -170,6 +170,8 @@ void test_pre_side_drop_routine_json(std::shared_ptr<std::string> directory_path
 														  request_json,
 														  lfb_vision_config);
     Logger::Instance()->Debug("Result: {}", result->to_string());
+	std::cout << std::endl;
+	Logger::Instance()->Info("Handling request now");
 
 	std::cout << std::endl;
 }
@@ -244,7 +246,6 @@ void test_post_side_drop_routine_drop_manager_json(std::shared_ptr<std::string> 
 	std::cout << std::endl;
 	Logger::Instance()->Info("Successfully completed routine");
 }
-
 
 void test_post_drop_routine(std::shared_ptr<std::string> base_directory, std::shared_ptr<std::string> directory_path,
 							std::shared_ptr<INIReader> reader) {

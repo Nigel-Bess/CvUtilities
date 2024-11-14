@@ -8,6 +8,7 @@
 #include<Fulfil.DepthCam/visualization.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
+#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.CPPUtils/logging.h>
 #include <tuple>
 #include <bits/stdc++.h>
@@ -24,6 +25,8 @@ using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::PrePostCompare;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
+using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::utils::Logger;
@@ -269,6 +272,90 @@ int PrePostCompare::populate_class_variables(std::shared_ptr<MarkerDetectorConta
   this->post_color_img = post_container->get_color_mat()->clone();
 
   return res; //return check input result
+}
+
+/*Populating side dispense configs*/
+/*TO-DO - Remove unnecessary configs*/
+int PrePostCompare::populate_class_variables_side_dispense(std::shared_ptr<MarkerDetectorContainer> pre_container,
+    std::shared_ptr<MarkerDetectorContainer> post_container,
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+    std::shared_ptr<nlohmann::json> pre_request_json,
+    std::shared_ptr<nlohmann::json> post_request_json)
+{
+    /**
+     *  Get relevant LFB dimensions and container dimensions
+     */
+    Logger::Instance()->Debug("Pre_Post_Compare.cpp populate class variables method begin");
+
+    //Note: container_length and container_width are taken from configs here. They may be different from container dims
+    //used in getting the pre or post containers, if those were extended to detect items sticking out over bag, for example
+    this->container_length = lfb_vision_config->container_length;
+    this->container_width = lfb_vision_config->container_width;
+    this->LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
+
+    this->grid_num_rows = lfb_vision_config->grid_rows;
+    this->grid_num_cols = lfb_vision_config->grid_cols;
+    this->rotate_LFB_img = lfb_vision_config->rotate_LFB_viz;
+
+    this->depth_baseline_average_threshold = lfb_vision_config->depth_baseline_average_threshold;
+    this->depth_factor_correction = lfb_vision_config->depth_factor_correction;
+    this->depth_total_threshold = lfb_vision_config->depth_total_threshold;
+
+    if (depth_baseline_average_threshold == -1 or depth_factor_correction == -1 or depth_total_threshold == -1)
+    {
+        Logger::Instance()->Error("Invalid Depth Comparison Parameters; Cam: LFB");
+        throw(PrePostCompareErrorCodes::InvalidComparisonParameters);
+    }
+
+    this->bg_sub_history = lfb_vision_config->bg_sub_history;
+    this->bg_sub_variance_threshold = lfb_vision_config->bg_sub_variance_threshold;
+    this->bg_sub_detect_shadows = lfb_vision_config->bg_sub_detect_shadows;
+    this->RGB_average_threshold = lfb_vision_config->RGB_average_threshold;
+    this->RGB_total_threshold = lfb_vision_config->RGB_total_threshold;
+
+    this->allowable_platform_difference = lfb_vision_config->allowable_platform_difference;
+
+    this->H_low = lfb_vision_config->H_low;
+    this->H_high = lfb_vision_config->H_high;
+    this->S_low = lfb_vision_config->S_low;
+    this->S_high = lfb_vision_config->S_high;
+    this->V_low = lfb_vision_config->V_low;
+    this->V_high = lfb_vision_config->V_high;
+
+    if (bg_sub_history == -1 or bg_sub_variance_threshold == -1 or RGB_average_threshold == -1 or RGB_total_threshold == -1)
+    {
+        Logger::Instance()->Error("Invalid RGB Comparison Parameters; Cam: LFB");
+        throw(PrePostCompareErrorCodes::InvalidComparisonParameters);
+    }
+
+    int res = check_inputs(pre_remaining_platform, post_remaining_platform, item_height, item_length, item_width);
+    if (res == 5) {
+        auto platform = std::min(pre_remaining_platform, post_remaining_platform);
+        Logger::Instance()->Warn("Hack to minimize platform errors. Setting both values to minimum platform height {}", platform);
+        this->pre_remaining_platform = platform;
+        this->post_remaining_platform = platform;
+        res = 0;
+    }
+
+    this->platform_difference = post_remaining_platform - pre_remaining_platform;
+    this->expected_new_items_in_bag = 1; //Can compare number in pre and post requests in future if add multi-dispense back
+    this->min_item_dimension = std::min(item_height, std::min(item_length, item_width));
+    this->max_item_dimension = std::max(item_height, std::max(item_length, item_width));
+
+    Logger::Instance()->Debug("Pre image remaining platform: {}", pre_remaining_platform);
+    Logger::Instance()->Debug("Post image remaining platform: {}", post_remaining_platform);
+    Logger::Instance()->Debug("Expected number of new items in bag: {}", expected_new_items_in_bag);
+
+    this->pre_container = pre_container;
+    this->post_container = post_container;
+
+    Logger::Instance()->Debug("Getting pre container color mat");
+    this->pre_color_img = pre_container->get_color_mat()->clone();
+
+    Logger::Instance()->Debug("Getting post container color mat");
+    this->post_color_img = post_container->get_color_mat()->clone();
+
+    return res; //return check input result
 }
 
 cv::Mat PrePostCompare::get_affine_registration_transform(std::shared_ptr<MarkerDetectorContainer> pre_container,
@@ -682,6 +769,61 @@ int PrePostCompare::process_depth()
   return result_code;
 }
 
+//helper function to calculate distance between 2 points
+double PrePostCompare::distance(const cv::Point2f& p1, const cv::Point2f& p2) {
+    return std::sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+}
+
+//cropping the pre/post images to filter accurate ROI for calculating absolute difference
+cv::Mat PrePostCompare::calculate_roi(cv::Mat image) {
+        cv::Mat region_of_interest;
+        std::vector<cv::Point2f> shrink_hull2f;
+        cv::Point2f point;
+        //TO-DO: remove or change this hard-coding
+        //Handle the below in next PR for new tote - Priyanka
+        shrink_hull2f.push_back(cv::Point2f(450, 225));
+        shrink_hull2f.push_back(cv::Point2f(925, 225));
+        shrink_hull2f.push_back(cv::Point2f(450, 525));
+        shrink_hull2f.push_back(cv::Point2f(925, 525));
+        //calculate lengths of the sides of the new ROI image
+        double top = distance(shrink_hull2f[0], shrink_hull2f[1]);
+        double bottom = distance(shrink_hull2f[2], shrink_hull2f[3]);
+        double new_width = std::max(top, bottom);
+        double left = distance(shrink_hull2f[0], shrink_hull2f[2]);
+        double right = distance(shrink_hull2f[1], shrink_hull2f[3]);
+        double new_height = std::max(left, right);
+        std::vector<cv::Point2f> roiPoints;
+        roiPoints.push_back(cv::Point2f(0, 0));
+        roiPoints.push_back(cv::Point2f(new_width, 0));
+        roiPoints.push_back(cv::Point2f(0, new_height));
+        roiPoints.push_back(cv::Point2f(new_width, new_height));
+        cv::Mat transformation_matrix = cv::getPerspectiveTransform(shrink_hull2f, roiPoints);
+        cv::warpPerspective(image, region_of_interest, transformation_matrix, cv::Size(new_width, new_height));
+        int height = region_of_interest.rows;
+        int width = region_of_interest.cols;
+        Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
+        return region_of_interest;
+}
+
+int PrePostCompare::process_absolute_difference()
+{
+    cv::Mat abs_diff;
+    int result = 0;
+    cv::absdiff(pre_color_img, post_color_img, abs_diff);
+    int non_zeros = cv::countNonZero(abs_diff.reshape(1));
+    Logger::Instance()->Info("Non_zeros pixels from absolute difference between pre/post: {}", non_zeros);
+    bool hasDiff = non_zeros > 0;
+    if (hasDiff) {
+        Logger::Instance()->Info("Difference found!! Item detected in post dispense");
+        result = 1;
+        
+    }
+    else {
+        Logger::Instance()->Info("No Difference found!! No item detected in post dispense");
+    }
+    return result;
+}
+
 int PrePostCompare::process_target(cv::Point2f target_center, cv::Mat item_result_map)
 {
   Logger::Instance()->Debug("Target Center:  X = {},  Y = {}", target_center.x, target_center.y);
@@ -767,6 +909,55 @@ int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_
   return result_code;
 }
 
+//Pre-Post Comparison Run for Side Dispense
+int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorContainer> pre_container,
+    std::shared_ptr<MarkerDetectorContainer> post_container,
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
+    std::shared_ptr<nlohmann::json> pre_request_json,
+    std::shared_ptr<nlohmann::json> post_request_json,
+    std::shared_ptr<cv::Mat>* result_mat_ptr)
+{
+    Logger::Instance()->Debug("PrePostCompare run_comparison method called");
+    int variable_validation_check = populate_class_variables_side_dispense(pre_container, post_container, lfb_vision_config, pre_request_json, post_request_json);
+    if (variable_validation_check != 0) return variable_validation_check;
+
+    if (visualize)
+    {
+        this->session_visualizer10->display_image(std::make_shared<cv::Mat>(pre_color_img));
+        this->session_visualizer11->display_image(std::make_shared<cv::Mat>(post_color_img));
+    }
+    // default result is unspecified error, will be overwritten with actual result code unless an unexpected error occurs
+    int result_code = SideDispenseErrorCodes::UnspecifiedError;
+    this->result_mat = nullptr;
+
+    try
+    {
+        // code will be 0 for no item detected, or 1 for item detected
+        result_code = process_depth(); //will return nullptr 0 if no item detected
+        if (result_code != 1)
+        {
+            Logger::Instance()->Debug("Depth comparison detection resulted in No Item Detected! Trying RGB processing next");
+            // result code will be 0 for no item detected, or 1 for item detected
+           result_code = process_RGB();
+        }
+        if (result_code != 1)
+        {
+            Logger::Instance()->Debug("RGB detection resulted in No Item Detected! Trying Absolute Difference processing next");
+            // result code will be 0 for no item detected, or 1 for item detected
+            result_code = process_absolute_difference();
+        }
+        Logger::Instance()->Debug("Done with comparison processing. Final result code is: {}", result_code);
+
+        *result_mat_ptr = this->result_mat; //for passing the result mat back out into drop_manager
+    }
+    catch (...)
+    {
+        Logger::Instance()->Debug("Caught an error during comparison processing. Indicative of not enough markers detected in an image.");
+        return SideDispenseErrorCodes::NotEnoughMarkersDetected;
+    }
+
+    return result_code;
+}
 
 
 

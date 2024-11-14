@@ -766,3 +766,98 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
         return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
     }
 }
+
+int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
+{
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
+    std::shared_ptr<MarkerDetectorContainer> cached_pre_container = this->cached_pre_container;
+    std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
+    std::shared_ptr<nlohmann::json> cached_pre_request_json = this->cached_pre_request;
+    std::shared_ptr<nlohmann::json> cached_post_request_json = this->cached_post_request;
+
+    //confirm that all inputs for pre/post comparison have been cached properly and are available for use in algorithm
+    std::string errors = "";
+    if (cached_pre_container == nullptr) errors += "pre_container \n";
+    if (cached_post_container == nullptr) errors += "post_container \n";
+    if (cached_pre_request_json == nullptr) errors += "pre request json \n";
+    if (cached_post_request_json == nullptr) errors += "post request json \n";
+    if (!errors.empty())
+    {
+        Logger::Instance()->Warn("The following inputs for pre/post comparison were not cached properly, cannot proceed: {}", errors);
+        return -1;
+    }
+    const int item_not_detected_code = 0;
+    const int item_detected_code = 1;
+
+    try
+    {
+        Logger::Instance()->Debug("Executing Pre/Post Comparison now");
+        //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
+        std::shared_ptr<cv::Mat> result_mat = nullptr;
+     
+        int comparison_result = this->pre_post_compare->run_comparison_side_dispense(cached_pre_container, cached_post_container, lfb_vision_config,
+            cached_pre_request_json, cached_post_request_json, &result_mat);
+
+        if (this->cached_info != nullptr and this->drop_live_viewer != nullptr)
+        {
+
+            if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) this->cached_info->push_back("Item Detect Failed");
+
+            std::string message;
+            switch (comparison_result) {
+            case (item_not_detected_code): message = "Item in bag: No"; break;
+            case (item_detected_code): message = "Item in bag: Yes"; break;
+            case (SideDispenseErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers"; break;
+            case (SideDispenseErrorCodes::UnspecifiedError): message = "Undefined Failure"; break;
+            default: message = "Unhandled case encountered"; break;
+            }
+
+            this->cached_info->push_back(message);
+
+            //use cached info from dispense to create a live visualization of the info to be displayed on FDT
+            this->drop_live_viewer->update_image(this->drop_live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, this->cached_info);
+        }
+        //send result to live_viewer for visualization purposes (comparison_result == nullptr if no items found)
+        if (drop_live_viewer != nullptr)
+        {
+            if (result_mat != nullptr)
+            {
+                drop_live_viewer->update_image(drop_live_viewer->get_item_detection_visualization(result_mat), ViewerImageType::LFB_Item_Detection, PrimaryKeyID);
+                if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) {
+                    Logger::Instance()->Info("Pre/Post Compare failed, but still updating live_viewer");
+                }
+            }
+            else
+            {
+                Logger::Instance()->Info("No result item detection visualization available. Will instead upload default");
+            }
+        }
+
+        //NOTE: comparison_result behavior kept the same because we handle case 3,4,5 by throwing exception here
+        if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) {
+            throw(comparison_result);
+        }
+
+        //if the item was successfully dispensed, update the packed item volume state, based on the dropped item details
+        if (comparison_result)
+        {
+            if (this->mongo_bag_state->packing_state == nullptr)
+            {
+                Logger::Instance()->Error("Mongo Bag State->Packing_State is nullptr, cannot proceed with updating packing state");
+                return -1;
+            }
+        }
+        return comparison_result;
+    }
+    catch (SideDispenseError& e)
+    {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling:\n{}", e.what());
+        return -1;
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling");
+        return -1;
+    }
+}

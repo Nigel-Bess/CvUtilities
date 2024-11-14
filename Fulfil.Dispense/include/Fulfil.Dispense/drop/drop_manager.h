@@ -127,6 +127,7 @@ class DropManager
                                                             std::shared_ptr<std::string> base_directory_input,
                                                             std::shared_ptr<std::string> time_stamp_string,
                                                             bool generate_data);
+  int handle_pre_post_compare_side_dispense(std::string PrimaryKeyID);
 
   /**
    * Delegate to receive information from the drop manager.

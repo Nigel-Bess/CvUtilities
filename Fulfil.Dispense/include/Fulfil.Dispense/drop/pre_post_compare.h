@@ -112,8 +112,16 @@ class PrePostCompare
                                std::shared_ptr<nlohmann::json> drop_target_json,
                                cv::Point2f target_center);
 
+  int populate_class_variables_side_dispense(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
+      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
+      std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
+      std::shared_ptr<nlohmann::json> pre_request_json,
+      std::shared_ptr<nlohmann::json> post_request_json);
+
   int process_depth();
   int process_RGB();
+  int process_absolute_difference();
+
   //returns the percentage of the detected dispensed item that overlaps with the dispense target
   int process_target(cv::Point2f target_center, cv::Mat item_result_map);
 
@@ -162,7 +170,19 @@ class PrePostCompare
                      cv::Point2f target_center,
                      std::shared_ptr<cv::Mat> *result_mat,
                      int *item_target_overlap_ptr);
+
+  int run_comparison_side_dispense(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
+      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
+      std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,
+      std::shared_ptr<nlohmann::json> pre_request_json,
+      std::shared_ptr<nlohmann::json> post_request_json,
+      std::shared_ptr<cv::Mat>* result_mat);
+
+  double distance(const cv::Point2f& p1, const cv::Point2f& p2);
+
+  cv::Mat calculate_roi(cv::Mat image);
 };
+
   namespace pre_post_compare_error_codes {
     enum PrePostCompareErrorCodes {
       Success = 0,

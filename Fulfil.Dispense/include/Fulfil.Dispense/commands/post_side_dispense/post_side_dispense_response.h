@@ -34,7 +34,8 @@ namespace fulfil::dispense::commands {
             float square_width,
             float square_height,
             SideDispenseErrorCodes success_code,
-            std::string error_description);
+            std::string error_description,
+            int items_dispensed);
         int dispense_payload_size() override;
         std::shared_ptr<std::string> get_command_id() override;
         std::shared_ptr<std::string> dispense_payload() override;

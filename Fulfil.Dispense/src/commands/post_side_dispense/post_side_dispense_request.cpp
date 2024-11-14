@@ -40,6 +40,6 @@ std::shared_ptr<DispenseResponse> PostSideDispenseRequest::execute()
                                                          nullptr,
                                                          -1, -1,
                                                          SideDispenseErrorCodes::CommandDelegateExpired,
-                                                         "");
+                                                         "", 1);
     }
 }

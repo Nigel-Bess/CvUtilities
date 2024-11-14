@@ -54,14 +54,16 @@ PostSideDispenseResponse::PostSideDispenseResponse(
     float square_width,
     float square_height,
     SideDispenseErrorCodes success_code,
-    std::string error_description) : 
+    std::string error_description,
+    int items_dispensed) :
     request_id(request_id),
     primary_key_id(primary_key_id),
     occupancy_map(occupancy_map),
     square_width(square_width),
     square_height(square_height),
     success_code(success_code),
-    error_description(error_description) {}
+    error_description(error_description),
+    items_dispensed(items_dispensed) {}
 
 std::shared_ptr<std::string> PostSideDispenseResponse::get_command_id()
 {

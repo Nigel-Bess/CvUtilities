@@ -1082,6 +1082,8 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
     // need to refresh the session to get updated frames
     this->LFB_session->refresh();
+    //this->drop_manager->cached_pre_container = nullptr;  // cache for potential use in prepostcomparison later
+    //this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
 
     // create file path variables for data generation
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
@@ -1127,6 +1129,10 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_post_side_dispense for " + this->machine_name + " request " + pkid);
     Logger::Instance()->Debug("Handling PostSideDispense Command for Bay: {} Request ID: {}", this->machine_name, pkid);
 
+    // set cached post_drop fields back to nullptr
+    //this->drop_manager->cached_post_container = nullptr; // reset to nullptr before processing begins, in case encounter errors and prepostcomparison is not possible
+    //this->drop_manager->cached_post_request = nullptr;
+
     if (!this->LFB_session) {
         Logger::Instance()->Fatal("No LFB Session. Check all cameras registering and serial numbers match!");
         return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id,
@@ -1134,7 +1140,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
                                                          nullptr,
                                                          -1, -1,
                                                          SideDispenseErrorCodes::UnrecoverableRealSenseError,
-                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
+                                                         std::string("No LFB Session. Check all cameras registering and serial numbers match!"), 1);
     }
     this->LFB_session->refresh();
 
@@ -1164,7 +1170,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
             side_drop_result->square_width, 
             side_drop_result->square_height, 
             SideDispenseErrorCodes::Success, 
-            "");
+            "", 1);
 
     // if algorithm failed, upload available visualizations immediately
     if (post_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
@@ -1179,6 +1185,11 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
             Logger::Instance()->Error("Handle PostSideDispense Failed: {}!", specific_error_message);
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, *primary_key_id, true, message);
         }
+    }
+    else
+    {
+       int detection_results = this->drop_manager->handle_pre_post_compare_side_dispense(*primary_key_id);
+       post_side_dispense_response->items_dispensed = detection_results;
     }
     return post_side_dispense_response;
 }
