@@ -1,3 +1,17 @@
+# [1.6.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.3...v1.6.0) (2024-11-14)
+
+
+### Bug Fixes
+
+* **update:** cron time test ([d962632](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/d962632998cc5d9cb49fbe04537de0a5b691c5f0))
+* **workflow:** file update ([eb45b4e](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/eb45b4e9ef6b937b7e8360b732db4f5fc4f262c7))
+
+
+### Features
+
+* **occupancyMap:** Remove leading zeros and doubled width of occupancy map ([#162](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/162)) ([8a56847](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/8a5684785de0ddbdf70ba982057d8453b2cdfa2a))
+* **side:** Data saving improvements and Occupancy Map bugfixes ([#154](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/154)) ([0b029bd](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/0b029bd46efdca2ebabdbae6b9fefd182a5ae925))
+
 ## [1.5.3](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.2...v1.5.3) (2024-11-07)
 
 
