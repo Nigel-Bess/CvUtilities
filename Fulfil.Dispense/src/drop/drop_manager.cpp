@@ -8,6 +8,7 @@
 #include <Fulfil.DepthCam/aruco.h>
 #include <Fulfil.DepthCam/core.h>
 #include <Fulfil.DepthCam/point_cloud.h>
+#include <Fulfil.DepthCam/mocks.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include "Fulfil.Dispense/dispense/drop_error_codes.h"
 #include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
@@ -29,6 +30,7 @@ using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::data::DataGenerator;
+using fulfil::depthcam::mocks::MockSession;
 using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::drop::DropGrid;
@@ -615,9 +617,14 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
         std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
         Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
 
-        std::shared_ptr<SideDropResult> result = this->searcher->handle_pre_side_dispense(request_id, primary_key_id, request_json, lfb_vision_config);
-        this->cached_pre_container = result->container; //cache container for potential use in prepostcomparison later
-        this->cached_pre_request = request_json;
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->session);
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, mock_session_pre, lfb_vision_config->extend_depth_analysis_over_markers);
+
+        this->cached_pre_container = container; //cache for potential use in prepostcomparison later
+        this->cached_pre_request = request_json; //cache for potential use in prepostcomparison later
+
+        std::shared_ptr<SideDropResult> result = this->searcher->handle_pre_side_dispense(container, request_id, primary_key_id, request_json, lfb_vision_config);
 
         Logger::Instance()->Debug("Occupancy map returned from searcher with content TODO: {}", 0);
         generate_error_code_result_data(generate_data, error_code_file, result->success_code);
@@ -711,10 +718,16 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
         std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
         Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
 
-        std::shared_ptr<SideDropResult> result = this->searcher->handle_post_side_dispense(request_id, primary_key_id, request_json, lfb_vision_config);
-        this->cached_post_container = result->container; // cache container for potential use in prepostcomparison later
+        Logger::Instance()->Debug("Getting container for algorithm now");
+        std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
+        this->cached_post_container = container; //cache container for potential use in prepostcomparison later
         this->cached_post_request = request_json;
 
+        std::shared_ptr<SideDropResult> result = this->searcher->handle_post_side_dispense(container, request_id, primary_key_id, request_json, lfb_vision_config);
+        
+        if (cached_post_container == cached_pre_container) {
+            Logger::Instance()->Debug("Caching not done correctly! Pre and Post container are same");
+        }
         return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::Success, std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)
@@ -791,62 +804,13 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
 
     try
     {
-        Logger::Instance()->Debug("Executing Pre/Post Comparison now");
+        Logger::Instance()->Info("Executing Pre/Post Comparison now");
         //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
         std::shared_ptr<cv::Mat> result_mat = nullptr;
      
         int comparison_result = this->pre_post_compare->run_comparison_side_dispense(cached_pre_container, cached_post_container, lfb_vision_config,
             cached_pre_request_json, cached_post_request_json, &result_mat);
 
-        if (this->cached_info != nullptr and this->drop_live_viewer != nullptr)
-        {
-
-            if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) this->cached_info->push_back("Item Detect Failed");
-
-            std::string message;
-            switch (comparison_result) {
-            case (item_not_detected_code): message = "Item in bag: No"; break;
-            case (item_detected_code): message = "Item in bag: Yes"; break;
-            case (SideDispenseErrorCodes::NotEnoughMarkersDetected): message = "Not Enough Markers"; break;
-            case (SideDispenseErrorCodes::UnspecifiedError): message = "Undefined Failure"; break;
-            default: message = "Unhandled case encountered"; break;
-            }
-
-            this->cached_info->push_back(message);
-
-            //use cached info from dispense to create a live visualization of the info to be displayed on FDT
-            this->drop_live_viewer->update_image(this->drop_live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, this->cached_info);
-        }
-        //send result to live_viewer for visualization purposes (comparison_result == nullptr if no items found)
-        if (drop_live_viewer != nullptr)
-        {
-            if (result_mat != nullptr)
-            {
-                drop_live_viewer->update_image(drop_live_viewer->get_item_detection_visualization(result_mat), ViewerImageType::LFB_Item_Detection, PrimaryKeyID);
-                if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) {
-                    Logger::Instance()->Info("Pre/Post Compare failed, but still updating live_viewer");
-                }
-            }
-            else
-            {
-                Logger::Instance()->Info("No result item detection visualization available. Will instead upload default");
-            }
-        }
-
-        //NOTE: comparison_result behavior kept the same because we handle case 3,4,5 by throwing exception here
-        if (comparison_result != item_not_detected_code and comparison_result != item_detected_code) {
-            throw(comparison_result);
-        }
-
-        //if the item was successfully dispensed, update the packed item volume state, based on the dropped item details
-        if (comparison_result)
-        {
-            if (this->mongo_bag_state->packing_state == nullptr)
-            {
-                Logger::Instance()->Error("Mongo Bag State->Packing_State is nullptr, cannot proceed with updating packing state");
-                return -1;
-            }
-        }
         return comparison_result;
     }
     catch (SideDispenseError& e)

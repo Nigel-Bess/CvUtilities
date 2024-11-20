@@ -781,11 +781,16 @@ cv::Mat PrePostCompare::calculate_roi(cv::Mat image) {
         cv::Point2f point;
         //TO-DO: remove or change this hard-coding
         //Handle the below in next PR for new tote - Priyanka
-        shrink_hull2f.push_back(cv::Point2f(450, 225));
-        shrink_hull2f.push_back(cv::Point2f(925, 225));
-        shrink_hull2f.push_back(cv::Point2f(450, 525));
-        shrink_hull2f.push_back(cv::Point2f(925, 525));
+        shrink_hull2f.push_back(cv::Point2f(480, 255)); //left upper corner
+        shrink_hull2f.push_back(cv::Point2f(895, 255)); //right upper corner
+        shrink_hull2f.push_back(cv::Point2f(480, 495)); //left lower corner
+        shrink_hull2f.push_back(cv::Point2f(895, 495)); //right lower corner
         //calculate lengths of the sides of the new ROI image
+        /* top -> represents the upper edge for width of the image
+        * bottom -> represents the lower edge for width of the image
+        * left -> represents the left edge for length of the image
+        * right -> represents the right edge for length of the image
+        */
         double top = distance(shrink_hull2f[0], shrink_hull2f[1]);
         double bottom = distance(shrink_hull2f[2], shrink_hull2f[3]);
         double new_width = std::max(top, bottom);
@@ -809,9 +814,23 @@ int PrePostCompare::process_absolute_difference()
 {
     cv::Mat abs_diff;
     int result = 0;
-    cv::absdiff(pre_color_img, post_color_img, abs_diff);
+    int non_zeros_pre = cv::countNonZero(pre_color_img.reshape(1));
+    int non_zeros_post = cv::countNonZero(post_color_img.reshape(1));
+    if (non_zeros_pre == non_zeros_post) {
+        Logger::Instance()->Info("Pre & Post images are same");
+    }
+    cv::Mat pre_color = calculate_roi(this->pre_color_img);
+    cv::Mat post_color = calculate_roi(this->post_color_img);
+    if (pre_color.size().empty()) {
+        Logger::Instance()->Error("Pre color image is empty!");
+    }
+    if (post_color.size().empty()) {
+        Logger::Instance()->Error("Post color image is empty!");
+    }
+    cv::absdiff(pre_color, post_color, abs_diff);
     int non_zeros = cv::countNonZero(abs_diff.reshape(1));
     Logger::Instance()->Info("Non_zeros pixels from absolute difference between pre/post: {}", non_zeros);
+    this->result_mat = std::make_shared<cv::Mat>(abs_diff);
     bool hasDiff = non_zeros > 0;
     if (hasDiff) {
         Logger::Instance()->Info("Difference found!! Item detected in post dispense");
@@ -917,9 +936,8 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
     std::shared_ptr<nlohmann::json> post_request_json,
     std::shared_ptr<cv::Mat>* result_mat_ptr)
 {
-    Logger::Instance()->Debug("PrePostCompare run_comparison method called");
+    Logger::Instance()->Info("PrePostCompare run_comparison method called");
     int variable_validation_check = populate_class_variables_side_dispense(pre_container, post_container, lfb_vision_config, pre_request_json, post_request_json);
-    if (variable_validation_check != 0) return variable_validation_check;
 
     if (visualize)
     {
@@ -932,27 +950,19 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
 
     try
     {
-        // code will be 0 for no item detected, or 1 for item detected
-        result_code = process_depth(); //will return nullptr 0 if no item detected
         if (result_code != 1)
         {
-            Logger::Instance()->Debug("Depth comparison detection resulted in No Item Detected! Trying RGB processing next");
-            // result code will be 0 for no item detected, or 1 for item detected
-           result_code = process_RGB();
-        }
-        if (result_code != 1)
-        {
-            Logger::Instance()->Debug("RGB detection resulted in No Item Detected! Trying Absolute Difference processing next");
+            Logger::Instance()->Info("Starting Absolute Difference processing");
             // result code will be 0 for no item detected, or 1 for item detected
             result_code = process_absolute_difference();
         }
-        Logger::Instance()->Debug("Done with comparison processing. Final result code is: {}", result_code);
+        Logger::Instance()->Info("Done with comparison processing. Final result code is: {}", result_code);
 
         *result_mat_ptr = this->result_mat; //for passing the result mat back out into drop_manager
     }
     catch (...)
     {
-        Logger::Instance()->Debug("Caught an error during comparison processing. Indicative of not enough markers detected in an image.");
+        Logger::Instance()->Info("Caught an error during comparison processing. Indicative of not enough markers detected in an image.");
         return SideDispenseErrorCodes::NotEnoughMarkersDetected;
     }
 

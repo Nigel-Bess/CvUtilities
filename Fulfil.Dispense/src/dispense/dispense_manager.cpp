@@ -1082,8 +1082,8 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
     // need to refresh the session to get updated frames
     this->LFB_session->refresh();
-    //this->drop_manager->cached_pre_container = nullptr;  // cache for potential use in prepostcomparison later
-    //this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
+    this->drop_manager->cached_pre_container = nullptr;  // cache for potential use in prepostcomparison later
+    this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
 
     // create file path variables for data generation
     std::shared_ptr<std::string> base_directory = this->create_datagenerator_basedir();
@@ -1130,8 +1130,8 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     Logger::Instance()->Debug("Handling PostSideDispense Command for Bay: {} Request ID: {}", this->machine_name, pkid);
 
     // set cached post_drop fields back to nullptr
-    //this->drop_manager->cached_post_container = nullptr; // reset to nullptr before processing begins, in case encounter errors and prepostcomparison is not possible
-    //this->drop_manager->cached_post_request = nullptr;
+    this->drop_manager->cached_post_container = nullptr; // reset to nullptr before processing begins, in case encounter errors and prepostcomparison is not possible
+    this->drop_manager->cached_post_request = nullptr;
 
     if (!this->LFB_session) {
         Logger::Instance()->Fatal("No LFB Session. Check all cameras registering and serial numbers match!");
