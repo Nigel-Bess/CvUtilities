@@ -2105,11 +2105,16 @@ std::string grid_map_to_str(std::vector<std::shared_ptr<std::vector<int>>> map) 
 // occupancy map width = num_cols 
 // occupancy map height = num rows
 // TODO optimize
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int num_cols, int num_rows, float bag_width, float bag_length) {
+std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int num_cols, int num_rows, float bag_width, float bag_length, bool is_empty) {
     // initialize occupancy map with default -99999m
     std::vector<std::shared_ptr<std::vector<float>>> depth_map_so_far;
     for (int r = 0; r < num_rows; r++) {
-      depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
+        depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
+    }
+    if (is_empty) {
+        auto empty_map = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
+        Logger::Instance()->Debug("Bag was empty, occupancy map generated is: \n{}", grid_map_to_str(*convert_map_to_millimeters(empty_map)));
+        return empty_map;
     }
 
     std::vector num_points_in_each(num_rows, std::vector<int>(num_cols, 0));
@@ -2204,12 +2209,14 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         // transform depth cloud into the OccupancyMap
         int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
         int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
+        bool is_empty = request_json->value("Is_Empty_Bag", false);
         std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map = generate_occupancy_map(
             point_cloud,
             occupancy_map_width,
             occupancy_map_height,
             lfb_vision_config->LFB_bag_width,
-            lfb_vision_config->LFB_bag_length);
+            lfb_vision_config->LFB_bag_length, 
+            is_empty);
         
         float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
         float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
@@ -2328,7 +2335,8 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
             occupancy_map_width,
             occupancy_map_height,
             lfb_vision_config->LFB_bag_width,
-            lfb_vision_config->LFB_bag_length);
+            lfb_vision_config->LFB_bag_length,
+            false);
 
         float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
         float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
