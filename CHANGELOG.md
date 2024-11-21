@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.6.1...v1.7.0) (2024-11-21)
+
+
+### Features
+
+* **preSide:** Generate a fully empty occupancy map if the request JSON says it is empty in the pre-side step only ([#166](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/166)) ([38f4934](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/38f49349137534c4915935a11fe4a5c80d13f384))
+
 # [1.6.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.5.3...v1.6.0) (2024-11-14)
 
 
