@@ -45,6 +45,10 @@ void VmbCamera::RunSetup(){
     log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID"));
     SetFeature("PixelFormat", "BGR8");
     SetFeature("ExposureAuto", "Once");
+    SetFeature("Hue", -2.0);
+    SetFeature("Saturation", 1.0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
+
     //These values may need changes in future until a config is added
     if (CameraHasBrightView(name_)) {
         SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
@@ -54,9 +58,6 @@ void VmbCamera::RunSetup(){
         SetFeature("ExposureTime", 19985.98);
         SetFeature("Gamma", 0.6);
     }
-    SetFeature("Hue", -2.0);
-    SetFeature("Saturation", 1.0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
     AdjustPacketSize();
     connected_ = true;
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
@@ -132,7 +133,6 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
 
     std::lock_guard<std::mutex> lock(_lock);
     {
-        SetFeature("ExposureAuto", "Once");
         if (CameraHasBrightView(name_)) {
             SetFeature("ExposureTime", 15000.0);
             SetFeature("Gamma", 0.5);
