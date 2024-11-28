@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.7.0...v1.7.1) (2024-11-28)
+
+
+### Bug Fixes
+
+* **exposure:** No auto exposure ([#170](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/170)) ([8861dc9](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/8861dc9ce673c37321f3754131ce22c4e49bd1bd))
+
 # [1.7.0](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.6.1...v1.7.0) (2024-11-21)
 
 
