@@ -53,7 +53,7 @@ if [[ -z "$pod_name" ]]; then
     exit 1
 fi
 
-kubectl cp "$namespace/$pod_name:$remote_path" "$local_path"
+kubectl cp -c cv-repack "$namespace/$pod_name:$remote_path" "$local_path"
 
 if [ $? -ne 0 ]; then
     echo "Error copying files."
