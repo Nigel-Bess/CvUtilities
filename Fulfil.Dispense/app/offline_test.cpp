@@ -164,11 +164,15 @@ void test_pre_side_drop_routine_json(std::shared_ptr<std::string> directory_path
 	
 	std::shared_ptr<std::string> primary_key_id = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
 
+	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_pre;
+	start_mock_session(directory_path, mock_session_pre, mock_serial);
+	std::shared_ptr<MarkerDetectorContainer> container = manager->searcher->get_container(lfb_vision_config, mock_session_pre, lfb_vision_config->extend_depth_analysis_over_markers);
 
-    auto result = manager->searcher->handle_pre_side_dispense(command_id, 
-														  primary_key_id,
-														  request_json,
-														  lfb_vision_config);
+    auto result = manager->searcher->handle_pre_side_dispense(container, 
+															command_id, 
+															primary_key_id,
+															request_json,
+															lfb_vision_config);
     Logger::Instance()->Debug("Result: {}", result->to_string());
 	std::cout << std::endl;
 	Logger::Instance()->Info("Handling request now");
