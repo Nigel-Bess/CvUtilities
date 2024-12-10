@@ -346,14 +346,29 @@ int PrePostCompare::populate_class_variables_side_dispense(std::shared_ptr<Marke
     Logger::Instance()->Debug("Post image remaining platform: {}", post_remaining_platform);
     Logger::Instance()->Debug("Expected number of new items in bag: {}", expected_new_items_in_bag);
 
-    this->pre_container = pre_container;
-    this->post_container = post_container;
-
+    bool is_first_dispense = post_request_json->value("Is_First_Dispense", false);
+    this->pre_container = nullptr;
     Logger::Instance()->Debug("Getting pre container color mat");
-    this->pre_color_img = pre_container->get_color_mat()->clone();
+    this->pre_color_img = cv::imread("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/pre_dispense_images/color_image_ambient.png", cv::IMREAD_COLOR);
+    
+    if (!is_first_dispense) {
+        this->pre_container = pre_container;
+        this->pre_color_img = pre_container->get_color_mat()->clone();
+    }
+
+    this->post_container = post_container;
 
     Logger::Instance()->Debug("Getting post container color mat");
     this->post_color_img = post_container->get_color_mat()->clone();
+
+    if (this->pre_color_img.size().empty()) {
+        Logger::Instance()->Error("Received empty pre image for pre-post compare!");
+        throw(SideDispenseErrorCodes::EmptyPreImage);
+    }
+    if (this->post_color_img.size().empty()) {
+        Logger::Instance()->Error("Received empty post image for pre-post compare!");
+        throw(SideDispenseErrorCodes::EmptyPostImage);
+    }
 
     return res; //return check input result
 }
@@ -821,12 +836,6 @@ int PrePostCompare::process_absolute_difference()
     }
     cv::Mat pre_color = calculate_roi(this->pre_color_img);
     cv::Mat post_color = calculate_roi(this->post_color_img);
-    if (pre_color.size().empty()) {
-        Logger::Instance()->Error("Pre color image is empty!");
-    }
-    if (post_color.size().empty()) {
-        Logger::Instance()->Error("Post color image is empty!");
-    }
     cv::absdiff(pre_color, post_color, abs_diff);
     int non_zeros = cv::countNonZero(abs_diff.reshape(1));
     Logger::Instance()->Info("Non_zeros pixels from absolute difference between pre/post: {}", non_zeros);
@@ -959,6 +968,12 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
         Logger::Instance()->Info("Done with comparison processing. Final result code is: {}", result_code);
 
         *result_mat_ptr = this->result_mat; //for passing the result mat back out into drop_manager
+    }
+
+    catch (SideDispenseError& e) {
+        SideDispenseErrorCodes error_id = e.get_status_code();
+        Logger::Instance()->Info("Caught an error during comparison processing. {}", e.get_description());
+        return error_id;
     }
     catch (...)
     {

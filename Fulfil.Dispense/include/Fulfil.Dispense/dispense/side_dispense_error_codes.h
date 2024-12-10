@@ -57,6 +57,10 @@ namespace fulfil::dispense::side_dispense_error_codes {
         InvalidItemDimensions = 21,
         /* Recoverable RealSense Error */
         RecoverableRealSenseError = 22,
+        /* Pre Image empty for pre-post compare */
+        EmptyPreImage = 23,
+        /* Post Image empty for pre-post compare */
+        EmptyPostImage = 24,
         /* UnrecoverableRealSenseError */
         UnrecoverableRealSenseError = 255,
         /* CommandDelegateExpired */
@@ -114,6 +118,10 @@ namespace fulfil::dispense::side_dispense_error_codes {
                 return "InvalidItemDimensions";
             case SideDispenseErrorCodes::RecoverableRealSenseError:
                 return "RecoverableRealSenseError";
+            case SideDispenseErrorCodes::EmptyPreImage:
+                return "EmptyPreImage";
+            case SideDispenseErrorCodes::EmptyPostImage:
+                return "EmptyPostImage";
             case SideDispenseErrorCodes::UnrecoverableRealSenseError:
                 return "UnrecoverableRealSenseError";
             case SideDispenseErrorCodes::CommandDelegateExpired:

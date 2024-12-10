@@ -143,13 +143,13 @@ class DropManager
 
   std::shared_ptr<depthcam::aruco::MarkerDetectorContainer> cached_drop_target_container;
 
-  std::shared_ptr<depthcam::aruco::MarkerDetectorContainer> cached_pre_container;
+  std::shared_ptr<depthcam::aruco::MarkerDetectorContainer> cached_pre_container = nullptr;
 
   std::shared_ptr<depthcam::aruco::MarkerDetectorContainer> cached_post_container;
 
   std::shared_ptr<nlohmann::json> cached_drop_target_request;
 
-  std::shared_ptr<nlohmann::json> cached_pre_request;
+  std::shared_ptr<nlohmann::json> cached_pre_request = nullptr;
 
   std::shared_ptr<nlohmann::json> cached_post_request;
 

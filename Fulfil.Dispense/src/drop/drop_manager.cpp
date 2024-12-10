@@ -722,7 +722,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
         std::shared_ptr<MarkerDetectorContainer> container = this->searcher->get_container(lfb_vision_config, this->session, lfb_vision_config->extend_depth_analysis_over_markers);
         this->cached_post_container = container; //cache container for potential use in prepostcomparison later
         this->cached_post_request = request_json;
-
+       
         std::shared_ptr<SideDropResult> result = this->searcher->handle_post_side_dispense(container, request_id, primary_key_id, request_json, lfb_vision_config);
         
         if (cached_post_container == cached_pre_container) {
@@ -790,9 +790,9 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
 
     //confirm that all inputs for pre/post comparison have been cached properly and are available for use in algorithm
     std::string errors = "";
-    if (cached_pre_container == nullptr) errors += "pre_container \n";
+    //if (cached_pre_container == nullptr) errors += "pre_container \n";
     if (cached_post_container == nullptr) errors += "post_container \n";
-    if (cached_pre_request_json == nullptr) errors += "pre request json \n";
+    //if (cached_pre_request_json == nullptr) errors += "pre request json \n";
     if (cached_post_request_json == nullptr) errors += "post request json \n";
     if (!errors.empty())
     {
@@ -816,7 +816,7 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
     catch (SideDispenseError& e)
     {
         SideDispenseErrorCodes error_id = e.get_status_code();
-        Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling:\n{}", e.what());
+        Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling:\n{}", e.get_description());
         return -1;
     }
     catch (...)
