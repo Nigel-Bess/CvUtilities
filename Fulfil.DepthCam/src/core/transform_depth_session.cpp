@@ -98,7 +98,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> TransformDepthSession:
             include_invalid_depth_data);
 }
 
-void TransformDepthSession::refresh(bool align_frames, bool validate_frames)
+void TransformDepthSession::refresh(bool align_frames, bool validate_frames, bool num_retries)
 {
   this->transformed_distance_mat = nullptr;
   this->session->refresh();

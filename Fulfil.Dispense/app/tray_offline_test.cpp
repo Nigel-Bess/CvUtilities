@@ -189,7 +189,7 @@ FEDTestResultLog test_FED_algo(std_filesystem::path sim_data_command_dir, const 
 
     auto mock_session = make_mock_session(sim_data_command_dir, mock_serial);
     auto request_obj = parse_request_file_to_json(sim_data_command_dir);
-    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.2");
 
     request_from_vlsg::TrayRequest single_lane_val_req = request_obj.get<request_from_vlsg::TrayRequest>();
     IniSectionReader section_reader {*tray_reader, tray_generation};
@@ -215,7 +215,7 @@ FEDTestResultLog test_FED_dispense_manager(std_filesystem::path sim_data_command
     sim_data_command_dir /= "PreFrontEdgeDistance";
     if (!std_filesystem::is_directory(sim_data_command_dir)) return {};
     auto mock_session = make_mock_session(sim_data_command_dir, mock_serial);
-    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.2");
     fulfil::configuration::tray::TrayDimensions tray_builder =
         fulfil::configuration::tray::set_bay_wide_tray_dimensions(tray_reader, tray_generation);
     auto tray_manager = std::make_shared<fulfil::dispense::tray::TrayManager>(mock_session, tray_builder);
@@ -253,7 +253,7 @@ std::vector<TongueResultLog> test_TVR_tongue_detection(std_filesystem::path sim_
     auto json_file = sim_data_command_dir /  "json_request.json";
 
     auto start = std::chrono::high_resolution_clock::now();
-    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+    std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.2");
     IniSectionReader section_reader {*tray_reader, tray_generation};
 
     auto detection_threshold = section_reader.at<float>("bead_tongue_color_limit");
@@ -364,7 +364,7 @@ TestRecords run_test_over_input_examples_directory(std_filesystem::path test_dat
             Logger::Instance()->Info("[test][{}] Reader appended", TEST_START_TIME);
             auto mock_serial = get_serial_number_from_calibration(tray_reader.value());
             Logger::Instance()->Info("[test][{}] Using mock serial: {}", TEST_START_TIME, mock_serial);
-            std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.1");
+            std::string tray_generation = "tray_dimensions_" + reader->Get("device_specific", "tray_config_type", "4.2");
             log_tray_config_params(tray_reader.value(), tray_generation);
             // Logger::Instance()->Info("Command sequences start: {}, end: {}", std::string(command_seqs));
             std::transform(std_filesystem::begin(command_seqs), std_filesystem::end(command_seqs), std::back_inserter(algo_results),

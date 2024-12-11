@@ -90,7 +90,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockContainer::get_poi
   return point_cloud;
 }
 
-void MockContainer::refresh(bool align_frames, bool validate_frames)
+void MockContainer::refresh(bool align_frames, bool validate_frames, bool num_retries)
 {
   this->session->refresh();
 }

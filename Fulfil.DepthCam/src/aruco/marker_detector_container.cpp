@@ -519,7 +519,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContaine
   return this->cached_container->get_point_cloud(transform, include_invalid_depth_data);
 }
 
-void MarkerDetectorContainer::refresh(bool align_frames, bool validate_frames)
+void MarkerDetectorContainer::refresh(bool align_frames, bool validate_frames, bool num_retries)
 {
     this->session->refresh();
     this->cached_container = nullptr;

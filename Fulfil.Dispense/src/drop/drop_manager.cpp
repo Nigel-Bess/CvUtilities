@@ -307,7 +307,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
     }
     catch (const std::exception & e)
     {
-        std::string error_desc = std::string("Unspecified failure from DropManager handling drop request with error:\n{}") + e.what();
+        std::string error_desc = std::string("Unspecified failure from DropManager handling drop request with error:\n") + e.what();
         Logger::Instance()->Error(error_desc);
         return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError,
                                             error_desc);

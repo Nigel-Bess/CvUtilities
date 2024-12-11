@@ -90,7 +90,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
   return this->session->get_point_cloud(transform, include_invalid_depth_data);
 }
 
-void FixedTransformContainer::refresh(bool align_frames, bool validate_frames)
+void FixedTransformContainer::refresh(bool align_frames, bool validate_frames, bool num_retries)
 {
     this->session->refresh();
 }

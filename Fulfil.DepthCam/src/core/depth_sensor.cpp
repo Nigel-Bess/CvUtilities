@@ -17,12 +17,12 @@ using fulfil::utils::Logger;
 // TODO need to make frame size, rate, decimation factor configurable!!!
 DepthSensor::DepthSensor(const std::string &serial)
 {
-
+    this->frame_rate_per_second = 15;
     //Add desired streams to configuration
     rs2::config cfg;
     cfg.enable_device(serial.c_str());
-    cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
-    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 15);
+    cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, this->frame_rate_per_second);
+    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, this->frame_rate_per_second);
 
     fulfil::utils::Logger::Instance()->Trace("Streams enabled on device {}.", serial);
     //Instruct pipeline to start streaming with the requested configuration
@@ -66,8 +66,10 @@ DepthSensor::DepthSensor(const std::string &serial)
     }
     print_framestats();
     fulfil::utils::Logger::Instance()->Trace("WARM UP complete for camera {}.", serial);
+}
 
-
+int DepthSensor::get_frame_rate_in_seconds() {
+    return this->frame_rate_per_second;
 }
 
 /**
@@ -170,7 +172,6 @@ void DepthSensor::manage_pipe(){
                 std::replace(file.begin(), file.end(), ' ', '_');
                 cv::imwrite("/home/fulfil/" + file + ".jpg", pic);
             }
-
         }
         catch (const rs2::unrecoverable_error& e){
             Logger::Instance()->Fatal("{} [{}]: Unrecoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",

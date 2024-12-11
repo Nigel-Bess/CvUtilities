@@ -37,6 +37,8 @@ class DepthSensor
 
     std::shared_ptr<rs2::frameset> frame_set;
 
+    int frame_rate_per_second;
+
     std::chrono::system_clock::time_point last_frame_time;
     std::chrono::system_clock::time_point print_time;
     void manage_pipe();
@@ -95,6 +97,11 @@ class DepthSensor
      * Get the depth scale of stream (multiple by Z16 value to get distance in meters)
      */
     float get_depth_scale();
+
+    /**
+     * Get frame rate in seconds (FPS) of the stream. The depth and color frames are the same rate.
+     */
+    int get_frame_rate_in_seconds();
 
         /**
      * Realsense profile object which is used in the process of setting up the pipeline.

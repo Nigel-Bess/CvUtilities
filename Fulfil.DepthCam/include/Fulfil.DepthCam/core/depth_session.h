@@ -118,7 +118,9 @@ namespace fulfil
 
             cv::Mat grab_color_frame();
 
-            void refresh(bool align_frames = true, bool validate_frames = true) override;
+            void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) override;
+
+            void get_sensor_frameset(bool align_frames);
 
             // state false = turn off emitter,  state true = turn on emitter
             bool set_emitter(bool state) override;

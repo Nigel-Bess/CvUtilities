@@ -58,7 +58,7 @@ class Container : public Session
       std::shared_ptr<Eigen::Affine3d> transform,
       bool include_invalid_depth_data) override = 0;
 
-  void refresh(bool align_frames = true, bool validate_frames = true) override = 0;
+  void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) override = 0;
 
   bool set_emitter(bool state) override = 0;
 

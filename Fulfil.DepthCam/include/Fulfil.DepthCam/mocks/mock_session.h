@@ -79,7 +79,7 @@ class MockSession : public Session
       std::shared_ptr<Eigen::Affine3d> transform,
       bool include_invalid_depth_data) override;
 
-  void refresh(bool align_frames = true, bool validate_frames = true) override;
+  void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) override;
 
   bool set_emitter(bool state) override;
 

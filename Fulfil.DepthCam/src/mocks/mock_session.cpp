@@ -241,7 +241,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point
   return cam_cloud->add_transformation(transform);
 }
 
-void MockSession::refresh(bool align_frames, bool validate_frames)
+void MockSession::refresh(bool align_frames, bool validate_frames, bool num_retries)
 {
   Logger::Instance()->Warn("Note: frames are not updated during a refresh call for a mock session!");
 }

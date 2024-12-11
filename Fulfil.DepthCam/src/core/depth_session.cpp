@@ -157,18 +157,37 @@ bool DepthSession::check_for_same_frame(cv::Mat color_image, cv::Mat depth_image
   return function_result;
 }
 
-void DepthSession::refresh(bool align_frames, bool validate_frames)
+void DepthSession::get_sensor_frameset(bool align_frames)
 {
   sensor->get_frameset(align_frames, &this->raw_depth_frame, &this->aligned_depth_frame, &this->raw_color_frame);
+}
 
+void DepthSession::refresh(bool align_frames, bool validate_frames, bool num_retries)
+{
+  // wait the duration of the frame rate + 10ms for good luck
+  int time_ms_to_new_frame = (int)1000/this->sensor->get_frame_rate_in_seconds() + 10;
+  for (int i = 0; i < num_retries; i++) {
+    try {
+      this->get_sensor_frameset(align_frames);
+      break;
+    }
+    catch (const std::exception & e)
+    {      
+      Logger::Instance()->Error("Refreshing frameset failed on attempt number (0-indexed) {} with error message: {}{}", i, e.what(), (i+1 < num_retries) ? std::string("Waiting ") + std::to_string(time_ms_to_new_frame) + std::string("ms before retrying...") : "");
+      std::this_thread::sleep_for(std::chrono::milliseconds(time_ms_to_new_frame));
+    }
+    catch (...) {
+      Logger::Instance()->Error("Refreshing frameset failed on attempt number (0-indexed) {} with unspecified error{}", i, (i+1 < num_retries) ? std::string("Waiting ") + std::to_string(time_ms_to_new_frame) + std::string("ms before retrying...") : "");
+      std::this_thread::sleep_for(std::chrono::milliseconds(time_ms_to_new_frame));
+    }
+  }
+  // TODO throw error here to be caught in FC
 }
 
 bool DepthSession::set_emitter(bool state)
 {
   // TODO: Swap to constexpr free since we set and cant change behavior post start up, and move to sensor.
   //  Possibly change toggle to emitter on/off paired with emitter enabled / disabled
-
-
 
   if (emitter_control == 1 and state == 0) return false; //ignore OFF commands if emitter_control is in Always ON state
   if (emitter_control == 0 and state == 1) return false; //ignore ON commands if emitter_control is in Always OFF state

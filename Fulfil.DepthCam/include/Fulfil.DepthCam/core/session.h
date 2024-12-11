@@ -88,7 +88,7 @@ class Session
    * Captures a new set of frame from the session to be used for processing
    * point clouds and images.
    */
-  virtual void refresh(bool align_frames = true, bool validate_frames = true) = 0;
+  virtual void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) = 0;
 
   /**
    * Sets the state of the sensor's emitter based on boolean input (1 = enable, 0 = disable)
