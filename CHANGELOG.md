@@ -1,3 +1,11 @@
+## [1.7.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.7.1...v1.7.2) (2024-12-12)
+
+
+### Bug Fixes
+
+* **frameRefreshing:** Retry refreshing frames 3x before sending back error message to FC ([#174](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/174)) ([f9078d1](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/f9078d1d496fc1f1b81bc4d58e39eb0cc8f952db))
+* **offlineTest:** Fix offline test error needing container ([#175](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/175)) ([7023303](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/70233030aa4d2180fb84b6a39f399423d6026834))
+
 ## [1.7.1](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.7.0...v1.7.1) (2024-11-28)
 
 
