@@ -120,7 +120,7 @@ class PrePostCompare
 
   int process_depth();
   int process_RGB();
-  int process_absolute_difference();
+  int process_absolute_difference(std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
   //returns the percentage of the detected dispensed item that overlaps with the dispense target
   int process_target(cv::Point2f target_center, cv::Mat item_result_map);
@@ -180,7 +180,7 @@ class PrePostCompare
 
   double distance(const cv::Point2f& p1, const cv::Point2f& p2);
 
-  cv::Mat calculate_roi(cv::Mat image);
+  cv::Mat calculate_roi(cv::Mat image, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 };
 
   namespace pre_post_compare_error_codes {

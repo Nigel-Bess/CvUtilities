@@ -790,16 +790,14 @@ double PrePostCompare::distance(const cv::Point2f& p1, const cv::Point2f& p2) {
 }
 
 //cropping the pre/post images to filter accurate ROI for calculating absolute difference
-cv::Mat PrePostCompare::calculate_roi(cv::Mat image) {
+cv::Mat PrePostCompare::calculate_roi(cv::Mat image, std::shared_ptr<LfbVisionConfiguration> lfb_vision_config) {
         cv::Mat region_of_interest;
         std::vector<cv::Point2f> shrink_hull2f;
         cv::Point2f point;
-        //TO-DO: remove or change this hard-coding
-        //Handle the below in next PR for new tote - Priyanka
-        shrink_hull2f.push_back(cv::Point2f(480, 255)); //left upper corner
-        shrink_hull2f.push_back(cv::Point2f(895, 255)); //right upper corner
-        shrink_hull2f.push_back(cv::Point2f(480, 495)); //left lower corner
-        shrink_hull2f.push_back(cv::Point2f(895, 495)); //right lower corner
+        shrink_hull2f.push_back(cv::Point2f(lfb_vision_config->left_inner_bot_wall_x_pixel, lfb_vision_config->top_inner_bot_wall_y_pixel)); //left upper corner pixels
+        shrink_hull2f.push_back(cv::Point2f(lfb_vision_config->right_inner_bot_wall_x_pixel, lfb_vision_config->top_inner_bot_wall_y_pixel)); //right upper corner pixels
+        shrink_hull2f.push_back(cv::Point2f(lfb_vision_config->left_inner_bot_wall_x_pixel, lfb_vision_config->bottom_inner_bot_wall_y_pixel)); //left lower corner pixels
+        shrink_hull2f.push_back(cv::Point2f(lfb_vision_config->right_inner_bot_wall_x_pixel, lfb_vision_config->bottom_inner_bot_wall_y_pixel)); //right lower corner pixels
         //calculate lengths of the sides of the new ROI image
         /* top -> represents the upper edge for width of the image
         * bottom -> represents the lower edge for width of the image
@@ -825,7 +823,7 @@ cv::Mat PrePostCompare::calculate_roi(cv::Mat image) {
         return region_of_interest;
 }
 
-int PrePostCompare::process_absolute_difference()
+int PrePostCompare::process_absolute_difference(std::shared_ptr<LfbVisionConfiguration> lfb_vision_config)
 {
     cv::Mat abs_diff;
     int result = 0;
@@ -834,8 +832,14 @@ int PrePostCompare::process_absolute_difference()
     if (non_zeros_pre == non_zeros_post) {
         Logger::Instance()->Info("Pre & Post images are same");
     }
-    cv::Mat pre_color = calculate_roi(this->pre_color_img);
-    cv::Mat post_color = calculate_roi(this->post_color_img);
+    cv::Mat pre_color = calculate_roi(this->pre_color_img, lfb_vision_config);
+    cv::Mat post_color = calculate_roi(this->post_color_img, lfb_vision_config);
+    if (pre_color.size().empty()) {
+        Logger::Instance()->Error("Pre color image is empty!");
+    }
+    if (post_color.size().empty()) {
+        Logger::Instance()->Error("Post color image is empty!");
+    }
     cv::absdiff(pre_color, post_color, abs_diff);
     int non_zeros = cv::countNonZero(abs_diff.reshape(1));
     Logger::Instance()->Info("Non_zeros pixels from absolute difference between pre/post: {}", non_zeros);
@@ -963,7 +967,7 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
         {
             Logger::Instance()->Info("Starting Absolute Difference processing");
             // result code will be 0 for no item detected, or 1 for item detected
-            result_code = process_absolute_difference();
+            result_code = process_absolute_difference(lfb_vision_config);
         }
         Logger::Instance()->Info("Done with comparison processing. Final result code is: {}", result_code);
 

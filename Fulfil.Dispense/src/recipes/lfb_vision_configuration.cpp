@@ -134,5 +134,12 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     S_low{input_json->value("HsvSaturationLow", (float)0.0)},
     S_high{input_json->value("HsvSaturationHigh", (float)255.0)},
     V_low{input_json->value("HsvValueLow", (float)0.0)},
-    V_high{input_json->value("HsvValueHigh", (float)255.0)}
+    V_high{input_json->value("HsvValueHigh", (float)255.0)},
+
+    // Pre-post Item Detection Comparison variables for cropping the image
+    left_inner_bot_wall_x_pixel{ input_json->value("LeftInnerBotWallXPixel", (float)480.0)},
+    right_inner_bot_wall_x_pixel{ input_json->value("RightInnerBotWallXPixel", (float)895.0)},
+    top_inner_bot_wall_y_pixel{ input_json->value("TopInnerBotWallYPixel", (float)255.0)},
+    bottom_inner_bot_wall_y_pixel{ input_json->value("BottomInnerBotWallYPixel", (float)495.0)}
+
 {}

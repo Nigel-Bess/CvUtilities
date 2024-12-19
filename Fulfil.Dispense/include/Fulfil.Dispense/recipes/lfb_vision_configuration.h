@@ -293,6 +293,16 @@ namespace fulfil::configuration::lfb {
         /** HSV-Value high value - must be double for cv::Scalar usage */
         double V_high {255};
 
+        // Pre-post compare image coordinates
+        /** upper y pixel value */
+        float left_inner_bot_wall_x_pixel{480};
+        /** lower y pixel value */
+        float right_inner_bot_wall_x_pixel{895};
+        /** right x pixel value */
+        float top_inner_bot_wall_y_pixel{255};
+        /** left x pixel value */
+        float bottom_inner_bot_wall_y_pixel{495};
+
         LfbVisionConfiguration() = default;
         LfbVisionConfiguration(const std::shared_ptr<nlohmann::json>& input_json);
     };
