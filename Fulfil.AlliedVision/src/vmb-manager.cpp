@@ -15,8 +15,8 @@ using fulfil::dispense::commands::get_error_name_from_code;
 struct sigaction old_action;
 bool RUN = true;
 
-void sigint_handler(int sig_no){
-    printf("CTRL-C pressed\n");
+void sig_handler(int sig_no){
+    printf("Graceful termination requested");
     RUN = false;
 }
 
@@ -35,15 +35,28 @@ void VmbManager::RunManager(){
     if(!RUN)return;
     struct sigaction action;
     memset(&action, 0, sizeof(action));
-    action.sa_handler = &sigint_handler;
+    action.sa_handler = &sig_handler;
     sigaction(SIGINT, &action, &old_action);
+    // Applies the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
+    sigaction(SIGTERM, &action, &old_action);
 
-    log_->Info("VmbManager starting");
+    log_->Info("=== VmbManager starting ===\n");
+
     auto code = vmb_system.Startup();
     if(code != VmbErrorSuccess){
         log_->Error("Error starting up VmbSystem, failed with code {}!", GetVimbaCode(code));
-        return;
+        exit(1);
     }
+
+    log_->Info("Querying network for discovered cameras\n");
+    CameraPtrVector discovered;
+    code = vmb_system.GetCameras(discovered);
+    log_->Info("Vimba discovered cam count: {}, expected: {}\n", (int)discovered.size(), (int)cameras_.size());
+
+    if(code != VmbErrorSuccess){
+        log_->Error("Error GetCameras, failed with code {}!", GetVimbaCode(code));
+    }
+
     // VmbCPP::FeaturePtrVector feat;
     // code = vmb_system.GetFeatures(feat);
     // std::cout << GetVimbaCode(code) << std::endl;
@@ -80,11 +93,13 @@ void VmbManager::RunManager(){
     service_->Run(9395);
     log_->Info("{} Cameras initialized", found);
     while (RUN){
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         if(!service_->IsConnected())continue;
         if(!service_->HasNewRequest())continue;
         auto request = service_->GetNextRequest();
         std::thread(&VmbManager::HandleRequest, this, request).detach();
+
+        // Throttle queue handling slightly
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         // for(auto const & [ip, cam] : cameras_)cam->GetImageBlocking();
     }
     for(auto const & [ip, cam] : cameras_){
@@ -206,7 +221,6 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
         }
         default:
             log_->Error("VmbManager::HandleRequest unhandled command {}", (int)type);
-        break;
     }
 
 }

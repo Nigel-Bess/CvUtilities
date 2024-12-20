@@ -14,6 +14,14 @@ COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
+
+RUN cd Fulfil.AlliedVision && tar -xvf VimbaX_Setup-2024-1-Linux64.tar.gz
+RUN cp -r ./Fulfil.AlliedVision/VimbaX_2024-1 /home/fulfil
+
+ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
+ENV VIMBA_HOME="/home/fulfil/VimbaX_2024-1"
+
+RUN cd /home/fulfil/VimbaX_2024-1/cti/ && bash Install_GenTL_Path.sh
 COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
 

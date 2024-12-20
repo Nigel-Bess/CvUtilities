@@ -30,6 +30,7 @@ class VmbCamera{
         std::string camera_error_description = "";
 
     private:
+        VmbCPP::FramePtrVector frame_ptrs_;
         VmbUchar_t* img_buffer_;
         VmbCPP::FramePtr frame_ptr_;
         VmbCPP::FeaturePtr feature_ptr_;
@@ -42,12 +43,12 @@ class VmbCamera{
         void SetFeature(std::string feature, double value);
         void AdjustPacketSize();
         void AddCameraStatus(DepthCameras::DcCameraStatusCodes code);
-        void RunSetup();
+        void RunSetup(bool isInitSetup);
         std::string GetMacAddress();
         bool run_ = true;
         bool connected_ = false;
         int bay_;
-        std::mutex _lock;
+        std::mutex _lifecycleLock;
         fulfil::utils::Logger* log_;
         std::shared_ptr<GrpcService> service_;
         inline void SetName(){

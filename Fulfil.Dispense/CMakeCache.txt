@@ -596,7 +596,7 @@ Protobuf_PROTOC_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: Protobuf_PROTOC_LIBRARY_RELEASE
 Protobuf_PROTOC_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
 //Directory containing the Vmb dlls
-VMB_BINARY_DIRS:INTERNAL=/home/starkey/code/VimbaX_2023-4/api/bin
+VMB_BINARY_DIRS:INTERNAL=/home/starkey/code/VimbaX_2024-1/api/bin
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //CMAKE_INSTALL_PREFIX during last run

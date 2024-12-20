@@ -4,6 +4,18 @@
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::get_error_name_from_code;
 
+// Static lock is shared across all camera instances so only 1 camera
+// may actively stream frames at a time, this is to avoid bad networking
+// issues observed with Vimba cameras for Repack
+static std::mutex _streamingCamLock;
+
+/// Max snapshot retries till GetBlockingImage gives up taking a valid frame
+const int MAX_SNAPSHOT_RETRIES = 10;
+/// Number of frames to take in multi acquire mode, larger values make GetBlockingImage slower
+/// but increase the odds of getting a Complete frame, leave low since there's a parent
+/// retry loop set by MAX_SNAPSHOT_RETRIES anyway
+const uint32_t MULTIFRAME_COUNT = 5;
+
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
     SetName();
@@ -15,6 +27,7 @@ void VmbCamera::StartCamera(){
 
 void VmbCamera::KillCamera(){
     run_ = false;
+    connected_ = false;
     log_->Info("VmbCamera shutdown on {}", name_);
     if(camera_ != nullptr)
         camera_->Close();
@@ -28,57 +41,66 @@ bool VmbCamera::CameraHasBrightView(std::string name_) {
         or name_ == "RepackBay07" or name_ == "RepackBay09" or name_ == "RepackBay10");
 }
 
-void VmbCamera::RunSetup(){
-    log_->Info("VmbCamera starting on {}", name_);
+void VmbCamera::RunSetup(bool isInitSetup){
+    log_->Info("VmbCamera RunSetup on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
     auto first = true;
     while(code != VmbErrorSuccess){
         log_->Error("{} returned {} when trying to open camera", name_, GetVimbaCode(code));
         if(first)
             AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        camera_->Close();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         code = camera_->Open(VmbAccessModeFull);
         first = false;
     }
     std::string name;
     camera_->GetName(name);
-    log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID"));
-    SetFeature("PixelFormat", "BGR8");
-    SetFeature("ExposureAuto", "Once");
-    SetFeature("Hue", -2.0);
-    SetFeature("Saturation", 1.0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
+    log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID")); 
 
-    //These values may need changes in future until a config is added
-    if (CameraHasBrightView(name_)) {
-        SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
-        SetFeature("Gamma", 0.5); //brightness factor
+    if (isInitSetup) {
+        SetFeature("PixelFormat", "BGR8");
+        SetFeature("ExposureAuto", "Once");
+        SetFeature("Hue", -2.0);
+        SetFeature("Saturation", 1.0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
+        //These values may need changes in future until a config is added
+        if (CameraHasBrightView(name_)) {
+            SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
+            SetFeature("Gamma", 0.5); //brightness factor
+        }
+        else {
+            SetFeature("ExposureTime", 19985.98);
+            SetFeature("Gamma", 0.6);
+        }
+        AdjustPacketSize();
     }
-    else {
-        SetFeature("ExposureTime", 19985.98);
-        SetFeature("Gamma", 0.6);
-    }
-    AdjustPacketSize();
     connected_ = true;
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
-    GetImageBlocking();
-    SaveLastImage(name_);
+    if (isInitSetup) {
+        GetImageBlocking();
+        SaveLastImage(name_);
+    }
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
 void VmbCamera::RunCamera(){
+    bool isInitConnection = true;
     while(run_){
-        if(!connected_)RunSetup();
+        if(!connected_) {
+            std::lock_guard<std::mutex> lock(_lifecycleLock);{
+                RunSetup(isInitConnection);
+                isInitConnection = false;
+            }
+        }
         else{
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             std::string name;
             VmbErrorType code;
-            std::lock_guard<std::mutex> lock(_lock);{
-                code = camera_->GetName(name);
-            }
+            code = camera_->GetName(name);
             // std::cout << name << std::endl;
             if(code != VmbErrorSuccess){
-                log_->Error("{} returned {} when trying to poll camera, disconnecting", name_, GetVimbaCode(code));
+                log_->Error("{} returned {} when trying to poll camera, reconnecting", name_, GetVimbaCode(code));
                 if(camera_ != nullptr)
                     camera_->Close();
                 connected_ = false;
@@ -124,59 +146,92 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     VmbUint32_t height;
     VmbUint32_t width;
     auto empty = std::make_shared<cv::Mat>();
-    if(!connected_){
-        // log_->Error("Can't get image {} is disconnected", name_);
+    for (int i = 0; i < MAX_SNAPSHOT_RETRIES && !connected_; i++){
+        log_->Warn("GetImageBlocking stalling for camera reconnection, {} is disconnected, retry attempt #{}", name_, i);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+    if (!connected_) {
+        log_->Error("GetImageBlocking returning empty because {} is disconnected", name_);
         return empty;
     }
-    auto count = 0;
     auto err = VmbErrorCustom;
 
-    std::lock_guard<std::mutex> lock(_lock);
+    if (CameraHasBrightView(name_)) {
+        SetFeature("ExposureTime", 15000.0);
+        SetFeature("Gamma", 0.5);
+    }
+    else {
+        SetFeature("ExposureTime", 19985.98);
+        SetFeature("Gamma", 0.6);
+    }
+    SetFeature("Hue", -2.0);
+    SetFeature("Saturation", 1.0);
+
+    // ONLY 1 camera at a time can go into streaming mode due to networking issues, at least for Repack service
+    std::lock_guard<std::mutex> lock(_streamingCamLock);
     {
-        if (CameraHasBrightView(name_)) {
-            SetFeature("ExposureTime", 15000.0);
-            SetFeature("Gamma", 0.5);
-        }
-        else {
-            SetFeature("ExposureTime", 19985.98);
-            SetFeature("Gamma", 0.6);
-        }
-        SetFeature("Hue", -2.0);
-        SetFeature("Saturation", 1.0);
-        while(err != VmbErrorSuccess || count < 1){
-            err = camera_->AcquireSingleImage(frame_ptr_, 5000);
-            
+        VmbUint32_t payloadSize;
+        err = camera_->GetPayloadSize( payloadSize );
+        VmbFrameStatusType frameStatus;
+        log_->Info("reset frame {}", name_);
+        frame_ptr_.reset(new Frame(payloadSize));
+        frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
+        log_->Info("Streaming for first complete frame {}", name_);
+
+        // Look through all images taken for hopefully a frame that's complete
+        bool frameFound = false;
+        for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
+            for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+                frame_ptrs_[f].reset(new Frame(payloadSize));
+            }
+            log_->Info("AquiredMultiple start {}", name_);
+            err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
+            log_->Info("AquiredMultiple end {}", name_);
             if (err != VmbErrorSuccess) {
                 camera_error_code = RepackErrorCodes::VimbaCameraError;
                 camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
                 log_->Error(camera_error_description);
             }
-            count++;
-            if(count > 3)break;
+            // Better to get the LAST good frame since it's more likely to have more accurate interlacing
+            for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
+                frame_ptrs_[f]->GetReceiveStatus(frameStatus);
+                frame_ptr_ = frame_ptrs_[f];
+                if (frameStatus == 0) {
+                    log_->Info("Found good frame at {} on {}", aquireCount*MULTIFRAME_COUNT + f, name_);
+                    frameFound = true;
+                    break;
+                } else if (f == 0) {
+                    log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
+                }
+            }
         }
-        if(err != VmbErrorSuccess){
-            camera_error_code = RepackErrorCodes::VimbaCameraError;
-            camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
-            log_->Error(camera_error_description);
+        if(!frameFound){
+            log_->Error("No complete frame found for {}", name_);
             return empty;
         }
-        try{
-            auto val = frame_ptr_->GetImage(img_buffer_);
-            frame_ptr_->GetHeight(height);
-            frame_ptr_->GetWidth(width);
-            // std::cout << "GOT FRAME " << height << " x " << width  << std::endl;
-            last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
-            // std::cout << "Got mat of size" << last_mat_.size() << std::end;
-            last_image_ = std::make_shared<cv::Mat>(last_mat_);
-            return last_image_;
+    }
+    if(err != VmbErrorSuccess){
+        camera_error_code = RepackErrorCodes::VimbaCameraError;
+        camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
+        log_->Error(camera_error_description);
+        return empty;
+    }
+    try{
+        auto val = frame_ptr_->GetImage(img_buffer_);
+        frame_ptr_->GetHeight(height);
+        frame_ptr_->GetWidth(width);
+        // std::cout << "GOT FRAME " << height << " x " << width  << std::endl;
+        last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
+        log_->Debug("Got mat of size {} from image with height {} and width {}", last_mat_.size(), height, width);
+        last_image_ = std::make_shared<cv::Mat>(last_mat_);
+        return last_image_;
+    }
+    catch(const std::exception &ex){
+        if (camera_error_code == RepackErrorCodes::Success) {
+            camera_error_code = RepackErrorCodes::VimbaCameraError;
+            camera_error_description = get_error_name_from_code((RepackErrorCodes)camera_error_code) + " -> " + "VmbManager::GetImageBlocking caught error: {}", ex.what();
         }
-        catch(const std::exception &ex){
-            if (camera_error_code == RepackErrorCodes::Success) {
-                camera_error_code = RepackErrorCodes::VimbaCameraError;
-                camera_error_description = get_error_name_from_code((RepackErrorCodes)camera_error_code) + " -> " + "VmbManager::GetImageBlocking caught error: {}", ex.what();
-            }
-            log_->Error(camera_error_description);
-        }
+        log_->Error(camera_error_description);
     }
     return empty;
 }
