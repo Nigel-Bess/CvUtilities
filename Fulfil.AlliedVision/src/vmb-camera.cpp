@@ -222,7 +222,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         frame_ptr_->GetWidth(width);
         // std::cout << "GOT FRAME " << height << " x " << width  << std::endl;
         last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
-        log_->Debug("Got mat of size {} from image with height {} and width {}", last_mat_.size(), height, width);
+        log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
         last_image_ = std::make_shared<cv::Mat>(last_mat_);
         return last_image_;
     }
