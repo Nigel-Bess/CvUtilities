@@ -1,3 +1,11 @@
+## [1.7.3](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.7.2...v1.7.3) (2024-12-26)
+
+
+### Bug Fixes
+
+* **Repack:** Single streaming Vimba cam ([#179](https://github.com/Fulfil0518/Fulfil.ComputerVision/issues/179)) ([00ae076](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/00ae076831e0826da12aa37df7e1e7ef25c3f05b))
+* **repack:** whoopsies fix logger unhappiness type with a cast ([f28037a](https://github.com/Fulfil0518/Fulfil.ComputerVision/commit/f28037a3d8b31c534b42d4435f11b67ffd109460))
+
 ## [1.7.2](https://github.com/Fulfil0518/Fulfil.ComputerVision/compare/v1.7.1...v1.7.2) (2024-12-12)
 
 
