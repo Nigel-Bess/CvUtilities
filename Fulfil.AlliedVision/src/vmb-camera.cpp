@@ -14,7 +14,7 @@ const int MAX_SNAPSHOT_RETRIES = 10;
 /// Number of frames to take in multi acquire mode, larger values make GetBlockingImage slower
 /// but increase the odds of getting a Complete frame, leave low since there's a parent
 /// retry loop set by MAX_SNAPSHOT_RETRIES anyway
-const uint32_t MULTIFRAME_COUNT = 5;
+const uint32_t MULTIFRAME_COUNT = 3;
 
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
@@ -59,6 +59,14 @@ void VmbCamera::RunSetup(bool isInitSetup){
     log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID")); 
 
     if (isInitSetup) {
+        // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
+        // based on the network switch on neighboring camera count
+        log_->Info("Setting link to 50000000");
+        VmbInt64_t maxBandwidthBytes = 50000000;
+        SetFeature("DeviceLinkThroughputLimitMode", "On");
+        SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);
+        log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));
+
         SetFeature("PixelFormat", "BGR8");
         SetFeature("ExposureAuto", "Once");
         SetFeature("Hue", -2.0);
@@ -193,16 +201,25 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
                 log_->Error(camera_error_description);
             }
             // Better to get the LAST good frame since it's more likely to have more accurate interlacing
+            int firstGood = 999999;
+            int lastGood = -1;
             for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
                 frame_ptrs_[f]->GetReceiveStatus(frameStatus);
-                frame_ptr_ = frame_ptrs_[f];
                 if (frameStatus == 0) {
-                    log_->Info("Found good frame at {} on {}", aquireCount*MULTIFRAME_COUNT + f, name_);
                     frameFound = true;
-                    break;
+                    firstGood = f < firstGood ? f : firstGood;
+                    lastGood = f > lastGood ? f : lastGood;
                 } else if (f == 0) {
                     log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
                 }
+            }
+            if (frameFound) {
+                log_->Info("First good frame at {}, using last good frame at {} on {}", 
+                    aquireCount*MULTIFRAME_COUNT + firstGood,
+                    aquireCount*MULTIFRAME_COUNT + lastGood,
+                    name_);   
+                frame_ptr_ = frame_ptrs_[lastGood];
+                break;
             }
         }
         if(!frameFound){
@@ -263,29 +280,30 @@ std::string VmbCamera::GetMacAddress(){
 
 void VmbCamera::SetFeature(std::string feature, std::string value){
     std::string fvalue = GetFeatureString(feature.c_str());
+    log_->Info("Previous Feature value: {} {} = {}", name_, feature, fvalue);
     if(fvalue == value)return; //already set!
     feature_ptr_->SetValue(value.c_str());
     std::string val;
     feature_ptr_->GetValue(val);
-    log_->Info("{} {} = {}", name_, feature, val);
-
+    log_->Info("Latest Feature value: {} {} = {}", name_, feature, val);
 }
 
 void VmbCamera::SetFeature(std::string feature, VmbInt64_t value){
     VmbInt64_t fvalue = GetFeatureInt(feature.c_str());
+    log_->Info("Previous Feature value: {} {} = {}", name_, feature, fvalue);
     if(fvalue == value || fvalue == -1)return; //already set!
     feature_ptr_->SetValue(value);
     feature_ptr_->GetValue(value);
-    log_->Info("{} {} = {}", name_, feature, value);
-
+    log_->Info("Latest Feature value: {} {} = {}", name_, feature, value);
 }
 
 void VmbCamera::SetFeature(std::string feature, double value){
     double fvalue = GetFeatureDouble(feature.c_str());
+    log_->Info("Previous Feature value: {} {} = {}", name_, feature, fvalue);
     if(fvalue == value || fvalue == -1)return; //already set!
     feature_ptr_->SetValue(value);
     feature_ptr_->GetValue(value);
-    log_->Info("{} {} = {}", name_, feature, value);
+    log_->Info("Latest Feature value: {} {} = {}", name_, feature, value);
 
 }
 
