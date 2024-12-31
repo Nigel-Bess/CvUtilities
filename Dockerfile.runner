@@ -1,14 +1,82 @@
-# Dockerfile
+ARG BASE_IMAGE=ubuntu:20.04
 ARG TAG=latest
+ARG CMAKE_VERSION=3.22
+ARG CMAKE_BUILD=0
+ARG OPENCV_VERSION=4.5.5
+ARG GRPC_VERSION=${GRPC_VERSION:-1.54.0}
+ARG VIMBA_NAME=VimbaX_2024-1
 
-# Pull the base image from GCR
-FROM gcr.io/fulfil-web-staging-296222/fulfil_dc_api/base_v2:${TAG}
+# base
+FROM ${BASE_IMAGE} as base
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update
+RUN apt-get install -y make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
 
-RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision && mkdir -p /home/fulfil/code/Fulfil.ComputerVision
+# CMake
+FROM base as cmake
+ARG CMAKE_VERSION
+ARG CMAKE_BUILD
+WORKDIR /tmp/
+RUN wget https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.$CMAKE_BUILD.tar.gz
+RUN tar -xzf cmake-$CMAKE_VERSION.$CMAKE_BUILD.tar.gz
+WORKDIR /tmp/cmake-$CMAKE_VERSION.$CMAKE_BUILD
+RUN ./bootstrap
+RUN make -j$(nproc) && make install
 
-# Set the working directory inside the container
+# OpenCV
+FROM base as opencv
+ARG OPENCV_VERSION
+RUN apt-get install -y cmake
+WORKDIR /opencv
+RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip \
+    && wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip \
+    && unzip opencv.zip \
+    && unzip opencv_contrib.zip \
+    && mv opencv-${OPENCV_VERSION} opencv \
+    && mv opencv_contrib-${OPENCV_VERSION} opencv_contrib
+
+RUN mkdir /opencv/opencv/build
+WORKDIR /opencv/opencv/build
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/usr/local \
+    -D INSTALL_PYTHON_EXAMPLES=OFF \
+    -D INSTALL_C_EXAMPLES=OFF \
+    -D OPENCV_ENABLE_NONFREE=ON \
+    -D OPENCV_GENERATE_PKGCONFIG=ON \
+    -D OPENCV_EXTRA_MODULES_PATH=/opencv/opencv_contrib/modules \
+    -D PYTHON_EXECUTABLE=/usr/local/bin/python \
+    -D BUILD_EXAMPLES=ON .. \
+    && make -j$(nproc) && make install && ldconfig
+
+# Protobuf / gRPC
+FROM base as grpc
+ARG GRPC_VERSION
+RUN apt-get install -y cmake
+WORKDIR /home/fulfil/
+RUN git clone --recurse-submodules -b v${GRPC_VERSION} --depth 1 --shallow-submodules https://github.com/grpc/grpc
+RUN mkdir -p grpc/cmake/build
+WORKDIR /home/fulfil/grpc/cmake/build
+RUN cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local ../..
+RUN make -j $(nproc) && make install
+
+# VMB
+FROM base as vmb
+ARG VIMBA_NAME
+WORKDIR /home/fulfil/
+COPY ./VimbaX_Setup-2024-1-Linux64.tar.gz /home/fulfil/
+RUN tar xzf /home/fulfil/VimbaX_Setup-2024-1-Linux64.tar.gz
+WORKDIR /home/fulfil/$VIMBA_NAME/
+RUN ./cti/Install_GenTL_Path.sh
+
+# Fulfil.ComputerVision
+FROM base as cv
+ARG VIMBA_NAME
+COPY --from=cmake /usr/local/ /usr/local/
+COPY --from=opencv /usr/local/ /usr/local/
+COPY --from=grpc /usr/local/ /usr/local/
+COPY --from=vmb /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
+
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
-
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
@@ -24,14 +92,24 @@ ENV VIMBA_HOME="/home/fulfil/VimbaX_2024-1"
 RUN cd /home/fulfil/VimbaX_2024-1/cti/ && bash Install_GenTL_Path.sh
 COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
+RUN sed -i 's/\r//' ./scripts/build_date.sh
 
 RUN cd Fulfil.AlliedVision/ \
-    && mkdir build/ \
-    && mkdir -p /code/mars/vimba \
+    && mkdir -p build/ \
     && make
 
-# Development
-# CMD ["sleep", "7200"]
+FROM ${BASE_IMAGE} as final
+ARG VIMBA_NAME
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision
+COPY --from=cv /usr/local/ /usr/local/
+COPY --from=cv /lib/ /lib/
+COPY --from=cv /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
+COPY --from=cv /home/fulfil/code/Fulfil.ComputerVision/ /home/fulfil/code/Fulfil.ComputerVision/
+ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
+ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
+
+# ensure the logging directory is available
+RUN mkdir -p /code/mars/vimba
+
 # PROD
 CMD ["./build/stark_test"]
-
