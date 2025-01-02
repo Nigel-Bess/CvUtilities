@@ -13,7 +13,6 @@ RUN apt-get update
 RUN apt-get install -y make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
 
 # CMake
-FROM base as cmake
 ARG CMAKE_VERSION
 ARG CMAKE_BUILD
 WORKDIR /tmp/
@@ -24,7 +23,6 @@ RUN ./bootstrap
 RUN make -j$(nproc) && make install
 
 # OpenCV
-FROM base as opencv
 ARG OPENCV_VERSION
 RUN apt-get install -y cmake
 WORKDIR /opencv
@@ -49,7 +47,6 @@ RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
     && make -j$(nproc) && make install && ldconfig
 
 # Protobuf / gRPC
-FROM base as grpc
 ARG GRPC_VERSION
 RUN apt-get install -y cmake
 WORKDIR /home/fulfil/
@@ -60,7 +57,6 @@ RUN cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr/l
 RUN make -j $(nproc) && make install
 
 # VMB
-FROM base as vmb
 ARG VIMBA_NAME
 WORKDIR /home/fulfil/
 COPY ./VimbaX_Setup-2024-1-Linux64.tar.gz /home/fulfil/
@@ -69,19 +65,15 @@ WORKDIR /home/fulfil/$VIMBA_NAME/
 RUN ./cti/Install_GenTL_Path.sh
 
 # Fulfil.ComputerVision
-FROM base as cv
 ARG VIMBA_NAME
-COPY --from=cmake /usr/local/ /usr/local/
-COPY --from=opencv /usr/local/ /usr/local/
-COPY --from=grpc /usr/local/ /usr/local/
-COPY --from=vmb /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
-COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
+RUN mkdir Fulfil.AlliedVision
+COPY Fulfil.AlliedVision/VimbaX_Setup-2024-1-Linux64.tar.gz ./Fulfil.AlliedVision/
 
 RUN cd Fulfil.AlliedVision && tar -xvf VimbaX_Setup-2024-1-Linux64.tar.gz
 RUN cp -r ./Fulfil.AlliedVision/VimbaX_2024-1 /home/fulfil
@@ -94,6 +86,7 @@ COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
 RUN sed -i 's/\r//' ./scripts/build_date.sh
 
+COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
 RUN cd Fulfil.AlliedVision/ \
     && mkdir -p build/ \
     && make
@@ -101,15 +94,14 @@ RUN cd Fulfil.AlliedVision/ \
 FROM ${BASE_IMAGE} as final
 ARG VIMBA_NAME
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
-COPY --from=cv /usr/local/ /usr/local/
-COPY --from=cv /lib/ /lib/
-COPY --from=cv /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
-COPY --from=cv /home/fulfil/code/Fulfil.ComputerVision/ /home/fulfil/code/Fulfil.ComputerVision/
+COPY --from=base /usr/local/ /usr/local/
+COPY --from=base /lib/ /lib/
+COPY --from=base /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
+COPY --from=base /home/fulfil/code/Fulfil.ComputerVision/ /home/fulfil/code/Fulfil.ComputerVision/
 ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
 ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
 
 # ensure the logging directory is available
 RUN mkdir -p /code/mars/vimba
 
-# PROD
 CMD ["./build/stark_test"]
