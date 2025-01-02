@@ -48,7 +48,7 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:latest,${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:${{github.sha}}
-          cache-from: type=gha
+          cache-from: type=gha,ref=${{ env.BRANCH_NAME }}:latest,ref=main:latest
           cache-to: type=gha,mode=max
           # See: https://github.com/docker/buildx/issues/1533
           provenance: false
