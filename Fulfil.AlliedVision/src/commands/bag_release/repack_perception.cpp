@@ -587,6 +587,10 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
                 std::string json = "{\"isEmpty\": " + boolStr + "}";
                 file << "{\"isEmpty\": " << boolStr << ", \"markers\": " + markerCount + "}" << std::endl;
                 file.close();
+                Logger::Instance()->Info("Wrote result file: {}", labelFilename);
+            }
+            else {
+                Logger::Instance()->Info("Could not open file: {}", labelFilename);
             }
         }
         catch (...)

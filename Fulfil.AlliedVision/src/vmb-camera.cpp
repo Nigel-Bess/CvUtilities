@@ -14,7 +14,7 @@ const int MAX_SNAPSHOT_RETRIES = 10;
 /// Number of frames to take in multi acquire mode, larger values make GetBlockingImage slower
 /// but increase the odds of getting a Complete frame, leave low since there's a parent
 /// retry loop set by MAX_SNAPSHOT_RETRIES anyway
-const uint32_t MULTIFRAME_COUNT = 3;
+const uint32_t MULTIFRAME_COUNT = 4;
 
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
@@ -62,7 +62,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
         // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
         // based on the network switch on neighboring camera count
         log_->Info("Setting link to 50000000");
-        VmbInt64_t maxBandwidthBytes = 50000000;
+        VmbInt64_t maxBandwidthBytes = 100000000;
         SetFeature("DeviceLinkThroughputLimitMode", "On");
         SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);
         log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));

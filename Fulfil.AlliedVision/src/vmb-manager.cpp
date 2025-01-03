@@ -40,7 +40,7 @@ void VmbManager::RunManager(){
     // Applies the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
     sigaction(SIGTERM, &action, &old_action);
 
-    log_->Info("=== VmbManager starting ===\n");
+    log_->Info("=== VmbManager v1.1 starting ===\n");
 
     auto code = vmb_system.Startup();
     if(code != VmbErrorSuccess){
