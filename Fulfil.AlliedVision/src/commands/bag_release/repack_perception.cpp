@@ -574,9 +574,8 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         }
         this->is_bag_empty = bag_has_no_items;
 
-
         // Save results to local file
-        std::string labelFilename = directory_path + "/" + "result.json";
+        std::string labelFilename = directory_path + "result.json";
         try
         {
             std::ofstream file(labelFilename);
