@@ -175,8 +175,10 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     SetFeature("Hue", -2.0);
     SetFeature("Saturation", 1.0);
 
-    // ONLY 1 camera at a time can go into streaming mode due to networking issues, at least for Repack service
-    std::lock_guard<std::mutex> lock(_streamingCamLock);
+    // TODO: Determine if the current cam uplink throttling completely replaces the need
+    // to enable only 1 active camera at a time.
+    //std::lock_guard<std::mutex> lock(_streamingCamLock);
+    std::lock_guard<std::mutex> lock(_lifecycleLock);
     {
         VmbUint32_t payloadSize;
         err = camera_->GetPayloadSize( payloadSize );
