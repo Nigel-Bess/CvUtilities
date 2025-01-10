@@ -178,8 +178,8 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     // TODO: Determine if the current cam uplink throttling completely replaces the need
     // to enable only 1 active camera at a time.
     //std::lock_guard<std::mutex> lock(_streamingCamLock);
-    std::lock_guard<std::mutex> lock(_lifecycleLock);
-    {
+    //std::lock_guard<std::mutex> lock(_lifecycleLock);
+    //{
         VmbUint32_t payloadSize;
         err = camera_->GetPayloadSize( payloadSize );
         VmbFrameStatusType frameStatus;
@@ -228,7 +228,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
             log_->Error("No complete frame found for {}", name_);
             return empty;
         }
-    }
+    //}
     if(err != VmbErrorSuccess){
         camera_error_code = RepackErrorCodes::VimbaCameraError;
         camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
