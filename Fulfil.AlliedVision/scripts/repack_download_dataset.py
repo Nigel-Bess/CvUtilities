@@ -12,10 +12,10 @@ import shutil
 import json
 
 coco_dataset_dir = "../../coco-annotator/datasets/cv-repack"
-if not exists(coco_dataset_dir):
-    print("\033[93m " + coco_dataset_dir + " sibling folder of Fulfil.ComputerVision doesn't exist, where to save COCO data?... \033[0m")
-    print("...or maybe you want to create an empty Repack Dataset in coco-annotator first? ( See ../README.md's 'Testing + Debugging' section )")
-    coco_dataset_dir = input("coco dir: ")
+if not exists("../../coco-annotator/datasets"):
+    print("\033[93m " + coco_dataset_dir + " sibling folder of Fulfil.ComputerVision doesn't exist, clone coco-annotator to same dir as Fulfil.ComputerVision \033[0m")
+    print("See ../README.md's 'Testing + Debugging' section")
+    exit(1)
 
 # Step 1: Import GCS client and rsync to ./data from cloud bucket
 # Messy, but use command line gsutil rsync since there's really no other great way

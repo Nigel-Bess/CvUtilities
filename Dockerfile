@@ -7,7 +7,7 @@ ARG GRPC_VERSION=${GRPC_VERSION:-1.54.0}
 ARG VIMBA_NAME=VimbaX_2024-1
 
 # base
-FROM ${BASE_IMAGE} as base
+FROM ${BASE_IMAGE} AS base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
@@ -68,10 +68,13 @@ RUN ./cti/Install_GenTL_Path.sh
 ARG VIMBA_NAME
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
-COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
+COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
+RUN cd Fulfil.CPPUtils/ \
+    && mkdir -p build/ \
+    && cmake
 RUN mkdir Fulfil.AlliedVision
 COPY Fulfil.AlliedVision/VimbaX_Setup-2024-1-Linux64.tar.gz ./Fulfil.AlliedVision/
 
@@ -86,22 +89,27 @@ COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
 RUN sed -i 's/\r//' ./scripts/build_date.sh
 
-COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
+# Do a warm-up build that won't change when app code changes, preserving docker layer caching
+COPY Fulfil.AlliedVision/buildcache/cmake-cache-warmer.tar.gz ./Fulfil.AlliedVision
+RUN cd Fulfil.AlliedVision && tar -xf cmake-cache-warmer.tar.gz --strip-components 1
 RUN cd Fulfil.AlliedVision/ \
     && mkdir -p build/ \
     && make
+# Cleanup so lingering code doesn't get in the way
+RUN rm -rf Fulfil.AlliedVision/src
+RUN rm -rf Fulfil.AlliedVision/include
 
-FROM ${BASE_IMAGE} as final
+# Build latest AlliedVision
+COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
+RUN cd Fulfil.AlliedVision/ \
+    && make
+
 ARG VIMBA_NAME
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
-COPY --from=base /usr/local/ /usr/local/
-COPY --from=base /lib/ /lib/
-COPY --from=base /home/fulfil/$VIMBA_NAME/ /home/fulfil/$VIMBA_NAME/
-COPY --from=base /home/fulfil/code/Fulfil.ComputerVision/ /home/fulfil/code/Fulfil.ComputerVision/
 ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
 ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
 
 # ensure the logging directory is available
 RUN mkdir -p /code/mars/vimba
 
-CMD ["./build/stark_test"]
+CMD ["./Fulfil.AlliedVision/build/stark_test"]

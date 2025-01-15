@@ -18,6 +18,7 @@
 #include "repack_perception.h"
 #include <tuple>
 #include "repack_error_codes.h"
+#include <json.hpp>
 
 using fulfil::dispense::commands::get_error_name_from_code;
 using fulfil::dispense::commands::RepackErrorCodes;
@@ -545,7 +546,31 @@ bool RepackPerception::rgb_is_bag_empty_check(cv::Mat region_of_interest, std::s
     return bag_empty;
 }
 
-void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path)
+void RepackPerception::write_result_file(std::string labelFilename, int markerCount) {
+    try {
+        std::ofstream file(labelFilename);
+        if (file.is_open())
+        {
+            // Build JSON object and stringify it to file
+            std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
+            (*result_json)["isEmpty"] = this->is_bag_empty;
+            (*result_json)["markers"] = markerCount;
+            (*result_json)["lfbGeneration"] = *bot_generation;
+            file << result_json->dump();
+            file.close();
+            Logger::Instance()->Info("Wrote result file: {}", labelFilename);
+        }
+        else {
+            Logger::Instance()->Info("Could not open file: {}", labelFilename);
+        }
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Could not write file: " + labelFilename);
+    }
+}
+
+bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path)
 {
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
     try
@@ -576,29 +601,10 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
 
         // Save results to local file
         std::string labelFilename = directory_path + "result.json";
-        try
-        {
-            std::ofstream file(labelFilename);
-            if (file.is_open())
-            {
-                std::string boolStr = bag_has_no_items ? "true" : "false";
-                std::string markerCount = std::to_string(marker_corners.size());
-                std::string json = "{\"isEmpty\": " + boolStr + "}";
-                file << "{\"isEmpty\": " << boolStr << ", \"markers\": " + markerCount + "}" << std::endl;
-                file.close();
-                Logger::Instance()->Info("Wrote result file: {}", labelFilename);
-            }
-            else {
-                Logger::Instance()->Info("Could not open file: {}", labelFilename);
-            }
-        }
-        catch (...)
-        {
-            Logger::Instance()->Error("Could not write file: " + labelFilename);
-        }
+        write_result_file(labelFilename, marker_corners.size());
 
         Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
-        return;
+        return this->is_bag_empty;
     }
     catch (const std::exception &e)
     {
@@ -613,7 +619,7 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
         }
-        return;
+        return this->is_bag_empty;
     }
     catch (...)
     {
@@ -628,6 +634,6 @@ void RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);
         }
-        return;
     }
+    return this->is_bag_empty;
 }

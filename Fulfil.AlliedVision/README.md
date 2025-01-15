@@ -53,10 +53,24 @@ or Run as Admin in Windows since the script must write to your coco-annotator co
 
 In coco-annotator, hover over a curious image to view the full image filename, copy/paste it (without the .jpeg extension) into:
 
-`python3 scripts/inspect_request.py "<My Request ID>"`
+`python3 scripts/repack_inspect_request.py "<My Request ID>"`
 
 to open all sub-images and display metadata.
 
-## TODO: 4. Replay perception against an arbitrary request ID
+## 4. Replay perception against an arbitrary request ID
+
+After steps 1-3, you can test your code changes against some request ID until you get the desired outcome by running this from Fulfil.AlliedVision:
+
+```
+docker build .. -f ../Dockerfile -t repackdev;
+docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" 677754fa172b1355ef266fe6 "LFB-3.1"
+```
+
+where the first and second arguments are request ID and bot generation.
 
 ### TODO: 5. Replay perception against all requests and report output diffs.
+
+```
+docker build .. -f ../Dockerfile -t repackdev
+docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" all
+```

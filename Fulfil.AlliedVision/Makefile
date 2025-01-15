@@ -1,3 +1,4 @@
+PROC=$(shell nproc)
 
 .phony : all
 all:
@@ -11,3 +12,8 @@ node1:
 .phony : local
 local:
 	@rsync -avP build/stark_test starkey@192.168.1.10:~/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/stark_test
+
+.phony : repack_perception_test
+repack_perception_test:
+	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+	cmake --build build --target repack_perception_test -- -j $(PROC)
