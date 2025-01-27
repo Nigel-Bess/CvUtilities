@@ -6,8 +6,8 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_BAG_RELEASE_REPACK_PERCEPTION_H
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_BAG_RELEASE_REPACK_PERCEPTION_H
 
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
@@ -15,14 +15,18 @@
 #include <stdexcept>
 #include <numeric>
 #include <Fulfil.CPPUtils/logging.h>
+#include "aruco/aruco_utils.h"
 #include "bag_release_response.h"
+
+using fulfil::utils::aruco::ArucoTransforms;
 
 namespace fulfil::dispense::commands {
 
     class RepackPerception {
-        
+
         public:
 
+        static std::shared_ptr<ArucoTransforms> getRepackArucoTransforms();
         std::shared_ptr<std::string> bot_generation;
 
         /*
@@ -44,13 +48,6 @@ namespace fulfil::dispense::commands {
         * RepackPerception Constructor that takes in the lfb generation that will be used to
         */
         RepackPerception(std::shared_ptr<std::string> lfb_generation);
-
-        /*
-        * Calculates the distance between 2 points in an image
-        * @param 2 points p1 and p2 to calculate the distance
-        * @return double representing the distance
-        */
-        double distance(const cv::Point2f& p1, const cv::Point2f& p2);
 
         /*
         * Calculates the area of the arucos marker
@@ -79,19 +76,6 @@ namespace fulfil::dispense::commands {
         */
         cv::Mat load_image(std::string image_path);
 
-        /*
-        * Detect the Aruco markers and drawing bounding boxes around them
-        * @param input image captured from the repack station camera
-        * @return Marker Corner Coordinates for all the Aruco markers
-        */
-        std::vector<std::vector<cv::Point2f>> detect_aruco_markers(cv::Mat img, std::string directory_path);
-
-        /*
-        * Calculates area of each aruco and selects the top 8 arucos with the biggest area(>9500)
-        * @param marker corners of all the arucos detecetd
-        * @return Marker Corner Coordinates for all the selected Aruco markers
-        */
-        std::vector<std::vector<cv::Point2f>> marker_selection(std::vector<std::vector<cv::Point2f>> marker_corners);
         /*
         * Calculate centroid from aruco coordinates
         * @param Aruco marker's edge pixel coordinates

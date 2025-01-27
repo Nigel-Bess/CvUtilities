@@ -8,7 +8,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
-#include <opencv2/aruco.hpp>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -19,10 +18,13 @@
 #include <tuple>
 #include "repack_error_codes.h"
 #include <json.hpp>
+#include "aruco/aruco_utils.h"
+#include <chrono>
 
 using fulfil::dispense::commands::get_error_name_from_code;
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::RepackPerception;
+using fulfil::utils::aruco::ArucoTransforms;
 using fulfil::utils::Logger;
 
 /**
@@ -68,6 +70,49 @@ const float shrink_factor_X = 0.78f;
 */
 const float shrink_factor_Y = 0.92f;
 
+/**
+ * Any array of ideal rectangles that select the region of interest in
+ * LFR image.  Values are absolute since they are so particular to the hardcoded
+ * baseline image.
+ */
+std::map<std::string, std::vector<cv::Point2f>> baselineLfrCavities = {
+    {
+        "LFB-3.2", {
+            cv::Point(370, 450), // LFB 3.2 top-left: (370/2592 px, 450/1944 px)
+            cv::Point(370, 1546), // LFB 3.2 top-right: (2210/2592 px, 1546/1944 px)
+            cv::Point(2210, 450), // LFB 3.2 bottom-left: (370/2592 px, 450/1944 px)
+            cv::Point(2210, 1546), // LFB 3.2 bottom-right: (2210/2592 px, 1546/1944 px)
+        }
+    }
+};
+
+static std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> arucoInstance;
+
+std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> RepackPerception::getRepackArucoTransforms() {
+    if (arucoInstance != nullptr) {
+        return arucoInstance;
+    }
+
+    auto parameters = std::make_shared<cv::aruco::DetectorParameters>();
+    // Width of border boundry is same as 1 bit column
+    parameters->markerBorderBits = 1; 
+    // Ignore boxes that are too tiny
+    parameters->maxMarkerPerimeterRate = 4 * 0.0463; // = 4 edges * 120px / 2592px eyeballing in img editor
+    // Ignore boxes that are too big
+    parameters->minMarkerPerimeterRate = 4 * 0.0135; // = 4 edges * 35px / 2592px eyeballing in img editor
+    // Use newest fastest algo
+    // TODO: Restore for openCV 4.7+
+    //parameters.useAruco3Detection = true;
+
+    // TODO: Switch to this for OpenCV 4.7+
+    //auto dict = cv::aruco:: Dictionary::extendDictionary(8, 4);
+    auto dict = cv::aruco::generateCustomDictionary(8,4);
+    arucoInstance = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 5, 8);
+    arucoInstance->loadBaselineImageAsCandidate("Fulfil.AlliedVision/assets/baselines/LFB-3.2.jpeg", "LFB-3.2", 8);
+
+    return arucoInstance;
+}
+
 RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation)
 {
     this->bot_generation = lfb_generation;
@@ -84,11 +129,6 @@ RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation)
     this->success_code = RepackErrorCodes::Success;
     this->is_bag_empty = false;
     this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code);
-}
-
-double RepackPerception::distance(const cv::Point2f &p1, const cv::Point2f &p2)
-{
-    return std::sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 }
 
 float RepackPerception::calculate_square_area(float x1, float x2, float y1, float y2)
@@ -159,63 +199,6 @@ cv::Mat RepackPerception::load_image(std::string image_path)
     }
 }
 
-std::vector<std::vector<cv::Point2f>> RepackPerception::detect_aruco_markers(cv::Mat img, std::string directory_path)
-{
-    try
-    {
-        cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
-        parameters->minCornerDistanceRate = 0.24;
-        cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-        std::vector<std::vector<cv::Point2f>> corners;
-        std::vector<int> ids;
-        std::vector<std::vector<cv::Point2f>> rejected;
-        cv::aruco::detectMarkers(img, dictionary, corners, ids, parameters, rejected);
-        if (rejected.size() > 0)
-        {
-            cv::aruco::drawDetectedMarkers(img, rejected, ids, cv::Scalar(0, 255, 0));
-            std::string image_path = directory_path + "markers_detected.jpeg";
-            SaveImages(img, image_path);
-        }
-        int num_markers = get_marker_count(rejected);
-        Logger::Instance()->Info("RepackPerception's detect_aruco_markers detected {} markers", num_markers);
-        return rejected;
-    }
-    catch (const std::exception &e)
-    {
-        this->success_code = RepackErrorCodes::UnspecifiedError;
-        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in detect_aruco_markers: ") + e.what();
-        Logger::Instance()->Error(this->error_description);
-        throw;
-    }
-}
-
-std::vector<std::vector<cv::Point2f>> RepackPerception::marker_selection(std::vector<std::vector<cv::Point2f>> marker_corners)
-{
-    try
-    {
-        std::vector<std::vector<cv::Point2f>> markers;
-        for (int i = 0; i < marker_corners.size(); i++)
-        {
-            float x1 = marker_corners[i][0].x;
-            float x2 = marker_corners[i][1].x;
-            float y1 = marker_corners[i][0].y;
-            float y2 = marker_corners[i][1].y;
-            float area = calculate_square_area(x1, x2, y1, y2);
-            if (area > 9500.0)
-                markers.push_back(marker_corners[i]);
-            Logger::Instance()->Info("Area of marker " + std::to_string(i) + " : " + std::to_string(area));
-        }
-        return markers;
-    }
-    catch (const std::exception &e)
-    {
-        this->success_code = RepackErrorCodes::UnspecifiedError;
-        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in marker_selection: ") + e.what();
-        Logger::Instance()->Error(this->error_description);
-        throw;
-    }
-}
-
 cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points)
 {
     cv::Point2f centroid_points;
@@ -238,8 +221,6 @@ cv::Point2f RepackPerception::calculate_centroid(std::vector<cv::Point2f> points
         centroidY = centroidY / points.size();
         centroid_points.x = centroidX;
         centroid_points.y = centroidY;
-        std::string log_string = "Centroid calculated";
-        Logger::Instance()->Info(log_string);
         return centroid_points;
     }
     catch (const std::exception &e)
@@ -266,8 +247,6 @@ std::vector<cv::Point2f> RepackPerception::shrink_polygon(std::vector<cv::Point2
             point.y = newY;
             shrunk_polygon.push_back(point);
         }
-        std::string log_string = "Polygon shrink completed";
-        Logger::Instance()->Info(log_string);
         return shrunk_polygon;
     }
     catch (const std::exception &e)
@@ -348,21 +327,6 @@ std::vector<cv::Point2f> RepackPerception::sort_marker_pixel_coordinates(std::ve
     return sorted;
 }
 
-std::vector<cv::Point2f> RepackPerception::get_hull_coordinates(std::vector<cv::Point2f> points_right, std::vector<cv::Point2f> points_left)
-{
-    std::vector<cv::Point2f> coordinates;
-    std::string log_left = "Size of Left : " + std::to_string(points_left.size());
-    Logger::Instance()->Info(log_left);
-    std::string log_right = "Size of Right : " + std::to_string(points_right.size());
-    Logger::Instance()->Info(log_right);
-    coordinates.push_back(points_right[7]);
-    coordinates.push_back(points_left[7]);
-    coordinates.push_back(points_left[0]);
-    coordinates.push_back(points_right[0]);
-    Logger::Instance()->Info("Got Hull coordinates successfully");
-    return coordinates;
-}
-
 int RepackPerception::get_marker_count(std::vector<std::vector<cv::Point2f>> marker_coordinate_points)
 {
     int detected_markers_count = marker_coordinate_points.size();
@@ -386,86 +350,14 @@ int RepackPerception::get_marker_count(std::vector<std::vector<cv::Point2f>> mar
     return detected_markers_count;
 }
 
-std::vector<cv::Point2f> RepackPerception::left_inner_corner_coordinates(std::vector<std::vector<cv::Point2f>> marker_corners)
-{
-    try
-    {
-        std::vector<cv::Point2f> left_coordinates;
-        std::vector<cv::Point2f> points_left;
-        std::vector<cv::Point2f> points;
-        bool with_respect_to_X = true;
-        int num_markers_to_examine = std::min(8, get_marker_count(marker_corners));
-        for (int i = 0; i < num_markers_to_examine; i++)
-        {
-            std::vector<cv::Point2f> corner = marker_corners[i];
-            points_left = sort_marker_pixel_coordinates(corner, with_respect_to_X);
-            if (points_left[0].x < 800)
-            {
-                left_coordinates.push_back(points_left[2]);
-                left_coordinates.push_back(points_left[3]);
-            }
-        }
-        with_respect_to_X = false;
-        points = sort_marker_pixel_coordinates(left_coordinates, with_respect_to_X);
-        Logger::Instance()->Info("Got Left Inner Coordinates");
-        return points;
-    }
-    catch (const std::exception &e)
-    {
-        if (this->success_code == RepackErrorCodes::Success)
-        {
-            this->success_code = RepackErrorCodes::UnspecifiedError;
-            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in left_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
-            Logger::Instance()->Error(this->error_description);
-        }
-        throw;
-    }
-}
-
-std::vector<cv::Point2f> RepackPerception::right_inner_corner_coordinates(std::vector<std::vector<cv::Point2f>> marker_corners)
-{
-    try
-    {
-        std::vector<cv::Point2f> right_coordinates;
-        std::vector<cv::Point2f> points_right;
-        std::vector<cv::Point2f> points;
-        bool with_respect_to_X = true;
-        int num_markers_to_examine = std::min(8, get_marker_count(marker_corners));
-        for (int i = 0; i < num_markers_to_examine; i++)
-        {
-            std::vector<cv::Point2f> corner = marker_corners[i];
-            points_right = sort_marker_pixel_coordinates(corner, with_respect_to_X);
-            if (corner[0].x > 800)
-            {
-                right_coordinates.push_back(points_right[0]);
-                right_coordinates.push_back(points_right[1]);
-            }
-        }
-        with_respect_to_X = false;
-        points = sort_marker_pixel_coordinates(right_coordinates, with_respect_to_X);
-        std::string log_string = "Got Right Inner Coordinates";
-        Logger::Instance()->Info(log_string);
-        return points;
-    }
-    catch (const std::exception &e)
-    {
-        if (this->success_code == RepackErrorCodes::Success)
-        {
-            this->success_code = RepackErrorCodes::UnspecifiedError;
-            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in right_inner_corner_coordinates : ") + std::to_string(this->success_code) + ": " + e.what();
-            Logger::Instance()->Error(this->error_description);
-        }
-        throw;
-    }
-}
-
-cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_coordinates, float shrink_factor_X, float shrink_factor_Y, std::string directory_path)
+cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_bbox, float shrink_factor_X, float shrink_factor_Y, std::string directory_path)
 {
     try
     {
         cv::Mat region_of_interest;
         std::vector<cv::Point2f> hull_points2f;
-        cv::convexHull(hull_coordinates, hull_points2f);
+
+        cv::convexHull(hull_bbox, hull_points2f);
         std::vector<cv::Point2f> shrink_hull2f = shrink_polygon(hull_points2f, shrink_factor_X, shrink_factor_Y);
         std::vector<cv::Point> hull_points;
         std::vector<cv::Point> shrink_hull;
@@ -485,11 +377,11 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         SaveImages(image, path);
         shrink_hull2f = shrink_polygon(shrink_hull2f, 0.99f, 0.99f);
         // calculate lengths of the sides of the new ROI image
-        double top = distance(shrink_hull2f[2], shrink_hull2f[3]);
-        double bottom = distance(shrink_hull2f[0], shrink_hull2f[1]);
+        double top = fulfil::utils::aruco::ArucoTransforms::distance(shrink_hull2f[2], shrink_hull2f[3]);
+        double bottom = fulfil::utils::aruco::ArucoTransforms::distance(shrink_hull2f[0], shrink_hull2f[1]);
         double new_width = std::max(top, bottom);
-        double left = distance(shrink_hull2f[1], shrink_hull2f[2]);
-        double right = distance(shrink_hull2f[0], shrink_hull2f[3]);
+        double left = fulfil::utils::aruco::ArucoTransforms::distance(shrink_hull2f[1], shrink_hull2f[2]);
+        double right = fulfil::utils::aruco::ArucoTransforms::distance(shrink_hull2f[0], shrink_hull2f[3]);
         double new_height = std::max(left, right);
         std::vector<cv::Point2f> roiPoints;
         roiPoints.push_back(cv::Point2f(0, 0));
@@ -500,7 +392,6 @@ cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> 
         cv::warpPerspective(image, region_of_interest, transformation_matrix, cv::Size(new_width, new_height));
         int height = region_of_interest.rows;
         int width = region_of_interest.cols;
-        Logger::Instance()->Info("Region of Interest has height {} and width {}", std::to_string(height), std::to_string(width));
         std::string image_path = directory_path + "region_of_interest.jpeg";
         SaveImages(region_of_interest, image_path);
         return region_of_interest;
@@ -532,8 +423,6 @@ bool RepackPerception::rgb_is_bag_empty_check(cv::Mat region_of_interest, std::s
     cv::drawContours(result, contours, -1, cv::Scalar(0, 255, 0), 2);
     std::string image_path = directory_path + "rgb_contours.jpeg";
     SaveImages(rgb_mask, image_path);
-    std::string log_string = "Contour Size from RGB mask: " + std::to_string(contours.size());
-    Logger::Instance()->Info(log_string);
     if (contours.size() > 10)
     {
         bag_empty = false;
@@ -572,18 +461,39 @@ void RepackPerception::write_result_file(std::string labelFilename, int markerCo
 
 bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string directory_path)
 {
+    // Prep save results to local file
+    std::string labelFilename = directory_path + "result.json";
+    
+    cv::Mat image = *bag_image;
+    bool bag_has_no_items = true;
+    // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
+
+    // Apply an Aruco-anchored homography (rotate/scale/translate) to make this image's marker pixel positions
+    // match as closely as possible to a clean baseline and transform the entire image accordingly to coerce
+    // the LFR into a perfectly horizontally aligned and rotated rectangle.  Also scale a baseline region of
+    // interest rectangle based on the discovered homography between Aruco corners.
+    auto homog = RepackPerception::getRepackArucoTransforms()->findImgHomographyFromMarkers(image, directory_path);
+    auto startTime = std::chrono::steady_clock::now();
+
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
     try
-    {
-        cv::Mat image = *bag_image;
-        bool bag_has_no_items = true;
-        // TODO exit cleanly between sequence if any point in the sequence fails instead of continuing on
-        std::vector<std::vector<cv::Point2f>> marker_corners = detect_aruco_markers(image, directory_path);
-        std::vector<std::vector<cv::Point2f>> marker_corners_selected = marker_selection(marker_corners);
-        std::vector<cv::Point2f> points_left = left_inner_corner_coordinates(marker_corners_selected);
-        std::vector<cv::Point2f> points_right = right_inner_corner_coordinates(marker_corners_selected);
-        std::vector<cv::Point2f> hull_coordinates = get_hull_coordinates(points_right, points_left);
-        cv::Mat region_of_interest = calculate_roi(image, hull_coordinates, shrink_factor_X, shrink_factor_Y, directory_path);
+    { 
+        // Set default cynical value in case of marker error
+        this->is_bag_empty = false;
+        if (homog->transformMatrix.empty()) {
+            this->success_code = homog->maxMatchesSeen > 0 ? (RepackErrorCodes::NotEnoughMarkersDetected) : (RepackErrorCodes::NoMarkersDetected);
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Could not find Aruco marker baseline, found: " + std::to_string(homog->maxMatchesSeen));
+            Logger::Instance()->Error(this->error_description);
+            write_result_file(labelFilename, homog->maxMatchesSeen);
+            return false;
+        }
+
+        // Apply and (estimated) best linear tranform to input image to reposition pixel points more like baseline's
+        auto imgRepinnedToBaseline = RepackPerception::getRepackArucoTransforms()->applyHomographyToImg(image, homog);
+        // The baseline rect should now match the repinned image very well or well enough
+        auto baselineLFBCavityRect = baselineLfrCavities[homog->bestCandidateName];
+
+        cv::Mat region_of_interest = calculate_roi(imgRepinnedToBaseline, baselineLFBCavityRect, shrink_factor_X, shrink_factor_Y, directory_path);
         bag_has_no_items = rgb_is_bag_empty_check(region_of_interest, directory_path);
         std::string info = std::string("Is bot ready to release after RGB check : ") + std::to_string(bag_has_no_items);
         Logger::Instance()->Info(info);
@@ -599,11 +509,14 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         }
         this->is_bag_empty = bag_has_no_items;
 
-        // Save results to local file
-        std::string labelFilename = directory_path + "result.json";
-        write_result_file(labelFilename, marker_corners.size());
+        auto stopTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+        Logger::Instance()->Info("is_bot_ready_for_release took {}ms", duration);
+
+        write_result_file(labelFilename, homog->maxMatchesSeen);
 
         Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
+        write_result_file(labelFilename, homog->maxMatchesSeen);
         return this->is_bag_empty;
     }
     catch (const std::exception &e)
@@ -619,6 +532,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
         }
+        write_result_file(labelFilename, homog->maxMatchesSeen);
         return this->is_bag_empty;
     }
     catch (...)
@@ -635,5 +549,6 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);
         }
     }
+    write_result_file(labelFilename, homog->maxMatchesSeen);
     return this->is_bag_empty;
 }

@@ -18,14 +18,14 @@ if not exists("../../coco-annotator/datasets"):
     exit(1)
 
 # Step 1: Import GCS client and rsync to ./data from cloud bucket
-# Messy, but use command line gsutil rsync since there's really no other great way
+# Messy, but use command line gcloud storage rsync since there's really no other great way
 # to get fast rsync behavior, and it should work across all OSes anyway
 print("\033[93m Assuming you have Gcloud SDK installed and authorized for factory-media bucket access... ( https://cloud.google.com/sdk/docs/install ) \033[0m")
 print("\033[92m 1. Downloading raw PLM Repack dataset from GCS \033[0m")
 dst_path = 'data/raw'
 if isdir(dst_path) == False:
     makedirs(dst_path)
-subprocess.run(["gsutil", "-m", "rsync", "-r", "gs://factory-media/plm/repack", dst_path])
+subprocess.run(["gcloud", "storage", "rsync", "-r", "gs://factory-media/plm/repack", dst_path])
 
 # Step 2: Post-process raw Repack data into convenient request_id-indexed format
 print("\033[92m 2. Post-processing results by request ID (./data/by-id) for easy debugging \033[0m")

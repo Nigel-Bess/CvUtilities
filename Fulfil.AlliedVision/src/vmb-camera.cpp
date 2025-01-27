@@ -10,11 +10,11 @@ using fulfil::dispense::commands::get_error_name_from_code;
 static std::mutex _streamingCamLock;
 
 /// Max snapshot retries till GetBlockingImage gives up taking a valid frame
-const int MAX_SNAPSHOT_RETRIES = 10;
+const int MAX_SNAPSHOT_RETRIES = 20;
 /// Number of frames to take in multi acquire mode, larger values make GetBlockingImage slower
 /// but increase the odds of getting a Complete frame, leave low since there's a parent
 /// retry loop set by MAX_SNAPSHOT_RETRIES anyway
-const uint32_t MULTIFRAME_COUNT = 4;
+const uint32_t MULTIFRAME_COUNT = 2;
 
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
@@ -61,8 +61,8 @@ void VmbCamera::RunSetup(bool isInitSetup){
     if (isInitSetup) {
         // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
         // based on the network switch on neighboring camera count
-        log_->Info("Setting link to 50000000");
-        VmbInt64_t maxBandwidthBytes = 100000000;
+        VmbInt64_t maxBandwidthBytes = 25000000;
+        log_->Info("Setting link to {}", maxBandwidthBytes);
         SetFeature("DeviceLinkThroughputLimitMode", "On");
         SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);
         log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));
@@ -85,10 +85,12 @@ void VmbCamera::RunSetup(bool isInitSetup){
     }
     connected_ = true;
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
-    if (isInitSetup) {
-        GetImageBlocking();
-        SaveLastImage(name_);
-    }
+    // For now, do not take an init debug snapshot since it stirs the network
+    // too much when connecting to all cameras at once
+    //if (isInitSetup) {
+        //GetImageBlocking();
+        //SaveLastImage(name_);
+    //}
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
@@ -102,7 +104,7 @@ void VmbCamera::RunCamera(){
             }
         }
         else{
-            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
             std::string name;
             VmbErrorType code;
             code = camera_->GetName(name);
@@ -175,58 +177,53 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     SetFeature("Hue", -2.0);
     SetFeature("Saturation", 1.0);
 
-    // TODO: Determine if the current cam uplink throttling completely replaces the need
-    // to enable only 1 active camera at a time.
-    std::lock_guard<std::mutex> lock(_streamingCamLock);
-    {
-        VmbUint32_t payloadSize;
-        err = camera_->GetPayloadSize( payloadSize );
-        VmbFrameStatusType frameStatus;
-        log_->Info("reset frame {}", name_);
-        frame_ptr_.reset(new Frame(payloadSize));
-        frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
-        log_->Info("Streaming for first complete frame {}", name_);
+    VmbUint32_t payloadSize;
+    err = camera_->GetPayloadSize( payloadSize );
+    VmbFrameStatusType frameStatus;
+    log_->Info("reset frame {}", name_);
+    frame_ptr_.reset(new Frame(payloadSize));
+    frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
+    log_->Info("Streaming for first complete frame {}", name_);
 
-        // Look through all images taken for hopefully a frame that's complete
-        bool frameFound = false;
-        for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
-            for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-                frame_ptrs_[f].reset(new Frame(payloadSize));
-            }
-            log_->Info("AquiredMultiple start {}", name_);
-            err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
-            log_->Info("AquiredMultiple end {}", name_);
-            if (err != VmbErrorSuccess) {
-                camera_error_code = RepackErrorCodes::VimbaCameraError;
-                camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
-                log_->Error(camera_error_description);
-            }
-            // Better to get the LAST good frame since it's more likely to have more accurate interlacing
-            int firstGood = 999999;
-            int lastGood = -1;
-            for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
-                frame_ptrs_[f]->GetReceiveStatus(frameStatus);
-                if (frameStatus == 0) {
-                    frameFound = true;
-                    firstGood = f < firstGood ? f : firstGood;
-                    lastGood = f > lastGood ? f : lastGood;
-                } else if (f == 0) {
-                    log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
-                }
-            }
-            if (frameFound) {
-                log_->Info("First good frame at {}, using last good frame at {} on {}", 
-                    aquireCount*MULTIFRAME_COUNT + firstGood,
-                    aquireCount*MULTIFRAME_COUNT + lastGood,
-                    name_);   
-                frame_ptr_ = frame_ptrs_[lastGood];
-                break;
+    // Look through all images taken for hopefully a frame that's complete
+    bool frameFound = false;
+    for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
+        for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+            frame_ptrs_[f].reset(new Frame(payloadSize));
+        }
+        log_->Info("AquiredMultiple start {}", name_);
+        err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
+        log_->Info("AquiredMultiple end {}", name_);
+        if (err != VmbErrorSuccess) {
+            camera_error_code = RepackErrorCodes::VimbaCameraError;
+            camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
+            log_->Error(camera_error_description);
+        }
+        // Better to get the LAST good frame since it's more likely to have more accurate interlacing
+        int firstGood = 999999;
+        int lastGood = -1;
+        for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
+            frame_ptrs_[f]->GetReceiveStatus(frameStatus);
+            if (frameStatus == 0) {
+                frameFound = true;
+                firstGood = f < firstGood ? f : firstGood;
+                lastGood = f > lastGood ? f : lastGood;
+            } else if (f == 0) {
+                log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
             }
         }
-        if(!frameFound){
-            log_->Error("No complete frame found for {}", name_);
-            return empty;
+        if (frameFound) {
+            log_->Info("First good frame at {}, using last good frame at {} on {}", 
+                aquireCount*MULTIFRAME_COUNT + firstGood,
+                aquireCount*MULTIFRAME_COUNT + lastGood,
+                name_);   
+            frame_ptr_ = frame_ptrs_[lastGood];
+            break;
         }
+    }
+    if(!frameFound){
+        log_->Error("No complete frame found for {}", name_);
+        return empty;
     }
     if(err != VmbErrorSuccess){
         camera_error_code = RepackErrorCodes::VimbaCameraError;

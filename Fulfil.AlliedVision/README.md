@@ -1,5 +1,3 @@
-TODO!
-
 # Repack service
 
 The repack service runs only in PLM and responds to FC with requests for whether a bag is empty in a particular Bay.
@@ -63,14 +61,31 @@ After steps 1-3, you can test your code changes against some request ID until yo
 
 ```
 docker build .. -f ../Dockerfile -t repackdev;
-docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" 677754fa172b1355ef266fe6 "LFB-3.1"
+docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" test 677754fa172b1355ef266fe6
 ```
 
-where the first and second arguments are request ID and bot generation.
+where the first and second arguments are "test" action request ID.
 
-### TODO: 5. Replay perception against all requests and report output diffs.
+## 4b. Replay marker detection against an arbitrary request ID
+
+Run:
+
+```
+docker build .. -f ../Dockerfile -t repackdev;
+docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" mark 677754fa172b1355ef266fe6
+```
+
+where the first and second arguments are "mark" action and request ID.
+
+### 5. Replay perception against all requests and report output diffs.
 
 ```
 docker build .. -f ../Dockerfile -t repackdev
-docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" all
+docker run -v "./data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data" repackdev "Fulfil.AlliedVision/build/test" test all
 ```
+
+This will output debug image files to data/test/<request id> for further diagnosis.  Since all output labels are rendered too, it's the basis for the next steps...
+
+### 6. Hand-label ground-truths based on machine output
+
+Here we'll use the COCO Annotator viewer from step 2 to do actual ground-truth labeling to determine accuracy.  Start by running step 2 to start fresh, then open COCO Annotator which will be loaded with all the machine outputs.  Scan through and find any images that appear mislabelled to correct them, then export the COCO JSON in the COCO Annotator UI to: `assets/ground-truths/plm.json` and archive the data/plm.json machine output file to `assets/test-outputs/plm.json`.  You may also want to copy both plm.json files to a date-stamped filename for archival or resuming from later.  Now run the summarization script with: `python scripts/coco/repack_summarize.py` and you'll get a list of all falsely predicted request IDs as well as the confusion matrix.

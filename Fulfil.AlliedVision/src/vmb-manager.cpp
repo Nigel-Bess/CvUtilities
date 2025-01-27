@@ -7,6 +7,7 @@
 #include "commands/bag_release/repack_perception.h"
 #include <filesystem>
 #include "commands/bag_release/repack_error_codes.h"
+#include <chrono>
 
 using namespace fulfil::dispense::commands;
 using fulfil::dispense::commands::RepackErrorCodes;
@@ -85,6 +86,7 @@ void VmbManager::RunManager(){
                 break;
             }
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     if(!found){
         log_->Error("No cameras found, exiting");
@@ -93,14 +95,13 @@ void VmbManager::RunManager(){
     service_->Run(9395);
     log_->Info("{} Cameras initialized", found);
     while (RUN){
+        // Throttle queue handling slightly
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
         if(!service_->IsConnected())continue;
         if(!service_->HasNewRequest())continue;
         auto request = service_->GetNextRequest();
         std::thread(&VmbManager::HandleRequest, this, request).detach();
-
-        // Throttle queue handling slightly
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        // for(auto const & [ip, cam] : cameras_)cam->GetImageBlocking();
     }
     for(auto const & [ip, cam] : cameras_){
         cam->KillCamera();
@@ -143,6 +144,8 @@ bool VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
 }
 
 void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request){
+    auto startTime = std::chrono::steady_clock::now();
+    
     std::string payload(request->message_data().data(), request->message_size());
     auto cmd_id = std::make_shared<std::string>(request->command_id());
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload.c_str()));
@@ -216,6 +219,9 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                     response = BagReleaseResponse(cmd_id, pkid, always_approve_for_release, RepackErrorCodes::UnspecifiedError, false, e.what());
                 }
             }
+            auto stopTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+            log_->Info("HandleRequest {} took {}ms on {}", *pkid, duration, cam->name_);
             SendResponse(*cmd_id, *response.payload);
         break;
         }

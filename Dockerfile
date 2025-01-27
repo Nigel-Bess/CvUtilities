@@ -2,7 +2,7 @@ ARG BASE_IMAGE=ubuntu:20.04
 ARG TAG=latest
 ARG CMAKE_VERSION=3.22
 ARG CMAKE_BUILD=0
-ARG OPENCV_VERSION=4.5.5
+ARG OPENCV_VERSION=4.6.0
 ARG GRPC_VERSION=${GRPC_VERSION:-1.54.0}
 ARG VIMBA_NAME=VimbaX_2024-1
 
@@ -64,17 +64,11 @@ RUN tar xzf /home/fulfil/VimbaX_Setup-2024-1-Linux64.tar.gz
 WORKDIR /home/fulfil/$VIMBA_NAME/
 RUN ./cti/Install_GenTL_Path.sh
 
-# Fulfil.ComputerVision
-ARG VIMBA_NAME
-
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
 COPY Fulfil.Dispense/ ./Fulfil.Dispense/
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
-RUN cd Fulfil.CPPUtils/ \
-    && mkdir -p build/ \
-    && cmake
 RUN mkdir Fulfil.AlliedVision
 COPY Fulfil.AlliedVision/VimbaX_Setup-2024-1-Linux64.tar.gz ./Fulfil.AlliedVision/
 
@@ -89,27 +83,16 @@ COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
 RUN sed -i 's/\r//' ./scripts/build_date.sh
 
-# Do a warm-up build that won't change when app code changes, preserving docker layer caching
-COPY Fulfil.AlliedVision/buildcache/cmake-cache-warmer.tar.gz ./Fulfil.AlliedVision
-RUN cd Fulfil.AlliedVision && tar -xf cmake-cache-warmer.tar.gz --strip-components 1
-RUN cd Fulfil.AlliedVision/ \
-    && mkdir -p build/ \
-    && make
-# Cleanup so lingering code doesn't get in the way
-RUN rm -rf Fulfil.AlliedVision/src
-RUN rm -rf Fulfil.AlliedVision/include
+ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
+ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
 
 # Build latest AlliedVision
 COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
 RUN cd Fulfil.AlliedVision/ \
+    && mkdir -p build/ \
     && make
 
-ARG VIMBA_NAME
-WORKDIR /home/fulfil/code/Fulfil.ComputerVision
-ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
-ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
-
-# ensure the logging directory is available
 RUN mkdir -p /code/mars/vimba
 
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 CMD ["./Fulfil.AlliedVision/build/stark_test"]
