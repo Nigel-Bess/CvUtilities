@@ -20,15 +20,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Authenticate Docker to GCR-Staging
+      - name: Login to GCP Registry (Staging)
+        uses: Fulfil0518/gcp-registry-login-action@v1
         env:
-          GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
-        run: echo $GCLOUD_SERVICE_KEY | docker login -u _json_key --password-stdin https://gcr.io
-
-      - name: Authenticate Docker to GCR-Prod
-        env:
-          GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_PROD_SA }}
-        run: echo $GCLOUD_SERVICE_KEY | docker login -u _json_key --password-stdin https://gcr.io
+          CLOUD_STAGING_IMAGE_REGISTRY_SA: ${{ secrets.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
+          IMAGE_NAME: ${{ env.STAGING_IMAGE_NAME }}
+        with:
+          endpoint: ${{ env.IMAGE_NAME }}
+          service_key: ${{ env.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
 
       - name: Build Staging
         run: |

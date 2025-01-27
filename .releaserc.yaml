@@ -20,7 +20,7 @@ plugins:
   # Executes shell scripts to build and publish the Docker image.
   - - "@semantic-release/exec"
     - shell: true
-      prepareCmd: "IMAGE_TAG=v${nextRelease.version} make login image"
+      prepareCmd: "IMAGE_TAG=v${nextRelease.version} make image"
       publishCmd: "IMAGE_TAG=v${nextRelease.version} make push"
   # Commits changes to the repository upon release.
   - - "@semantic-release/git"

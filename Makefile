@@ -39,18 +39,6 @@ push-staging: tag
 	docker push $(DOCKER_IMAGE):$(IMAGE_TAG)
 	docker push $(DOCKER_IMAGE):latest
 
-.PHONY: login
-login: check-login-env
-	@echo "$${GCLOUD_SERVICE_KEY}" | docker login -u _json_key --password-stdin https://gcr.io
-
-.PHONY: check-login-env
-check-login-env: ## Ensures that the GCLOUD_SERVICE_KEY environment variable is defined so we can log in to our Docker registry.
-ifndef GCLOUD_SERVICE_KEY
-	$(error GCLOUD_SERVICE_KEY is undefined. Generate a Google Cloud access token and \
-	export it in your shell before logging in. [Refer to \
-	https://cloud.google.com/container-registry/docs/advanced-authentication])
-endif
-
 .PHONY: check-npm-env
 check-npm-env: ## Ensures that NPM_GITHUB_TOKEN environment variable is defined so we can pull private NPM packages from GitHub.
 ifndef NPM_GITHUB_TOKEN

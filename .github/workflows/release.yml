@@ -4,6 +4,10 @@ name: Release
 on:
   schedule:
     - cron: '00 21 * * 4' # 4:00pm EDT, Thursday
+
+env:
+  IMAGE_NAME: gcr.io/fulfil-web/fulfil_dc_api
+
 jobs:
   release:
     name: Release
@@ -27,15 +31,19 @@ jobs:
         run: npm install --loglevel=info --no-save @semantic-release/exec @semantic-release/changelog @semantic-release/git @semantic-release/github @openapitools/openapi-generator-cli@2.13.1
       - name: Move semantic-release to CWD
         run: mv /tmp/semrel/node_modules .
+      - name: Login to GCP Registry (Production)
+        uses: Fulfil0518/gcp-registry-login-action@v1
+        env:
+          CLOUD_PROD_SA: ${{ secrets.CLOUD_PROD_SA }}
+        with:
+          endpoint: ${{ env.IMAGE_NAME }}
+          service_key: ${{ env.CLOUD_PROD_SA }}
       - name: Release
         env:
-          IMAGE_NAME: gcr.io/fulfil-web/fulfil_dc_api
           GH_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN  }}
           GITHUB_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN }}
           NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
           SEMANTIC_RELEASE: '1'
-          # The service account key of google cloud.
-          GCLOUD_SERVICE_KEY: ${{ secrets.CLOUD_PROD_SA }}
           NODE_AUTH_TOKEN: ${{ secrets.GH_ACTIONS_TOKEN }}
         run:
           make release
