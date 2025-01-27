@@ -35,11 +35,9 @@ jobs:
 
       - name: Login to GCP Registry (Production)
         uses: Fulfil0518/gcp-registry-login-action@v1
-        env:
-          CLOUD_PROD_SA: ${{ secrets.CLOUD_PROD_SA }}
         with:
           endpoint: ${{ env.IMAGE_NAME }}
-          service_key: ${{ env.CLOUD_PROD_SA }}
+          service_key: ${{ secrets.CLOUD_PROD_SA }}
 
       - uses: docker/build-push-action@v5
         name: Build + Push

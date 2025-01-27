@@ -22,12 +22,9 @@ jobs:
 
       - name: Login to GCP Registry (Staging)
         uses: Fulfil0518/gcp-registry-login-action@v1
-        env:
-          CLOUD_STAGING_IMAGE_REGISTRY_SA: ${{ secrets.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
-          IMAGE_NAME: ${{ env.STAGING_IMAGE_NAME }}
         with:
-          endpoint: ${{ env.IMAGE_NAME }}
-          service_key: ${{ env.CLOUD_STAGING_IMAGE_REGISTRY_SA }}
+          endpoint: ${{ env.STAGING_IMAGE_NAME }}
+          service_key: ${{ secrets.CLOUD_STAGING_SA }}
 
       - name: Build Staging
         run: |
