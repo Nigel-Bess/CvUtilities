@@ -1,5 +1,6 @@
 #include "vmb-camera.h"
 #include "commands/bag_release/repack_error_codes.h"
+#include <chrono>
 
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::get_error_name_from_code;
@@ -81,6 +82,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
             SetFeature("ExposureTime", 19985.98);
             SetFeature("Gamma", 0.6);
         }
+        
         AdjustPacketSize();
     }
     connected_ = true;
@@ -155,6 +157,8 @@ void VmbCamera::SaveLastImage(std::string path){
 std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     VmbUint32_t height;
     VmbUint32_t width;
+
+    auto startTime = std::chrono::steady_clock::now();
     auto empty = std::make_shared<cv::Mat>();
     for (int i = 0; i < MAX_SNAPSHOT_RETRIES && !connected_; i++){
         log_->Warn("GetImageBlocking stalling for camera reconnection, {} is disconnected, retry attempt #{}", name_, i);
@@ -165,17 +169,6 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         return empty;
     }
     auto err = VmbErrorCustom;
-
-    if (CameraHasBrightView(name_)) {
-        SetFeature("ExposureTime", 15000.0);
-        SetFeature("Gamma", 0.5);
-    }
-    else {
-        SetFeature("ExposureTime", 19985.98);
-        SetFeature("Gamma", 0.6);
-    }
-    SetFeature("Hue", -2.0);
-    SetFeature("Saturation", 1.0);
 
     VmbUint32_t payloadSize;
     err = camera_->GetPayloadSize( payloadSize );
@@ -191,6 +184,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         for (int f = 0; f < MULTIFRAME_COUNT; f++) {
             frame_ptrs_[f].reset(new Frame(payloadSize));
         }
+
         log_->Info("AquiredMultiple start {}", name_);
         err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
         log_->Info("AquiredMultiple end {}", name_);
@@ -231,6 +225,11 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         log_->Error(camera_error_description);
         return empty;
     }
+
+    auto stopTime = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+    log_->Info("GetImageBlocking took {}ms on {}", duration, name_);
+
     try{
         auto val = frame_ptr_->GetImage(img_buffer_);
         frame_ptr_->GetHeight(height);
