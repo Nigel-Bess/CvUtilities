@@ -1,0 +1,14 @@
+{
+  "images": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "NotEmpty",
+      "supercategory": "",
+      "color": "#33d17a",
+      "metadata": {},
+      "keypoint_colors": []
+    }
+  ],
+  "annotations": []
+}
