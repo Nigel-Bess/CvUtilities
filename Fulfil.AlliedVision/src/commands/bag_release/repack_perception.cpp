@@ -131,31 +131,6 @@ RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation)
     this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code);
 }
 
-float RepackPerception::calculate_square_area(float x1, float x2, float y1, float y2)
-{
-    float edge_length = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
-    return pow(edge_length, 2);
-}
-
-bool RepackPerception::image_has_color(cv::Mat image)
-{
-    for (int i = 0; i < image.rows; i++)
-    {
-        for (int j = 0; j < image.cols; j++)
-        {
-            cv::Vec3b pixel_color = image.at<cv::Vec3b>(i, j);
-            int pixel_color_blue = pixel_color[0];
-            int pixel_color_green = pixel_color[1];
-            int pixel_color_red = pixel_color[2];
-            if (pixel_color_blue != 0 || pixel_color_green != 0 || pixel_color_red != 0)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 void RepackPerception::SaveImages(cv::Mat image, std::string image_path)
 {
     try
@@ -174,28 +149,6 @@ void RepackPerception::SaveImages(cv::Mat image, std::string image_path)
     catch (...)
     {
         Logger::Instance()->Error("RepackPerception::SaveImages hit error in catch(...)");
-    }
-}
-
-cv::Mat RepackPerception::load_image(std::string image_path)
-{
-    try
-    {
-        cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
-        if (image.empty() || !image_has_color(image))
-        {
-            throw std::invalid_argument("Error in load_image. Image not found");
-        }
-        std::string log_string = "Input Image has height " + std::to_string(image.rows) + " and width " + std::to_string(image.cols);
-        Logger::Instance()->Info(log_string);
-        return image;
-    }
-    catch (const std::exception &e)
-    {
-        this->success_code = RepackErrorCodes::UnspecifiedError;
-        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Caught exception in load_image:") + e.what();
-        Logger::Instance()->Error(this->error_description);
-        throw;
     }
 }
 
@@ -309,45 +262,6 @@ bool RepackPerception::canny_edge_detection(cv::Mat gaussian_image, int edge_thr
         Logger::Instance()->Error(this->error_description);
         throw;
     }
-}
-
-std::vector<cv::Point2f> RepackPerception::sort_marker_pixel_coordinates(std::vector<cv::Point2f> points, bool with_respect_to_X)
-{
-    std::vector<cv::Point2f> sorted = points;
-    if (with_respect_to_X)
-    {
-        std::sort(sorted.begin(), sorted.end(), [](const cv::Point2f &a, const cv::Point2f &b)
-                  { return a.x < b.x; });
-    }
-    else
-    {
-        std::sort(sorted.begin(), sorted.end(), [](const cv::Point2f &a, const cv::Point2f &b)
-                  { return a.y < b.y; });
-    }
-    return sorted;
-}
-
-int RepackPerception::get_marker_count(std::vector<std::vector<cv::Point2f>> marker_coordinate_points)
-{
-    int detected_markers_count = marker_coordinate_points.size();
-    std::string count_log = "RepackPerception's get_marker_count: Expecting 8 marker corners and got " + std::to_string(detected_markers_count);
-    Logger::Instance()->Debug(count_log);
-    // if less markers present than the bot number, the algorithm will have weird behavior
-    if (detected_markers_count < 8)
-    {
-        // not enough markers detected code
-        this->success_code = RepackErrorCodes::NotEnoughMarkersDetected;
-
-        // 1 marker detected may be the grid's april tag, not a bot
-        if (detected_markers_count < 2)
-        {
-            this->success_code = RepackErrorCodes::NoMarkersDetected;
-        }
-        this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Error in get_marker_count with success code ") + std::to_string(this->success_code) + ": " + count_log;
-        Logger::Instance()->Error(this->error_description);
-        throw std::runtime_error(this->error_description + " -> " + std::string("In get_marker_count: Is no bot in image? " + count_log));
-    }
-    return detected_markers_count;
 }
 
 cv::Mat RepackPerception::calculate_roi(cv::Mat image, std::vector<cv::Point2f> hull_bbox, float shrink_factor_X, float shrink_factor_Y, std::string directory_path)

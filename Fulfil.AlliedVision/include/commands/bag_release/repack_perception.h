@@ -50,31 +50,10 @@ namespace fulfil::dispense::commands {
         RepackPerception(std::shared_ptr<std::string> lfb_generation);
 
         /*
-        * Calculates the area of the arucos marker
-        * @param x & y pixels for 2 corner coordinates of an aruco
-        * @return float representing the area of the aruco tag
-        */
-        float calculate_square_area(float x1, float x2, float y1, float y2);
-        
-        /*
-        * Checks if the image has some color except just black
-        * Useful in detecting if the image got processed without any errors
-        * @param input image
-        * @return boolean value that denotes if the image has color
-        */
-        bool image_has_color(cv::Mat image);
-
-        /*
         * Saves the image to the given filepath
         * @param image, image_path
         */
         void SaveImages(cv::Mat image, std::string image_path);
-        /*
-        * Load the input image to the algorithm 
-        * @param input image path
-        * @return input image
-        */
-        cv::Mat load_image(std::string image_path);
 
         /*
         * Calculate centroid from aruco coordinates
@@ -113,13 +92,6 @@ namespace fulfil::dispense::commands {
         * @return Print the result statements based on the edge counts
         */
         bool canny_edge_detection(cv::Mat gaussian_image, int edge_threshold, double lower_threshold, double upper_threshold, std::string directory_path);
-            
-        /*
-        * Sorting the pixel coordinates in ascending order
-        * @param Coordinate Point Vector
-        * @return Sorted Coordinate Point Vector
-        */
-        std::vector<cv::Point2f> sort_marker_pixel_coordinates(std::vector<cv::Point2f> points, bool with_respect_to_X);
 
         /*
         * Create a new vector with the 4 outer coordinates for drawing 
@@ -129,11 +101,6 @@ namespace fulfil::dispense::commands {
         * @return Vector with 4 corner coordinates
         */
         std::vector<cv::Point2f> get_hull_coordinates(std::vector<cv::Point2f> points_right, std::vector<cv::Point2f> points_left);
-
-        /*
-        * Returns the count of markers in the given vector and handles all exceptions about marker count
-        */
-        int get_marker_count(std::vector<std::vector<cv::Point2f>> marker_coordinate_points);
 
         /*
         * Calculate the left inner corner coordinates for the Hull
