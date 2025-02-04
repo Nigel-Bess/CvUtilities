@@ -3,11 +3,15 @@
 import os
 import json
 
-test_dir = "data/test"
-labelset_name = input("Enter assets/ground-truths label set name (ex. 'plm' for plm.json): ")
+test_dir = "Fulfil.AlliedVision/data/test"
+# Get from env var
+labelset_name = os.getenv("SUMMARIZE_DATASET")
+if not labelset_name:
+    print("SUMMARIZE_DATASET not set, maybe set to plm?")
+    exit(1)
 
-machine_truth_file = "assets/test-outputs/{}.json".format(labelset_name)
-ground_truth_file =  "assets/ground-truths/{}.json".format(labelset_name)
+machine_truth_file = "Fulfil.AlliedVision/assets/test-outputs/{}.json".format(labelset_name)
+ground_truth_file =  "Fulfil.AlliedVision/assets/ground-truths/{}.json".format(labelset_name)
 
 # Throw if either files is missing
 if not os.path.exists(machine_truth_file):

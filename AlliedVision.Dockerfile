@@ -86,6 +86,11 @@ RUN sed -i 's/\r//' ./scripts/build_date.sh
 ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/build/:${PATH}"
 ENV GENICAM_GENTL64_PATH="/home/fulfil/VimbaX_2024-1/cti"
 
+# Install python3 and all deps used in Fulfil.AlliedVision/scripts
+RUN apt-get update -y
+RUN apt-get install python3 python3-pip -y
+RUN pip3 install requests
+
 # Build latest AlliedVision
 COPY Fulfil.AlliedVision/ ./Fulfil.AlliedVision/
 RUN cd Fulfil.AlliedVision/ \

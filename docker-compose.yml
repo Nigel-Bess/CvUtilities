@@ -4,6 +4,62 @@ services:
     platform: linux/amd64
     # Once we get this working, we can remove this command and just use the app command in the CMD
     command: /bin/bash -c "while true; do sleep 30; done;"
+    profiles:
+      - noop
 
+  # Repack commands
+  repack_test:
+    build:
+      dockerfile: AlliedVision.Dockerfile
+    command: "build/stark_test test ${REQ_ID}"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    volumes:
+      - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - repack_test
 
-# keep the Fulfil.Computervision as the root dir
+  repack_download:
+    build:
+      dockerfile: AlliedVision.Dockerfile
+    command: "python3 scripts/repack_download_dataset.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    volumes:
+      - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - repack_download
+
+  repack_load_coco:
+    build:
+      dockerfile: AlliedVision.Dockerfile
+    command: "python3 scripts/coco/repack_generate_coco.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    volumes:
+      - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+      - "${COCO_DIR}:/coco-annotator"
+    network_mode: "host"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - repack_load_coco
+
+  repack_summarize:
+    build:
+      dockerfile: AlliedVision.Dockerfile
+    command: "python3 scripts/coco/repack_summarize.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    volumes:
+      - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+      - "${COCO_DIR}:/coco-annotator"
+    network_mode: "host"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - repack_summarize
