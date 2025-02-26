@@ -4,6 +4,7 @@ on:
     paths:
     - Fulfil.AlliedVision/**
     - AlliedVision.Dockerfile
+    - Fulfil.CPPUtils/**
     - .github/workflows/*-repack.yml
 
 env:

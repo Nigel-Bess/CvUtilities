@@ -141,7 +141,7 @@ private:
     std::unique_ptr<ServerCompletionQueue> cq_;
     DcApiService::AsyncService async_service_;
     std::unique_ptr<Server> server_;
-    DepthCamServiceImpl * dcServiceHandle;
+    std::shared_ptr<DepthCamServiceImpl> dcServiceHandle;
     inline std::shared_ptr<DcResponse> StringToDcResponse(MessageType t, std::string str){
         DcResponse msg = {};
         msg.set_type(t);

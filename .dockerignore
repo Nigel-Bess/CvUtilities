@@ -3,3 +3,6 @@ Fulfil.AlliedVision/data
 
 # Ignore local dockerfile config
 .env
+
+# Ignore github actions
+.github

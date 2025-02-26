@@ -84,6 +84,8 @@ void VmbCamera::RunSetup(bool isInitSetup){
         }
         
         AdjustPacketSize();
+        // Record image size for future frame allocation
+        camera_->GetPayloadSize( payloadSize_ );
     }
     connected_ = true;
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
@@ -169,25 +171,26 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         return empty;
     }
     auto err = VmbErrorCustom;
-
-    VmbUint32_t payloadSize;
-    err = camera_->GetPayloadSize( payloadSize );
+ 
     VmbFrameStatusType frameStatus;
     log_->Info("reset frame {}", name_);
-    frame_ptr_.reset(new Frame(payloadSize));
-    frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
+    auto frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
     log_->Info("Streaming for first complete frame {}", name_);
 
     // Look through all images taken for hopefully a frame that's complete
     bool frameFound = false;
     for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
         for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-            frame_ptrs_[f].reset(new Frame(payloadSize));
+            frame_ptrs_[f].reset(new Frame(payloadSize_));
         }
 
+        auto startTime = std::chrono::steady_clock::now();
         log_->Info("AquiredMultiple start {}", name_);
         err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
-        log_->Info("AquiredMultiple end {}", name_);
+        auto stopTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+        log_->Info("AquiredMultiple took {}ms on {}", duration, name_);
+
         if (err != VmbErrorSuccess) {
             camera_error_code = RepackErrorCodes::VimbaCameraError;
             camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
@@ -217,12 +220,10 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     }
     if(!frameFound){
         log_->Error("No complete frame found for {}", name_);
-        return empty;
-    }
-    if(err != VmbErrorSuccess){
-        camera_error_code = RepackErrorCodes::VimbaCameraError;
-        camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
-        log_->Error(camera_error_description);
+        // Clear out allocated frames
+        for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+            delete &frame_ptrs_[f];
+        }
         return empty;
     }
 
@@ -230,24 +231,18 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
     log_->Info("GetImageBlocking took {}ms on {}", duration, name_);
 
-    try{
-        auto val = frame_ptr_->GetImage(img_buffer_);
-        frame_ptr_->GetHeight(height);
-        frame_ptr_->GetWidth(width);
-        // std::cout << "GOT FRAME " << height << " x " << width  << std::endl;
-        last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
-        log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
-        last_image_ = std::make_shared<cv::Mat>(last_mat_);
-        return last_image_;
+    auto val = frame_ptr_->GetImage(img_buffer_);
+    frame_ptr_->GetHeight(height);
+    frame_ptr_->GetWidth(width);
+    last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
+    log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
+    last_image_ = std::make_shared<cv::Mat>(last_mat_);
+
+    // Clear out allocated frames
+    for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+        delete &frame_ptrs_[f];
     }
-    catch(const std::exception &ex){
-        if (camera_error_code == RepackErrorCodes::Success) {
-            camera_error_code = RepackErrorCodes::VimbaCameraError;
-            camera_error_description = get_error_name_from_code((RepackErrorCodes)camera_error_code) + " -> " + "VmbManager::GetImageBlocking caught error: {}", ex.what();
-        }
-        log_->Error(camera_error_description);
-    }
-    return empty;
+    return last_image_;
 }
 
 std::string VmbCamera::GetMacAddress(){    
