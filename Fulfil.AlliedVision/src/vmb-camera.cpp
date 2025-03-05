@@ -91,10 +91,10 @@ void VmbCamera::RunSetup(bool isInitSetup){
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
     // For now, do not take an init debug snapshot since it stirs the network
     // too much when connecting to all cameras at once
-    //if (isInitSetup) {
-        //GetImageBlocking();
-        //SaveLastImage(name_);
-    //}
+    /*if (isInitSetup) {
+        GetImageBlocking();
+        SaveLastImage(name_);
+    }*/
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
@@ -140,11 +140,11 @@ void VmbCamera::AddCameraStatus(DepthCameras::DcCameraStatusCodes code){
 void VmbCamera::SaveLastImage(std::string path){
     try{
         std::string img_name = path + ".jpeg";
-        if(last_mat_.size().empty()){
+        if(last_image_->size().empty()){
             log_->Error("Cannot save emtpy image to {}", img_name);
             return;
         }
-        cv::imwrite(img_name, last_mat_);
+        cv::imwrite(img_name, *last_image_);
         log_->Info("{} saved successfully!!!", img_name);// img_name << " saved successfully!" << std::endl;
 
     }
@@ -174,16 +174,18 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
  
     VmbFrameStatusType frameStatus;
     log_->Info("reset frame {}", name_);
-    auto frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT); 
+
+    // Pre-populate empty frames
+    auto frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT);
+    for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+        frame_ptrs_[f].reset(new Frame(payloadSize_));
+    }
+
     log_->Info("Streaming for first complete frame {}", name_);
 
     // Look through all images taken for hopefully a frame that's complete
     bool frameFound = false;
     for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
-        for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-            frame_ptrs_[f].reset(new Frame(payloadSize_));
-        }
-
         auto startTime = std::chrono::steady_clock::now();
         log_->Info("AquiredMultiple start {}", name_);
         err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
@@ -220,10 +222,6 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     }
     if(!frameFound){
         log_->Error("No complete frame found for {}", name_);
-        // Clear out allocated frames
-        for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-            delete &frame_ptrs_[f];
-        }
         return empty;
     }
 
@@ -234,14 +232,9 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     auto val = frame_ptr_->GetImage(img_buffer_);
     frame_ptr_->GetHeight(height);
     frame_ptr_->GetWidth(width);
-    last_mat_ = cv::Mat(height, width, CV_8UC3, img_buffer_);
+    last_image_ = std::make_shared<cv::Mat>(height, width, CV_8UC3, img_buffer_);
     log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
-    last_image_ = std::make_shared<cv::Mat>(last_mat_);
 
-    // Clear out allocated frames
-    for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-        delete &frame_ptrs_[f];
-    }
     return last_image_;
 }
 

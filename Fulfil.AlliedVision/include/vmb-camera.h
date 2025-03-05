@@ -24,7 +24,6 @@ class VmbCamera{
         std::string camera_ip_;
         std::string name_;
         std::shared_ptr<cv::Mat> last_image_;
-        cv::Mat last_mat_;
         void SaveLastImage(std::string path);
         int camera_error_code = RepackErrorCodes::Success;
         std::string camera_error_description = "";

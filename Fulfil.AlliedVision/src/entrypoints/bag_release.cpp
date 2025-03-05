@@ -17,6 +17,7 @@ int main()
     if (facilityStr == "pioneer") {
         printf("Adding 1 Pioneer camera");
         bays.emplace(1, "10.10.10.40");
+        bays.emplace(2, "10.10.10.76");
     }
     else if (facilityStr == "plm") {
         printf("Adding 11 PLM cameras");
