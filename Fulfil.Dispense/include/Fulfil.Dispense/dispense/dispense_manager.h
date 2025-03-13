@@ -200,6 +200,10 @@ namespace fulfil::dispense {
                                                                                              std::shared_ptr<std::string> command_id,
                                                                                              std::shared_ptr<nlohmann::json> request_json) override;
 
+            std::shared_ptr<fulfil::dispense::commands::TrayViewResponse> handle_tray_view(std::shared_ptr<std::string> PrimaryKeyID,
+                                                                                            std::shared_ptr<std::string> command_id,
+                                                                                            std::shared_ptr<nlohmann::json> request_json) override;
+
             /// Mark: Start LFB Video Command Delegate Function
             void handle_start_lfb_video(std::shared_ptr<std::string> PrimaryKeyID) override;
 

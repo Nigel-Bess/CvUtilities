@@ -177,19 +177,21 @@ std::tuple<std::string, double> LiveViewer::image_name_and_presets(size_t image_
   const double lfb = 0.6;
   const double tray = 0.5;
 
+  /// WARNING!!!! DO NOT ADD TO THIS MAP WITHOUT INCREMENTING VIEWER_IMAGE_TYPE_COUNT
   std::array<const char*, VIEWER_IMAGE_TYPE_COUNT> image_name_map
     { "LFB_RGB",           "LFB_Depth",          "LFB_Damage_Risk",    "LFB_Filter",
       "LFB_Target",        "Tray_Result",        "LFB_Pre_Dispense",   "Tray_Pre_Dispense",
       "LFB_Post_Dispense", "Tray_Post_Dispense", "LFB_Item_Detection", "LFB_Markers",
       "Info",              "LFB_Floor_View",     "Tray_Pre_FED",       "Tray_Post_FED", 
-      "Tray_Validation"
+      "Tray_Validation",   "Tray_View"
     };
+  /// WARNING!!!! DO NOT ADD TO THIS MAP WITHOUT INCREMENTING VIEWER_IMAGE_TYPE_COUNT
   std::array<double, VIEWER_IMAGE_TYPE_COUNT> resize_presets {
     lfb,  lfb,   1,    lfb,
     lfb,  tray,  lfb,  tray,
     lfb,  tray,  1,    lfb,
     lfb,  lfb,  tray, tray, 
-    tray
+    tray, tray
   };
   if (image_code > VIEWER_IMAGE_TYPE_COUNT + 1) return {"", 0};
   return {image_name_map[image_code], resize_presets[image_code]};
@@ -247,9 +249,9 @@ int LiveViewer::update_image(std::shared_ptr<cv::Mat> input_image,
   cv::Mat updated_image = make_media::frame::copy_matrix(input_image); //clone image so that original in algorithms are not affected by rotation/cropping
 
   //if visualization is in specified set of visualizations and rotation is set true from LFB_configs, rotate the image
-  //                                                                  0     1     2      3     4     5      6     7      8      9      10     11    12    13    14     15     16
-  std::array<bool, VIEWER_IMAGE_TYPE_COUNT> images_to_be_rotated = { true, true, false, true, true, false, true, false, true,  false, false, true, true, true, false, false, false };
-  std::array<bool, VIEWER_IMAGE_TYPE_COUNT> images_to_be_cropped = { true, true, false, true, true, false, true, false, true,  false, false, true, false, true, false, false, false };
+  //                                                                  0     1     2      3     4     5      6     7      8      9      10     11    12    13    14     15     16     17
+  std::array<bool, VIEWER_IMAGE_TYPE_COUNT> images_to_be_rotated = { true, true, false, true, true, false, true, false, true,  false, false, true, true,  true, false, false, false, false };
+  std::array<bool, VIEWER_IMAGE_TYPE_COUNT> images_to_be_cropped = { true, true, false, true, true, false, true, false, true,  false, false, true, false, true, false, false, false, false };
   bool crop = image_number < VIEWER_IMAGE_TYPE_COUNT && images_to_be_cropped[image_number];
   bool rotate = image_number < VIEWER_IMAGE_TYPE_COUNT && images_to_be_rotated[image_number];
 

@@ -19,6 +19,7 @@
 #include <Fulfil.Dispense/commands/video/stop_tray_video_request.h>
 #include <Fulfil.Dispense/commands/video/stop_lfb_video_request.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_request.h>
+#include <Fulfil.Dispense/commands/tray_view/tray_view_request.h>
 #include <Fulfil.Dispense/commands/update_state_request.h>
 #include <FulfilMongoCpp/mongo_objects/mongo_object_id.h>
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
@@ -45,6 +46,7 @@ using fulfil::dispense::commands::StopLFBVideoRequest;
 using fulfil::dispense::commands::StartTrayVideoRequest;
 using fulfil::dispense::commands::StopTrayVideoRequest;
 using fulfil::dispense::commands::TrayValidationRequest;
+using fulfil::dispense::commands::TrayViewRequest;
 using fulfil::dispense::commands::errors::InvalidCommandFormatException;
 using fulfil::dispense::commands::SideDispenseTargetRequest;
 using fulfil::dispense::commands::PostSideDispenseRequest;
@@ -91,6 +93,9 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
     case DispenseCommand::floor_view:
       Logger::Instance()->Info("Received Floor View Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<FloorViewRequest>(request_id, PrimaryKeyID, request_json);
+    case DispenseCommand::tray_view:
+      Logger::Instance()->Info("Received Tray View Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
+      return std::make_shared<TrayViewRequest>(request_id, PrimaryKeyID, request_json);
     case DispenseCommand::start_lfb_video:
       Logger::Instance()->Info("Received Start LFB Video Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<StartLFBVideoRequest>(request_id, PrimaryKeyID);

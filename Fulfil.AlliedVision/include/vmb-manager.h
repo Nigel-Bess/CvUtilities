@@ -69,6 +69,8 @@ enum class DispenseCommand
     position_motor = 21,
     /// Command sent to view the floor between dispenses using LFB camera processing
     floor_view = 22,
+    /// Command sent to view the tray using tray camera processing
+    tray_view = 23,
     /// FC requests the current bag state
     request_bag_state = 30,
     /// FC is sending the new bag state

@@ -49,6 +49,7 @@ using fulfil::dispense::commands::ItemEdgeDistanceResponse;
 using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
+using fulfil::dispense::commands::TrayViewResponse;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::SideDropResult;
@@ -270,6 +271,12 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         Logger::Instance()->Info("Received Floor View Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
         response = handle_floor_view(pkid, command_id, request_json);
+        break;
+    }
+    case DispenseCommand::tray_view: {
+        Logger::Instance()->Info("Received Tray View Request on Bay {}, PKID: {}, request_id: {}",
+                                 this->machine_name, *pkid, *command_id);
+        response = handle_tray_view(pkid, command_id, request_json);
         break;
     }
     case DispenseCommand::side_dispense_target:
@@ -777,6 +784,37 @@ void DispenseManager::handle_stop_lfb_video()
 #pragma endregion bag_cam
 
 #pragma region tray_cam
+std::shared_ptr<TrayViewResponse> DispenseManager::handle_tray_view(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> command_id, std::shared_ptr<nlohmann::json> request_json)
+{
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_tray_view for " + this->machine_name + " with PKID " + *PrimaryKeyID);
+    Logger::Instance()->Debug("Handling Tray View Processing {} for Bay: {}", *command_id, this->machine_name);
+
+    if (!this->tray_session) {
+        Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray View!", this->machine_name);
+        return std::make_shared<TrayViewResponse>(command_id, 12, std::make_shared<std::string>("No Tray Session"));
+    }
+    this->tray_session->refresh();
+
+    // data generation
+    std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
+    std_filesystem::path base_directory = make_media::paths::join_as_path(*this->create_datagenerator_basedir(),
+                                                                          "Tray_Camera",
+                                                                          *PrimaryKeyID,
+                                                                          "Tray_View_Image");
+    Logger::Instance()->Debug("Base directory is {}", base_directory.string());
+    std::shared_ptr<DataGenerator> generator = std::make_shared<DataGenerator>(this->tray_session,
+                                                                               std::make_shared<std::string>(base_directory.string()),
+                                                                               request_json);
+    generator->save_data(time_stamp);
+
+    int error_code = 0;
+    std::shared_ptr<std::string> error_description = std::make_shared<std::string>("");
+    std::shared_ptr<TrayViewResponse> tray_result = std::make_shared<TrayViewResponse>(command_id, error_code, error_description);
+
+    Logger::Instance()->Info("Finished handling Tray View command. Bay: {} PKID: {}", this->machine_name, *PrimaryKeyID);
+    return tray_result;
+}
+
 void DispenseManager::handle_start_tray_video(std::shared_ptr<std::string> PrimaryKeyID)
 {
     std::string base_directory = this->dispense_reader->Get(dispense_reader->get_default_section(), "vid_gen_base_buffer_dir");

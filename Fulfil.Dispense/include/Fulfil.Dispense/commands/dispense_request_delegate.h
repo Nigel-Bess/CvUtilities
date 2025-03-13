@@ -14,6 +14,7 @@
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include <Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
+#include <Fulfil.Dispense/commands/tray_view/tray_view_response.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 
@@ -45,6 +46,13 @@ class DispenseRequestDelegate
   virtual std::shared_ptr<fulfil::dispense::commands::FloorViewResponse> handle_floor_view(std::shared_ptr<std::string> PrimaryKeyID,
                                                                                            std::shared_ptr<std::string> command_id,
                                                                                            std::shared_ptr<nlohmann::json> request_json) = 0;
+
+  /**
+   * performs image data logging in response to a tray-view request
+   */
+  virtual std::shared_ptr<fulfil::dispense::commands::TrayViewResponse> handle_tray_view(std::shared_ptr<std::string> PrimaryKeyID,
+                                                                                          std::shared_ptr<std::string> command_id,
+                                                                                          std::shared_ptr<nlohmann::json> request_json) = 0;
 
   /**
    * Begins image data logging in response to a request for LFB sessions
