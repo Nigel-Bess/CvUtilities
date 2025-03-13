@@ -225,13 +225,14 @@ void DropZoneSearcher::check_inputs(float shadow_length,
 }
 
 std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
-                                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, float shadow_length, float shadow_width,
-                                                                   float LFB_cavity_height)
+                                                                std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, 
+                                                                float shadow_length, 
+                                                                float shadow_width,
+                                                                float LFB_cavity_height)
 {
   float container_length = lfb_vision_config->container_length;
   float container_width = lfb_vision_config->container_width;
-  // TODO - do a deep rename of all orientation variables
-  float port_edge_target_offset = lfb_vision_config->port_edge_target_offset;
+  float length_wise_edge_buffer_meters = (shadow_length < lfb_vision_config->item_length_meters_threshold_for_spacious_edge_offset) ? lfb_vision_config->spacious_length_wise_edge_target_offset_meters : lfb_vision_config->length_wise_edge_target_offset_meters;
   float item_protrusion_detection_threshold = lfb_vision_config->item_protrusion_detection_threshold;
   int depth_points_above_threshold_to_count_as_item_protruding = lfb_vision_config->depth_points_above_threshold_to_count_as_item_protruding;
   bool use_y_coordinates_orientation_check = lfb_vision_config->use_y_coordinates_orientation_check;
@@ -249,18 +250,18 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
 
 
   float target_x;
-  float wide_side_target_offset = lfb_vision_config->front_edge_target_offset; // TODO
+  float width_wise_edge_buffer_meters = (shadow_width < lfb_vision_config->item_width_meters_threshold_for_spacious_edge_offset) ? lfb_vision_config->spacious_width_wise_edge_target_offset_meters : lfb_vision_config->width_wise_edge_target_offset_meters;
   Logger::Instance()->Debug("This dispense does flip the X default to prefer the non-default side: {}", details->use_flipped_x_default);
   if (details->use_flipped_x_default)
   {
     // move default drop target to front side, accounting for edge offset
-    target_x = (container_width/2) - shadow_width/2 - wide_side_target_offset;
+    target_x = (container_width/2) - shadow_width/2 - width_wise_edge_buffer_meters;
   } else {
     // move default drop target to rear side, accounting for edge offset
-    target_x = -(container_width/2) + shadow_width/2 + wide_side_target_offset;
+    target_x = -(container_width/2) + shadow_width/2 + width_wise_edge_buffer_meters;
   }
   // port edge is on y-axis, must offset it
-  float target_y = (container_length/2) - shadow_length/2 - port_edge_target_offset;
+  float target_y = (container_length/2) - shadow_length/2 - length_wise_edge_buffer_meters;
 
   //adjust default target if there are limits on LFB travel
   float min_allowable_x = -(container_width/2) + float(details->limit_left)/1000;
@@ -615,8 +616,9 @@ std::shared_ptr<LocalPointCloud> DropZoneSearcher::apply_box_limits(std::shared_
                                                                     float shadow_length, float shadow_width, float shadow_height,
                                                                     int limit_left, int limit_right, int limit_front, int limit_back,
                                                                     float remaining_platform, float LFB_width, float LFB_length,
-                                                                    float container_width, float container_length, float front_edge_target_offset,
-                                                                    float port_edge_target_offset,
+                                                                    float container_width, float container_length, 
+                                                                    float width_wise_edge_buffer_meters,
+                                                                    float length_wise_edge_buffer_meters,
                                                                     int bot_is_rotated)
 {
   Logger::Instance()->Debug("container width is: {}  meters ", container_width);
@@ -624,10 +626,10 @@ std::shared_ptr<LocalPointCloud> DropZoneSearcher::apply_box_limits(std::shared_
 
   //Getting dimensions of box of valid drop zones, based on item size. These x and y coordinates are in bot local frame
   // THIS ALGORITHM ASSUMES THAT ALL POINTS IN THE BAG ARE REACHABLE BY EXTENDS OF DISPENSE CONVEYORS + ABILITY OF BOT TO ROTATE 180 DEGREES
-  float min_target_x = -container_width/2 + shadow_width/2 + front_edge_target_offset;
-  float max_target_x = container_width/2 - shadow_width/2 - front_edge_target_offset;
-  float min_target_y = -container_length/2 + shadow_length/2 + port_edge_target_offset; //see limit diagrams for explanation
-  float max_target_y = container_length/2 - shadow_length/2 - port_edge_target_offset;
+  float min_target_x = -container_width/2 + shadow_width/2 + width_wise_edge_buffer_meters;
+  float max_target_x = container_width/2 - shadow_width/2 - width_wise_edge_buffer_meters;
+  float min_target_y = -container_length/2 + shadow_length/2 + length_wise_edge_buffer_meters; //see limit diagrams for explanation
+  float max_target_y = container_length/2 - shadow_length/2 - length_wise_edge_buffer_meters;
   Logger::Instance()->Debug("Target candidate limits are set based on bot and item dimensions. min_y: {}, max_y: {}, min_x: {}, max_x: {}", min_target_y, max_target_y, min_target_x, max_target_x);
 
   if( (max_target_y < min_target_y) or (max_target_x < min_target_x) )
@@ -1177,8 +1179,6 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   float LFB_cavity_height = lfb_vision_config->LFB_cavity_height;
   float container_width = lfb_vision_config->container_width;
   float container_length = lfb_vision_config->container_length;
-  float front_edge_target_offset = lfb_vision_config->front_edge_target_offset;
-  float port_edge_target_offset = lfb_vision_config->port_edge_target_offset;
   bool use_y_coordinates_orientation_check = lfb_vision_config->use_y_coordinates_orientation_check;
 
   Logger::Instance()->Trace("Drop Zone Search Algorithm Initiated");
@@ -1186,6 +1186,9 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   float shadow_length = details->item_height;
   float shadow_width = details->item_width;
   float shadow_height = details->item_length;
+  float width_wise_edge_buffer_meters = (shadow_width < lfb_vision_config->item_width_meters_threshold_for_spacious_edge_offset) ? lfb_vision_config->spacious_width_wise_edge_target_offset_meters : lfb_vision_config->width_wise_edge_target_offset_meters;
+  float length_wise_edge_buffer_meters = (shadow_length < lfb_vision_config->item_length_meters_threshold_for_spacious_edge_offset) ? lfb_vision_config->spacious_length_wise_edge_target_offset_meters : lfb_vision_config->length_wise_edge_target_offset_meters;
+  
 
   check_inputs(shadow_length, shadow_width, shadow_height, lfb_vision_config, details);
 
@@ -1477,7 +1480,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
                                                                     details->limit_left, details->limit_right, details->limit_front,
                                                                     details->limit_back, details->remaining_platform, LFB_width,
                                                                     LFB_length, container_width, container_length,
-                                                                    front_edge_target_offset, port_edge_target_offset, bot_is_rotated);
+                                                                    width_wise_edge_buffer_meters, length_wise_edge_buffer_meters, bot_is_rotated);
 
   if(this->visualize) session_visualizer5->display_image(session_visualizer5->display_points_with_depth_coloring(valid_drop_centers));
   std::shared_ptr<Eigen::Matrix3Xd> valid_drop_center_data = valid_drop_centers->get_data(); //gets the inner matrix points in local coordinate system

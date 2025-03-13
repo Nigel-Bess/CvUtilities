@@ -54,7 +54,7 @@ class DropZoneSearcher
           std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> point_cloud,
           float shadow_length, float shadow_width, float shadow_height, int limit_left, int limit_right, int limit_front,
           int limit_back, float remaining_platform, float LFB_width, float LFB_length, float cavity_width, float cavity_length,
-          float front_edge_target_offset, float port_edge_target_offset, int bot_is_rotated);
+          float width_wise_edge_buffer_meters, float length_wise_edge_buffer_meters, int bot_is_rotated);
 
 
   struct Interference_Region

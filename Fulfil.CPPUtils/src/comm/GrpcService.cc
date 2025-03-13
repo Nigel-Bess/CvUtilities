@@ -72,7 +72,7 @@ void GrpcService::Run(uint16_t port){
     cq_ = builder.AddCompletionQueue();
     server_ = builder.BuildAndStart();
    
-    dcServiceHandle = std::make_shared<DepthCamServiceImpl>(&async_service_, cq_.get(), &tasks_);
+    dcServiceHandle = new DepthCamServiceImpl(&async_service_, cq_.get(), &tasks_);
     
     std::thread wthread(&GrpcService::HandleNewMessages, this);
     wthread.detach();
@@ -115,10 +115,8 @@ void GrpcService::HandleRawRpcs(){
         
         client->Process();
 
-        if(!ok) {
-            dcServiceHandle = std::make_shared<DepthCamServiceImpl>(&async_service_, cq_.get(), &tasks_);
-            Logger::Instance()->Warn("LEAK: GrpcService recreating dcServiceHandle uh-oh");
-        }
+        if(!ok)
+            dcServiceHandle = new DepthCamServiceImpl(&async_service_, cq_.get(), &tasks_);
         sem_post(&_cmd_wait);
         std::this_thread::sleep_for(std::chrono::microseconds(50));
     }

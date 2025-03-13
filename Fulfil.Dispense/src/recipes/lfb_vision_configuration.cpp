@@ -29,8 +29,12 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     LFB_cavity_height{input_json->value("LfbCavityHeightMeters", (float)0.30)},
     container_width{input_json->value("ContainerWidthMeters", (float)0.43)},
     container_length{input_json->value("ContainerLengthMeters", (float)0.30)},
-    front_edge_target_offset{input_json->value("WidthWiseEdgeTargetOffsetMeters", (float)0.005)},
-    port_edge_target_offset{input_json->value("LengthWiseEdgeTargetOffsetMeters", (float)0.0)},
+    width_wise_edge_target_offset_meters{input_json->value("WidthWiseEdgeTargetOffsetMeters", (float)0.005)},
+    length_wise_edge_target_offset_meters{input_json->value("LengthWiseEdgeTargetOffsetMeters", (float)0.0)},
+    item_width_meters_threshold_for_spacious_edge_offset{input_json->value("ItemWidthMetersThresholdForSpaciousEdgeOffset", (float)0.150)},
+    item_length_meters_threshold_for_spacious_edge_offset{input_json->value("ItemLengthMetersThresholdForSpaciousEdgeOffset", (float)0.150)},
+    spacious_width_wise_edge_target_offset_meters{input_json->value("SpaciousWidthWiseEdgeTargetOffsetMeters", (float)0.030)},
+    spacious_length_wise_edge_target_offset_meters{input_json->value("SpaciousLengthWiseEdgeTargetOffsetMeters", (float)0.020)},
 
     // fullness variables
     bag_full_threshold_meters{input_json->value("BagFullThresholdMeters", (float)0.05)},

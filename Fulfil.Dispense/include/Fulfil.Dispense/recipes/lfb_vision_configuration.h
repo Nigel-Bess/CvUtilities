@@ -46,10 +46,14 @@ namespace fulfil::configuration::lfb {
         /**
          * Defines the offset from lateral (width direction) and longitudinal (length direction) edges when in nominal
          * orientation of the LFR container for use in creating the Drop Target for empty and nonempty bags.
-         * TODO - break into just front and side lol?
+         * The spacious offsets are for items that are smaller than the threshold dimensions defined here.
          */
-        float front_edge_target_offset {0.005};
-        float port_edge_target_offset {0};
+        float width_wise_edge_target_offset_meters {0.005};
+        float length_wise_edge_target_offset_meters {0};
+        float item_width_meters_threshold_for_spacious_edge_offset {0.150};
+        float item_length_meters_threshold_for_spacious_edge_offset {0.150};
+        float spacious_width_wise_edge_target_offset_meters {0.030};
+        float spacious_length_wise_edge_target_offset_meters {0.020};
 
         // fullness variables
         /**
