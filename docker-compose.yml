@@ -11,8 +11,8 @@ services:
   repack_test:
     build:
       dockerfile: AlliedVision.Dockerfile
-    command: "build/stark_test test ${REQ_ID}"
-    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    command: "Fulfil.AlliedVision/build/test test ${REQ_ID}"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
     env_file:
@@ -24,8 +24,8 @@ services:
   repack_download:
     build:
       dockerfile: AlliedVision.Dockerfile
-    command: "python3 scripts/repack_download_dataset.py"
-    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    command: "python3 Fulfil.AlliedVision/scripts/repack_download_dataset.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
     env_file:
@@ -37,8 +37,8 @@ services:
   repack_load_coco:
     build:
       dockerfile: AlliedVision.Dockerfile
-    command: "python3 scripts/coco/repack_generate_coco.py"
-    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    command: "python3 Fulfil.AlliedVision/scripts/coco/repack_generate_coco.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
       - "${COCO_DIR}:/coco-annotator"
@@ -52,8 +52,8 @@ services:
   repack_summarize:
     build:
       dockerfile: AlliedVision.Dockerfile
-    command: "python3 scripts/coco/repack_summarize.py"
-    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision
+    command: "python3 Fulfil.AlliedVision/scripts/coco/repack_summarize.py"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
       - "${COCO_DIR}:/coco-annotator"
