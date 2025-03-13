@@ -2,12 +2,14 @@
 
 echo "Running as $USER!"
 
+# Kill any existing sessions to prevent resource competition and crashing the computer
+tmux ls  2> /dev/null | grep rq_worker &> /dev/null && tmux kill-session -t rq_worker 
+tmux ls 2> /dev/null | grep tray_count &> /dev/null && tmux kill-session -t tray_count
+tmux ls 2> /dev/null | grep depthcam &> /dev/null && tmux kill-session -t depthcam
+echo "Live sessions:"
+tmux ls 2> /dev/null || echo "No tmux sessions left running!"
+
 if [[ "${1}" == "kill" ]] ; then 
-	tmux ls  2> /dev/null | grep rq_worker &> /dev/null && tmux kill-session -t rq_worker 
-	tmux ls 2> /dev/null | grep tray_count &> /dev/null && tmux kill-session -t tray_count
-	tmux ls 2> /dev/null | grep depthcam &> /dev/null && tmux kill-session -t depthcam
-	echo "Live sessions:"
-	tmux ls 2> /dev/null || echo "No tmux sessions left running!"
 	exit 0
 fi
 
