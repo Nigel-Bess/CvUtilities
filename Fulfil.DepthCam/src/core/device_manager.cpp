@@ -135,17 +135,22 @@ std::shared_ptr<Session> DeviceManager::session_by_serial_number(const std::stri
 std::string DeviceManager::get_preset_by_camera_type(std::string_view camera_name) const{
     if (camera_name == "Intel RealSense D415"){
         auto D415_presets = in_frozen_env ? *DevicePresets::D415_frozen() : *DevicePresets::D415_high_accuracy();
+        fulfil::utils::Logger::Instance()->Info("{} using preset {}", camera_name, D415_presets);
         return D415_presets;
     }
     else if (camera_name == "Intel RealSense D455"){
-        return *DevicePresets::D455_adjusted();
+        auto D455_presets = *DevicePresets::D455_adjusted();
+        fulfil::utils::Logger::Instance()->Info("{} using preset {}", camera_name, D455_presets);
+        return D455_presets;
     }
     else if (camera_name == "Intel RealSense D457"){
         std::filesystem::path preset_base_dir = std::filesystem::path(fulfil::utils::Logger::default_logging_dir).parent_path().parent_path();
         preset_base_dir /= "Fulfil.DepthCam/src/presets/d457_adjustments.json";
         auto presets = parse_request_file_to_json(preset_base_dir);
+        fulfil::utils::Logger::Instance()->Info("{} using preset {}", camera_name, std::string(preset_base_dir));
         return presets.dump();
     }
+
     fulfil::utils::Logger::Instance()->Error("Did not load presets for advanced mode. Device neither D415, D455 "
                                                  "nor D457, but {}", camera_name);
     return "";

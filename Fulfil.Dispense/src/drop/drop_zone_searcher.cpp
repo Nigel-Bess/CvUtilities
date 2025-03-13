@@ -2142,15 +2142,30 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
                 float min_y_coord = map_square_row * square_height - bag_length/2;
                 float max_y_coord = (map_square_row + 1) * square_height - bag_length/2;
                 if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
-                  num_points_in_each.at(map_square_row).at(map_square_col)++;
-                    // get the "max depth"/"tallest"/"shallowest" point in that occupancy map grid square - the point closest to the mouth of the bag
-                    depth_map_so_far.at(map_square_row)->at(map_square_col) = std::max(depth_map_so_far.at(map_square_row)->at(map_square_col), local_z);
-                    // This log will spam the output, keeping here for easy uncommenting for debugging offline
-                    // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
-                    //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
+                    // if first point in the cell
+                    if (num_points_in_each.at(map_square_row).at(map_square_col) < 1) {
+                      num_points_in_each.at(map_square_row).at(map_square_col) = 1;
+                      depth_map_so_far.at(map_square_row)->at(map_square_col) = local_z;
+                    } else {
+                      num_points_in_each.at(map_square_row).at(map_square_col)++;
+                      // sum the total depth of all 
+                      depth_map_so_far.at(map_square_row)->at(map_square_col) += local_z;
+                      // This log will spam the output, keeping here for easy uncommenting for debugging offline
+                      // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
+                      //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
+                    }
                 }
             }
         }
+    }
+    for (int grid_square_col = 0; grid_square_col < num_cols; grid_square_col++) {
+      for (int grid_square_row = 0; grid_square_row < num_rows; grid_square_row++) {
+        int total_points_in_cell = num_points_in_each.at(grid_square_row).at(grid_square_col);
+        // get the "average depth"/"height"/"shallowness" point in that occupancy map grid square - the point's distance to the mouth of the bag
+        if (total_points_in_cell > 0) {
+          depth_map_so_far.at(grid_square_row)->at(grid_square_col) /= total_points_in_cell;
+        }
+      }
     }
     Logger::Instance()->Debug("Number of points per square: \n{}", grid_map_to_str_2(num_points_in_each));
     auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
