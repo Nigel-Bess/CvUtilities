@@ -41,7 +41,6 @@ services:
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
-      - "${COCO_DIR}:/coco-annotator"
     network_mode: "host"
     env_file:
       - path: .env
@@ -56,7 +55,6 @@ services:
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
-      - "${COCO_DIR}:/coco-annotator"
     network_mode: "host"
     env_file:
       - path: .env
