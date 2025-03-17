@@ -15,9 +15,9 @@ int main()
         bays.emplace(1, "192.168.1.163");
     }
     if (facilityStr == "pioneer") {
-        printf("Adding 1 Pioneer camera");
-        bays.emplace(1, "10.10.10.40");
-        bays.emplace(2, "10.10.10.76");
+        printf("Adding 2 Pioneer cameras");
+        bays.emplace(15, "10.10.10.40"); // installed to actually have a view of the grid 
+        bays.emplace(14, "10.10.10.76"); // is not installed to have a view of the grid, primarily for non-image algorithm testing
     }
     else if (facilityStr == "plm") {
         printf("Adding 11 PLM cameras");
