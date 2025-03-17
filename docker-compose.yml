@@ -7,6 +7,20 @@ services:
     profiles:
       - noop
 
+  # TCS commands
+  tcs_test:
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "Fulfil.TCS/build/unit_test"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    #volumes:
+    #  - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - tcs_test
+
   # Repack commands
   repack_test:
     build:
