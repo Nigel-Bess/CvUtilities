@@ -92,10 +92,10 @@ void VmbCamera::RunSetup(bool isInitSetup){
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
     // For now, do not take an init debug snapshot since it stirs the network
     // too much when connecting to all cameras at once
-    if (isInitSetup) {
+    /*if (isInitSetup) {
         GetImageBlocking();
         SaveLastImage(name_);
-    }
+    }*/
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
