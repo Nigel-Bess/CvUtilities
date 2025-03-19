@@ -1024,7 +1024,7 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     // upload tray validation data
     try 
     {
-        //save_tray_audit_image
+        //save_tray_audit_image for historical debugging and to be used by tray count api
         if (this->tray_manager->save_tray_audit_image(tray_validation_request.m_context, local_base_path, resize_factor, rotate_code, tray_width, tray_length, this->get_induction_cam_distance_from_tray()))
         {
             this->tray_manager->upload_tray_data(tray_validation_request.m_context, local_base_path, GCSSender(this->cloud_media_bucket, this->store_id));

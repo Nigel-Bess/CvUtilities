@@ -38,11 +38,11 @@ bool TrayManager::save_tray_audit_image(
         // rotate the image if needed
         if (rotate_code != nullptr)
         {
-            // crop image
-            crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
             cv::Mat rotated_image;
             cv::rotate(color_mat, rotated_image, *rotate_code);
             color_mat = rotated_image.clone();
+            // crop image as rotated image is too large for 
+            crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
         }
         if (scale_resize < 1 ){ cv::resize(color_mat, color_mat, cv::Size(), scale_resize, scale_resize); }
         std_filesystem::create_directories(tray_audit_local_file.parent_path());
@@ -55,8 +55,6 @@ bool TrayManager::save_tray_audit_image(
     return false;
 }
 
-// TODO the intention is to wrap this as a lambda, make free or include store_id
-//  in state? Considering a context params struct with path info
 int TrayManager::upload_tray_data(const comms_context::RequestContextInfo &request_context,
                                                           std::string local_root_path,
                                                           depthcam::data::GCSSender tray_gcs_sender) {
@@ -71,7 +69,7 @@ int TrayManager::upload_tray_data(const comms_context::RequestContextInfo &reque
 }
 
 #pragma endregion data_saving
-
+// sends query to tray count api using image saved to disk
 httplib::Result TrayManager::query_item_counts(
     const request_from_vlsg::TrayRequest &tray_request_obj,
     const std::vector<tray_count_api_comms::LaneCenterLine> &transformed_lane_center_pixels,
@@ -116,32 +114,44 @@ results_to_vlsg::TrayValidationCounts TrayManager::dispatch_request_to_count_api
 
 }
 
-// crop image
+// crop the induction tray image to be similar to the dispense tray image for dashboard UI purposes
 void TrayManager::crop_image(cv::Mat &input_image, float tray_width, float tray_length, int induction_cam_distance_from_tray)
 {
-    int width_offset = ((tray_width*1000.0f) * session->get_depth_stream_intrinsics()->fx) / (2*induction_cam_distance_from_tray);
-    int height_offset = ((tray_length*1000.0f) * session->get_depth_stream_intrinsics()->fy) / (2*induction_cam_distance_from_tray);
     // find the center of the image
     int center_x = input_image.cols / 2;
     int center_y = input_image.rows / 2;
+    float target_ratio = input_image.rows / input_image.cols;
     // define cropping dimensions
-    int crop_buffer = 100; // in pixels
-    int left_offset = width_offset + crop_buffer;
-    int right_offset = width_offset + crop_buffer;
-    int top_offset = height_offset + crop_buffer;
-    int bottom_offset = height_offset + crop_buffer;
-    // calculate the cropping rectangle boundaries
-    int x_start = center_x - left_offset;
-    int y_start = center_y - top_offset;
-    int crop_width = left_offset + right_offset;
-    int crop_height = top_offset + bottom_offset;
-    // ensure the cropping rectangle stays within the image bounds
-    x_start = std::max(0, x_start);
-    y_start = std::max(0, y_start);
-    crop_width = std::min(crop_width, input_image.cols - x_start);
-    crop_height = std::min(crop_height, input_image.rows - y_start);
+    int width_crop_padding = 250; // in pixels
+    int height_crop_padding = 175; // in pixels
+    int width_offset = ((tray_width*1000.0f) * center_x) / (2*induction_cam_distance_from_tray) + width_crop_padding;
+    int height_offset = ((tray_length*1000.0f) * center_y) / (2*induction_cam_distance_from_tray) + height_crop_padding;
+    // calculate and ensure the cropping rectangle stays within the image bounds
+    int x_start = std::max(0, center_x - width_offset);
+    int y_start = std::max(0, center_y - height_offset);
     // create the cropping rectangle (ROI)
-    cv::Rect roi(x_start, y_start, crop_width, crop_height);
+    cv::Rect roi(x_start, y_start, 2 * width_offset, 2 * height_offset);
     // crop the image
     input_image = input_image(roi).clone();
 }
+
+/*
+
+void TrayManager::label_lane_indices(cv::Mat &input_image, float tray_width, int induction_cam_distance_from_tray, centerlines, )
+{
+    int fontFace = cv::FONT_HERSHEY_SIMPLEX; // Font type
+    double fontScale = 1.0;  // Font size
+    int thickness = 2;       // Text thickness
+    cv::Scalar color(0, 255, 0); // Green color (B, G, R)
+
+    for lane in lanes:
+        std::string text = lane_id;
+         
+        // Position of text (x, y)
+        cv::Point position(50, 100);
+
+        // Add text to the image
+        cv::putText(image, text, position, fontFace, fontScale, color, thickness);
+    
+
+}*/
