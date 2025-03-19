@@ -69,10 +69,11 @@ void VmbCamera::RunSetup(bool isInitSetup){
         log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));
 
         SetFeature("PixelFormat", "BGR8");
-        SetFeature("ExposureAuto", "Once");
         SetFeature("Hue", -2.0);
         SetFeature("Saturation", 1.0);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
+        // TODO: Remove after confirmation this fixes the random high exposure issue
+        //SetFeature("ExposureAuto", "Once");
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
         //These values may need changes in future until a config is added
         if (CameraHasBrightView(name_)) {
             SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
@@ -91,10 +92,10 @@ void VmbCamera::RunSetup(bool isInitSetup){
     AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
     // For now, do not take an init debug snapshot since it stirs the network
     // too much when connecting to all cameras at once
-    /*if (isInitSetup) {
+    if (isInitSetup) {
         GetImageBlocking();
         SaveLastImage(name_);
-    }*/
+    }
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
