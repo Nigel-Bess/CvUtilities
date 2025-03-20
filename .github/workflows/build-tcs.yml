@@ -53,3 +53,12 @@ jobs:
           cache-to: type=gha,mode=max
           # See: https://github.com/docker/buildx/issues/1533
           provenance: false
+
+      - name: Run tests
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:latest || true
+          docker compose --profile tcs_test up

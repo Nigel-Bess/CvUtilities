@@ -3,11 +3,11 @@
 //
 
 #include <memory>
-#include "commands/tcs_error_codes.h"
+#include "commands/tcs/tcs_error_codes.h"
 
 
-using fulfil::dispense::commands::TCSError;
-using fulfil::dispense::commands::TCSErrorCodes;
+using fulfil::dispense::commands::tcs::TCSError;
+using fulfil::dispense::commands::tcs::TCSErrorCodes;
 
 // note: message param is optional and is default empty
 TCSError::TCSError(TCSErrorCodes status_code, const std::string& description) {

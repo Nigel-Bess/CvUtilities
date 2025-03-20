@@ -7,7 +7,7 @@
 
 #include <memory>
 
-namespace fulfil::dispense::commands {
+namespace fulfil::dispense::commands::tcs {
 
     /* error codes for TCS CV Algorithms */
     enum TCSErrorCodes {
@@ -65,5 +65,5 @@ namespace fulfil::dispense::commands {
 
         [[nodiscard]] const char* what() const noexcept override;
     };
-} // namespace fulfil::dispense::commands
+} // namespace fulfil::dispense::commands::tcs
 #endif //FULFIL_DISPENSE_TCS_ERROR_CODES_H

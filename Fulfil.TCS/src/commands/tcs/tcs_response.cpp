@@ -2,11 +2,11 @@
 // Created by Jess on 9/5/24.
 //
 
-#include "commands/tcs_response.h"
+#include "commands/tcs/tcs_response.h"
 #include <json.hpp>
 #include <iostream>
 
-using fulfil::dispense::commands::TCSResponse;
+using fulfil::dispense::commands::tcs::TCSResponse;
 using fulfil::utils::Logger;
 
 void TCSResponse::encode_payload()

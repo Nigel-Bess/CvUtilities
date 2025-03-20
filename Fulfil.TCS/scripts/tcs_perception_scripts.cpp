@@ -2,7 +2,7 @@
 #include <filesystem>
 
 using fulfil::utils::Logger;
-using fulfil::dispense::commands::TCSPerception;
+using fulfil::dispense::commands::tcs::TCSPerception;
 
 const auto reqDir = "Fulfil.TCS/data/by-id/";
 const auto testOutDir = "Fulfil.TCS/data/test/";
@@ -63,7 +63,7 @@ void testTCSPerception(std::string requestId) {
     Logger::Instance()->Info("Opening " + testCopy);
     auto image = std::make_shared<cv::Mat>(cv::imread(testCopy, cv::IMREAD_COLOR));
     //TCSPerception tcs_percep(std::make_shared<std::string>(lfb_generation));
-    //auto isReady = tcs_percep.is_bag_clips_closed(image, testOutDir + requestId + "/");
+    //auto isReady = tcs_percep.getBagClipStates(image, testOutDir + requestId + "/");
 
     //Logger::Instance()->Info("Img " + testCopy + " is_bag_empty: " + (isReady ? "true" : "false"));
 }
@@ -73,7 +73,7 @@ void testTCSPerception(std::string requestId) {
  */
 void test_marker_detection(std::string requestId) {
     setupRequestIdFiles(requestId);
-    /*auto aruco = TCSPerception::getTCSArucoTransforms();
+    /*auto aruco = TCSPerception::getTCSLFRTopViewAruco();
 
     auto requestImg = reqDir + requestId + "/color_image.jpeg";
     Logger::Instance()->Info("Opening " + requestImg);

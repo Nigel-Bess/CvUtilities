@@ -13,8 +13,8 @@ services:
       dockerfile: TCS.Dockerfile
     command: "Fulfil.TCS/build/unit_test"
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
-    #volumes:
-    #  - "./Fulfil.AlliedVision/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.AlliedVision/data"
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
     env_file:
       - path: .env
         required: false

@@ -26,17 +26,15 @@ add_subdirectory(../Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPU
 add_subdirectory(../third-party ${CMAKE_CURRENT_BINARY_DIR}/libs/third-party)
 
 # Build test run executable
-file(GLOB TEST_SOURCES "src/*.cpp" "src/aruco/*.cpp" "src/entrypoints/tcs_perception_test.cpp" "src/commands/*.cpp")
-add_executable(scripts ${TEST_SOURCES})
+file(GLOB SOURCES "src/commands/**/*.cpp" "src/*.cpp" "src/**/*.cpp")
+add_executable(scripts "scripts/tcs_perception_scripts.cpp" ${SOURCES})
 target_link_libraries(scripts Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
 set_target_properties(scripts PROPERTIES CXX_STANDARD 17)
 
 # Build main executable, main==prod and you'd know that if you're really from Fulfil
-file(GLOB SOURCES "src/*.cpp" "src/aruco/*.cpp" "src/entrypoints/main.cpp" "src/commands/*.cpp")
-add_executable(main ${SOURCES})
+add_executable(main "main.cpp" ${SOURCES})
 target_link_libraries(main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
 set_target_properties(main PROPERTIES CXX_STANDARD 17)
-
 
 # Test stuff
 include(FetchContent)
@@ -48,12 +46,11 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_executable(
-  unit_test
-  "src/entrypoints/tests.cpp"
+  unit_test ${SOURCES} "test/tests.cpp"
 )
 target_link_libraries(
-    unit_test
-  GTest::gtest_main
+    unit_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
 )
+set_target_properties(unit_test PROPERTIES CXX_STANDARD 17)
 include(GoogleTest)
 gtest_discover_tests(unit_test)

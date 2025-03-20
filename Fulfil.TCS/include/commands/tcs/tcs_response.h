@@ -9,7 +9,7 @@
 #include <iostream>
 #include <Fulfil.CPPUtils/logging.h>
 
-namespace fulfil::dispense::commands {
+namespace fulfil::dispense::commands::tcs {
   class TCSResponse final
   {
   private:
@@ -39,6 +39,6 @@ namespace fulfil::dispense::commands {
     // fields that are set outside of the constructor
     std::shared_ptr<std::string> payload;
   };
-} // namespace fulfil::dispense::commands
+} // namespace fulfil::dispense::commands::tcs
 
 #endif //FULFIL_DISPENSE_TCS_RESPONSE_H
