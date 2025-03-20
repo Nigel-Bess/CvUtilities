@@ -72,8 +72,8 @@ void VmbCamera::RunSetup(bool isInitSetup){
         SetFeature("Hue", -2.0);
         SetFeature("Saturation", 1.0);
         // TODO: Remove after confirmation this fixes the random high exposure issue
-        //SetFeature("ExposureAuto", "Once");
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//wait for auto exp to kick in
+        SetFeature("ExposureAuto", "Once");
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));//wait for auto exp to kick in
         //These values may need changes in future until a config is added
         if (CameraHasBrightView(name_)) {
             SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
@@ -173,6 +173,15 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     }
     auto err = VmbErrorCustom;
  
+    if (CameraHasBrightView(name_)) {
+        SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
+        SetFeature("Gamma", 0.5); //brightness factor
+    }
+    else {
+        SetFeature("ExposureTime", 19985.98);
+        SetFeature("Gamma", 0.6);
+    }
+
     VmbFrameStatusType frameStatus;
     log_->Info("reset frame {}", name_);
 
