@@ -192,7 +192,7 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                     if (repack_percep.success_code == RepackErrorCodes::Success)
                     {
                         log_->Info("About to run is_bot_ready_for_release");
-                        repack_percep.is_bot_ready_for_release(image, cam->name_, directory_path);
+                        repack_percep.is_bot_ready_for_release(image, *pkid, cam->name_, directory_path);
                         log_->Info("Results from is_bot_ready_for_release are success code: {}, is_bag_empty: {}, error_description: {}", 
                             repack_percep.success_code, 
                             repack_percep.is_bag_empty, 
