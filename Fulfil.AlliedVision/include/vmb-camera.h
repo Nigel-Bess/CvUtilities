@@ -40,6 +40,7 @@ class VmbCamera{
         void SetFeature(std::string feature, std::string value);
         void SetFeature(std::string feature, VmbInt64_t value);
         void SetFeature(std::string feature, double value);
+        void SetExposureSettings();
         void AdjustPacketSize();
         void AddCameraStatus(DepthCameras::DcCameraStatusCodes code);
         void RunSetup(bool isInitSetup);

@@ -42,6 +42,17 @@ bool VmbCamera::CameraHasBrightView(std::string name_) {
         or name_ == "RepackBay07" or name_ == "RepackBay09" or name_ == "RepackBay10");
 }
 
+void VmbCamera::SetExposureSettings() {
+    if (CameraHasBrightView(name_)) {
+        SetFeature("ExposureTime", 15000.0); //decreasing the exposure time to reduce the light falling on the lens
+        SetFeature("Gamma", 0.5); //brightness factor
+    }
+    else {
+        SetFeature("ExposureTime", 19985.98);
+        SetFeature("Gamma", 0.6);
+    }
+}
+
 void VmbCamera::RunSetup(bool isInitSetup){
     log_->Info("VmbCamera RunSetup on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
@@ -71,18 +82,15 @@ void VmbCamera::RunSetup(bool isInitSetup){
         SetFeature("PixelFormat", "BGR8");
         SetFeature("Hue", -2.0);
         SetFeature("Saturation", 1.0);
+        // Set initial exposure settings so they're consistent with post-auto-exposure
+        // tuning results??? Unconfirmed but if this line remains, probably so.
+        this->SetExposureSettings();
         // TODO: Remove after confirmation this fixes the random high exposure issue
         SetFeature("ExposureAuto", "Once");
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));//wait for auto exp to kick in
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));//wait for auto exp to kick in
         //These values may need changes in future until a config is added
-        if (CameraHasBrightView(name_)) {
-            SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
-            SetFeature("Gamma", 0.5); //brightness factor
-        }
-        else {
-            SetFeature("ExposureTime", 19985.98);
-            SetFeature("Gamma", 0.6);
-        }
+        // Override some exposure settings with known good values
+        this->SetExposureSettings();
         
         AdjustPacketSize();
         // Record image size for future frame allocation
@@ -173,14 +181,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     }
     auto err = VmbErrorCustom;
  
-    if (CameraHasBrightView(name_)) {
-        SetFeature("ExposureTime", 15000.0); //decresing the exposure time to reduce the light falling on the lens
-        SetFeature("Gamma", 0.5); //brightness factor
-    }
-    else {
-        SetFeature("ExposureTime", 19985.98);
-        SetFeature("Gamma", 0.6);
-    }
+    this->SetExposureSettings();
 
     VmbFrameStatusType frameStatus;
     log_->Info("reset frame {}", name_);
