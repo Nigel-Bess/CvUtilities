@@ -63,7 +63,7 @@ void testRepackPerception(std::string requestId) {
     Logger::Instance()->Info("Opening " + testCopy);
     auto image = std::make_shared<cv::Mat>(cv::imread(testCopy, cv::IMREAD_COLOR));
     RepackPerception repack_percep(std::make_shared<std::string>(lfb_generation));
-    auto isReady = repack_percep.is_bot_ready_for_release(image, "test", "test1", testOutDir + requestId + "/");
+    auto isReady = repack_percep.is_bot_ready_for_release(image, "test", "test1", 0, testOutDir + requestId + "/");
 
     Logger::Instance()->Info("Img " + testCopy + " is_bag_empty: " + (isReady ? "true" : "false"));
 }

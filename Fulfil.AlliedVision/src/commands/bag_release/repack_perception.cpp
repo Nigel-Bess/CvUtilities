@@ -349,7 +349,7 @@ bool RepackPerception::rgb_is_bag_empty_check(cv::Mat region_of_interest, std::s
     return bag_empty;
 }
 
-void RepackPerception::write_result_file(std::string labelFilename, std::string requestId, std::string cameraId, int markerCount) {
+void RepackPerception::write_result_file(std::string labelFilename, std::string requestId, std::string cameraId, int markerCount, int lfbId) {
     try {
         std::ofstream file(labelFilename);
         if (file.is_open())
@@ -361,6 +361,7 @@ void RepackPerception::write_result_file(std::string labelFilename, std::string 
             (*result_json)["requestId"] = requestId;
             (*result_json)["lfbGeneration"] = *bot_generation;
             (*result_json)["cameraId"] = cameraId;
+            (*result_json)["lfbId"] = lfbId;
             file << result_json->dump();
             file.close();
             // Note! Grafana dashboard relies on this, do not change in a back-compat breaking way
@@ -376,7 +377,7 @@ void RepackPerception::write_result_file(std::string labelFilename, std::string 
     }
 }
 
-bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string requestId, std::string cameraId, std::string directory_path)
+bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string requestId, std::string cameraId, int lfbId, std::string directory_path)
 {
     // Prep save results to local file
     std::string labelFilename = directory_path + "result.json";
@@ -401,7 +402,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
             this->success_code = homog->maxMatchesSeen > 0 ? (RepackErrorCodes::NotEnoughMarkersDetected) : (RepackErrorCodes::NoMarkersDetected);
             this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Could not find Aruco marker baseline, found: " + std::to_string(homog->maxMatchesSeen));
             Logger::Instance()->Error(this->error_description);
-            write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen);
+            write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
             return false;
         }
 
@@ -430,10 +431,10 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
         Logger::Instance()->Info("is_bot_ready_for_release took {}ms", duration);
 
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen);
+        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
 
         Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen);
+        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
         return this->is_bag_empty;
     }
     catch (const std::exception &e)
@@ -449,7 +450,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
         }
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen);
+        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
         return this->is_bag_empty;
     }
     catch (...)
@@ -466,6 +467,6 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);
         }
     }
-    write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen);
+    write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
     return this->is_bag_empty;
 }

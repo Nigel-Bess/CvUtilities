@@ -142,9 +142,9 @@ namespace fulfil::dispense::commands {
         * This is a check to make sure the bot is fully empty and no items or spills are present
         * @return a tuple with int representing the success_code, boolean value denoting is the bag empty and string for error description
         */
-        bool is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string requestId, std::string cameraId, std::string directory_path);
+        bool is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_image, std::string requestId, std::string cameraId, int lfbId, std::string directory_path);
 
-        void write_result_file(std::string labelFilename, std::string requestId, std::string cameraId, int markerCount);
+        void write_result_file(std::string labelFilename, std::string requestId, std::string cameraId, int markerCount, int lfbId);
 
 };
 
