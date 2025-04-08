@@ -434,7 +434,6 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
 
         Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
         return this->is_bag_empty;
     }
     catch (const std::exception &e)

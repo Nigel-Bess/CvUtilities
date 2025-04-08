@@ -204,6 +204,10 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                             repack_percep.success_code = cam->camera_error_code;
                             repack_percep.error_description = get_error_name_from_code((RepackErrorCodes)repack_percep.success_code) + " -> " +  cam->camera_error_description;
                         }
+                        // Re-run auto exposure just in case if no markers were found
+                        if (cam->camera_error_code == RepackErrorCodes::NoMarkersDetected) {
+                            cam->RunAutoExposure();
+                        }
                         log_->Debug("RepackPerception success code is {}, Not going to proceed with is_bot_ready_for_release", repack_percep.success_code);
                     }
                     

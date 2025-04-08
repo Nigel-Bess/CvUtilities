@@ -18,6 +18,7 @@ class VmbCamera{
         VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv);
         std::shared_ptr<cv::Mat> GetImageBlocking();
         void StartCamera();
+        void RunAutoExposure();
         void KillCamera();
         inline bool Connected(){ return connected_; }        
         VmbCPP::CameraPtr camera_;
@@ -37,6 +38,7 @@ class VmbCamera{
         std::string GetFeatureString(std::string fname);
         VmbInt64_t GetFeatureInt(std::string fname);
         double GetFeatureDouble(std::string fname);
+        void LogPingSuccess();
         void SetFeature(std::string feature, std::string value);
         void SetFeature(std::string feature, VmbInt64_t value);
         void SetFeature(std::string feature, double value);
