@@ -45,7 +45,7 @@ bool VmbCamera::CameraHasBrightView(std::string name_) {
 void VmbCamera::RunAutoExposure() {
     std::lock_guard<std::mutex> lock(_lifecycleLock); {
         SetFeature("ExposureAuto", "Once");
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));//wait for auto exp to kick in
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));//wait for auto exp to kick in
     }
 }
 

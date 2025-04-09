@@ -101,7 +101,7 @@ void VmbManager::RunManager(){
         if(!service_->IsConnected())continue;
         if(!service_->HasNewRequest())continue;
         auto request = service_->GetNextRequest();
-        std::thread(&VmbManager::HandleRequest, this, request).detach();
+        std::thread(&VmbManager::HandleRequest, this, request, 1).detach();
     }
     for(auto const & [ip, cam] : cameras_){
         cam->KillCamera();
@@ -143,7 +143,7 @@ bool VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
     }
 }
 
-void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request){
+void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request, int remainingRetries){
     auto startTime = std::chrono::steady_clock::now();
     
     std::string payload(request->message_data().data(), request->message_size());
@@ -198,16 +198,18 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request)
                             repack_percep.success_code, 
                             repack_percep.is_bag_empty, 
                             repack_percep.error_description);
+                        // Re-run auto exposure just in case if no markers were found
+                        if (remainingRetries > 0 && repack_percep.success_code == RepackErrorCodes::NoMarkersDetected) {
+                            log_->Warn("No markers found at {}, trying to reset exposure", cam->name_);
+                            cam->RunAutoExposure();
+                            return this->HandleRequest(request, remainingRetries-1);
+                        }
                     } else 
                     {
                         if (cam->camera_error_code != RepackErrorCodes::Success) {
                             repack_percep.success_code = cam->camera_error_code;
                             repack_percep.error_description = get_error_name_from_code((RepackErrorCodes)repack_percep.success_code) + " -> " +  cam->camera_error_description;
-                        }
-                        // Re-run auto exposure just in case if no markers were found
-                        if (cam->camera_error_code == RepackErrorCodes::NoMarkersDetected) {
-                            cam->RunAutoExposure();
-                        }
+                        } 
                         log_->Debug("RepackPerception success code is {}, Not going to proceed with is_bot_ready_for_release", repack_percep.success_code);
                     }
                     
