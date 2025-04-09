@@ -1,16 +1,16 @@
 //
-// Created by nkaffine on 12/11/19.
+// Created by jessv on 2/3/25.
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
 
-#ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
-#define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
+#ifndef FULFIL_CPPUTILS_INCLUDE_FULFIL_CPPUTILS_COMMANDS_DISPENSE_COMMAND_H_
+#define FULFIL_CPPUTILS_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
 
-namespace fulfil::dispense::commands
+namespace fulfil::utils::commands
 {
     /**
      * Enum that represents the type of commands that
-     * are handled by dispense.
+     * are handled by camera services.
      */
     enum class DispenseCommand
     {
@@ -59,6 +59,6 @@ namespace fulfil::dispense::commands
         /// Bag release image at repack cabinet
         bag_release = 35
     };
-} // namespace fulfil::dispense::commands
+} // namespace fulfil::utils::commands
 
-#endif //FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_DISPENSE_COMMAND_H_
+#endif //FULFIL_CPPUTILS_INCLUDE_FULFIL_CPPUTILS_COMMANDS_DISPENSE_COMMAND_H_

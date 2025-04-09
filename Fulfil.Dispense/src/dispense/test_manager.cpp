@@ -2,6 +2,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include <Fulfil.CPPUtils/commands/dispense_command.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.CPPUtils/logging.h>
@@ -14,7 +15,6 @@
 #include <Fulfil.Dispense/bays/bay_manager.h>
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/commands/content_response.h>
-#include <Fulfil.Dispense/commands/dispense_command.h>
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
@@ -54,7 +54,6 @@ using fulfil::depthcam::Session;
 using fulfil::dispense::bays::BayManager;
 using fulfil::dispense::commands::CodeResponse;
 using fulfil::dispense::commands::ContentResponse;
-using fulfil::dispense::commands::DispenseCommand;
 using fulfil::dispense::commands::DispenseJsonParser;
 using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseRequestParser;
@@ -76,6 +75,7 @@ using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::mongo::MongoTrayCalibration;
+using fulfil::utils::commands::DispenseCommand;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::ini::IniSectionReader;
 using fulfil::utils::Logger;
@@ -248,7 +248,7 @@ std::string TestManager::handle_get_state(std::shared_ptr<std::string> PrimaryKe
 void TestManager::handle_request(std::shared_ptr<std::string> payload, std::shared_ptr<std::string> command_id){
     std::cout << "payload---> " << payload.get()->c_str() << std::endl;
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload->c_str()));
-    auto type = (*request_json)["Type"].get<fulfil::dispense::commands::DispenseCommand>();
+    auto type = (*request_json)["Type"].get<DispenseCommand>();
     auto pkid =  std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
     std::shared_ptr<DispenseResponse> response;
     switch(type){

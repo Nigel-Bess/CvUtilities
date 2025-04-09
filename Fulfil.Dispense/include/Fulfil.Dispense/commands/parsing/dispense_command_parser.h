@@ -5,9 +5,10 @@
 
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_PARSING_DISPENSE_COMMAND_PARSER_H_
-#include <Fulfil.Dispense/commands/dispense_command.h>
 #include <memory>
 #include <json.hpp>
+#include <Fulfil.CPPUtils/commands/dispense_command.h>
+
 
 namespace fulfil::dispense::commands
 {
@@ -25,7 +26,7 @@ class DispenseCommandParser
    * @throws exception if the integer does not have a corresponding
    * command type.
    */
-  static fulfil::dispense::commands::DispenseCommand parse(int i);
+  static fulfil::utils::commands::DispenseCommand parse(int i);
   /**
    * Parses the command type from the provided json.
    * @param json containing the command type information (not necesarrily just
@@ -34,7 +35,7 @@ class DispenseCommandParser
    * @throws exception if the json either doesn't contain the command information
    * or the information doesn't correspond to a command type.
    */
-  static fulfil::dispense::commands::DispenseCommand parse(std::shared_ptr<nlohmann::json> json);
+  static fulfil::utils::commands::DispenseCommand parse(std::shared_ptr<nlohmann::json> json);
 };
 } // namespace commands
 

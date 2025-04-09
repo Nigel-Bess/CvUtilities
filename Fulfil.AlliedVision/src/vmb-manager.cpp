@@ -5,11 +5,15 @@
 #include <string.h>
 #include <tuple>
 #include "commands/bag_release/repack_perception.h"
+#include "commands/bag_release/bag_release_response.h"
 #include <filesystem>
 #include "commands/bag_release/repack_error_codes.h"
 #include <chrono>
+#include <Fulfil.CPPUtils/commands/dispense_command.h>
 
-using namespace fulfil::dispense::commands;
+using fulfil::utils::commands::DispenseCommand;
+using fulfil::dispense::commands::BagReleaseResponse;
+using fulfil::dispense::commands::RepackPerception;
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::get_error_name_from_code;
 
@@ -58,19 +62,8 @@ void VmbManager::RunManager(){
         log_->Error("Error GetCameras, failed with code {}!", GetVimbaCode(code));
     }
 
-    // VmbCPP::FeaturePtrVector feat;
-    // code = vmb_system.GetFeatures(feat);
-    // std::cout << GetVimbaCode(code) << std::endl;
-    // for(auto const & f : feat){
-    //     std::string name;
-    //     f->GetDisplayName(name);
-    //     std::cout << name << std::endl;
-
-    // }
     log_->Info("VmbManager startup successful");
     auto found = 0;
-    // CameraPtrVector cameras;
-    // code = vmb_system.GetCameras(cameras);
     for(auto const & [ip, cam] : cameras_){
         if(!RUN)break;
         for(auto t = 0; t < 5; t++){

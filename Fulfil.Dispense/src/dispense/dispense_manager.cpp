@@ -1,5 +1,6 @@
 #include <memory>
 
+#include <Fulfil.CPPUtils/commands/dispense_command.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
@@ -9,7 +10,6 @@
 #include <Fulfil.DepthCam/mocks.h>
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/commands/content_response.h>
-#include <Fulfil.Dispense/commands/dispense_command.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_response.h>
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
@@ -36,7 +36,6 @@ using fulfil::depthcam::data::UploadGenerator;
 using fulfil::depthcam::mocks::MockSession;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::dispense::DispenseManager;
-using fulfil::dispense::commands::DispenseCommand;
 using fulfil::dispense::commands::DispenseJsonParser;
 using fulfil::dispense::commands::DispenseRequest;
 using fulfil::dispense::commands::DispenseRequestParser;
@@ -60,6 +59,7 @@ using fulfil::dispense::tray::Tray;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::commands::DispenseCommand;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::Logger;
 using fulfil::utils::ini::IniSectionReader;
@@ -195,7 +195,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
 {
     std::cout << "payload---> " << payload.get()->c_str() << std::endl;
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload->c_str()));
-    auto type = (*request_json)["Type"].get<fulfil::dispense::commands::DispenseCommand>();
+    auto type = (*request_json)["Type"].get<DispenseCommand>();
 
     auto pkid = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
     std::shared_ptr<DispenseResponse> response;

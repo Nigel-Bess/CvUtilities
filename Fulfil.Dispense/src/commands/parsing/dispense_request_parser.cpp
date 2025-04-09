@@ -51,6 +51,7 @@ using fulfil::dispense::commands::errors::InvalidCommandFormatException;
 using fulfil::dispense::commands::SideDispenseTargetRequest;
 using fulfil::dispense::commands::PostSideDispenseRequest;
 using fulfil::dispense::commands::PreSideDispenseRequest;
+using fulfil::utils::commands::DispenseCommand;
 
 
 DispenseRequestParser::DispenseRequestParser(std::shared_ptr<DispenseRequestJsonParser> parser)
