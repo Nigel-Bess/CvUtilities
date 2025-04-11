@@ -209,6 +209,16 @@ std::string get_eigen_stats(Eigen::Matrix3Xd point_cloud){
     return out_msg.str();
 }
 
+
+std::shared_ptr<LfbVisionConfiguration> DropManager::get_lfb_vision_config() {
+    Logger::Instance()->Debug("Getting lfb_vision_config from the mongo bag state");
+    if (!this->mongo_bag_state or this->mongo_bag_state->GetStateAsJson().is_null()) {
+        throw DcApiError(DcApiErrorCode::MissingBagStateOrLfbConfig, std::string("No bag state or lfb vision config has been generated yet, has it been sent over from FC yet?"));
+    }
+    return this->mongo_bag_state->raw_mongo_doc->Config;
+}
+
+#pragma region request_handling
 std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlohmann::json> request_json,
                                  std::shared_ptr<fulfil::dispense::commands::DropTargetDetails> details,
                                  const std::shared_ptr<std::string> &base_directory_input,
@@ -219,7 +229,6 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
     Logger::Instance()->Debug("Handle_Drop_Request called in drop_manager.cpp");
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
     this->searcher->PKID = PrimaryKeyID;
-    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
 
     std_filesystem::path base_directory = make_media::paths::join_as_path(
       (base_directory_input) ? *base_directory_input: "","Drop_Camera", PrimaryKeyID, "Drop_Target_Image");
@@ -232,8 +241,9 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
     Logger::Instance()->Debug("about to lock session");
     try
     {
-        //this->session->set_emitter(true); //turn on emitter for imaging
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
 
+        //this->session->set_emitter(true); //turn on emitter for imaging
         this->session->refresh();
         //this->session->set_emitter(false); //turn off emitter after imaging
 
@@ -287,8 +297,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
     catch (DcApiError & e)
     {
         DcApiErrorCode error_id = e.get_status_code();
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
-
+        Logger::Instance()->Error("DropManager failed handling drop request: {}", e.what());
         // TODO: should pre_target be generated as well? will that overwrite if already written or append
         generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
         return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
@@ -314,7 +323,6 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
                                                               bool generate_data)
 {
     std::string PrimaryKeyID = (*request_json)["Primary_Key_ID"].get<std::string>();
-    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
     auto timer = fulfil::utils::timing::Timer("DropManager::handle_post_LFR for " + PrimaryKeyID);
     auto time_stamp = make_media::paths::get_datetime_str();
 
@@ -325,8 +333,9 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
 
   try
   {
-    Logger::Instance()->Trace("Refresh Session Called in Dispense Manager -> Handle Post Dispense");
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
 
+    Logger::Instance()->Trace("Refresh Session Called in Dispense Manager -> Handle Post Dispense");
     this->session->refresh(); //need to refresh the session to get updated frames
 
     //get image for live viewer
@@ -387,7 +396,6 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
 
 std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyID)
 {
-  std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
   std::shared_ptr<MarkerDetectorContainer> cached_pre_container = this->cached_pre_container;
   std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
   std::shared_ptr<nlohmann::json> cached_pre_request_json = this->cached_pre_request;
@@ -416,6 +424,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyI
 
   try
   {
+    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
     Logger::Instance()->Debug("Executing Pre/Post Comparison now");
     //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
     std::shared_ptr<cv::Mat> result_mat = nullptr;
@@ -511,7 +520,6 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyI
 
 std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json)
 {
-    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
     // TODO why is this assigned a shadowing name? Why assign to a new ptr at all? It does not appear to be copied or overwritten?
     std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
 
@@ -525,6 +533,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
     }
 
     try {
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
         Logger::Instance()->Debug("DropManager: Executing Check for Remaining Products Fit In Bag Now");
         auto products_to_check = (*request_json)["Remaining_Products_To_Pack"];
         Logger::Instance()->Info("DropManager: Check Products for Fit in Bag: found {} products to analyze", products_to_check.size());
@@ -602,7 +611,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
              this->session->get_color_mat(), ViewerImageType::LFB_Pre_Dispense, *primary_key_id);
 
         // depth & marker container
-        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
         Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
 
         Logger::Instance()->Debug("Getting container for algorithm now");
@@ -644,7 +653,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
     catch (DcApiError & e)
     {
         DcApiErrorCode error_id = e.get_status_code();
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+        Logger::Instance()->Error("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
@@ -692,7 +701,8 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
              this->session->get_color_mat(), ViewerImageType::LFB_Post_Dispense, *primary_key_id);
 
         // get lfb vision config
-        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
+        Logger::Instance()->Debug("Getting LfbVisionConfiguration");
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
         Logger::Instance()->Debug("LfbVisionConfiguration Generation: {}", lfb_vision_config->lfb_generation);
 
         Logger::Instance()->Debug("Getting container for algorithm now");
@@ -733,7 +743,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
     catch (DcApiError & e)
     {
         DcApiErrorCode error_id = e.get_status_code();
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
+        Logger::Instance()->Error("DropManager failed handling drop request: {}", e.what());
 
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
     }
@@ -750,7 +760,6 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
 
 int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
 {
-    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->mongo_bag_state->raw_mongo_doc->Config;
     std::shared_ptr<MarkerDetectorContainer> cached_pre_container = this->cached_pre_container;
     std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
     std::shared_ptr<nlohmann::json> cached_pre_request_json = this->cached_pre_request;
@@ -772,6 +781,8 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
 
     try
     {
+        std::shared_ptr<LfbVisionConfiguration> lfb_vision_config = this->get_lfb_vision_config();
+
         Logger::Instance()->Info("Executing Pre/Post Comparison now");
         //this->session->lock(); //necessary to prevent Video_Generator interference with unaligned frames //TODO: is this necessary here? Everything is cached??
         std::shared_ptr<cv::Mat> result_mat = nullptr;
@@ -793,3 +804,4 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
         return -1;
     }
 }
+#pragma endregion request_handling

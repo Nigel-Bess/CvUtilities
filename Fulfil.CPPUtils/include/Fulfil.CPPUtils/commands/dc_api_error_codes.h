@@ -62,6 +62,8 @@ namespace fulfil::utils::commands::dc_api_error_codes {
         EmptyPostImage = 24,
         /* Frame refresh error */
         FrameRefreshError = 25,
+        /* Missing bag state or lfb vision configuration */
+        MissingBagStateOrLfbConfig = 26,
         /* UnrecoverableRealSenseError */
         UnrecoverableRealSenseError = 255,
         /* CommandDelegateExpired */
@@ -125,6 +127,8 @@ namespace fulfil::utils::commands::dc_api_error_codes {
                 return "EmptyPostImage";
             case DcApiErrorCode::FrameRefreshError:
                 return "FrameRefreshError";
+            case DcApiErrorCode::MissingBagStateOrLfbConfig:
+                return "MissingBagStateOrLfbConfig";
             case DcApiErrorCode::UnrecoverableRealSenseError:
                 return "UnrecoverableRealSenseError";
             case DcApiErrorCode::CommandDelegateExpired:

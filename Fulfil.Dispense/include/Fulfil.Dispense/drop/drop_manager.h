@@ -93,6 +93,8 @@ class DropManager
                                                     std::string error_code_file, bool anomaly_detected,
                                                     bool item_on_ground, float floor_analysis_confidence_score, int error_code);
 
+  std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> get_lfb_vision_config();
+
   /**
    * Processes the given drop request and returns a drop result.
    * @param request containing details on requirements for drop location

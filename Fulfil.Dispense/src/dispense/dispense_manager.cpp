@@ -629,9 +629,9 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
 
         Logger::Instance()->Debug("Getting container for caching now");
         std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->LFB_session);
-        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->drop_manager->mongo_bag_state->raw_mongo_doc->Config,
+        std::shared_ptr<MarkerDetectorContainer> container = this->drop_manager->searcher->get_container(this->drop_manager->get_lfb_vision_config(),
                                                                                                          mock_session_pre,
-                                                                                                         this->drop_manager->mongo_bag_state->raw_mongo_doc->Config->extend_depth_analysis_over_markers);
+                                                                                                         this->drop_manager->get_lfb_vision_config()->extend_depth_analysis_over_markers);
 
         this->drop_manager->cached_pre_container = container;  // cache for potential use in prepostcomparison later
         this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
