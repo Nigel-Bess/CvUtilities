@@ -3,17 +3,17 @@
 // Copyright (c) 2019 Fulfil Solutions, Inc. All rights reserved.
 //
 
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_request.h>
 #include <Fulfil.Dispense/commands/dispense_request_delegate.h>
 #include <Fulfil.Dispense/commands/drop_target/drop_target_response.h>
-#include "Fulfil.Dispense/dispense/drop_error_codes.h"
 #include <Fulfil.DepthCam/visualization.h>
 
 
 using fulfil::dispense::commands::DropTargetRequest;
 using fulfil::dispense::commands::DropTargetDetails;
 using fulfil::dispense::commands::DispenseRequestDelegate;
-using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 
 
 DropTargetRequest::DropTargetRequest(std::shared_ptr<std::string> command_id,
@@ -53,7 +53,7 @@ std::shared_ptr<fulfil::dispense::commands::DispenseResponse> fulfil::dispense::
   else
   {
     std::cout << "DropTarget Command Delegate Expired" << std::endl;
-    return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->request_id, DropTargetErrorCodes::CommandDelegateExpired, "DispenseRequestDelegate expired");
+    return std::make_shared<fulfil::dispense::commands::DropTargetResponse>(this->request_id, DcApiErrorCode::CommandDelegateExpired, "DispenseRequestDelegate expired");
   }
 }
 

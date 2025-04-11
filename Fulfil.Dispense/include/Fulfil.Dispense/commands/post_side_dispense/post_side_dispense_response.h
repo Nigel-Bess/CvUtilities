@@ -4,10 +4,11 @@
 
 #ifndef FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
 #define FULFIL_COMPUTERVISION_POST_SIDE_DISPENSE_RESPONSE_H
-#include <Fulfil.Dispense/commands/dispense_response.h>
-#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
+#include <Fulfil.Dispense/commands/dispense_response.h>
+
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 
 namespace fulfil::dispense::commands {
     class PostSideDispenseResponse final : public fulfil::dispense::commands::DispenseResponse
@@ -25,7 +26,7 @@ namespace fulfil::dispense::commands {
         int bag_full_percent{0};
         int item_on_target_percent{0};
         std::vector<int> products_to_overflow{};
-        SideDispenseErrorCodes success_code{SideDispenseErrorCodes::Success};
+        DcApiErrorCode success_code{DcApiErrorCode::Success};
         std::string error_description{};
 
         explicit PostSideDispenseResponse(std::shared_ptr<std::string> request_id,
@@ -33,7 +34,7 @@ namespace fulfil::dispense::commands {
             std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
             float square_width,
             float square_height,
-            SideDispenseErrorCodes success_code,
+            DcApiErrorCode success_code,
             std::string error_description,
             int items_dispensed);
         int dispense_payload_size() override;

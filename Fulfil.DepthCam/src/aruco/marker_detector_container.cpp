@@ -23,6 +23,8 @@ using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::depthcam::Session;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::eigen::Matrix3XdFilter;
 using fulfil::utils::eigen::Matrix3dPoint;
 using fulfil::utils::Logger;
@@ -437,8 +439,7 @@ void MarkerDetectorContainer::setup_cached_container()
     if(num_detections == 0)
     {
       Logger::Instance()->Error("No Valid Markers Found; Cam: LFB");
-      //Todo: @Jess make actual DepthCam error class / cleaner fix for this so we can avoid the thrown int
-      throw std::make_tuple(1, std::string("No markers detected"));
+      throw DcApiError(DcApiErrorCode::NoMarkersDetected, std::string("No markers detected"));
     }
     else
     {
@@ -447,7 +448,7 @@ void MarkerDetectorContainer::setup_cached_container()
       std::string error_descrip = "Number of markers detected: " + std::to_string(num_detections) +
               ", but minimum amount of markers needed: " + std::to_string(this->min_marker_count_for_validation) + 
               ", out of total number of markers: " + std::to_string(num_markers);
-      throw std::make_tuple(2, error_descrip);
+      throw DcApiError(DcApiErrorCode::NotEnoughMarkersDetected, error_descrip);
     }
   }
 

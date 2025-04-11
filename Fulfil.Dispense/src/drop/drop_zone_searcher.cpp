@@ -2,6 +2,7 @@
 #include <memory>
 #include <tuple>
 #include <vector>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/conversions.h>
 #include <Fulfil.CPPUtils/eigen.h>
 #include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
@@ -9,9 +10,7 @@
 #include <Fulfil.DepthCam/frame/image_comparison.h>
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/visualization.h>
-#include "Fulfil.Dispense/dispense/dispense_manager.h"
-#include "Fulfil.Dispense/dispense/drop_error_codes.h"
-#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
+#include <Fulfil.Dispense/dispense/dispense_manager.h>
 #include <Fulfil.Dispense/drop/drop_grid.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
@@ -28,16 +27,14 @@ using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::visualization::SessionVisualizer;
 using fulfil::dispense::commands::DropTargetDetails;
-using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
-using fulfil::dispense::drop_target_error_codes::DropTargetError;
 using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
 using fulfil::dispense::drop::SideDropResult;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::convert_map_to_millimeters;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
@@ -149,8 +146,8 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   {
     Logger::Instance()->Error("Invalid Drop Item Dimensions Provided; Vars: Length = {}, Width = {}, Height = {}; Cam: LFB",
                               shadow_height, shadow_width, shadow_length);
-    this->success_code = DropTargetErrorCodes::InvalidItemDimensions;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemDimensions,
+    this->success_code = DcApiErrorCode::InvalidItemDimensions;
+    throw DcApiError(DcApiErrorCode::InvalidItemDimensions,
                           "Item dimensions provided: {Length = " + std::to_string(shadow_height) +
                           ", Width = " + std::to_string(shadow_width) +
                           ", Height = " + std::to_string(shadow_length) + "}");
@@ -166,8 +163,8 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   if(details->limit_left < 0 or details->limit_right < 0 or details->limit_front < 0 or details->limit_back < 0)
   {
     Logger::Instance()->Error("Invalid Limit value provided in pre-dispense request input, check json file for more info");
-    this->success_code = DropTargetErrorCodes::InvalidBotSideLimitValue;
-    throw DropTargetError(DropTargetErrorCodes::InvalidBotSideLimitValue,
+    this->success_code = DcApiErrorCode::InvalidBotSideLimitValue;
+    throw DcApiError(DcApiErrorCode::InvalidBotSideLimitValue,
                           "Limits provided: {Left = " + std::to_string(details->limit_left) +
                           ", Right = " + std::to_string(details->limit_right) +
                           ", Back = " + std::to_string(details->limit_back) +
@@ -184,8 +181,8 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   if(details->item_mass <= 0.0)
   {
     Logger::Instance()->Error("Invalid Item Mass: {}", details->item_mass);
-    this->success_code = DropTargetErrorCodes::InvalidItemMass;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemMass,
+    this->success_code = DcApiErrorCode::InvalidItemMass;
+    throw DcApiError(DcApiErrorCode::InvalidItemMass,
                           "Item mass provided: " + std::to_string(details->item_mass));
   }
 
@@ -197,16 +194,16 @@ void DropZoneSearcher::check_inputs(float shadow_length,
           or details->remaining_platform > 0.400)  // TODO: where can these be defined and not hardcoded
   {
     Logger::Instance()->Error("Expected remaining_platform valid value for empty bag, instead received: {}", details->remaining_platform);
-    this->success_code = DropTargetErrorCodes::InvalidRemainingPlatformValue;
-    throw DropTargetError(DropTargetErrorCodes::InvalidRemainingPlatformValue,
+    this->success_code = DcApiErrorCode::InvalidRemainingPlatformValue;
+    throw DcApiError(DcApiErrorCode::InvalidRemainingPlatformValue,
                           "Remaining platform value provided: " + std::to_string(details->remaining_platform));
   }
 
   if(details->item_damage_code < 0 or details->item_damage_code > 25)
   {
     Logger::Instance()->Error("Invalid Item Material Code Provided in Json Request: {}", details->item_damage_code);
-    this->success_code = DropTargetErrorCodes::InvalidItemMaterialCode;
-    throw DropTargetError(DropTargetErrorCodes::InvalidItemMaterialCode,
+    this->success_code = DcApiErrorCode::InvalidItemMaterialCode;
+    throw DcApiError(DcApiErrorCode::InvalidItemMaterialCode,
                           "Item material code provided: " + std::to_string(details->item_damage_code));
   }
 
@@ -214,8 +211,8 @@ void DropZoneSearcher::check_inputs(float shadow_length,
   if (shadow_width > container_width or shadow_length > container_length)
   {
     Logger::Instance()->Error("Input item dimensions are larger than LFB container dimensions!");
-    this->success_code = DropTargetErrorCodes::ItemLargerThanBag;
-    throw DropTargetError(DropTargetErrorCodes::ItemLargerThanBag,
+    this->success_code = DcApiErrorCode::ItemLargerThanBag;
+    throw DcApiError(DcApiErrorCode::ItemLargerThanBag,
                           "Item dimentions provided: {Width = " + std::to_string(shadow_width) +
                           ", Height = " + std::to_string(shadow_length) +
                           "}. Container dimensions provided: {Width = " + std::to_string(container_width) +
@@ -276,8 +273,8 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   if(target_x > max_allowable_x)
   {
     Logger::Instance()->Error("Cannot Adjust Empty Bag Target due to item dimensions and Right Limit on bot. Rejecting bot");
-    this->success_code = DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits,
+    this->success_code = DcApiErrorCode::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits;
+    throw DcApiError(DcApiErrorCode::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits,
                           "Cannot Adjust Empty Bag Target due to item dimensions and Right Limit on bot. Rejecting bot");
   }
 
@@ -604,7 +601,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     if(percentage_white < empty_bag_threshold)
     {
       Logger::Instance()->Error("Bag Not Empty; Cam: LFB");
-      this->success_code = DropTargetErrorCodes::EmptyBagNotEmpty;
+      this->success_code = DcApiErrorCode::EmptyBagNotEmpty;
       this->error_description = "Percentage white = " + std::to_string(percentage_white) + ", which is < the empty bag threshold value of " + std::to_string(empty_bag_threshold);
     }
   }
@@ -635,9 +632,9 @@ std::shared_ptr<LocalPointCloud> DropZoneSearcher::apply_box_limits(std::shared_
   if( (max_target_y < min_target_y) or (max_target_x < min_target_x) )
   {
     Logger::Instance()->Error("Target limits do not appear to make sense. Check request input and algorithm calculations");
-    this->success_code = DropTargetErrorCodes::InvalidRequest;
+    this->success_code = DcApiErrorCode::InvalidRequest;
     this->error_description ="Target limits do not appear to make sense. Check request input and algorithm calculations";
-    throw DropTargetError(DropTargetErrorCodes::InvalidRequest, this->error_description);
+    throw DcApiError(DcApiErrorCode::InvalidRequest, this->error_description);
   }
 
   float upper_depth_limit = float(remaining_platform - shadow_height) + this->acceptable_height_above_marker_surface; //assuming item lands perfectly vertical, need to be able to lower enough to make acceptable height above marker surface
@@ -984,8 +981,8 @@ int DropZoneSearcher::check_bot_rotated(std::vector<std::shared_ptr<fulfil::dept
   if(num_markers < min_marker_count_for_validation)
   {
     Logger::Instance()->Error("Unexpected input to Check_Bot_Rotated function: not enough markers ({})! Need at least 3", num_markers);
-    this->success_code = DropTargetErrorCodes::NotEnoughMarkersDetected;
-    throw DropTargetError(DropTargetErrorCodes::NotEnoughMarkersDetected,
+    this->success_code = DcApiErrorCode::NotEnoughMarkersDetected;
+    throw DcApiError(DcApiErrorCode::NotEnoughMarkersDetected,
                           "Number of markers detected: " + std::to_string(num_markers)); //This should never happen
   }
 
@@ -1140,8 +1137,8 @@ void DropZoneSearcher::validate_marker_positions(bool nominal_bot_rotation, std:
     {
       Logger::Instance()->Error("Marker failed extra bound check; Marker number: {}, Value: {}, Min Bound: {}, Max Bound: {}, y_coordinate: {}",
                                 marker_id, value_to_compare, min_bound_check, max_bound_check, check_y_pixel_coordinates);
-      this->success_code = DropTargetErrorCodes::UnexpectedBagPosition;
-      throw DropTargetError(DropTargetErrorCodes::UnexpectedBagPosition,
+      this->success_code = DcApiErrorCode::UnexpectedBagPosition;
+      throw DcApiError(DcApiErrorCode::UnexpectedBagPosition,
                             "Marker failed extra bound check. Marker ID: " + std::to_string(marker_id) +
                             ", Value: " + std::to_string(value_to_compare) +
                             ", Min Bound: " + std::to_string(min_bound_check) +
@@ -1162,13 +1159,13 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   Logger::Instance()->Debug("Bag item count is: {}", details->bag_item_count);
   Logger::Instance()->Debug("Mass threshold is: {}", this->item_mass_threshold);
 
-  this->success_code = DropTargetErrorCodes::Success; //default code is success, can be changed later if there are errors along the way
+  this->success_code = DcApiErrorCode::Success; //default code is success, can be changed later if there are errors along the way
 
   if (this->force_error == 1)
   {
     Logger::Instance()->Error("Forced Error was thrown in Drop_Zone_Searcher, check main.ini drop_zone_searcher config");
-    this->success_code = DropTargetErrorCodes::AlgorithmFail_Bypass;
-    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_Bypass,
+    this->success_code = DcApiErrorCode::AlgorithmFail_Bypass;
+    throw DcApiError(DcApiErrorCode::AlgorithmFail_Bypass,
                           "Error forced by `force_error` being true");
   }
 
@@ -1244,8 +1241,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    */
   int bot_is_rotated = check_bot_rotated(*markers, use_y_coordinates_orientation_check, lfb_vision_config->min_marker_count_for_validation);
   if(bot_is_rotated == -1) {
-      this->success_code = DropTargetErrorCodes::CouldNotDetermineBotRotationStatus;
-      throw DropTargetError(DropTargetErrorCodes::CouldNotDetermineBotRotationStatus);
+      this->success_code = DcApiErrorCode::CouldNotDetermineBotRotationStatus;
+      throw DcApiError(DcApiErrorCode::CouldNotDetermineBotRotationStatus);
   }
 
   /**
@@ -1375,8 +1372,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     if (drop_grid_fit_check_result) {
       Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 3); Cam: LFB");
     }
-    this->success_code = DropTargetErrorCodes::NoViableTarget_BagIsFull;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull,
+    this->success_code = DcApiErrorCode::NoViableTarget_BagIsFull;
+    throw DcApiError(DcApiErrorCode::NoViableTarget_BagIsFull,
                           std::string("Volume of bag is greater than the full check threshold. ") +
                           "{Threshold comparison = " + std::to_string(threshold_comparison) +
                           ", Average detected depth = " + std::to_string(avg_detected_depth) +
@@ -1424,8 +1421,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   {
     Logger::Instance()->Error("All quadrants of bag could result in item - dispense conveyor collision. Bag too full");
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 4); Cam: LFB");
-    this->success_code = DropTargetErrorCodes::NoViableTarget_BagIsFull;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_BagIsFull,
+    this->success_code = DcApiErrorCode::NoViableTarget_BagIsFull;
+    throw DcApiError(DcApiErrorCode::NoViableTarget_BagIsFull,
                           std::string("All quadrants of bag could result in item - dispense conveyor collision. ") +
                           "Vars: { MaxZ inner bag: " + std::to_string(max_Z_points.overall.z) + ", MaxZ outer bag: " + std::to_string(max_Z_points.outer_overall.z) + ", Item length: " + std::to_string(details->item_length) + ", Item height: " + std::to_string(details->item_height) + ", Remaining platform: " + std::to_string(details->remaining_platform) + ", MaxProtrusionPredispense: " + std::to_string(allowed_item_overflow_pre_dispense) + " }");
   }
@@ -1442,7 +1439,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    */
   // if bag is empty: choose deterministic target of LFB. Otherwise, continue with target algorithm
   // note: this function is placed here after the adjust_depth_detections function so there are no missing visualizations and to allow for sanity checks that the bag is really empty.
-  if (bag_empty and this->success_code != DropTargetErrorCodes::EmptyBagNotEmpty)
+  if (bag_empty and this->success_code != DcApiErrorCode::EmptyBagNotEmpty)
   {
     std::shared_ptr<Point3D> XYZ_result = get_empty_bag_target(details, lfb_vision_config, shadow_length, shadow_width, LFB_cavity_height);
 
@@ -1490,8 +1487,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     Logger::Instance()->Error("No Viable Dispense Candidates; Cam: LFB");
     if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Target, this->PKID);
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 1); Cam: LFB");
-    this->success_code = DropTargetErrorCodes::NoViableTarget_NoSpaceForItem;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem,
+    this->success_code = DcApiErrorCode::NoViableTarget_NoSpaceForItem;
+    throw DcApiError(DcApiErrorCode::NoViableTarget_NoSpaceForItem,
                           "No remaining drop target candidates after applying the first filter based on item dimensions, container, and point cloud");
   }
 
@@ -1509,13 +1506,13 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
       if(mongo_bag_state->num_damage_rejections >= lfb_vision_config->max_allowable_damage_rejections)
       {
         Logger::Instance()->Warn("Bag Reached Max Num Damage Rejections: {}; Cam: LFB", lfb_vision_config->max_allowable_damage_rejections);
-        this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired;
-        throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired,
+        this->success_code = DcApiErrorCode::NoViableTarget_DamageRisk_PickupRequired;
+        throw DcApiError(DcApiErrorCode::NoViableTarget_DamageRisk_PickupRequired,
                               std::string("No remaining drop target candidates after applying the second filter based on ") +
                               "damage risk, and the bag has been rejected the max number of times: " + std::to_string(lfb_vision_config->max_allowable_damage_rejections));
       }
-      this->success_code = DropTargetErrorCodes::NoViableTarget_DamageRisk;
-      throw DropTargetError(DropTargetErrorCodes::NoViableTarget_DamageRisk,
+      this->success_code = DcApiErrorCode::NoViableTarget_DamageRisk;
+      throw DcApiError(DcApiErrorCode::NoViableTarget_DamageRisk,
                             std::string("No remaining drop target candidates after applying the second filter based on ") +
                             "damage risk. The bag has been rejected " + std::to_string(mongo_bag_state->num_damage_rejections) +
                             " times, and the max number of rejections is " + std::to_string(lfb_vision_config->max_allowable_damage_rejections));
@@ -1687,8 +1684,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
     Logger::Instance()->Error("No Valid Dispense Candidates; Cam: LFB");
     if (drop_grid_fit_check_result) Logger::Instance()->Error("Drop Grid Fit Check (Yes) disagrees with main algorithm (check 2); Cam: LFB");
     if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(this->session->get_color_mat(), ViewerImageType::LFB_Target, this->PKID);
-    this->success_code = DropTargetErrorCodes::NoViableTarget_NoSpaceForItem;
-    throw DropTargetError(DropTargetErrorCodes::NoViableTarget_NoSpaceForItem,
+    this->success_code = DcApiErrorCode::NoViableTarget_NoSpaceForItem;
+    throw DcApiError(DcApiErrorCode::NoViableTarget_NoSpaceForItem,
                           std::string("No valid drop target candidates remain after filtering on potential dispense arm collisions, ") +
                           "bot travel limits, dispense conveyor reach, etc. Pirouettes are allowed for this dispense: " + std::to_string(this->LFB_rotation_allowed) +
                           ", and this LFB has already rotated for this dispense: " + std::to_string(bot_is_rotated));
@@ -1746,8 +1743,8 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   if (abs(XYZ_result->x) > LFB_bag_width/2.0 | abs(XYZ_result->y) > LFB_bag_length/2.0 | abs(XYZ_result->z) > (0.45) | abs(max_Z_point.z) > (0.45))
   {
     Logger::Instance()->Error("Error: Target or MaxZ in bag not within expected bounds! X: {}, Y: {}, Z: {}, MaxZ: {}", XYZ_result->x, XYZ_result->y, XYZ_result->z, max_Z_point.z);
-    this->success_code = DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds;
-    throw DropTargetError(DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds,
+    this->success_code = DcApiErrorCode::AlgorithmFail_TargetOutOfBounds;
+    throw DcApiError(DcApiErrorCode::AlgorithmFail_TargetOutOfBounds,
                           "TargetZ or MaxZ is not within expected bounds. Values: { X = " + std::to_string(XYZ_result->x) +
                           ", Y = " + std::to_string(XYZ_result->y) +
                           ", Z = " + std::to_string(XYZ_result->z) +
@@ -2246,7 +2243,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
                                                 container,
                                                 square_width,
                                                 square_height,
-                                                SideDispenseErrorCodes::Success,
+                                                DcApiErrorCode::Success,
                                                 std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)
@@ -2255,7 +2252,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -2263,41 +2260,30 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
-    catch (SideDispenseError& e)
+    catch (DcApiError& e)
     {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
     }
-    // TODO - remove. this is horrible. sincerely, jess
-    catch (std::tuple<int, std::string> & e)
-    {
-        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
-        std::string error_desc = std::get<std::string>(e);
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
-
-        // TODO: should the occupancy map be written here?
-        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
-    }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }
 
@@ -2365,7 +2351,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                                                 container,
                                                 square_width,
                                                 square_height,
-                                                SideDispenseErrorCodes::Success,
+                                                DcApiErrorCode::Success,
                                                 std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)
@@ -2374,7 +2360,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -2382,40 +2368,29 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
-    catch (SideDispenseError& e)
+    catch (DcApiError& e)
     {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
     }
-    // TODO - remove. this is horrible. sincerely, jess
-    catch (std::tuple<int, std::string> & e)
-    {
-        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
-        std::string error_desc = std::get<std::string>(e);
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
-
-        // TODO: should the occupancy map be written here?
-        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
-    }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }

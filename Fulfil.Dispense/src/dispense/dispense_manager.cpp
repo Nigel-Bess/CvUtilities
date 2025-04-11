@@ -1,5 +1,6 @@
 #include <memory>
 
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/commands/dispense_command.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
@@ -14,13 +15,12 @@
 #include <Fulfil.Dispense/commands/error_response.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_json_parser.h>
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
+#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
-#include "Fulfil.Dispense/dispense/drop_error_codes.h"
 #include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
-#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 
@@ -52,13 +52,12 @@ using fulfil::dispense::commands::TrayViewResponse;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::SideDropResult;
-using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
-using fulfil::dispense::drop_target_error_codes::get_error_name_from_code;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
 using fulfil::dispense::tray::Tray;
 using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
+using fulfil::utils::commands::dc_api_error_codes::get_error_name_from_code;
 using fulfil::utils::commands::DispenseCommand;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::Logger;
@@ -474,7 +473,7 @@ std::shared_ptr<DropResult> DispenseManager::handle_drop_target(std::shared_ptr<
     if (!this->LFB_session)
     {
         Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Drop Target");
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::AlgorithmFail_Bypass,
+        return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::AlgorithmFail_Bypass,
                                             "No LFB Session: Bouncing Drop Camera Drop Target"); // Todo: move to throw/catch format, log data
     }
     // set cached drop_target fields back to nullptr
@@ -493,7 +492,7 @@ std::shared_ptr<DropResult> DispenseManager::handle_drop_target(std::shared_ptr<
         Logger::Instance()->Error("Drop Target - State Bag ID Mismatch; Vars: state_bag_id = {}; Cam: LFB; PKID: {}",
                                   this->bag_id, PrimaryKeyID);
         return std::make_shared<DropResult>(details->request_id,
-                                            DropTargetErrorCodes::BagIdMismatch,
+                                            DcApiErrorCode::BagIdMismatch,
                                             "Bag ID in drop target request is: `" + details->bag_id +
                                                 "` while Bag ID in the dispense manager is: `" + this->bag_id + "`"); // Todo: move to throw/catch format, log data
     }
@@ -523,19 +522,19 @@ std::shared_ptr<DropResult> DispenseManager::handle_drop_target(std::shared_ptr<
                                                               true, this->bot_already_rotated_for_current_dispense);
 
     // if algorithm failed with no drop target, upload available visualizations immediately
-    if (drop_result->success_code != DropTargetErrorCodes::Success and drop_result->success_code != DropTargetErrorCodes::EmptyBagNotEmpty)
+    if (drop_result->success_code != DcApiErrorCode::Success and drop_result->success_code != DcApiErrorCode::EmptyBagNotEmpty)
     {
         if (this->live_viewer != nullptr)
         {
             std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
             std::string error_line = "Target: Error ID " + std::to_string(drop_result->success_code);
             message->push_back(error_line);
-            std::string specific_error_message = get_error_name_from_code((DropTargetErrorCodes)drop_result->success_code);
+            std::string specific_error_message = get_error_name_from_code((DcApiErrorCode)drop_result->success_code);
             message->push_back(specific_error_message);
             std::cout << specific_error_message << std::endl;
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, PrimaryKeyID, true, message);
 
-            Logger::Instance()->Debug("Handle Drop Target Failed with code {}", get_error_name_from_code((DropTargetErrorCodes)drop_result->success_code));
+            Logger::Instance()->Debug("Handle Drop Target Failed with code {}", get_error_name_from_code((DcApiErrorCode)drop_result->success_code));
         }
     }
     else // case for valid drop target result without error
@@ -711,7 +710,7 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
                                                                           base_directory, request_id, true)
                                                                     : make_bounce_error();
     // pre-post compare (if applicable)
-    if (response->get_success_code() != DropTargetErrorCodes::Success)
+    if (response->get_success_code() != DcApiErrorCode::Success)
     {
         Logger::Instance()->Warn("Post drop analysis failed, will not do pre/post comparison.");
     }
@@ -1114,7 +1113,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
                                                          primary_key_id,
                                                          nullptr,
                                                          -1, -1,
-                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError,
+                                                         DcApiErrorCode::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
     }
     Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
@@ -1135,17 +1134,17 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, true);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
-        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, SideDispenseErrorCodes::Success);
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, DcApiErrorCode::Success);
 
     // if algorithm failed, upload available visualizations immediately
-    if (pre_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
+    if (pre_side_dispense_response->success_code != DcApiErrorCode::Success)
     {
         if (this->live_viewer != nullptr)
         {
             std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
             std::string error_line = "Target: Error ID " + std::to_string(pre_side_dispense_response->success_code);
             message->push_back(error_line);
-            std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)pre_side_dispense_response->success_code);
+            std::string specific_error_message = get_error_name_from_code((DcApiErrorCode)pre_side_dispense_response->success_code);
             message->push_back(specific_error_message);
             std::cout << specific_error_message << std::endl;
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, *primary_key_id, true, message);
@@ -1177,7 +1176,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
                                                          primary_key_id,
                                                          nullptr,
                                                          -1, -1,
-                                                         SideDispenseErrorCodes::UnrecoverableRealSenseError,
+                                                         DcApiErrorCode::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"), 1);
     }
     this->LFB_session->refresh();
@@ -1207,18 +1206,18 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
             side_drop_result->occupancy_map, 
             side_drop_result->square_width, 
             side_drop_result->square_height, 
-            SideDispenseErrorCodes::Success, 
+            DcApiErrorCode::Success, 
             "", 1);
 
     // if algorithm failed, upload available visualizations immediately
-    if (post_side_dispense_response->success_code != SideDispenseErrorCodes::Success)
+    if (post_side_dispense_response->success_code != DcApiErrorCode::Success)
     {
         if (this->live_viewer != nullptr)
         {
             std::shared_ptr<std::vector<std::string>> message = std::make_shared<std::vector<std::string>>();
             std::string error_line = "Target: Error ID " + std::to_string(post_side_dispense_response->success_code);
             message->push_back(error_line);
-            std::string specific_error_message = get_error_name_from_code((SideDispenseErrorCodes)post_side_dispense_response->success_code);
+            std::string specific_error_message = get_error_name_from_code((DcApiErrorCode)post_side_dispense_response->success_code);
             message->push_back(specific_error_message);
             Logger::Instance()->Error("Handle PostSideDispense Failed: {}!", specific_error_message);
             this->live_viewer->update_image(live_viewer->get_blank_visualization(), ViewerImageType::Info, *primary_key_id, true, message);

@@ -39,6 +39,6 @@ std::shared_ptr<DispenseResponse> PreSideDispenseRequest::execute()
     else
     {
         std::cout << "PreSideDispense Command Delegate Expired" << std::endl;
-        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, nullptr, -1, -1, SideDispenseErrorCodes::CommandDelegateExpired);
+        return std::make_shared<PreSideDispenseResponse>(this->request_id, this->PrimaryKeyID, nullptr, -1, -1, DcApiErrorCode::CommandDelegateExpired);
     }
 }

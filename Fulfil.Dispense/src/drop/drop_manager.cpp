@@ -1,6 +1,7 @@
 #include <experimental/filesystem>
 #include <memory>
 
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/point_3d.h>
@@ -9,11 +10,9 @@
 #include <Fulfil.DepthCam/core.h>
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/mocks.h>
-#include "Fulfil.Dispense/dispense/dispense_manager.h"
-#include "Fulfil.Dispense/dispense/drop_error_codes.h"
-#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
+#include <Fulfil.Dispense/dispense/dispense_manager.h>
 #include <Fulfil.Dispense/drop/drop_grid.h>
-#include "Fulfil.Dispense/drop/drop_manager.h"
+#include <Fulfil.Dispense/drop/drop_manager.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
 #include <Fulfil.Dispense/drop/pre_post_compare.h>
@@ -39,12 +38,11 @@ using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::DropZoneSearcher;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
 using fulfil::dispense::drop::SideDropResult;
-using fulfil::dispense::drop_target_error_codes::DropTargetErrorCodes;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::FileSystemUtil;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
@@ -269,7 +267,7 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -278,44 +276,34 @@ std::shared_ptr<DropResult> DropManager::handle_drop_request(std::shared_ptr<nlo
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
 
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::RecoverableRealSenseError, error_msg);
+        return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::NoMarkersDetected, error_description);
+        return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::NoMarkersDetected, error_description);
     }
-    catch (drop_target_error_codes::DropTargetError & e)
+    catch (DcApiError & e)
     {
-        DropTargetErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should pre_target be generated as well? will that overwrite if already written or append
         generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
         return std::make_shared<DropResult>(details->request_id, error_id, e.get_description());
     }
-    // TODO - remove. this is horrible. sincerely, jess
-    catch (std::tuple<int, std::string> & e)
-    {
-        DropTargetErrorCodes error_id = (DropTargetErrorCodes)std::get<int>(e);
-        std::string error_desc = std::get<std::string>(e);
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
-
-        generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
-        return std::make_shared<DropResult>(details->request_id, error_id, error_desc);
-    }
     catch (const std::exception & e)
     {
         std::string error_desc = std::string("Unspecified failure from DropManager handling drop request with error:\n") + e.what();
         Logger::Instance()->Error(error_desc);
-        return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError,
+        return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::UnspecifiedError,
                                             error_desc);
     }
     catch (...)
     {
       Logger::Instance()->Error("Unspecified failure from DropManager handling drop request");
-      return std::make_shared<DropResult>(details->request_id, DropTargetErrorCodes::UnspecifiedError, "In `catch (...)` block in drop_manager");
+      return std::make_shared<DropResult>(details->request_id, DcApiErrorCode::UnspecifiedError, "In `catch (...)` block in drop_manager");
     }
 }
 
@@ -386,13 +374,13 @@ std::shared_ptr<PostLFRResponse> DropManager::handle_post_LFR(std::shared_ptr<nl
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}", e.what());
 
-    return std::make_shared<PostLFRResponse>(request_id, 10);
+    return std::make_shared<PostLFRResponse>(request_id, DcApiErrorCode::UnspecifiedError);
   }
   catch (...)
   {
     Logger::Instance()->Error("Unspecified failure from DropManager handling drop request ");
 
-    return  std::make_shared<PostLFRResponse>(request_id, 10);
+    return  std::make_shared<PostLFRResponse>(request_id, DcApiErrorCode::UnspecifiedError);
   }
 }
 
@@ -636,7 +624,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -644,42 +632,31 @@ std::shared_ptr<SideDropResult> DropManager::handle_pre_side_dispense_request(st
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
     // TODO these catch statements should just be realsense and general exceptions right?
-    catch (SideDispenseError & e)
+    catch (DcApiError & e)
     {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
     }
-    // TODO - remove. this is horrible. sincerely, jess
-    catch (std::tuple<int, std::string> & e)
-    {
-        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
-        std::string error_desc = std::get<std::string>(e);
-        Logger::Instance()->Info("DropManager failed handling drop request: {}", error_desc);
-
-        // TODO: should the occupancy map be written here?
-        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
-    }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }
 
@@ -728,7 +705,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
         if (cached_post_container == cached_pre_container) {
             Logger::Instance()->Debug("Caching not done correctly! Pre and Post container are same");
         }
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::Success, std::string(""));
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::Success, std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)
     {
@@ -736,7 +713,7 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -744,39 +721,30 @@ std::shared_ptr<SideDropResult> DropManager::handle_post_side_dispense_request(s
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
     // TODO these catch statements should just be realsense and general exceptions right?
-    catch (SideDispenseError & e)
+    catch (DcApiError & e)
     {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
     }
-    // TODO - remove. this is horrible. sincerely, jess
-    catch (std::tuple<int, std::string> & e)
-    {
-        SideDispenseErrorCodes error_id = (SideDispenseErrorCodes)std::get<int>(e);
-        std::string error_desc = std::get<std::string>(e);
-        Logger::Instance()->Info("DropManager failed handling post side request: {}", error_desc);
-        //generate_drop_target_result_data(generate_data, target_file, error_code_file, -1, -1, error_id);
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, error_desc);
-    }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling post side request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling post side request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, SideDispenseErrorCodes::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }
 
@@ -813,9 +781,9 @@ int DropManager::handle_pre_post_compare_side_dispense(std::string PrimaryKeyID)
 
         return comparison_result;
     }
-    catch (SideDispenseError& e)
+    catch (DcApiError& e)
     {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Error("Unspecified failure from Pre/Post Comparison handling:\n{}", e.get_description());
         return -1;
     }

@@ -49,7 +49,7 @@ PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> re
                                                  std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                                  float square_width,
                                                  float square_height,
-                                                 SideDispenseErrorCodes success_code,
+                                                 DcApiErrorCode success_code,
                                                  std::string error_description) : request_id(request_id),
     primary_key_id(primary_key_id),
     occupancy_map(occupancy_map),

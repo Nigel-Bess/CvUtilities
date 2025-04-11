@@ -6,6 +6,7 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_DISPENSE_DISPENSE_MANAGER_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_DISPENSE_DISPENSE_MANAGER_H_
 #include <memory>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.CPPUtils/processing_queue.h>
 #include <Fulfil.CPPUtils/networking/socket_network_manager.h>
@@ -18,11 +19,10 @@
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
-#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
 #include <Fulfil.Dispense/drop/drop_manager.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/tray/tray_manager.h>
-#include "Fulfil.Dispense/commands/parsing/tray_parser.h"
+#include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
 namespace fulfil::dispense {

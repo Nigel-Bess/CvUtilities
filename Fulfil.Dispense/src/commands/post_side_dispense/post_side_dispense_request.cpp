@@ -39,7 +39,7 @@ std::shared_ptr<DispenseResponse> PostSideDispenseRequest::execute()
                                                          this->PrimaryKeyID,
                                                          nullptr,
                                                          -1, -1,
-                                                         SideDispenseErrorCodes::CommandDelegateExpired,
+                                                         DcApiErrorCode::CommandDelegateExpired,
                                                          "", 1);
     }
 }

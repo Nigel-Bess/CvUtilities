@@ -10,12 +10,13 @@
 #include <string>
 #include <memory>
 
-#include <eigen3/Eigen/Geometry>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.DepthCam/aruco/marker_detector.h>
 #include <Fulfil.DepthCam/aruco/container.h>
 #include <Fulfil.DepthCam/core/session.h>
 #include <Fulfil.DepthCam/point_cloud/point_cloud.h>
 #include <Fulfil.DepthCam/aruco.h>
+#include <eigen3/Eigen/Geometry>
 
 namespace fulfil
 {

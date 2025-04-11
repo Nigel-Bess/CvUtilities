@@ -53,7 +53,7 @@ PostSideDispenseResponse::PostSideDispenseResponse(
     std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
     float square_width,
     float square_height,
-    SideDispenseErrorCodes success_code,
+    DcApiErrorCode success_code,
     std::string error_description,
     int items_dispensed) :
     request_id(request_id),

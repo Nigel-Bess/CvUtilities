@@ -1,18 +1,21 @@
-#include<memory>
-#include<vector>
-#include "Fulfil.Dispense/drop/drop_zone_searcher.h"
-#include "Fulfil.Dispense/drop/pre_post_compare.h"
-#include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
-#include <Fulfil.DepthCam/point_cloud.h>
-#include "Fulfil.Dispense/drop/drop_grid.h"
-#include<Fulfil.DepthCam/visualization.h>
-#include <Fulfil.Dispense/drop/drop_result.h>
-#include <Fulfil.Dispense/visualization/live_viewer.h>
-#include "Fulfil.Dispense/dispense/side_dispense_error_codes.h"
-#include <Fulfil.CPPUtils/logging.h>
+
 #include <tuple>
 #include <bits/stdc++.h>
+#include <memory>
+#include <vector>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
+#include <Fulfil.CPPUtils/eigen/matrix3d_predicate.h>
+#include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.DepthCam/point_cloud.h>
+#include <Fulfil.DepthCam/visualization.h>
+#include <Fulfil.Dispense/drop/drop_grid.h>
+#include <Fulfil.Dispense/drop/drop_result.h>
+#include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/drop/pre_post_compare.h>
+#include <Fulfil.Dispense/visualization/live_viewer.h>
 
+
+using fulfil::configuration::lfb::LfbVisionConfiguration;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
@@ -25,10 +28,9 @@ using fulfil::dispense::drop::DropGrid;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::PrePostCompare;
 using fulfil::dispense::drop::pre_post_compare_error_codes::PrePostCompareErrorCodes;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseError;
 using fulfil::dispense::visualization::LiveViewer;
-using fulfil::configuration::lfb::LfbVisionConfiguration;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 
@@ -363,11 +365,11 @@ int PrePostCompare::populate_class_variables_side_dispense(std::shared_ptr<Marke
 
     if (this->pre_color_img.size().empty()) {
         Logger::Instance()->Error("Received empty pre image for pre-post compare!");
-        throw(SideDispenseErrorCodes::EmptyPreImage);
+        throw(DcApiErrorCode::EmptyPreImage);
     }
     if (this->post_color_img.size().empty()) {
         Logger::Instance()->Error("Received empty post image for pre-post compare!");
-        throw(SideDispenseErrorCodes::EmptyPostImage);
+        throw(DcApiErrorCode::EmptyPostImage);
     }
 
     return res; //return check input result
@@ -958,7 +960,7 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
         this->session_visualizer11->display_image(std::make_shared<cv::Mat>(post_color_img));
     }
     // default result is unspecified error, will be overwritten with actual result code unless an unexpected error occurs
-    int result_code = SideDispenseErrorCodes::UnspecifiedError;
+    int result_code = DcApiErrorCode::UnspecifiedError;
     this->result_mat = nullptr;
 
     try
@@ -974,15 +976,15 @@ int PrePostCompare::run_comparison_side_dispense(std::shared_ptr<MarkerDetectorC
         *result_mat_ptr = this->result_mat; //for passing the result mat back out into drop_manager
     }
 
-    catch (SideDispenseError& e) {
-        SideDispenseErrorCodes error_id = e.get_status_code();
+    catch (DcApiError& e) {
+        DcApiErrorCode error_id = e.get_status_code();
         Logger::Instance()->Info("Caught an error during comparison processing. {}", e.get_description());
         return error_id;
     }
     catch (...)
     {
         Logger::Instance()->Info("Caught an error during comparison processing. Indicative of not enough markers detected in an image.");
-        return SideDispenseErrorCodes::NotEnoughMarkersDetected;
+        return DcApiErrorCode::NotEnoughMarkersDetected;
     }
 
     return result_code;

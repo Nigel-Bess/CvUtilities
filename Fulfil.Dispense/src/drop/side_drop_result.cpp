@@ -1,13 +1,13 @@
 #include <memory>
 #include <vector>
-#include <Fulfil.Dispense/drop/side_drop_result.h>
-#include <Fulfil.Dispense/dispense/side_dispense_error_codes.h>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.Dispense/drop/side_drop_result.h>
 
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::dispense::drop::SideDropResult;
-using fulfil::dispense::side_dispense_error_codes::get_error_name_from_code;
-using fulfil::dispense::side_dispense_error_codes::SideDispenseErrorCodes;
+using fulfil::utils::commands::dc_api_error_codes::get_error_name_from_code;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::Point3D;
 using fulfil::utils::Logger;
 
@@ -40,5 +40,5 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
 }
 
 std::string SideDropResult::to_string() {
-    return "Success Code: " + get_error_name_from_code((SideDispenseErrorCodes)this->success_code);
+    return "Success Code: " + get_error_name_from_code((DcApiErrorCode)this->success_code);
 }

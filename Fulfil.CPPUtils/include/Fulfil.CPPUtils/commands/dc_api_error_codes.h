@@ -1,16 +1,16 @@
 //
-// Created by jessv on 2/9/24.
+// Created by Jess on 12/13/24.
 //
 
-#ifndef FULFIL_DISPENSE_DROP_ERROR_CODES_H
-#define FULFIL_DISPENSE_DROP_ERROR_CODES_H
+#ifndef FULFIL_DISPENSE_DC_API_ERROR_CODES_H
+#define FULFIL_DISPENSE_DC_API_ERROR_CODES_H
 
 #include <memory>
 
-namespace fulfil::dispense::drop_target_error_codes {
+namespace fulfil::utils::commands::dc_api_error_codes {
 
-    /* error codes defined in Depth Cam API Communication Cookbook, must match what is received in FC */
-    enum DropTargetErrorCodes {
+    /* error codes must match what is received in FC */
+    enum DcApiErrorCode {
         Success = 0,
         /* No Aruco markers detected */
         NoMarkersDetected = 1,
@@ -18,7 +18,7 @@ namespace fulfil::dispense::drop_target_error_codes {
         NotEnoughMarkersDetected = 2,
         /* Bot in unexpected position */
         UnexpectedBagPosition = 3,
-        /* Invalid Drop Target Request format or components */
+        /* Invalid Request format or components */
         InvalidRequest = 4,
         /* Item dimensions are too large for the destination bag */
         ItemLargerThanBag = 5,
@@ -56,6 +56,12 @@ namespace fulfil::dispense::drop_target_error_codes {
         InvalidItemDimensions = 21,
         /* Recoverable RealSense Error */
         RecoverableRealSenseError = 22,
+        /* Pre Image empty for pre-post compare */
+        EmptyPreImage = 23,
+        /* Post Image empty for pre-post compare */
+        EmptyPostImage = 24,
+        /* Frame refresh error */
+        FrameRefreshError = 25,
         /* UnrecoverableRealSenseError */
         UnrecoverableRealSenseError = 255,
         /* CommandDelegateExpired */
@@ -65,97 +71,102 @@ namespace fulfil::dispense::drop_target_error_codes {
     /**
      * Gets the name of the given status code
      */
-    static std::string get_error_name_from_code(DropTargetErrorCodes status_code) {
+    static std::string get_error_name_from_code(DcApiErrorCode status_code) {
         switch (status_code) {
-            case DropTargetErrorCodes::Success:
+            case DcApiErrorCode::Success:
                 return "Success";
-            case DropTargetErrorCodes::NoMarkersDetected:
+            case DcApiErrorCode::NoMarkersDetected:
                 return "NoMarkersDetected";
-            case DropTargetErrorCodes::NotEnoughMarkersDetected:
+            case DcApiErrorCode::NotEnoughMarkersDetected:
                 return "NotEnoughMarkersDetected";
-            case DropTargetErrorCodes::UnexpectedBagPosition:
+            case DcApiErrorCode::UnexpectedBagPosition:
                 return "UnexpectedBagPosition, Not Centered";
-            case DropTargetErrorCodes::InvalidRequest:
+            case DcApiErrorCode::InvalidRequest:
                 return "InvalidRequest";
-            case DropTargetErrorCodes::ItemLargerThanBag:
+            case DcApiErrorCode::ItemLargerThanBag:
                 return "ItemLargerThanBag";
-            case DropTargetErrorCodes::NoViableTarget_BagIsFull:
+            case DcApiErrorCode::NoViableTarget_BagIsFull:
                 return "NoViableTarget_BagIsFull";
-            case DropTargetErrorCodes::NoViableTarget_NoSpaceForItem:
+            case DcApiErrorCode::NoViableTarget_NoSpaceForItem:
                 return "NoViableTarget_NoSpaceForItem";
-            case DropTargetErrorCodes::NoViableTarget_DamageRisk:
+            case DcApiErrorCode::NoViableTarget_DamageRisk:
                 return "NoViableTarget_DamageRisk";
-            case DropTargetErrorCodes::EmptyBagNotEmpty:
+            case DcApiErrorCode::EmptyBagNotEmpty:
                 return "EmptyBagNotEmpty";
-            case DropTargetErrorCodes::UnspecifiedError:
+            case DcApiErrorCode::UnspecifiedError:
                 return "UnspecifiedError";
-            case DropTargetErrorCodes::AlgorithmFail_TargetOutOfBounds:
+            case DcApiErrorCode::AlgorithmFail_TargetOutOfBounds:
                 return "AlgorithmFail_TargetOutOfBounds";
-            case DropTargetErrorCodes::AlgorithmFail_Bypass:
+            case DcApiErrorCode::AlgorithmFail_Bypass:
                 return "AlgorithmFail_Bypass";
-            case DropTargetErrorCodes::BagIdMismatch:
+            case DcApiErrorCode::BagIdMismatch:
                 return "BagIdMismatch";
-            case DropTargetErrorCodes::NoViableTarget_DamageRisk_PickupRequired:
+            case DcApiErrorCode::NoViableTarget_DamageRisk_PickupRequired:
                 return "NoViableTarget_DamageRisk_PickupRequired";
-            case DropTargetErrorCodes::CouldNotDetermineBotRotationStatus:
+            case DcApiErrorCode::CouldNotDetermineBotRotationStatus:
                 return "CouldNotDetermineBotRotationStatus";
-            case DropTargetErrorCodes::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits:
+            case DcApiErrorCode::NoViableTarget_ItemDimensionsIncompatibleWithBotLimits:
                 return "NoViableTarget_ItemDimensionsIncompatibleWithBotLimits";
-            case DropTargetErrorCodes::InvalidRemainingPlatformValue:
+            case DcApiErrorCode::InvalidRemainingPlatformValue:
                 return "InvalidRemainingPlatformValue";
-            case DropTargetErrorCodes::InvalidBotSideLimitValue:
+            case DcApiErrorCode::InvalidBotSideLimitValue:
                 return "InvalidBotSideLimitValue";
-            case DropTargetErrorCodes::InvalidItemMaterialCode:
+            case DcApiErrorCode::InvalidItemMaterialCode:
                 return "InvalidItemMaterialCode";
-            case DropTargetErrorCodes::InvalidItemMass:
+            case DcApiErrorCode::InvalidItemMass:
                 return "InvalidItemMass";
-            case DropTargetErrorCodes::InvalidItemDimensions:
+            case DcApiErrorCode::InvalidItemDimensions:
                 return "InvalidItemDimensions";
-            case DropTargetErrorCodes::RecoverableRealSenseError:
+            case DcApiErrorCode::RecoverableRealSenseError:
                 return "RecoverableRealSenseError";
-            case DropTargetErrorCodes::UnrecoverableRealSenseError:
+            case DcApiErrorCode::EmptyPreImage:
+                return "EmptyPreImage";
+            case DcApiErrorCode::EmptyPostImage:
+                return "EmptyPostImage";
+            case DcApiErrorCode::FrameRefreshError:
+                return "FrameRefreshError";
+            case DcApiErrorCode::UnrecoverableRealSenseError:
                 return "UnrecoverableRealSenseError";
-            case DropTargetErrorCodes::CommandDelegateExpired:
+            case DcApiErrorCode::CommandDelegateExpired:
                 return "CommandDelegateExpired";
             default:
-                return "UndefinedError - Not in DropTargetErrorCodes";
+                return "UndefinedError - Not in DcApiErrorCode";
         }
     }
 
     /**
-     * DropTargetError is a custom exception for any Fulfil-defined DropTargetErrorCodes to be used in the
-     * drop target searching algorithms.
+     * DcApiError is a custom exception for any Fulfil-defined DcApiErrorCode to be used in the DC API. 
      */
-    class DropTargetError : public std::exception {
+    class DcApiError : public std::exception {
         /* status code of the error according to the Depth Cam API Communication Cookbook */
-        DropTargetErrorCodes status_code;
+        DcApiErrorCode status_code;
         /* name corresponding to the status code */
         std::string status_name;
-        /* Longer message of form "Drop Target Algorithm error {STATUS CODE}: {ERROR NAME} - {this->description} "*/
+        /* Longer message of form "DC API error {STATUS CODE}: {ERROR NAME} - {this->description} "*/
         std::string message;
         /* default is empty string, and will be appended to the message field */
         std::string description;
     public:
         /**
-         * DropTargetError exception to be thrown in the drop target searching algorithms
-         * @param status_code denoting which error in the DropTargetErrorCodes enum is active
+         * DcApiErrorCode exception to be thrown in the DC API
+         * @param status_code denoting which error in the DcApiErrorCode enum is active
          * @param description optional parameter to be APPENDED to default message, for adding more detail to the error
-         * and will be returned in the DropTargetResponse
+         * and will be returned in the response
          */
-        explicit DropTargetError(DropTargetErrorCodes status_code,
-                                 const std::string &description = "");
+        explicit DcApiError(DcApiErrorCode status_code,
+                            const std::string &description = "");
 
         [[nodiscard]] const char *what() const noexcept override;
 
         /**
         * Getter for the error's status code
         */
-        DropTargetErrorCodes get_status_code();
+        DcApiErrorCode get_status_code();
 
         /**
         * Getter for the error's custom description
         */
         std::string get_description();
     };
-} // namespace fulfil::dispense::drop_target_error_codes
-#endif //FULFIL_DISPENSE_DROP_ERROR_CODES_H
+} // namespace fulfil::utils::commands::dc_api_error_codes
+#endif //FULFIL_DISPENSE_DC_API_ERROR_CODES_H
