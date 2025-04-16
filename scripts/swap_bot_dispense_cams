@@ -1,0 +1,61 @@
+
+
+#!/bin/bash
+
+echo "BEGIN: Camera swapping script"
+echo "Running as $USER!"
+echo "Goal: swap camera view to $1!"
+echo "-----------------------------"
+
+CV_REPO_PATH='/home/fulfil/code/Fulfil.ComputerVision'
+DISPENSE_CONFIGS_PATH="${CV_REPO_PATH}/Fulfil.Dispense/configs"
+DEST_CONFIG_FILE="AGX_specific_main"
+NEW_CONFIG_FILE=$DEST_CONFIG_FILE
+BACKUP_SUFFIX="backup"
+SIDE_SUFFIX="side"
+DROP_DOWN_SUFFIX="drop-down"
+
+
+echo "Stopping camera services now..."
+dc-stop
+# Verify dc-stop succeeded before continuing
+if [[ $? != 0 ]]; then 
+    echo "Stopping camera services failed with exit code $?! It is not safe to continue, as the AGX/NX could become corrupted. Aborting"
+	exit 1
+fi
+echo "Done"
+echo " "
+
+# Validate argument for desired camera view
+if [[ "${1}" == $SIDE_SUFFIX || "${1}" == $DROP_DOWN_SUFFIX ]] ; then 
+    NEW_CONFIG_FILE="${DEST_CONFIG_FILE}-${1}"
+else
+    echo "ERROR: Unrecognized argument for file suffix: '${1}'. Expecting either '$SIDE_SUFFIX' or '$DROP_DOWN_SUFFIX'"
+    exit 2
+fi
+
+# Check if any required versions of the config does NOT exist
+SUFFIXES=(
+    $BACKUP_SUFFIX
+    $SIDE_SUFFIX
+    $DROP_DOWN_SUFFIX
+)
+for suffix in "${SUFFIXES[@]}"; do
+    if [[ ! -f "${DISPENSE_CONFIGS_PATH}/${DEST_CONFIG_FILE}-${suffix}.ini" ]]; then
+        echo "Aborting — required file is missing: ${DEST_CONFIG_FILE}-${suffix}.ini"
+        exit 3
+    fi
+done
+
+# Copy the desired camera view config file to the active config file path
+echo "About to copy ${NEW_CONFIG_FILE}.ini to ${DEST_CONFIG_FILE}.ini ..."
+cp ${DISPENSE_CONFIGS_PATH}/${NEW_CONFIG_FILE}.ini ${DISPENSE_CONFIGS_PATH}/${DEST_CONFIG_FILE}.ini
+echo "Done"
+echo " "
+
+# Restart services
+echo "Restarting DC API services now..."
+dc-startup
+
+echo " "
+echo "Script complete!"
