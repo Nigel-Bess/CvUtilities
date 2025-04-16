@@ -600,9 +600,7 @@ DropZoneSearcher::Max_Z_Points DropZoneSearcher::adjust_depth_detections(std::sh
     Logger::Instance()->Debug("Over {}% of points need to be white for bag to be indicated as empty", empty_bag_threshold);
     if(percentage_white < empty_bag_threshold)
     {
-      Logger::Instance()->Error("Bag Not Empty; Cam: LFB");
-      this->success_code = DcApiErrorCode::EmptyBagNotEmpty;
-      this->error_description = "Percentage white = " + std::to_string(percentage_white) + ", which is < the empty bag threshold value of " + std::to_string(empty_bag_threshold);
+      Logger::Instance()->Debug("The bag is not empty, with {}% of points being white. Treating bag as empty anyway");
     }
   }
   return max_depth_points;
@@ -1439,7 +1437,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
    */
   // if bag is empty: choose deterministic target of LFB. Otherwise, continue with target algorithm
   // note: this function is placed here after the adjust_depth_detections function so there are no missing visualizations and to allow for sanity checks that the bag is really empty.
-  if (bag_empty and this->success_code != DcApiErrorCode::EmptyBagNotEmpty)
+  if (bag_empty)
   {
     std::shared_ptr<Point3D> XYZ_result = get_empty_bag_target(details, lfb_vision_config, shadow_length, shadow_width, LFB_cavity_height);
 
