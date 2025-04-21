@@ -17,6 +17,8 @@ using fulfil::dispense::commands::RepackPerception;
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::get_error_name_from_code;
 
+const int MAX_ACTIVE_CAMERAS = 2;
+
 struct sigaction old_action;
 bool RUN = true;
 
@@ -32,6 +34,7 @@ VmbManager::VmbManager(std::map<int, std::string> cam_map, fulfil::utils::Logger
         log_->Info("Setting up new VmbCamera on Repack Bay {} with IP:{}",bay ,ip);
         cameras_.emplace(bay, std::make_shared<VmbCamera>(ip, bay, log_, service_));
     }
+    active_cams = 0;
     RunManager();//block
     std::thread(&VmbManager::RunManager, this).detach();
 }
@@ -160,7 +163,14 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request,
                 log_->Info("Received handle_bag_release Request on Bay {}, PKID: {}, request_id: {}, bot_generation: {}",
                                         cam->name_, *pkid, *cmd_id, *lfb_generation);
                 RepackPerception repack_percep(lfb_generation);
+                // Lazy, ideally this would be a counting_semaphor but getting to CPP 20 was too difficult to be worth it :-(
+                while (active_cams >= MAX_ACTIVE_CAMERAS) {
+                    log_->Info("Stalling GetImageBlocking, {} cameras currently active already", active_cams);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                }
+                active_cams++;
                 auto image = cam->GetImageBlocking();
+                active_cams--;
                 cv::Mat cam_image = *image;
                 std::string directory_path = "/home/fulfil/data/" + std::string(*pkid) + "/";
                 if (!std::filesystem::exists(directory_path)) {

@@ -88,7 +88,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
     if (isInitSetup) {
         // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
         // based on the network switch on neighboring camera count
-        VmbInt64_t maxBandwidthBytes = 20000000;
+        VmbInt64_t maxBandwidthBytes = 42000000;
         log_->Info("Setting link to {}", maxBandwidthBytes);
         SetFeature("DeviceLinkThroughputLimitMode", "On");
         SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);

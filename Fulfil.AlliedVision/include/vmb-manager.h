@@ -26,6 +26,7 @@ class VmbManager{
 
     private:
         void RunManager();
+        volatile int active_cams;
         void SendResponse(std::string cmd_id, std::string response);
         std::map<int, std::shared_ptr<VmbCamera>> cameras_;
         fulfil::utils::Logger* log_;        
