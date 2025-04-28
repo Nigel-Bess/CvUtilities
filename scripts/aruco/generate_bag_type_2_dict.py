@@ -1,9 +1,8 @@
-# Run this to generate the 8-ID Aruco tags used by LFRs
+# Run this to generate the 2-ID Aruco tags used to determine bag type (insulated vs ambient)
 
-import numpy as np
 import cv2
 
-name = "bag"
+name = "bag_type"
 max_id = 2
 image_size = 500
 border_size = 40

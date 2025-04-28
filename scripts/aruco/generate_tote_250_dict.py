@@ -1,15 +1,15 @@
-# Run this to generate the 999-ID Aruco tags used by totes to identify facilities
+# Run this to generate the 250-ID Aruco tags used by Totes
 
 import cv2
 
-name = "facility"
-max_id = 999
-rows = 6
+name = "tote"
+max_id = 250
+rows = 5
 border_size = 0
 image_size = 500
 dict = cv2.aruco.extendDictionary(max_id, rows)
 
-for i in range(3):
+for i in range(5):
     img = cv2.aruco.generateImageMarker(dict, i, image_size - border_size)
     filename = name + "_" + str(i+1) + "_of_" + str(max_id) + "_" + str(rows) + "x" + str(rows) + ".png"
     #img = cv2.copyMakeBorder(img, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, None, [255,255,255])
