@@ -4,7 +4,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
-
+#include <opencv2/features2d.hpp>
 #include <algorithm>
 #include <limits.h>
 #include "aruco/aruco_utils.h"
@@ -47,7 +47,7 @@ std::shared_ptr<ImageMarkers> ArucoTransforms::detectArucoMarkers(cv::Mat img, s
         if (rejected.size() > 0) {
             Logger::Instance()->Info("Rejected {} markers, accepted {}", rejected.size(), corners->size());
         }
-
+        
         auto sharedCorners = std::make_shared<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>>();
         for (int i = 0; i < corners->size(); i++) {
             sharedCorners->push_back(std::make_shared<std::vector<cv::Point2f>>());
@@ -55,6 +55,7 @@ std::shared_ptr<ImageMarkers> ArucoTransforms::detectArucoMarkers(cv::Mat img, s
                 (*sharedCorners)[i]->push_back((*corners)[i][j]);
             }
         }
+        
         return std::make_shared<ImageMarkers>(ImageMarkers{sharedCorners, ids});
     }
     catch (const std::exception &e)
@@ -69,7 +70,6 @@ float ArucoTransforms::calculateMarkerDistSum(std::shared_ptr<ImageMarkers> cand
     int candidateMarkerIndex = 0;
     for (; markerId != (*ids)[candidateMarkerIndex]; candidateMarkerIndex++) {}
     auto candidateCorners = (*candidate->markers)[candidateMarkerIndex];
-
     float distSum = INT_MAX;
     for (int i = 0; i < 4; i++) {
         auto dist = distance((*candidateCorners)[i], (*markerCorners)[i]);
@@ -83,8 +83,8 @@ std::shared_ptr<BestMarkers> ArucoTransforms::findBestMarkers(std::shared_ptr<Im
     // First find all best tag matches and key them by marker IDs
     std::map<int, std::shared_ptr<std::vector<cv::Point2f>>> id_to_best_fit;
     std::map<int, int> id_to_dist_sum;
-
     int mCount = instance->markers->size();
+    bool baselineFound = false;
     for (int i = 0; i < mCount; i++) {
         auto corners = (*instance->markers)[i];
         auto id = (*instance->ids)[i];
@@ -105,12 +105,12 @@ std::shared_ptr<BestMarkers> ArucoTransforms::findBestMarkers(std::shared_ptr<Im
                 writeThisID = true;
             }
             if (writeThisID) {
+                baselineFound = true;
                 id_to_dist_sum.insert(std::make_pair(id, calculateMarkerDistSum(candidate, corners, id)));
                 id_to_best_fit.insert(std::make_pair(id, corners));
             }
         }
     }
-
     // Convert map to flat array and sort by shortest diff distances
     auto markers = std::make_shared<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>>();
     auto ids = std::make_shared<std::vector<int>>();
@@ -122,7 +122,6 @@ std::shared_ptr<BestMarkers> ArucoTransforms::findBestMarkers(std::shared_ptr<Im
         ids->push_back(id);
         distances.push_back(id_to_dist_sum.at(id));
     }
-
     // Sort markers and ids vectors by id_to_dist_sum
     // Shame Eric for a lazy bubble sort here since N will never be > perfect candidate marker count
     for (int i = 0; i < mCount; i++) {
@@ -137,16 +136,19 @@ std::shared_ptr<BestMarkers> ArucoTransforms::findBestMarkers(std::shared_ptr<Im
             }
         }
     }
-
     // Distance sum is the LITERAL sum of distances between candidate marker corners and
     // current img marker corners except candidate markers missing from cur image are penalized
     // by the worst-case 4 corner marker diff so that candidates with less matching markers are discouraged
-    int longestDistanceSum = *std::max_element(distances.begin(), distances.end());
-    int distanceSum = std::accumulate(distances.begin(), distances.end(), 0);
+    int longestDistanceSum = INT_MAX;
+    int distanceSum = INT_MAX;
+    if (distances.size() > 0) {
+        longestDistanceSum = *std::max_element(distances.begin(), distances.end());
+        distanceSum = std::accumulate(distances.begin(), distances.end(), 0);
+    }
     int missingCount = candidate->markers->size() - ids->size();
     float missingIdsPenalty = missingCount * longestDistanceSum;
     distanceSum += missingIdsPenalty;
-    return std::make_shared<BestMarkers>(BestMarkers{std::make_shared<ImageMarkers>(ImageMarkers{markers, ids}), distanceSum});
+    return std::make_shared<BestMarkers>(BestMarkers{std::make_shared<ImageMarkers>(ImageMarkers{markers, ids, baselineFound}), distanceSum});
 }
 
 void ArucoTransforms::loadBaselineImageAsCandidate(std::string srcImgFile, std::string name, int expectedMarkerCount) {
@@ -156,15 +158,11 @@ void ArucoTransforms::loadBaselineImageAsCandidate(std::string srcImgFile, std::
 
     cv::Mat image = cv::imread(srcImgFile, cv::IMREAD_COLOR);
     auto imgMarkers = detectArucoMarkers(image, name);
+    std::string img_path = "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/image/" + name + ".jpeg";
+    cv::imwrite(img_path, image);
     if (imgMarkers->markers->size() != expectedMarkerCount) {
         throw std::runtime_error( std::to_string((int)((100.0 * imgMarkers->markers->size()))/expectedMarkerCount) + "% expected markers matched in " + srcImgFile);
     }
-
-    // Uncomment to view all loaded basline images for debugging purposes in data/test
-    /*auto markedFile = "Fulfil.TCS/data/test/" + name + "_marked_" + std::to_string(expectedMarkerCount) + ".jpeg";
-    cv::aruco::drawDetectedMarkers(image, imgMarkers->markers, imgMarkers->ids, cv::Scalar(0, 255, 0));
-    Logger::Instance()->Info("Wrote marked up baseline for {} to {}", name, markedFile);
-    cv::imwrite(markedFile, image);*/
 
     this->baselineCandidates->insert(std::make_pair(name, imgMarkers));
 }
@@ -175,7 +173,8 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
     std::string winningCandidateName = "";
     std::shared_ptr<ImageMarkers> bestMatches = EMPTY_IMG_MARKERS;
     int maxMatchesSeen = 0;
-
+    bool baselineFound = false;
+    Logger::Instance()->Info("baselineCandidates Size: {}", this->baselineCandidates->size());
     for (auto it = this->baselineCandidates->begin(); it != this->baselineCandidates->end(); ++it) {
         auto marks = detectArucoMarkers(targetImage, it->first);
         auto curSize = (int)marks->markers->size();
@@ -183,26 +182,31 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
         if (curSize < minCandidateMarkerMatches) {
             continue;
         }
-        auto best = findBestMarkers(it->second, marks);
-        if (best->distanceSum < smallest_diff) {
-            smallest_diff = best->distanceSum;
-            winningCandidateName = it->first;
-            bestMatches = best->matches;
+        if (!baselineFound) {
+            auto best = findBestMarkers(it->second, marks);
+            baselineFound = best->matches->baselineDetected;
+            Logger::Instance()->Info("Baseline Detected: {}",baselineFound);
+            if (baselineFound) {
+                if (best->distanceSum < smallest_diff) {
+                    smallest_diff = best->distanceSum;
+                    winningCandidateName = it->first;
+                    Logger::Instance()->Info("Winning candidate: {}", winningCandidateName);
+                    bestMatches = best->matches;
+                }
+            }
         }
     }
-
     if (smallest_diff == INT_MAX) {
         return std::make_shared<HomographyResult>(HomographyResult{EMPTY_IMG_MARKERS, EMPTY_IMG_MARKERS, cv::Mat(), "", maxMatchesSeen});
     }
 
     // Now trim the worst matching markers until at most maxCandidateMarkerMatches remain
     maxMatchesSeen = bestMatches->markers->size();
+    Logger::Instance()->Info("Max Matches Seen: {}", maxMatchesSeen);
     int newSize = maxMatchesSeen > maxCandidateMarkerMatches ? maxCandidateMarkerMatches : maxMatchesSeen;
     int trimCount = maxMatchesSeen > maxCandidateMarkerMatches ? (maxMatchesSeen - maxCandidateMarkerMatches) : 0;
-
     auto truncatedMarkers = std::make_shared<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>>();
     auto truncatedIds = std::make_shared<std::vector<int>>();
-
     for (int i = 0; i < newSize; i++) {
         truncatedMarkers->push_back(bestMatches->markers->at(i));
         truncatedIds->push_back(bestMatches->ids->at(i));
@@ -215,14 +219,13 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
     auto trimmedCandidatePoints = std::make_shared<std::vector<cv::Point2f>>();
     auto trimmedIds = std::make_shared<std::vector<int>>();
     auto trimmedMarkers = std::make_shared<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>>();
-
     auto baseline = this->baselineCandidates->at(winningCandidateName);
     for (int i = 0; i < truncatedBest->ids->size(); i++) {
         auto id = (*truncatedBest->ids)[i];
         int candidateIdIndex = 0;
         for (; id != (*baseline->ids)[candidateIdIndex]; candidateIdIndex++) {
         }
-
+      
         auto candidateMarkerPoints = (*baseline->markers)[candidateIdIndex];
         trimmedMarkers->push_back(candidateMarkerPoints);
         trimmedIds->push_back(id);
@@ -231,7 +234,6 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
         trimmedCandidatePoints->push_back((*candidateMarkerPoints)[2]);
         trimmedCandidatePoints->push_back((*candidateMarkerPoints)[3]);
     }
-
     // Flatten out all the best markers into a point array
     std::vector<cv::Point2f> bestMatchPoints;
     for (int i = 0; i < truncatedBest->markers->size(); i++) {
@@ -241,12 +243,10 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
         bestMatchPoints.push_back((*corners)[2]);
         bestMatchPoints.push_back((*corners)[3]);
     }
-
     cv::Mat a = cv::Mat(*trimmedCandidatePoints);
     cv::Mat b = cv::Mat(bestMatchPoints);
-
+    
     auto homog = cv::findHomography(b, a, cv::RANSAC);
-
     if (debugDrawDir != "") {
         cv::Mat copy = targetImage.clone();
         // Sadly need to un-shared_ptr-ify the array for openCV to be happy
@@ -270,7 +270,6 @@ std::shared_ptr<HomographyResult> ArucoTransforms::findImgHomographyFromMarkers(
         std::string image_path = debugDrawDir + "markers_selected_" + winningCandidateName + ".jpeg";
         cv::imwrite(image_path, copy);
     }
-
     auto trimmedCandidates = std::make_shared<ImageMarkers>(ImageMarkers{trimmedMarkers, trimmedIds});
     return std::make_shared<HomographyResult>(HomographyResult{truncatedBest, trimmedCandidates, homog, winningCandidateName, maxMatchesSeen});
 }

@@ -18,6 +18,7 @@ namespace fulfil
             {
                 std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> markers;
                 std::shared_ptr<std::vector<int>> ids;
+                bool baselineDetected;
             };
 
             struct BestMarkers {
@@ -63,7 +64,6 @@ namespace fulfil
                 */
                 int maxMatchesSeen;
             };
-
 
             /**
              * Handy matrix transforms based on Arcuo tags, such as finding homography matrix transforms to
@@ -118,6 +118,7 @@ namespace fulfil
                  */
                 std::shared_ptr<BestMarkers> findBestMarkers(std::shared_ptr<ImageMarkers> candidate, std::shared_ptr<ImageMarkers> instance);
 
+
             public:
                 /**
                  * ArucoTransforms Constructor
@@ -169,6 +170,7 @@ namespace fulfil
                  * into matching the most similar candidate in this->baselineCandidates
                  */
                 cv::Mat applyHomographyToImg(cv::Mat img, std::shared_ptr<HomographyResult> homography);
+
             };
         }
     }
