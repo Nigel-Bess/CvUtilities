@@ -4,6 +4,7 @@
 
 using fulfil::dispense::commands::RepackErrorCodes;
 using fulfil::dispense::commands::get_error_name_from_code;
+using namespace std::chrono_literals;
 
 // Static lock is shared across all camera instances so only 1 camera
 // may actively stream frames at a time, this is to avoid bad networking
@@ -16,6 +17,9 @@ const int MAX_SNAPSHOT_RETRIES = 20;
 /// but increase the odds of getting a Complete frame, leave low since there's a parent
 /// retry loop set by MAX_SNAPSHOT_RETRIES anyway
 const uint32_t MULTIFRAME_COUNT = 2;
+
+// Reset camera exposure every 4 hours to account for changing sunlight
+const auto EXPOSURE_RESET_INTERVAL = 4h;
 
 VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
                 camera_ip_(ip), bay_(bay), log_(log), service_(serv){
@@ -43,9 +47,11 @@ bool VmbCamera::CameraHasBrightView(std::string name_) {
 }
 
 void VmbCamera::RunAutoExposure() {
-    std::lock_guard<std::mutex> lock(_lifecycleLock); {
+    std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
+        log_->Info("RunAutoExposure for {}", name_);
         SetFeature("ExposureAuto", "Once");
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));//wait for auto exp to kick in
+        last_exposure_reset_time = std::chrono::system_clock::now();
     }
 }
 
@@ -99,6 +105,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
         SetFeature("Saturation", 1.0);
         
         AdjustPacketSize();
+        RunAutoExposure();
         // Record image size for future frame allocation
         camera_->GetPayloadSize( payloadSize_ );
     }
@@ -118,7 +125,7 @@ void VmbCamera::RunCamera(){
     bool isInitConnection = true;
     while(run_){
         if(!connected_) {
-            std::lock_guard<std::mutex> lock(_lifecycleLock);{
+            std::lock_guard<std::recursive_mutex> lock(_lifecycleLock);{
                 RunSetup(isInitConnection);
                 isInitConnection = false;
             }
@@ -136,6 +143,9 @@ void VmbCamera::RunCamera(){
                 connected_ = false;
             } else {
                 this->LogPingSuccess();
+            }
+            if ((std::chrono::system_clock::now() - last_exposure_reset_time) > EXPOSURE_RESET_INTERVAL) {
+                RunAutoExposure();
             }
         }
     }
@@ -175,7 +185,7 @@ void VmbCamera::SaveLastImage(std::string path){
 }
 
 std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
-    std::lock_guard<std::mutex> lock(_lifecycleLock); {
+    std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
         VmbUint32_t height;
         VmbUint32_t width;
 

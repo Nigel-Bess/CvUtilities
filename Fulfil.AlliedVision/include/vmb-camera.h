@@ -17,6 +17,7 @@ class VmbCamera{
     public:
         VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv);
         std::shared_ptr<cv::Mat> GetImageBlocking();
+        std::chrono::_V2::system_clock::time_point last_exposure_reset_time = std::chrono::system_clock::now();
         void StartCamera();
         void RunAutoExposure();
         void KillCamera();
@@ -50,7 +51,7 @@ class VmbCamera{
         volatile bool run_ = true;
         volatile bool connected_ = false;
         int bay_;
-        std::mutex _lifecycleLock;
+        std::recursive_mutex _lifecycleLock;
         fulfil::utils::Logger* log_;
         std::shared_ptr<GrpcService> service_;
         inline void SetName(){
