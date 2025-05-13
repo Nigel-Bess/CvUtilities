@@ -164,18 +164,22 @@ std::shared_ptr<Eigen::Affine3d> MarkerDetectorContainer::get_transform_to_bag_c
 std::vector<std::shared_ptr<Marker>> MarkerDetectorContainer::marker_selection(std::vector<std::shared_ptr<Marker>> parallel_markers) {
     int counter = 0;
     std::vector<std::shared_ptr<Marker>> choosen_markers;
-    for (int i = 0; i < parallel_markers.size(); ++i) {
-        for (int j = i + 1; j < parallel_markers.size(); ++j) {
-            if (parallel_markers[i]->get_id() != parallel_markers[j]->get_id()) {
-                if ((abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) < 500) &&
-                    (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) > 300) &&
-                    (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->y - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->y) < 100)) {
-                    choosen_markers.push_back(parallel_markers[i]);
-                    choosen_markers.push_back(parallel_markers[j]);
-                    counter++;
+    Logger::Instance()->Info("Parallel Marker Size: {}", parallel_markers.size());
+    if(parallel_markers.size() ==1) choosen_markers.push_back(parallel_markers[0]);
+    else {
+        for (int i = 0; i < parallel_markers.size(); ++i) {
+            for (int j = i + 1; j < parallel_markers.size(); ++j) {
+                if (parallel_markers[i]->get_id() != parallel_markers[j]->get_id()) {
+                    if ((abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) < 500) &&
+                        (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) > 300) &&
+                        (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->y - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->y) < 100)) {
+                        choosen_markers.push_back(parallel_markers[i]);
+                        choosen_markers.push_back(parallel_markers[j]);
+                        counter++;
+                    }
                 }
+                if (counter == 1) break;
             }
-            if (counter == 1) break;
         }
     }
     return choosen_markers;
@@ -187,7 +191,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::v
     Logger::Instance()->Debug("Validating marker detections now on {} bot", bot_in_nominal_orientation ? "nominal" : "rotated");
 
     //check that markers are within search zone and at expected depth
-    //std::sort(markers->begin(), markers->end())
     auto is_on_dispense_right = [&bot_in_nominal_orientation](int detected_marker) {
         if (bot_in_nominal_orientation) {
             return (detected_marker == 0 or detected_marker == 5 or detected_marker == 6 or detected_marker == 7);
@@ -205,41 +208,33 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::v
         Logger::Instance()->Info("Markers->\n    {} :: {}", logstr.str(), rem);
     };
     get_record(*markers, "Before marker sort and depth filter");
-    std::vector<std::shared_ptr<Marker>> first;
-    std::vector<std::shared_ptr<Marker>> second;
-    std::vector<std::shared_ptr<Marker>> third;
-    std::vector<std::shared_ptr<Marker>> fourth;
+    //vector to store potential parallel marker pairs
+    std::vector<std::vector<std::shared_ptr<Marker>>> potential_markers(4);
     std::vector<std::shared_ptr<Marker>> good_markers;
     std::vector<std::shared_ptr<Marker>> true_markers;
     for (int i = 0; i < markers->size(); i++)
     {
         std::shared_ptr<Marker> a = markers->at(i);
+        
         if (a->get_id() == 0 || a->get_id() == 1) {
-            first.push_back(a);
+            potential_markers[0].push_back(a);
         }
-        if (a->get_id() == 2 || a->get_id() == 7) {
-            second.push_back(a);
+        else if (a->get_id() == 2 || a->get_id() == 7) {
+            potential_markers[1].push_back(a);
         }
-        if (a->get_id() == 3 || a->get_id() == 6) {
-            third.push_back(a);
+        else if (a->get_id() == 3 || a->get_id() == 6) {
+            potential_markers[2].push_back(a);
         }
-        if (a->get_id() == 4 || a->get_id() == 5) {
-            fourth.push_back(a);
+        else if (a->get_id() == 4 || a->get_id() == 5) {
+            potential_markers[3].push_back(a);
         }
     }
     Logger::Instance()->Debug("Calling marker_selection : Choosing the 8 unique markers and filling the vector");
-    //vector to store the coordinates for ids 0 & 1
-    good_markers = marker_selection(first);
-    true_markers.insert(true_markers.end(), good_markers.begin(), good_markers.end());
-    //vector to store the coordinates for ids 2 & 7
-    good_markers = marker_selection(second);
-    true_markers.insert(true_markers.end(), good_markers.begin(), good_markers.end());
-    //vector to store the coordinates for ids 3 & 6
-    good_markers = marker_selection(third);
-    true_markers.insert(true_markers.end(), good_markers.begin(), good_markers.end());
-    //vector to store the coordinates for ids 4 & 5
-    good_markers = marker_selection(fourth);
-    true_markers.insert(true_markers.end(), good_markers.begin(), good_markers.end());
+    //choosing valid markers from the potential markers
+    for (int i = 0; i < potential_markers.size(); i++) {
+        good_markers = marker_selection(potential_markers[i]);
+        true_markers.insert(true_markers.end(), good_markers.begin(), good_markers.end());
+    }
     markers = std::make_shared<std::vector<std::shared_ptr<Marker>>>(true_markers);
     Logger::Instance()->Debug("Choosen marker size: " + std::to_string(markers->size()));
   for(int i = 0; i < markers->size(); i++)
