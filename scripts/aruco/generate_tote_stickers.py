@@ -20,7 +20,7 @@ def get_pixel_x_location(tag_type):
 def get_pixel_y_location(tag_type):
     # y distance from the topmost point
     # note that 10.5 is roughly marker size/2, shouldn't be hardcoded
-    marker_y_locations_mm = [3.5, 3.5, 3.5, 3.5, 3.5 + 10.5, 18.09, 93.09] #prev 3.5 not 2
+    marker_y_locations_mm = [3.5, 3.5, 3.5, 3.5, 3.5 + 10.5, 20.43, 95.43] #prev 3.5 not 2
     marker_order = ["cv_left", "cv_right", "tote_id", "facility_id", "human_readable", "cv_high", "cv_low"]
     return mm_to_pixel(marker_y_locations_mm[marker_order.index(tag_type)])
 
@@ -75,8 +75,15 @@ def generate_top_bottom_stickers(image, sticker_name, cv_left_x_location, cv_rig
         filename = f"tote_{sticker_name}_{cavity}.png"
         if image.shape[2] != 4:
             image_transparent = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+
+            # Define the target BGR color
+            target_color = [100, 100, 100]  # Example BGR
+            mask = cv2.inRange(image[:, :, :3], np.array(target_color), np.array(target_color))
+
+            # Set alpha to 0 where the mask is true
+            image_transparent[mask > 0, 3] = 0
             # Set alpha to 0 (transparent) in a region
-            image_transparent[image_transparent==100] = 0
+            # image_transparent[image_transparent==100] = 0
             print(f"Transparented it!")
             print(f"Writing image to {filename}")
             cv2.imwrite(filename, image_transparent)
@@ -140,7 +147,7 @@ def generate_horizontal_stickers(tote_idx):
 def generate_vertical_stickers():
     print(f"Generating vertical stickers now")
     sticker_width = mm_to_pixel(22)
-    sticker_height = mm_to_pixel(132.18)
+    sticker_height = mm_to_pixel(135.35)
     marker_size = mm_to_pixel(19.5)
 
     image = np.ones((IMAGE_BORDER_PX*2 + sticker_height, IMAGE_BORDER_PX*2 + sticker_width, 3), np.uint8) * 255
