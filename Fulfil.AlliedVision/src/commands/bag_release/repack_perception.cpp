@@ -118,7 +118,9 @@ RepackPerception::RepackPerception(std::shared_ptr<std::string> lfb_generation)
     this->bot_generation = lfb_generation;
     if (*bot_generation == "LFB-3.1")
     {
-        edge_threshold = 200;
+        //Increasing the threshold dramatically to have smooth repack tests as PIO
+        //TO-DO later : Make it precise with accurate cropping of ROI
+        edge_threshold = 3000;
     }
     else
     {
