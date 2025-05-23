@@ -164,22 +164,18 @@ std::shared_ptr<Eigen::Affine3d> MarkerDetectorContainer::get_transform_to_bag_c
 std::vector<std::shared_ptr<Marker>> MarkerDetectorContainer::marker_selection(std::vector<std::shared_ptr<Marker>> parallel_markers) {
     int counter = 0;
     std::vector<std::shared_ptr<Marker>> choosen_markers;
-    Logger::Instance()->Info("Parallel Marker Size: {}", parallel_markers.size());
-    if(parallel_markers.size() ==1) choosen_markers.push_back(parallel_markers[0]);
-    else {
-        for (int i = 0; i < parallel_markers.size(); ++i) {
-            for (int j = i + 1; j < parallel_markers.size(); ++j) {
-                if (parallel_markers[i]->get_id() != parallel_markers[j]->get_id()) {
-                    if ((abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) < 500) &&
-                        (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) > 300) &&
-                        (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->y - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->y) < 100)) {
-                        choosen_markers.push_back(parallel_markers[i]);
-                        choosen_markers.push_back(parallel_markers[j]);
-                        counter++;
-                    }
+    for (int i = 0; i < parallel_markers.size(); ++i) {
+        for (int j = i + 1; j < parallel_markers.size(); ++j) {
+            if (parallel_markers[i]->get_id() != parallel_markers[j]->get_id()) {
+                if ((abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) < 500) &&
+                    (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->x - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->x) > 300) &&
+                    (abs(parallel_markers[i]->get_coordinate(Marker::Coordinate::center)->y - parallel_markers[j]->get_coordinate(Marker::Coordinate::center)->y) < 100)) {
+                    choosen_markers.push_back(parallel_markers[i]);
+                    choosen_markers.push_back(parallel_markers[j]);
+                    counter++;
                 }
-                if (counter == 1) break;
             }
+            if (counter == 1) break;
         }
     }
     return choosen_markers;
