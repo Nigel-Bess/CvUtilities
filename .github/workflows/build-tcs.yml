@@ -11,7 +11,7 @@ env:
   ACTIONS_STEP_DEBUG: true
   _BRANCH_NAME: ${{ github.ref_name }}
   APP_NAME: TCS
-  IMAGE_NAME: gcr.io/fulfil-web/fulfil_dc_api
+  IMAGE_NAME: gcr.io/fulfil-web/cv-tcs
   NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
 
 jobs:

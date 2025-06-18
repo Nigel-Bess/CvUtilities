@@ -27,7 +27,7 @@ void setupRequestIdFiles(std::string requestId) {
 }
 
 /*
-* Test the Repack Cabinet Empty Bot Detection Algorithm
+* Test the some TCS Detection Algorithm
 */
 void testTCSPerception(std::string requestId) {
     if (requestId == "all") {

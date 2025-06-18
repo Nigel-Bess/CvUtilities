@@ -27,4 +27,4 @@ RUN cd Fulfil.TCS/ \
     && mkdir -p build/ \
     && make
 
-CMD ["./Fulfil.TCS/build/main"]
+CMD ["./Fulfil.TCS/build/tcs"]

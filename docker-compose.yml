@@ -21,6 +21,23 @@ services:
     profiles:
       - tcs_test
 
+  # PBL commands
+  pbl:
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "Fulfil.TCS/build/pbl"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+    environment:
+      - "FACILITY_IDENTIFIER=local"
+      - "CAMERAS=0:0000000000001"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - pbl
+
   # Repack commands
   repack_test:
     build:

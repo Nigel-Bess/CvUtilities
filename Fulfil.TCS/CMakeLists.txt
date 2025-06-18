@@ -31,10 +31,15 @@ add_executable(scripts "scripts/tcs_perception_scripts.cpp" ${SOURCES})
 target_link_libraries(scripts Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
 set_target_properties(scripts PROPERTIES CXX_STANDARD 17)
 
-# Build main executable, main==prod and you'd know that if you're really from Fulfil
-add_executable(main "main.cpp" ${SOURCES})
-target_link_libraries(main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
-set_target_properties(main PROPERTIES CXX_STANDARD 17)
+# TCS entrypoint
+add_executable(tcs "tcs.cpp" ${SOURCES})
+target_link_libraries(tcs Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
+set_target_properties(tcs PROPERTIES CXX_STANDARD 17)
+
+# PBL entrypoint
+add_executable(pbl "pbl.cpp" ${SOURCES})
+target_link_libraries(pbl Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
+set_target_properties(pbl PROPERTIES CXX_STANDARD 17)
 
 # Test stuff
 include(FetchContent)
