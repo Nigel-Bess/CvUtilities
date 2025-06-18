@@ -108,7 +108,6 @@ class PostLFRResponse final : public fulfil::dispense::commands::DispenseRespons
   void set_items_dispensed(std::pair<int, int> values);
 
   void set_products_to_overflow(std::vector<int> products);
-
   /**
    * Returns the size (in bytes) of the payload containing information about the drop result.
    * @return size (in bytes) of the payload to be sent.

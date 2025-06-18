@@ -99,6 +99,9 @@ int MongoBagState::parse_in_values(std::shared_ptr<CvBagState> bag) {
     this->damage_buffer_width = bag->Config->damage_buffer_width;
     this->damage_buffer_length = bag->Config->damage_buffer_length;
     this->damage_swing_factor = bag->Config->damage_swing_factor;
+    this->damage_buffer_width_metal = bag->Config->damage_buffer_width_metal;
+    this->damage_buffer_length_metal = bag->Config->damage_buffer_length_metal;
+    this->damage_swing_factor_metal = bag->Config->damage_swing_factor_metal;
 
 
     // if FC sends empty arrays, populate with 0s
@@ -358,21 +361,32 @@ std::shared_ptr<cv::Mat> MongoBagState::get_risk_map(bool avoid_all_items, std::
 }
 
 // drop target wall off
-std::shared_ptr<cv::Mat> MongoBagState::expand_risk_map(std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
+std::shared_ptr<cv::Mat> MongoBagState::expand_risk_map(int damage_type, std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
                                        float shadow_width, float shadow_height)
 {
   float cell_width = grid_width / num_rows;    //in line with rows (vertical edge)
   float cell_length = grid_length / num_cols;  //in line with columns (horizontal edge)
 
+  int num_width_squares = 0;
+  float swing_expansion_amount = 0;
+  int num_length_squares = 0;
   // IMPORTANT damage configs
-  int num_width_squares = ceil((shadow_width/2) / cell_width) + damage_buffer_width; //number of squares on either side of risk squares that will be ineligible
+  // Use separate configs for metal items
+  if (damage_type == 3) {
+      num_width_squares = ceil((shadow_width / 2) / cell_width) + damage_buffer_width_metal; //number of squares on either side of risk squares that will be ineligible
 
-  //TODO: refactor code so swing is only taken into account depending on grid square relation to limit line (whether LFB will rotate or not).
-  //TODO: for now this will be kept simple and always assume swing risk, which is a reasonable assumption if dispensing on either side of an item already in bag
-  //int num_length_squares = ceil((shadow_length/2) / cell_length) + damage_buffer_length; //in direction away from VLS (no swing)
-  float swing_expansion_amount = std::max((shadow_length/2), damage_swing_factor * shadow_height);
-  int num_length_squares = ceil(swing_expansion_amount / cell_length) + this->damage_buffer_length; //in direction toward from VLS (yes swing)
-
+      //TODO: refactor code so swing is only taken into account depending on grid square relation to limit line (whether LFB will rotate or not).
+      //TODO: for now this will be kept simple and always assume swing risk, which is a reasonable assumption if dispensing on either side of an item already in bag
+      //int num_length_squares = ceil((shadow_length/2) / cell_length) + damage_buffer_length; //in direction away from VLS (no swing)
+      swing_expansion_amount = std::max((shadow_length / 2), damage_swing_factor_metal * shadow_height);
+      num_length_squares = ceil(swing_expansion_amount / cell_length) + this->damage_buffer_length_metal; //in direction toward from VLS (yes swing)
+  }
+  else {
+      //covers glass & extra-fragile items
+      num_width_squares = ceil((shadow_width / 2) / cell_width) + damage_buffer_width; //number of squares on either side of risk squares that will be ineligible
+      swing_expansion_amount = std::max((shadow_length / 2), damage_swing_factor * shadow_height);
+      num_length_squares = ceil(swing_expansion_amount / cell_length) + this->damage_buffer_length; //in direction toward from VLS (yes swing)
+  }
   //update risk map in place
   for(int row=0; row < num_rows; row++)
   {

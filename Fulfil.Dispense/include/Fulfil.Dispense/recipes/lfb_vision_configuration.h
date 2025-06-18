@@ -242,11 +242,22 @@ namespace fulfil::configuration::lfb {
         ;// damage buffer width and length increase the yellow keep out region beyond the original calculation by a certain number of
         ;// squares on each side, in alignment with the bot width or length.
         ;// Frequency of change: on occasion the buffer length and width are changed to be more conservative / liberal in avoiding damage interactions
-        int damage_buffer_width {1}; //for use in assessing damage risk in mongo_bag_state // TODO is int?
+        float damage_buffer_width {1}; //for use in assessing damage risk in mongo_bag_state // TODO is int?
         float damage_buffer_length {0}; // TODO is float?
         float damage_swing_factor {0.5};
         /** Number of damage layers to include in damage avoidance processing, cannot be more than 3 */
         int damage_layers_to_include {1};
+
+        /** Damage Recipe split for metal items */
+        float damage_buffer_width_metal{0.5}; //for use in assessing damage risk in mongo_bag_state // TODO is int?
+        float damage_buffer_length_metal{0}; // TODO is float?
+        float damage_swing_factor_metal{0.3};
+
+        /** Threshold to check the damage coverage in risk maps
+        * Ranges between 0-1, where 0 means the risk map does not have any damage prone items & 
+        * 1 means the bag is fully occupied with damage prone items
+        */
+        float early_reject_damage_threshold {0.8};
 
         // post-drop item-in-bag sensor detection
         //TODO these may need a rename bc unclear

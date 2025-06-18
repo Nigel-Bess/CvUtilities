@@ -171,6 +171,19 @@ class PrePostCompare
                      std::shared_ptr<cv::Mat> *result_mat,
                      int *item_target_overlap_ptr);
 
+  /**
+  * Evaluates the area of the risk map against the bag coverage threshold
+  * Returns true if the damage prone item coverage is more than the threshold
+  */
+  bool check_damage_area(cv::Mat risk_map, float bag_coverage_threshold);
+
+  /**
+  * Fetches the damage risk map post dispense for evaluating the glass/metal item coverage in bag
+  * Returns the pointer to the risk map generated
+  */
+  std::shared_ptr<cv::Mat> get_damage_risk_map(int damage_type, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<int> risk_materials,
+      std::shared_ptr<mongo::MongoBagState> mongo_bag_state);
+
   int run_comparison_side_dispense(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> pre_container,
       std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> post_container,
       std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config,

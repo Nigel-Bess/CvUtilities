@@ -163,7 +163,7 @@ class MongoBagState
     * @param shadow_height --> this comes into consideration due to item swing (item length becomes shadow height)
     * @return
     */
-   std::shared_ptr<cv::Mat> expand_risk_map(std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
+   std::shared_ptr<cv::Mat> expand_risk_map(int damage_type, std::shared_ptr<cv::Mat> risk_map, float grid_width, float grid_length, float shadow_length,
                            float shadow_width, float shadow_height);
 
    /**
@@ -191,6 +191,9 @@ class MongoBagState
   int damage_buffer_width;
   float damage_buffer_length;
   float damage_swing_factor;
+  int damage_buffer_width_metal;
+  float damage_buffer_length_metal;
+  float damage_swing_factor_metal;
 
   // General base info
   std::string collection_name;

@@ -698,6 +698,7 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
         return std::make_shared<PostLFRResponse>(request_id, 12);
     };
 
+    bool should_early_reject_damage_avoidance = request_json->value("Should_Early_Reject_Damage_Avoidance", false);
     // set cached post_drop fields back to nullptr
     this->drop_manager->cached_post_container = nullptr; // reset to nullptr before processing begins, in case encounter errors and prepostcomparison is not possible
     this->drop_manager->cached_post_request = nullptr;
@@ -725,7 +726,7 @@ std::shared_ptr<PostLFRResponse> DispenseManager::handle_post_LFR(std::shared_pt
             // if pre/post comparison failed, there may have been request input issues, we do not do product fit check in this case
             if (detection_results.first != -1)
             {
-                std::vector<int> products_to_overflow = this->drop_manager->check_products_for_fit_in_bag(request_json);
+                std::vector<int> products_to_overflow = this->drop_manager->check_products_for_fit_in_bag(request_json, should_early_reject_damage_avoidance);
                 Logger::Instance()->Debug("Bag fit check: found {} products of interest that will no longer fit in this bag", products_to_overflow.size());
                 response->set_products_to_overflow(products_to_overflow);
             }

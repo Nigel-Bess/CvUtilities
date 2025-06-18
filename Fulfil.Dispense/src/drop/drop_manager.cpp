@@ -416,7 +416,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyI
   if (!errors.empty())
   {
     Logger::Instance()->Warn("The following inputs for pre/post comparison were not cached properly, cannot proceed: {}", errors);
-    return std::pair<int, int>{-1, -1};
+    return std::pair <int, int>{-1, -1};
   }
 
   const int item_not_detected_code = 0;
@@ -432,7 +432,6 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyI
     int comparison_result = this->pre_post_compare->run_comparison(cached_pre_container, cached_post_container, lfb_vision_config,
                                            cached_pre_request_json, cached_post_request_json,
                                            cached_drop_target_json, *cached_drop_target, &result_mat, &target_item_overlap);
-
     Logger::Instance()->Debug("Percentage of item that landed on target is: {}", target_item_overlap);
 
     if(this->cached_info != nullptr and this->drop_live_viewer != nullptr)
@@ -518,7 +517,7 @@ std::pair<int, int> DropManager::handle_pre_post_compare(std::string PrimaryKeyI
   }
 }
 
-std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json)
+std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json, bool should_early_reject_damage_avoidance)
 {
     // TODO why is this assigned a shadowing name? Why assign to a new ptr at all? It does not appear to be copied or overwritten?
     std::shared_ptr<MarkerDetectorContainer> cached_post_container = this->cached_post_container;
@@ -557,7 +556,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
             float product_length = product["L"].get<float>()/1000; // [meter] units
             float product_width = product["W"].get<float>()/1000; // [meter] units
             float product_height = product["H"].get<float>()/1000; // [meter] units
-
+            int product_material = product.value("Material", 0); //default 0
             //product_length in tray is equivalent to shadow_height in bag (assumption) for these calculations
             float max_item_length_percent_overflow = lfb_vision_config->max_item_length_percent_overflow;
             float acceptable_height_above_marker_surface = std::min((max_item_length_percent_overflow * product_length), acceptable_Z_above_marker_surface); //[meter] units
@@ -566,6 +565,40 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
             bool fit_result = drop_depth_grid.check_whether_item_fits(product_width, product_height, upper_depth_limit);
             Logger::Instance()->Debug("Bag fit check: product {}, with dimensions (L, W, H) {}, {}, {} has fit: {}", product_id, product_length, product_width, product_height, fit_result);
             if(!fit_result) problematic_products.push_back(product_id);
+            else {
+                //risk map analysis for checking the damage coverage in the bag
+                if (should_early_reject_damage_avoidance) {
+                    std::vector<int> risk_materials{};
+                    float bag_coverage_threshold = lfb_vision_config->early_reject_damage_threshold;
+                    //populate the risk materials vector for glass/metal
+                    switch (product_material)
+                    {
+                    case 4:
+                        risk_materials.push_back(4);
+                        break;
+                    case 3:
+                        if (lfb_vision_config->avoid_metal_on_metal) {
+                            risk_materials.push_back(3);    
+                        }
+                        
+                    default:
+                        break;
+                    }
+                    if (!risk_materials.empty()) {
+                        std::shared_ptr<cv::Mat> risk_map_ptr = this->pre_post_compare->get_damage_risk_map(product_material, lfb_vision_config, risk_materials, this->mongo_bag_state);
+                        std::shared_ptr<cv::Mat> risk_map = this->drop_live_viewer->get_damage_risk_visualization(risk_map_ptr);
+                        bool bag_has_space_for_item = this->pre_post_compare->check_damage_area(*risk_map, bag_coverage_threshold);
+                        if (!bag_has_space_for_item) {
+                            Logger::Instance()->Debug("Bag Coverage Check: product {} with material type {} can be dispensed in bag: {}", product_id, product_material, bag_has_space_for_item);
+                            problematic_products.push_back(product_id);
+                        }
+
+                    }
+                    else {
+                        Logger::Instance()->Debug("No damage prone item materials detected!");
+                    }
+                }
+            }
         }
         return problematic_products;
     }

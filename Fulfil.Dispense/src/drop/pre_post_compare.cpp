@@ -892,7 +892,49 @@ int PrePostCompare::process_target(cv::Point2f target_center, cv::Mat item_resul
   return overlap_percentage;
 }
 
-int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_container,
+bool PrePostCompare::check_damage_area(cv::Mat risk_map, float bag_coverage_threshold) {
+    bool risk_map_has_space = true;
+    cv::Mat white_mask;
+    int rows = risk_map.rows;
+    int cols = risk_map.cols;
+    float total_pixel_count = rows * cols;
+    int white_pixels = 0;
+    cv::inRange(risk_map, cv::Scalar(250, 250, 250), cv::Scalar(255, 255, 255), white_mask);
+    white_pixels = cv::countNonZero(white_mask);
+    float non_white_pixel_count = total_pixel_count - (float)white_pixels;
+    Logger::Instance()->Debug("Total pixel count: {}", total_pixel_count);
+    Logger::Instance()->Debug("White pixel count: {}", white_pixels);
+    Logger::Instance()->Debug("Non white pixel count: {}", non_white_pixel_count);
+
+    float pixel_ratio = non_white_pixel_count/total_pixel_count;
+    Logger::Instance()->Debug("Pixel Ratio of non white vs total pixels: {}", pixel_ratio);
+
+    if (pixel_ratio >= bag_coverage_threshold) risk_map_has_space = false;
+    Logger::Instance()->Debug("Map has space for glass/metal: {}", risk_map_has_space);
+    return risk_map_has_space;
+}
+
+std::shared_ptr<cv::Mat> PrePostCompare::get_damage_risk_map(int damage_type, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<int> risk_materials,
+    std::shared_ptr<mongo::MongoBagState> mongo_bag_state) {
+    std::shared_ptr<cv::Mat> risk_map_ptr = nullptr;
+    bool avoid_all_items = (damage_type == 21);
+        try
+        {
+            int layers_to_include = lfb_vision_config->damage_layers_to_include;
+            std::shared_ptr<cv::Mat> risk_map_ptr = mongo_bag_state->get_risk_map(avoid_all_items, risk_materials, layers_to_include);
+        }
+        catch (const std::exception& e)
+        {
+            Logger::Instance()->Error("Error in Damage Area Coverage Analysis when evaluating damage risk:\n{}", e.what());
+        }
+        catch (...)
+        {
+            Logger::Instance()->Error("Unspecified failure from Damage Area Coverage Analysis when evaluating damage risk ");
+        }
+        return risk_map_ptr;
+}
+
+ int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_container,
                                    std::shared_ptr<MarkerDetectorContainer> post_container,
                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
                                    std::shared_ptr<nlohmann::json> pre_request_json,

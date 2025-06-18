@@ -1309,7 +1309,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
           if(mongo_bag_state->risk_present)
           {
             Logger::Instance()->Warn("Potential risk regions detected in current bag state. Expanding risk map now.");
-            risk_map_ptr = mongo_bag_state->expand_risk_map(risk_map_ptr, container->width, container->length, shadow_length,
+            risk_map_ptr = mongo_bag_state->expand_risk_map(damage_type, risk_map_ptr, container->width, container->length, shadow_length,
                                                                  shadow_width, shadow_height);
             risk_map_flag = true;
           }

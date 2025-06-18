@@ -39,7 +39,6 @@ class DropManager
   std::shared_ptr<fulfil::depthcam::Session> session;
 
   std::shared_ptr<fulfil::dispense::visualization::LiveViewer> drop_live_viewer;
-
   float acceptable_Z_above_marker_surface; //recipe value. for convenience and use in multiple functions
 
 
@@ -115,7 +114,7 @@ class DropManager
 
   std::pair<int, int> handle_pre_post_compare(std::string PrimaryKeyID);
 
-  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json);
+  std::vector<int> check_products_for_fit_in_bag(std::shared_ptr<nlohmann::json> request_json, bool should_early_reject_damage_avoidance);
 
   std::shared_ptr<fulfil::dispense::drop::SideDropResult> handle_pre_side_dispense_request(std::shared_ptr<std::string> request_id,
                                                             std::shared_ptr<std::string> primary_key_id,

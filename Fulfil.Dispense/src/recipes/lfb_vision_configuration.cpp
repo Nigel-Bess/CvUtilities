@@ -107,10 +107,14 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     avoid_metal_on_metal{input_json->value("AvoidMetalOnMetal", true)},
     max_allowable_damage_rejections{input_json->value("MaxAllowableDamageRejections", 2)},
     mass_threshold_extra_fragile{input_json->value("MassThresholdExtraFragileGrams", (float)150.0)},
-    damage_buffer_width{input_json->value("DamageBufferWidth", 1)}, // TODO is int?
+    damage_buffer_width{input_json->value("DamageBufferWidth", (float)1.0)}, // TODO is int?
     damage_buffer_length{input_json->value("DamageBufferLength", 0.0F)}, // TODO is float?
     damage_swing_factor{input_json->value("DamageSwingFactor", (float)0.5)},
     damage_layers_to_include{input_json->value("DamageLayersToInclude", 1)},
+    damage_buffer_width_metal{ input_json->value("DamageBufferWidthMetal", (float)0.5)},
+    damage_buffer_length_metal{ input_json->value("DamageBufferLengthMetal", 0.0F)},
+    damage_swing_factor_metal{ input_json->value("DamageSwingFactorMetal", (float)0.3)},
+    early_reject_damage_threshold{input_json->value("EarlyRejectDamageThreshold", (float)0.8)},
 
     // post-drop item-in-bag sensor detection
     //    These values define how the Pre/Post image Drop Grids average depths are compared and whether an item is determined to have been dispensed.
