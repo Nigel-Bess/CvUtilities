@@ -472,6 +472,8 @@ namespace results_to_vlsg {
         dimensional_info::LaneIndex m_index {};
         std::vector<int> m_errors {0};
         int m_first_item_distance{-1};// should be float?
+        int px_first_item_x{-1}; // First item's X pixel position
+        int px_first_item_y{-1}; // First item's Y pixel position
         int m_first_item_length{0};// should be float?
         tray_count_api_comms::LaneImageRegion m_roi_points{};
         BoundaryLimit m_range_fn {};
@@ -483,7 +485,7 @@ namespace results_to_vlsg {
         LaneItemDistance(dimensional_info::LaneIndex index, std::vector<int> errors, int firstItemDistance,
                                   BoundaryLimit clip);
         LaneItemDistance(int index, int error, int firstItemDistance);
-        LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength);
+        LaneItemDistance(int index, int error, int firstItemDistance, int firstItemLength, int px_first_item_x, int px_first_item_y);
     };
 
     struct LaneCounts {

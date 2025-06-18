@@ -35,6 +35,14 @@ namespace std_filesystem = std::experimental::filesystem;
 namespace filterUtils = fulfil::depthcam::filtering;
 typedef std::tuple<std::array<float,3>, std::array<float,3>, std::array<float,3>> FloatPoints;
 
+double parseEnvVarDouble(std::string env_name, double defaultVal) {
+    auto env_p = std::getenv(env_name.c_str());
+    if (env_p != nullptr) {
+      return std::strtod(env_p, NULL);
+    }
+    return defaultVal;
+}
+
 TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
     : tray_config_section{tray_config_reader},
       tray_width(tray_config_reader.at<float>("tray_width")), tray_length(tray_config_reader.at<float>("tray_length")),
@@ -47,10 +55,45 @@ TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
       wheel_diameter_correction_mm(tray_config_reader.get_value("wheel_diameter_correction_mm", 35.0f)),
       tongue_wheel_adjustment_mm(tray_config_reader.get_value("tongue_wheel_adjustment_mm", 8.0f)),
       save_tray_visualizations(tray_config_reader.get_value("flags", "save_tray_visualizations", true))
-{}
+{
+    lowest_ground_z = parseEnvVarDouble("FED_LOWEST_GROUND_Z", 0.8);
+    highest_ceiling_z = parseEnvVarDouble("FED_HIGHEST_CEILING_Z", -0.5);
+    top_z_ratio = parseEnvVarDouble("FED_MAX_ITEM_HEIGHT_RATIO", 0.964924);
+    highest_proposal_ground_bias = parseEnvVarDouble("FED_HIGHEST_PROPOSAL_BIAS", 0.05);
+    lowest_proposal_scalar = parseEnvVarDouble("FED_LOW_PROPOSAL_SCALAR", 0.05);
+    min_z_thickness = parseEnvVarDouble("FED_MIN_ITEM_Z_THICKNESS", 0.0001);
+
+    max_valid_fed_y_diff_m = parseEnvVarDouble("FED_MAX_LINE_Y_DIFF", 0.07);
+    empty_count_for_consensus = parseEnvVarDouble("FED_EMPTY_CONSENSUS_COUNT", 14);
+    similar_count_for_consensus = parseEnvVarDouble("FED_CONSENSUS_COUNT", 3.044723)
+    ;
+
+    double FED_LINE_SPREAD_MULTIPLIER = parseEnvVarDouble("FED_LINE_SPREAD_MULTIPLIER", 1.267441);
+    fed_sample_line_x_px_offsets[0] = (int)(FED_LINE_SPREAD_MULTIPLIER * -20);
+    fed_sample_line_x_px_offsets[1] = (int)(FED_LINE_SPREAD_MULTIPLIER * 20);
+    fed_sample_line_x_px_offsets[2] = 0;
+    fed_sample_line_x_px_offsets[3] = (int)(FED_LINE_SPREAD_MULTIPLIER * -10);
+    fed_sample_line_x_px_offsets[4] = (int)(FED_LINE_SPREAD_MULTIPLIER * 10);
+    fed_sample_line_x_px_offsets[7] = (int)(FED_LINE_SPREAD_MULTIPLIER * -5);
+    fed_sample_line_x_px_offsets[8] = (int)(FED_LINE_SPREAD_MULTIPLIER * 5);
+    fed_sample_line_x_px_offsets[5] = (int)(FED_LINE_SPREAD_MULTIPLIER * -15);
+    fed_sample_line_x_px_offsets[6] = (int)(FED_LINE_SPREAD_MULTIPLIER * 15);
+    fed_sample_line_x_px_offsets[9] = (int)(FED_LINE_SPREAD_MULTIPLIER * -2);
+    fed_sample_line_x_px_offsets[10] = (int)(FED_LINE_SPREAD_MULTIPLIER * 2);
+    fed_sample_line_x_px_offsets[11] = (int)(FED_LINE_SPREAD_MULTIPLIER * -3);
+    fed_sample_line_x_px_offsets[12] = (int)(FED_LINE_SPREAD_MULTIPLIER * 3);
+    fed_sample_line_x_px_offsets[13] = (int)(FED_LINE_SPREAD_MULTIPLIER * -1);
+    fed_sample_line_x_px_offsets[14] = (int)(FED_LINE_SPREAD_MULTIPLIER * 1);
+    fed_sample_line_x_px_offsets[15] = (int)(FED_LINE_SPREAD_MULTIPLIER * -8);
+    fed_sample_line_x_px_offsets[16] = (int)(FED_LINE_SPREAD_MULTIPLIER * 8);
+    fed_sample_line_x_px_offsets[18] = (int)(FED_LINE_SPREAD_MULTIPLIER * -6);
+    fed_sample_line_x_px_offsets[19] = (int)(FED_LINE_SPREAD_MULTIPLIER * 6);
+    fed_sample_line_x_px_offsets[20] = (int)(FED_LINE_SPREAD_MULTIPLIER * -7);
+    fed_sample_line_x_px_offsets[21] = (int)(FED_LINE_SPREAD_MULTIPLIER * 7);
+}
 
 double TrayAlgorithm::meters_from_tray_front(double y_meters) const {
-    return (this->tray_length / 2) - y_meters;
+    return ((double)this->tray_length / 2.0d) - y_meters;
 }
 
 /**
@@ -181,6 +224,7 @@ void TrayAlgorithm::run_visualizers(cv::Mat mask,
 
 results_to_vlsg::LaneItemDistance TrayAlgorithm::get_first_item_distance_from_coordinate_matrix(
         const std::vector<Eigen::Vector3d> &item_edge_coordinates,
+        const std::vector<cv::Point> &item_pixel_coordinates,
         const TrayLane &lane) const 
 {
     if (item_edge_coordinates.empty()) {
@@ -207,36 +251,50 @@ results_to_vlsg::LaneItemDistance TrayAlgorithm::get_first_item_distance_from_co
                                "sent to the vlsfw is {}.", y_dist, this->y_distance_search_limit, 
                                (y_dist < this->y_distance_search_limit) ? "fell within" : "EXCEEDED",
                                item_distance, tongue_wheel_correction, item_corrected_distance);
-    return {lane.lane_id(), 0, item_corrected_distance, item_length};
+    return {lane.lane_id(), 0, item_corrected_distance, item_length, item_pixel_coordinates.front().x, item_pixel_coordinates.front().y};
 
 }
 
 //TODO Fix shared ptr
-void TrayAlgorithm::scan_for_back_item_edge(cv::LineIterator& lane_center_iterator, 
-                                            int &index,
+int TrayAlgorithm::scan_for_back_item_edge(const std::vector<cv::Point> &lane_line_points, 
+                                            const int index,
                                             const PixelPointConverter &local_pix2pt,
                                             const TrayLane &current_lane)
 {
-  Eigen::Vector3d depth_pt = local_pix2pt.get_point_from_pixel(lane_center_iterator.pos());
+  int i = index;
+  Eigen::Vector3d depth_pt = local_pix2pt.get_point_from_pixel(lane_line_points[i]);
   auto get_clipped_y_limits = [&depth_pt, &current_lane, back_edge_of_tray=this->back_edge_of_tray_local_y] (float proportion_item_len) {
     return std::max((double)back_edge_of_tray,
                               depth_pt.y() - (current_lane.get_item_length_in_meters()* proportion_item_len)); }; // in m
-    double init_jump = get_clipped_y_limits((current_lane.is_rigid()) ? 0.99 : 0.92);
-    double min_y = get_clipped_y_limits((current_lane.is_rigid()) ? 1.02 : 1.035);
+  
+  //Logger::Instance()->Info("1");
+  double init_jump = get_clipped_y_limits((current_lane.is_rigid()) ? 0.99 : 0.92);
+  double min_y = get_clipped_y_limits((current_lane.is_rigid()) ? 1.02 : 1.035);
+  //Logger::Instance()->Info("2");
 
-    auto height_boundaries = get_height_cut_offs(current_lane.get_item_height_in_meters());
-    float min_height = height_boundaries[0]; float max_height = height_boundaries[2];
+  auto height_boundaries = get_height_cut_offs(current_lane.get_item_height_in_meters());
+  float min_height = height_boundaries[0]; float max_height = height_boundaries[2];
+  //Logger::Instance()->Info("3 {} {}", min_height, max_height);
 
-    auto continue_scan = [&](const Eigen::Vector3d& cur_pt, const cv::Point2i& cur_pix){
-        return index < lane_center_iterator.count &&
-            (cur_pt.y() > init_jump || ((-cur_pt.z() > min_height) && (cur_pt.y() > min_y) && (-cur_pt.z() < max_height)));};
-    // If the line iterator is not at the end,
-    // Y decreases going back to the tray so when y <= to jump, we have gone an item length
-    // Keep scanning until there is a break in item detection conditions (since the jump may get caught on the back of the item)
-    while (continue_scan(depth_pt, lane_center_iterator.pos())){
-        ++lane_center_iterator, index++;
-        depth_pt = local_pix2pt.get_point_from_pixel(lane_center_iterator.pos());
-    }
+  // If the line iterator is not at the end,
+  // Y decreases going back to the tray so when y <= to jump, we have gone an item length
+  // Keep scanning until there is a break in item detection conditions (since the jump may get caught on the back of the item)
+  //Logger::Instance()->Info("4");
+  int point_count = lane_line_points.size();
+  while (i < point_count) {
+      //Logger::Instance()->Info("4a i: {}", i);
+      auto cur_pt = local_pix2pt.get_point_from_pixel(lane_line_points[i]);
+      //Logger::Instance()->Info("4a at i: {}", cur_pt.z());
+      //Logger::Instance()->Info("4a size {}", point_count);
+      if (!((cur_pt.y() > init_jump || ((-cur_pt.z() > min_height) && (cur_pt.y() > min_y) && (-cur_pt.z() < max_height))))) {
+        //Logger::Instance()->Info("break at {}", i);
+        break;
+      }
+      i++;
+      //Logger::Instance()->Info("inced i {}", i);
+  }
+  //Logger::Instance()->Info("5");
+  return i < point_count ? i : (point_count - 1);
 }
 
 //TODO break out iteration to a seperate function that handles the looping
@@ -286,24 +344,267 @@ FEDParams TrayAlgorithm::get_fed_params(const fulfil::dispense::tray::TrayLane &
     min_x, max_x, start_dead_zone, end_dead_zone};
 }
 
+// The first x in FED 2x2, a smart wrapper around original FED algo.
+// Keeps running scan_lane_for_item_points until N sets of lines or many empties agree on a result,
+// The loop is slightly smart by first evaluating center line, then the far edge offset lines from
+// the center alternating between left/right offsets re-approaching center.
+std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::multiscan_lane_for_item_points(
+  const std::vector<cv::Point> &lane_center_points,
+  const PixelPointConverter &local_pix2pt,
+  const TrayLane &current_lane,
+  FEDParams params) {
+    int empty_count = 0;
+    std::vector<std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>>> results;
+    results.reserve(21);
+
+    // Check neighboring left/right pixels, alternating between left/ right each iteration
+    for (auto fed_sample_line_x_px_offset : this->fed_sample_line_x_px_offsets) {
+      try {
+        auto shifted_line = shift_line(lane_center_points, local_pix2pt, fed_sample_line_x_px_offset);
+        auto this_result = scan_lane_for_item_points(*shifted_line, local_pix2pt, current_lane, params);
+        auto max_similar_result = this_result; // Track the similar point with greatest Y value
+        auto edge_coordinates = std::get<0>(this_result);
+        if (edge_coordinates.size() == 0) {
+          empty_count++;
+        } else {
+          auto this_front_y = edge_coordinates[0][1];
+          double similar_count = 0.0;
+          // Search past results for similar front edge points, if there's a previous
+          // match that's close enough, count it as a consensus and return it
+          for (auto past_result : results) {
+            // If dist between 2 result's Y coordinate agree within threshold, consider similar
+            auto past_front_y = std::get<0>(past_result)[0][1];
+            double y_diff = abs(past_front_y - this_front_y);
+            if (y_diff < max_valid_fed_y_diff_m) {
+              // Smoothen the similar count, the more similar, the closer to +1 similar count
+              similar_count += 1 - (y_diff / max_valid_fed_y_diff_m) * 0.2;
+              if (past_front_y > this_front_y) {
+                max_similar_result = past_result;
+              }
+            }
+          }
+          // If enough results agree, return it
+          if (similar_count+1 >= this->similar_count_for_consensus) {
+            return max_similar_result;
+          }
+          results.push_back(this_result);
+        }
+      } catch (const rs2::invalid_value_error &re) {
+        // Blindly assume errors must be from empty lane / RS errors?
+        empty_count++;
+        Logger::Instance()->Error("Issue handling FED request (rs): \n\t{}", re.what());
+      }
+      catch (const std::exception &e) {
+        // Blindly assume errors must be from empty lane / RS errors?
+        empty_count++;
+        Logger::Instance()->Error("Issue handling FED request: \n\t{}", e.what());
+      }
+      // If enough lines say empty, believe it and return empty
+      if (empty_count >= this->empty_count_for_consensus) {
+        break;
+      }
+    }
+
+    Logger::Instance()->Error("FED lane lines found no consensus?!");
+    std::vector<Eigen::Vector3d> empty_3d;
+    std::vector<cv::Point> empty_2d;
+    return {empty_3d, empty_2d};
+  }
+
+/**
+ * The 2nd x in FED 2x2, it improves on original FED by not assuming the true ground of a lane is
+ * zero or valid Z's must lie in product metadata.
+ */
+std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::scan_lane_for_item_points(
+  const std::vector<cv::Point> &lane_line_points,
+  const PixelPointConverter &local_pix2pt,
+  const TrayLane &current_lane,
+  FEDParams params){
+    // Step 1: Get the "bottom" and "top" Zs of the lane, either the tallest item or top of empty lane on center line
+    double max_lane_z = 1000;
+    double min_lane_z = -1000;
+    std::vector<cv::Point> filtered_lane_points;
+    for(cv::Point center_point : lane_line_points)
+    {
+        auto depth_point = local_pix2pt.get_point_from_pixel(center_point);
+        // Ignore z points too high or too low
+        if (depth_point.z() < this->highest_ceiling_z || depth_point.z() > this->lowest_ground_z) {
+          continue;
+        }
+        filtered_lane_points.push_back(center_point);
+        if (depth_point.z() < max_lane_z) {
+          max_lane_z = depth_point.z();
+        }
+        if (depth_point.z() > min_lane_z) {
+          min_lane_z = depth_point.z();
+        }
+    }
+
+    // Step 2: Sample a Z "laser" depth scan starting at lowest seen Z which we assume hits into the tread or tongue.
+    // This will give us the total count of points that could be either items or lane hardwares.
+    int ground_density = count_points_above_z(filtered_lane_points, local_pix2pt, min_lane_z);
+
+    // Step 3: Sample all Z points that are (some ratio) to the "top" sane Z to establish the count of points
+    // that could be EITHER pure items or pure lane hardware (in the case of empty or very flat items).
+    float top_z = max_lane_z * this->top_z_ratio;
+    int top_density = count_points_above_z(filtered_lane_points, local_pix2pt, top_z);
+    Logger::Instance()->Info("=============== GROUND {} min_z: {}", ground_density, min_lane_z);
+    Logger::Instance()->Info("=============== AT TOP count: {} top_z: {} max_z: {}", top_density, top_z, max_lane_z);
+
+    // If the top and bottom densities are practically the same,
+    // or floor+ceiling Zs are very close, bail as empty lane
+    if (abs(ground_density - top_density) < 2 || abs(max_lane_z - min_lane_z) < this->min_z_thickness) {
+      Logger::Instance()->Error("FED detected empty lane!");
+      std::vector<Eigen::Vector3d> empty_3d;
+      std::vector<cv::Point> empty_2d;
+      return {empty_3d, empty_2d};
+    }
+
+    // Step 4: With the ground points and half-top sample points, grab the average point count between them as a sort of
+    // dynamic threshold between a point cloud looking like ground's count vs half-top's count.  The lowest Z
+    // laser scan who's valid point count still exceeds this threshold will be considered the "true ground" and used
+    // as the return value of item-only points.
+    double highest_proposed_ground = this->lowest_ground_z;
+    double low_count_threshold = top_density * this->highest_proposal_ground_bias + ground_density * (1.0 - this->highest_proposal_ground_bias);
+    Logger::Instance()->Info("Scan for highest z with point count <= {} between {} - {}", low_count_threshold, top_density, ground_density);
+    for (double z = get_next_z(filtered_lane_points, local_pix2pt, min_lane_z, false); z > top_z;) {
+      auto candidates = count_points_above_z(filtered_lane_points, local_pix2pt, z);
+      if (candidates < low_count_threshold) {
+        highest_proposed_ground = z;
+        break;
+      } else {
+        z = get_next_z(filtered_lane_points, local_pix2pt, z, false);
+        //Logger::Instance()->Info("Scanned z floor = {} density: {} / {}, {} > {}", z, candidates->size(), low_count_threshold, z, top_z);
+      }
+    }
+
+    // This is bad, log a deep error and fall-back to old logic that assumes z=0 is true ground plane
+    if (highest_proposed_ground == this->lowest_ground_z) {
+      Logger::Instance()->Error("FED auto-calibration failed to find lower bound!");
+      std::vector<Eigen::Vector3d> empty_3d;
+      std::vector<cv::Point> empty_2d;
+      return {empty_3d, empty_2d};
+    }
+
+    // Look from highest proposal-down for the first Z below it that has a larger density
+    auto highest_proposal_density = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, highest_proposed_ground).size();
+    double z = get_next_z(filtered_lane_points, local_pix2pt, highest_proposed_ground, true);
+    auto candidates = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, z);
+    auto lowest_proposed_ground = std::min(z, max_lane_z - min_z_thickness / 2);
+    Logger::Instance()->Info("Lowest possible true ground at z = {}", lowest_proposed_ground);
+    Logger::Instance()->Info("Highest possible true ground at z = {} density: {}", highest_proposed_ground, candidates.size());
+    // Average-ish the highest and lowest sane true ground proposals and hope the truth lies
+    // somewhere inbetween.  Favor the lower proposal by a parameterized amount.
+    double true_ground_z = highest_proposed_ground * (1.0d-lowest_proposal_scalar) + lowest_proposed_ground * lowest_proposal_scalar;
+    Logger::Instance()->Info("Using true ground estimate {}", true_ground_z);
+    // Now remove all would-be front-edges until the first that's above "true ground"
+
+    /*auto db_upper_trimmed_edges = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, lowest_proposed_ground);
+    Logger::Instance()->Info("Upper trimmed size {} / {}", db_upper_trimmed_edges->size(), filtered_lane_points.size());
+    auto db_lower_trimmed_edges = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, highest_proposed_ground);
+    Logger::Instance()->Info("Lower trimmed size {} / {}", db_lower_trimmed_edges->size(), filtered_lane_points.size());
+    */
+
+    auto trimmed_edges = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, true_ground_z);
+    Logger::Instance()->Info("Trimmed size {} / {}", trimmed_edges.size(), filtered_lane_points.size());
+    return analyze_lane(trimmed_edges, local_pix2pt, current_lane, params);
+}
+
+/*
+  Gets the next Z in the provided vector that's above laser_scan_z_m, or +/-9999 if none
+*/
+double TrayAlgorithm::get_next_z(
+  const std::vector<cv::Point> &lane_line_points,
+  const PixelPointConverter &local_pix2pt,
+  double laser_scan_z_m,
+  bool next_positive)
+{
+  double next_z = next_positive ? 9999 : -9999;
+  for (auto center_point : lane_line_points) {
+    auto depth_point = local_pix2pt.get_point_from_pixel(center_point);
+    if (next_positive && depth_point.z() > laser_scan_z_m) {
+      next_z = std::min(next_z, depth_point.z());
+    } else if (!next_positive && depth_point.z() < laser_scan_z_m) {
+      next_z = std::max(next_z, depth_point.z());
+    }
+  }
+  return next_z;
+}
+
+int TrayAlgorithm::count_points_above_z(
+  const std::vector<cv::Point> &lane_line_points,
+  const PixelPointConverter &local_pix2pt,
+  double laser_scan_z_m)
+{
+  int count = 0;
+  for (auto center_point : lane_line_points) {
+    auto depth_point = local_pix2pt.get_point_from_pixel(center_point);
+    if (depth_point.z() <= laser_scan_z_m) {
+      count++;
+    }
+  }
+  return count;
+}
+
+std::vector<cv::Point> TrayAlgorithm::trim_front_edge_points_below_z(
+  const std::vector<cv::Point> &lane_line_points,
+  const PixelPointConverter &local_pix2pt,
+  double max_z)
+{
+  // Find the first edge point who's Z is at most max_z
+  int start_index = 0;
+  for (auto center_point : lane_line_points) {
+    auto depth_point = local_pix2pt.get_point_from_pixel(center_point);
+    if (depth_point.z() <= max_z) {
+      break;
+    }
+    start_index++;
+  }
+
+  std::vector<cv::Point> keeps;
+  keeps.reserve(lane_line_points.size() - start_index);
+
+  int point_count = lane_line_points.size();
+  for (int i = start_index; i < point_count; i++) {
+    keeps.push_back(lane_line_points[i]);
+  }
+  return keeps;
+}
+
+std::shared_ptr<std::vector<cv::Point>> TrayAlgorithm::shift_line(
+  const std::vector<cv::Point> &lane_line_points,
+  const PixelPointConverter &local_pix2pt,
+  double x_shift)
+{
+  auto keeps = std::make_shared<std::vector<cv::Point>>();
+  keeps->reserve(lane_line_points.size());
+  for (auto center_point : lane_line_points) {
+    cv::Point shifted(center_point.x + x_shift, center_point.y);
+    keeps->push_back(shifted);
+  }
+  return keeps;
+}
+
+/**
+ * @brief Function Project an imaginary laser line from the front (2D horizontal hyperplane in 3D meter space) through the depth image.  Iterate over the 2D image pixel line that runs atop the center of the lane and return all the 3d depth points and corresponding 2D pixel points that exist above the laser line.
+ * @param lane_center_iterator An iterator that yields all the tray lane points on the lane's center line, skewed to match image.
+ * @param local_pix2pt Fn to convert image pixel 2D points to 3d depth points in meters
+ * @param current_lane Oh you know
+ * @param params FED machine params and tunings
+ * Returns tuple of [edge_coordinates, detection_pixels] which are all the 3D meter points + 2D pixel points that are above the laser line across the center of the lane, may be empty if none found.
+ */
 std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::analyze_lane(
-  cv::LineIterator lane_center_iterator,
+  const std::vector<cv::Point> &lane_line_points,
   const PixelPointConverter &local_pix2pt,
   const TrayLane &current_lane,
   FEDParams params) 
 {
-    double num_depth_points_over_tray_on_line = 0;
-    double sum_depth_point_values_over_tray = 0;
     //TODO could improve check conditions here using morph element
     // returns true if the depth is INVALID
     auto invalid_depth = [&] (const Eigen::Vector3d& cur_pt) {
-        if (cur_pt.z() < 0) {
-            num_depth_points_over_tray_on_line++;
-            sum_depth_point_values_over_tray-= cur_pt.z();
-        }
         // if X or Z is out of bounds, then return true
-        return -cur_pt.z() < params.min_height || (-cur_pt.z() > params.max_height)
-                 || (cur_pt.x() < params.min_x) || (cur_pt.x() > params.max_x);
+        return (cur_pt.x() < params.min_x) || (cur_pt.x() > params.max_x)
+          || -cur_pt.z() < params.min_height || (-cur_pt.z() > params.max_height);
     };
 
     // TODO Eliminate Maybe???
@@ -327,14 +628,14 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
     std::vector<cv::Point> pixel_detections;
     Eigen::Vector3d back_edge_coordinate{};
     cv::Point back_pixel{};
-    edge_coordinates.reserve(current_lane.get_num_items()+1);
-    pixel_detections.reserve(current_lane.get_num_items()+1);
-    auto log_front_edge_detection = [&](const Eigen::Vector3d& pt, const cv::Point2i& pix, int step) 
+    edge_coordinates.reserve(lane_line_points.size());
+    pixel_detections.reserve(lane_line_points.size());
+    auto push_front_edge_detection = [&](const Eigen::Vector3d& pt, const cv::Point2i& pix, int step) 
     {
-      Logger::Instance()->Info("Lane {} a tongue. Item {} found on iteration {}. It is {:0.3f}mm away and {:0.2f}mm from belt. "
+      /*Logger::Instance()->Info("Lane {} a tongue. Item {} found on iteration {}. It is {:0.3f}mm away and {:0.2f}mm from belt. "
           "Item should be {:0.1f}mm tall. Detection located at pixel ({},{}) and point({:0.4f},{:0.4f},{:0.4f}), "
           "which passed filter {:0.3f} < x < {:0.3f} and {:0.3f} < -z < {:0.3f}"
-          "\n    Current mean over tray is {:0.3f}", 
+          "\n", 
           (current_lane.has_tongue()) ? "has" : "lacks",
           edge_coordinates.size(), 
           step, 
@@ -344,12 +645,11 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
           pix.y, pix.x,
           pt.x(), pt.y(), pt.z(), 
           params.min_x, params.max_x, 
-          params.min_height, params.max_height, 
-          sum_depth_point_values_over_tray/num_depth_points_over_tray_on_line);
+          params.min_height, params.max_height);*/
       edge_coordinates.push_back(pt);
       pixel_detections.push_back(pix);
     };
-    auto log_back_edge_detection = [&] (cv::Point pix, int step) {
+    auto set_back_edge_detection = [&] (cv::Point pix, int step) {
         if (edge_coordinates.size() != 1) { return ; }
         back_edge_coordinate = local_pix2pt.get_point_from_pixel(pix);
         back_pixel = pix;
@@ -370,15 +670,16 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
 
     // TODO rename variable
     Eigen::Vector3d depth_point{};
-    Logger::Instance()->Debug("Lane Center Iterator count: {}", lane_center_iterator.count);
     // get rid of i and just check if equals to end / y pix limit?
-    for(int i = 0; i < lane_center_iterator.count; i++, ++lane_center_iterator)
+    for (int i = 0; i < lane_line_points.size(); i++)
     {
-        depth_point = local_pix2pt.get_point_from_pixel(lane_center_iterator.pos());
-        if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, lane_center_iterator.pos(), log_dead_zone)) {
-            log_front_edge_detection(depth_point, lane_center_iterator.pos(), i);
-            scan_for_back_item_edge(lane_center_iterator, i, local_pix2pt, current_lane);
-            log_back_edge_detection(lane_center_iterator.pos(), i);
+        auto center_point = lane_line_points[i];
+        depth_point = local_pix2pt.get_point_from_pixel(center_point);
+        push_front_edge_detection(depth_point, center_point, i);
+        if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, center_point, log_dead_zone)) {
+            i = scan_for_back_item_edge(lane_line_points, i, local_pix2pt, current_lane);
+            //Logger::Instance()->Info("found back edge {} -> {}", i, depth_point.z());
+            set_back_edge_detection(lane_line_points[i], i);
         }
     }
     if (!edge_coordinates.empty()) {
@@ -386,10 +687,10 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
         pixel_detections.push_back(back_pixel);
     }
 
-    Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.",
+    /*Logger::Instance()->Info("Mean of points on line over tray is {:0.3f}. Where {} out of {} were greater than zero.",
                              sum_depth_point_values_over_tray/num_depth_points_over_tray_on_line, 
                              num_depth_points_over_tray_on_line, 
-                             lane_center_iterator.count);
+                             lane_line_points.size());*/
     return {edge_coordinates, pixel_detections};
 }
 
@@ -523,7 +824,7 @@ std::vector<TrayLane> make_lanes_from_request(const request_from_vlsg::TrayReque
   return tray_lanes;
 }
 
-cv::LineIterator make_requested_center_iterator(const std::vector<cv::Point2i>& pixel_lane_centers, int lane_index, int num_lanes)
+std::vector<cv::Point> get_lane_center_points(const std::vector<cv::Point2i>& pixel_lane_centers, int lane_index, int num_lanes)
 {
   auto line_front = pixel_lane_centers.at(lane_index);
   auto line_back = pixel_lane_centers.at(lane_index + num_lanes);
@@ -533,7 +834,12 @@ cv::LineIterator make_requested_center_iterator(const std::vector<cv::Point2i>& 
       filterUtils::make_lane_iterator(line_front, line_back,
           vertical_search_region_buffer, buffer_bias_to_back);
   Logger::Instance()->Debug("Line Iterator Created with {} points on line.", lane_center_iterator.count);
-  return lane_center_iterator;
+  std::vector<cv::Point> center_points;
+  center_points.reserve(lane_center_iterator.count);
+  for(int i = 0; i < lane_center_iterator.count; i++, ++lane_center_iterator) {
+    center_points.push_back(lane_center_iterator.pos());
+  }
+  return center_points;
 }
 
 std::vector<cv::Point2i> TrayAlgorithm::get_center_pixels(const std::shared_ptr<fulfil::depthcam::Session> &session,
@@ -868,8 +1174,6 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
 
   // TODO test over the local aligned frame directly instead
   filterUtils::filter_out_selection(*(session->get_depth_mat()), tongue_color_mask);
-  cv::LineIterator lane_center_iterator = make_requested_center_iterator(
-      pixel_lane_centers, current_lane.lane_id(), current_tray.get_lane_count());
 
   // Move precondition outside
   if (current_lane.get_num_items() == 0) {
@@ -877,16 +1181,18 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
       return std::make_tuple(results_to_vlsg::LaneItemDistance {current_lane.lane_id(), 5, -1}, center_line_objs, tongue_detections);
   }
 
+  // Do FED: Find the Front Edge
+  auto lane_center_points = get_lane_center_points(
+    pixel_lane_centers, current_lane.lane_id(), current_tray.get_lane_count());
   auto [edge_coordinates, detection_pixels]  =
-      analyze_lane(lane_center_iterator, local_pix2pt, current_lane, fed_params);
+      multiscan_lane_for_item_points(lane_center_points, local_pix2pt, current_lane, fed_params);
+      //analyze_lane(lane_center_points, local_pix2pt, current_lane, fed_params);
 
-  // Moved from analyze lane
   results_to_vlsg::LaneItemDistance lane_item_distance =
-    get_first_item_distance_from_coordinate_matrix(edge_coordinates, current_lane);
+    get_first_item_distance_from_coordinate_matrix(edge_coordinates, detection_pixels, current_lane);
   Logger::Instance()->Info("Lane {}: Closest item is {} mm away from front.",
     current_lane.lane_id(),
     lane_item_distance.m_first_item_distance);
-  // Moved from analyze lane
 
   auto tray_point_cloud = generate_local_traycloud(session,  camera_to_mm_transform,-0.4);
   run_visualizers(tongue_color_mask,
@@ -1000,3 +1306,4 @@ void TrayAlgorithm::load_eigen_matrix(Eigen::Matrix3Xd &matrix, const std::strin
 cv::Mat& TrayAlgorithm::get_FED_visualization_image() { return this->FED_visualization_image; }
 
 cv::Mat& TrayAlgorithm::get_TV_visualization_image() { return this->TV_visualization_image; }
+

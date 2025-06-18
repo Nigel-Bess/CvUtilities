@@ -35,7 +35,6 @@ namespace fulfil::dispense::commands
 
 
         results_to_vlsg::TrayValidationCounts count_result{};
-        results_to_vlsg::LaneItemDistance lane_distance_info{};
         /**
          * Encodes the payload in the payload string variable on this object.
          */
@@ -49,6 +48,8 @@ namespace fulfil::dispense::commands
                                  std::shared_ptr<std::string> command_id);
 
         std::shared_ptr<std::string> get_command_id() override;
+
+        results_to_vlsg::LaneItemDistance lane_distance_info{};
 
         int dispense_payload_size() override;
 

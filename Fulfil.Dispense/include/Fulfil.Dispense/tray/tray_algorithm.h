@@ -257,11 +257,46 @@ class TrayAlgorithm
             const std::vector<tray::TrayLane> &tray_lanes,
             int lane_count) const;
 
-    void scan_for_back_item_edge(cv::LineIterator& lane_center_iterator, int &index,
+    int scan_for_back_item_edge(
+        const std::vector<cv::Point> &lane_center_points, int index,
         const depthcam::PixelPointConverter &local_pix2pt,
         const fulfil::dispense::tray::TrayLane &current_lane);
 
-    std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> analyze_lane(cv::LineIterator lane_center_iterator,
+    std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> scan_lane_for_item_points(
+            const std::vector<cv::Point> &lane_line_points,
+            const depthcam::PixelPointConverter &local_pix2pt,
+            const tray::TrayLane &current_lane,
+            FEDParams params);
+
+    std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> multiscan_lane_for_item_points(
+            const std::vector<cv::Point> &lane_center_points,
+            const depthcam::PixelPointConverter &local_pix2pt,
+            const tray::TrayLane &current_lane,
+            FEDParams params);
+
+    int count_points_above_z(
+        const std::vector<cv::Point> &lane_center_points,
+        const depthcam::PixelPointConverter &local_pix2pt,
+        double laser_scan_z_m = 0);
+
+    double get_next_z(
+      const std::vector<cv::Point> &lane_line_points,
+      const depthcam::PixelPointConverter &local_pix2pt,
+      double laser_scan_z_m,
+      bool next_positive);
+
+    std::vector<cv::Point> trim_front_edge_points_below_z(
+      const std::vector<cv::Point> &lane_center_points,
+      const depthcam::PixelPointConverter &local_pix2pt,
+      double max_z);
+
+    std::shared_ptr<std::vector<cv::Point>> shift_line(
+      const std::vector<cv::Point> &lane_center_points,
+      const depthcam::PixelPointConverter &local_pix2pt,
+      double x_shift);
+
+    std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> analyze_lane(
+            const std::vector<cv::Point> &lane_center_points,
             const depthcam::PixelPointConverter &local_pix2pt,
             const tray::TrayLane &current_lane,
             FEDParams params);
@@ -271,6 +306,7 @@ class TrayAlgorithm
     [[nodiscard]] results_to_vlsg::LaneItemDistance
         get_first_item_distance_from_coordinate_matrix(
                 const std::vector<Eigen::Vector3d> &item_edge_coordinates,
+                const std::vector<cv::Point> &item_pixel_coordinates,
                 const tray::TrayLane &lane) const;
     #pragma endregion fed
 
@@ -285,6 +321,44 @@ class TrayAlgorithm
    /*************************************/
 
   public:
+
+        // FED Hyperparameters: These handful of constants have been tuned extensively so do not
+    // touch without proving improvement using eval.cpp!!!
+
+    // The max value in meters we expect calibration to be off by, that is
+    // the max distance between the ground (top of a lane) the Z (zero) axis
+    double lowest_ground_z;
+    double highest_ceiling_z;
+
+    // Start scanning for true ground from about 98% of the way to the highest seen Z point
+    // This skims off the top couple noisiest topmost point densities.
+    double top_z_ratio;
+
+    // When determining how far up the highest "true ground" proposal should be, bias the
+    // Z proposal to be right where it's X% toward the ground's density as opposed to the top-most Z's
+    // point density
+    double highest_proposal_ground_bias;
+
+    // How much to prefer the lowest-bound's true-ground bias over the highest true-ground Z proposal
+    double lowest_proposal_scalar;
+
+    // Top and bottom of observed Z points must be at least 0.5mm apart otherwise
+    // assume the lane is empty
+    double min_z_thickness;
+
+    // ===== Multican hyperparams
+
+    // Min difference in meters between 2 FED front edge Y results to be considered a valid consensus
+    double max_valid_fed_y_diff_m; // <= 4 cm apart is ok
+
+    // How many times FED detection must return empty before concluding FED is empty, must be < max_fed_line_scans
+    double empty_count_for_consensus;
+    // How many times FED detection must return roughly the same front edge Y point for consensus
+    double similar_count_for_consensus;
+
+    // Use these X offset (in px) line samples in this order to best determine the FED consensus
+    int fed_sample_line_x_px_offsets[22];
+
     TrayAlgorithm(const fulfil::utils::ini::IniSectionReader &tray_config_reader);
 
     /**
@@ -315,3 +389,4 @@ class TrayAlgorithm
 } // namespace fulfil
 
 #endif //FULFIL_DISPENSE_SRC_TRAY_HEIGHT_TRAY_ALGORITHM_H_
+
