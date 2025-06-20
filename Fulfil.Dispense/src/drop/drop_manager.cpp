@@ -566,36 +566,57 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
             Logger::Instance()->Debug("Bag fit check: product {}, with dimensions (L, W, H) {}, {}, {} has fit: {}", product_id, product_length, product_width, product_height, fit_result);
             if(!fit_result) problematic_products.push_back(product_id);
             else {
+                Logger::Instance()->Debug("Execute Early Bag Rejection for damage avoidance: {}", should_early_reject_damage_avoidance);
                 //risk map analysis for checking the damage coverage in the bag
                 if (should_early_reject_damage_avoidance) {
+                    Logger::Instance()->Debug("Executing Early Bag Rejection check now!");
                     std::vector<int> risk_materials{};
                     float bag_coverage_threshold = lfb_vision_config->early_reject_damage_threshold;
-                    //populate the risk materials vector for glass/metal
-                    switch (product_material)
-                    {
-                    case 4:
-                        risk_materials.push_back(4);
-                        break;
-                    case 3:
-                        if (lfb_vision_config->avoid_metal_on_metal) {
-                            risk_materials.push_back(3);    
-                        }
-                        
-                    default:
-                        break;
-                    }
-                    if (!risk_materials.empty()) {
-                        std::shared_ptr<cv::Mat> risk_map_ptr = this->pre_post_compare->get_damage_risk_map(product_material, lfb_vision_config, risk_materials, this->mongo_bag_state);
-                        std::shared_ptr<cv::Mat> risk_map = this->drop_live_viewer->get_damage_risk_visualization(risk_map_ptr);
-                        bool bag_has_space_for_item = this->pre_post_compare->check_damage_area(*risk_map, bag_coverage_threshold);
-                        if (!bag_has_space_for_item) {
-                            Logger::Instance()->Debug("Bag Coverage Check: product {} with material type {} can be dispensed in bag: {}", product_id, product_material, bag_has_space_for_item);
-                            problematic_products.push_back(product_id);
-                        }
+                    bool avoid_all_items = product_material == 21; //product material for extra fragile items, cannot drop extra fragile items on any other item
+                    int layers_to_include = lfb_vision_config->damage_layers_to_include;
 
+                    if (!avoid_all_items)
+                    {
+                        //populate the risk materials for glass/metal
+                        switch (product_material)
+                        {
+                        case 4: //product material for glass items
+                            risk_materials.push_back(4);
+                            break;
+                        case 3: //product material for metal items
+                            if (lfb_vision_config->avoid_metal_on_metal) {
+                                risk_materials.push_back(3);
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+
+                    if (this->mongo_bag_state == nullptr)
+                    {
+                        Logger::Instance()->Warn("mongo_bag_state is nullptr in check_product_fit method. Unexpected behavior!!");
                     }
                     else {
-                        Logger::Instance()->Debug("No damage prone item materials detected!");
+                        if (!risk_materials.empty()) {
+                            std::shared_ptr<cv::Mat> risk_map_ptr = this->mongo_bag_state->get_risk_map(avoid_all_items, risk_materials, layers_to_include);
+                            if (this->mongo_bag_state->risk_present)
+                            {
+                                Logger::Instance()->Warn("Potential risk regions detected in current bag state. Expanding risk map now.");
+                                risk_map_ptr = this->mongo_bag_state->expand_risk_map(product_material, risk_map_ptr, cached_post_container->width, cached_post_container->length, product_length,
+                                    product_width, product_height);
+                            }
+                            std::shared_ptr<cv::Mat> risk_map = this->drop_live_viewer->get_damage_risk_visualization(risk_map_ptr);
+                            bool bag_has_space_for_item = this->pre_post_compare->check_damage_area(*risk_map, bag_coverage_threshold);
+                            Logger::Instance()->Debug("Damage Coverage Check: product {} with material type {} can be dispensed in bag: {}", product_id, product_material, bag_has_space_for_item);
+                            if (!bag_has_space_for_item) {
+                                problematic_products.push_back(product_id);
+                            }
+
+                        }
+                        else {
+                            Logger::Instance()->Debug("No damage prone item materials detected, Risk map is empty!");
+                        }
                     }
                 }
             }

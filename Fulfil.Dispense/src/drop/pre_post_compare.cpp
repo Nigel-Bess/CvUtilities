@@ -914,26 +914,6 @@ bool PrePostCompare::check_damage_area(cv::Mat risk_map, float bag_coverage_thre
     return risk_map_has_space;
 }
 
-std::shared_ptr<cv::Mat> PrePostCompare::get_damage_risk_map(int damage_type, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<int> risk_materials,
-    std::shared_ptr<mongo::MongoBagState> mongo_bag_state) {
-    std::shared_ptr<cv::Mat> risk_map_ptr = nullptr;
-    bool avoid_all_items = (damage_type == 21);
-        try
-        {
-            int layers_to_include = lfb_vision_config->damage_layers_to_include;
-            std::shared_ptr<cv::Mat> risk_map_ptr = mongo_bag_state->get_risk_map(avoid_all_items, risk_materials, layers_to_include);
-        }
-        catch (const std::exception& e)
-        {
-            Logger::Instance()->Error("Error in Damage Area Coverage Analysis when evaluating damage risk:\n{}", e.what());
-        }
-        catch (...)
-        {
-            Logger::Instance()->Error("Unspecified failure from Damage Area Coverage Analysis when evaluating damage risk ");
-        }
-        return risk_map_ptr;
-}
-
  int PrePostCompare::run_comparison(std::shared_ptr<MarkerDetectorContainer> pre_container,
                                    std::shared_ptr<MarkerDetectorContainer> post_container,
                                    std::shared_ptr<LfbVisionConfiguration> lfb_vision_config,
