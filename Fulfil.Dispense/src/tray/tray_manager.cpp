@@ -41,7 +41,7 @@ bool TrayManager::save_tray_audit_image(
             cv::Mat rotated_image;
             cv::rotate(color_mat, rotated_image, *rotate_code);
             color_mat = rotated_image.clone();
-            // crop image as rotated image is too large for 
+            // crop image as the rotated image is too large for RTA display on the UI
             crop_image(color_mat, tray_width, tray_length, induction_cam_distance_from_tray);
         }
         if (scale_resize < 1 ){ cv::resize(color_mat, color_mat, cv::Size(), scale_resize, scale_resize); }
@@ -123,7 +123,7 @@ void TrayManager::crop_image(cv::Mat &input_image, float tray_width, float tray_
     float target_ratio = input_image.rows / input_image.cols;
     // define cropping dimensions
     int width_crop_padding = 250; // in pixels
-    int height_crop_padding = 175; // in pixels
+    int height_crop_padding = 30; // in pixels
     int width_offset = ((tray_width*1000.0f) * center_x) / (2*induction_cam_distance_from_tray) + width_crop_padding;
     int height_offset = ((tray_length*1000.0f) * center_y) / (2*induction_cam_distance_from_tray) + height_crop_padding;
     // calculate and ensure the cropping rectangle stays within the image bounds
