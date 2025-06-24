@@ -100,6 +100,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
         SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);
         log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));
 
+        SetExposureSettings();
         SetFeature("PixelFormat", "BGR8");
         SetFeature("Hue", -2.0);
         SetFeature("Saturation", 1.0);
