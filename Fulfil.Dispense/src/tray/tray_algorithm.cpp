@@ -675,8 +675,8 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
     {
         auto center_point = lane_line_points[i];
         depth_point = local_pix2pt.get_point_from_pixel(center_point);
-        push_front_edge_detection(depth_point, center_point, i);
         if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, center_point, log_dead_zone)) {
+            push_front_edge_detection(depth_point, center_point, i);
             i = scan_for_back_item_edge(lane_line_points, i, local_pix2pt, current_lane);
             //Logger::Instance()->Info("found back edge {} -> {}", i, depth_point.z());
             set_back_edge_detection(lane_line_points[i], i);
@@ -1185,8 +1185,8 @@ std::tuple<results_to_vlsg::LaneItemDistance, std::vector<tray_count_api_comms::
   auto lane_center_points = get_lane_center_points(
     pixel_lane_centers, current_lane.lane_id(), current_tray.get_lane_count());
   auto [edge_coordinates, detection_pixels]  =
-      multiscan_lane_for_item_points(lane_center_points, local_pix2pt, current_lane, fed_params);
-      //analyze_lane(lane_center_points, local_pix2pt, current_lane, fed_params);
+      //multiscan_lane_for_item_points(lane_center_points, local_pix2pt, current_lane, fed_params);
+      analyze_lane(lane_center_points, local_pix2pt, current_lane, fed_params);
 
   results_to_vlsg::LaneItemDistance lane_item_distance =
     get_first_item_distance_from_coordinate_matrix(edge_coordinates, detection_pixels, current_lane);
