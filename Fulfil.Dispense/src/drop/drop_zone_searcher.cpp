@@ -2122,6 +2122,8 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
     
     float square_width = bag_width / num_cols;
     float square_height = bag_length / num_rows;
+    //vector to store the z coordinate per cell
+    std::vector<float> z_coord_per_cell;
 
     // cycle through all points in bag and log the max depth points in each region
     for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
@@ -2129,11 +2131,11 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
         float local_x = (*local_cloud_data)(0, current_pixel_index);
         float local_y = (*local_cloud_data)(1, current_pixel_index);
         float local_z = (*local_cloud_data)(2, current_pixel_index);
-
+        int map_square_row = 0;
         for (int map_square_col = 0; map_square_col < num_cols; ++map_square_col) {
             float min_x_coord = map_square_col * square_width - bag_width/2;
             float max_x_coord = (map_square_col + 1) * square_width - bag_width/2;
-            for (int map_square_row = 0; map_square_row < num_rows; ++map_square_row) {
+            for (map_square_row = 0; map_square_row < num_rows; ++map_square_row) {
                 float min_y_coord = map_square_row * square_height - bag_length/2;
                 float max_y_coord = (map_square_row + 1) * square_height - bag_length/2;
                 if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
@@ -2143,28 +2145,32 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
                       depth_map_so_far.at(map_square_row)->at(map_square_col) = local_z;
                     } else {
                       num_points_in_each.at(map_square_row).at(map_square_col)++;
-                      // sum the total depth of all 
-                      depth_map_so_far.at(map_square_row)->at(map_square_col) += local_z;
+                      //storing z values for median calculation
+                      z_coord_per_cell.push_back(local_z);
                       // This log will spam the output, keeping here for easy uncommenting for debugging offline
                       // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
                       //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
                     }
                 }
             }
+
+            int cell_size = z_coord_per_cell.size();
+            std::sort(z_coord_per_cell.begin(), z_coord_per_cell.end());
+            if (cell_size > 0) {
+                if (cell_size % 2 == 1) {
+                    depth_map_so_far.at(map_square_row-1)->at(map_square_col) = z_coord_per_cell[cell_size / 2];
+                }
+                else {
+                    depth_map_so_far.at(map_square_row-1)->at(map_square_row) = (z_coord_per_cell[cell_size / 2 - 1] + z_coord_per_cell[cell_size / 2]) / 2.0;
+                }
+            }
+            z_coord_per_cell.clear();
         }
     }
-    for (int grid_square_col = 0; grid_square_col < num_cols; grid_square_col++) {
-      for (int grid_square_row = 0; grid_square_row < num_rows; grid_square_row++) {
-        int total_points_in_cell = num_points_in_each.at(grid_square_row).at(grid_square_col);
-        // get the "average depth"/"height"/"shallowness" point in that occupancy map grid square - the point's distance to the mouth of the bag
-        if (total_points_in_cell > 0) {
-          depth_map_so_far.at(grid_square_row)->at(grid_square_col) /= total_points_in_cell;
-        }
-      }
-    }
+    
     Logger::Instance()->Debug("Number of points per square: \n{}", grid_map_to_str_2(num_points_in_each));
     auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
-    if (num_rows > 0) {    
+    if (num_rows > 0) {
         Logger::Instance()->Debug("Converted occupancy map so far: \n{}", grid_map_to_str(*convert_map_to_millimeters(grid)));
     }
     return grid;
@@ -2200,14 +2206,14 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
 
 
         // detect Aruco markers in RGB stream     
-        std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();     
+        std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
         // Visualization for detected valid markers
         std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(
-            container->marker_detector->dictionary, 
-            markers, 
-            container->region_max_x, 
-            container->region_min_x, 
-            container->region_max_y, 
+            container->marker_detector->dictionary,
+            markers,
+            container->region_max_x,
+            container->region_min_x,
+            container->region_max_y,
             container->region_min_y);
 
         // visualize the markers
