@@ -23,6 +23,8 @@
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
+#include <iostream>
+#include <unistd.h>
 
 using fulfil::depthcam::Session;
 using fulfil::depthcam::aruco::Container;

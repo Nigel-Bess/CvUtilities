@@ -3,8 +3,6 @@
 
 set(DIV_SECTION "===================")
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-
 if(EXISTS ${COMPUTER_VISION_MODULES_PARENT_PATH}/.git)
     message("\nFound valid .git directory. Generating version info.")
     execute_process(COMMAND git rev-parse --short HEAD
@@ -27,8 +25,6 @@ endif()
 execute_process(COMMAND date -u "+%b. %0d, %Y at %H:%M:%S %Z"
 OUTPUT_VARIABLE BUILD_DATE
 OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-
 
 # ----------------------------------------------------------------------------
 # Enable makefile generation for different targets
@@ -54,16 +50,16 @@ target_compile_definitions(main PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_C
 # testing interface that sends requests to a running API. Requires free socket connection
 add_executable(dispense_test_client dispense_test_client.cpp)
 target_link_libraries(dispense_test_client PRIVATE
-    Fulfil.Dispense Fulfil.CPPUtils FulfilMongoCpp)
+    Fulfil.Dispense Fulfil.CPPUtils FulfilMongoCpp pthread)
 
 add_executable(tray_offline_simulation tray_offline_test.cpp)
 target_link_libraries(tray_offline_simulation PRIVATE
-    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
+    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)
 
 
 add_executable(offline_test offline_test.cpp)
 target_link_libraries(offline_test PRIVATE
-    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
+    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)
 target_compile_definitions(offline_test PRIVATE BUILD_DATE="${BUILD_DATE}")
 target_compile_definitions(offline_test PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
 target_compile_definitions(offline_test PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
@@ -75,7 +71,7 @@ add_executable(auto_tray_calibration
    EXCLUDE_FROM_ALL
    auto_tray_calibration.cpp ../include/Fulfil.Dispense/tray/tray_process_logging_messages.h ../include/Fulfil.Dispense/recipes/visualization_presets.h)
 target_link_libraries(auto_tray_calibration PRIVATE
-   Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
+   Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)
 
 add_executable(tray_calibration EXCLUDE_FROM_ALL
    tray_calibration.cpp)
@@ -88,26 +84,11 @@ target_link_libraries(upload_file PRIVATE Fulfil.CPPUtils)
 
 # TODO should probably include curl via Fulfil.Cpputils
 add_executable(move_motor EXCLUDE_FROM_ALL move_motor.cpp)
-target_link_libraries(move_motor PRIVATE Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils)
+target_link_libraries(move_motor PRIVATE Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils pthread)
 
 add_executable(camera_live_feed EXCLUDE_FROM_ALL camera_live_feed.cpp)
 target_link_libraries(camera_live_feed PRIVATE Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)
 
 add_executable(live_viewer EXCLUDE_FROM_ALL live_viewer.cpp)
 target_link_libraries(live_viewer PRIVATE
-        Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp)
-
-# WARNING!!! Not tracked in Git, adjust linking as needed
-# TODO REMOVE ONCE TESTING IN PLACE!!! Location to test out small functions in isolation.
-option(BUILD_test_exes "SHOULD ALWAYS BE OFF! Unless you have made a scratch test exe. Some may be gitignore'd" OFF)
-if(BUILD_test_exes )
-    add_executable(scratch_test_private EXCLUDE_FROM_ALL
-            private_scratch_test.cpp)
-    target_link_libraries(scratch_test_private)
-
-    message(WARNING "Build at your own risk! Scratch test is not tracked in Git. Be sure to add your dep here!")
-    #find_package(OpenCV REQUIRED)
-    #target_link_libraries(test ${OpenCV_LIBS} Fulfil.DepthCam)
-endif()
-
-
+        Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)

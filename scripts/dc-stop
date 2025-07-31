@@ -1,12 +1,12 @@
 #!/bin/bash
 
+cd /home/fulfil/code
 if [[ "$USER" == "root" ]] ; then
-    systemctl stop depthcam.service && systemctl stop bg_redis_worker.service && systemctl stop tray_count.service
+    docker compose stop depthcam && docker compose stop bgredisworker && docker compose stop traycount
     runuser -l fulfil -c 'dc-startup kill'
     exit $?
-
 fi
 
 
-sudo systemctl stop depthcam.service && sudo systemctl stop bg_redis_worker.service && sudo systemctl stop tray_count.service
+docker compose stop depthcam && docker compose stop bgredisworker && docker compose stop traycount
 dc-startup kill

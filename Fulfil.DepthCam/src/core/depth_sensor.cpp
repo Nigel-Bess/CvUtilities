@@ -170,7 +170,7 @@ void DepthSensor::manage_pipe(){
                 cv::Mat pic(cv::Size(cf.get_width(), cf.get_height()), CV_8UC3, (void*) cf.get_data());
                 std::string file(name_);
                 std::replace(file.begin(), file.end(), ' ', '_');
-                cv::imwrite("/home/fulfil/" + file + ".jpg", pic);
+                cv::imwrite("/home/fulfil/data/debug/" + file + ".jpg", pic);
             }
         }
         catch (const rs2::unrecoverable_error& e){

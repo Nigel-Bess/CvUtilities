@@ -1,14 +1,15 @@
 # Setup the project
 
 # Specify a minimum version of CMake
-cmake_minimum_required(VERSION 3.18...3.22)
-cmake_policy(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
+cmake_policy(VERSION 3.22)
 
 # Project name and settings
 project(Fulfil.Dispense
         VERSION 3.1
         DESCRIPTION "Higher level API that allows clients to interface with depth cams via socket connection. Handles Drop camera nad Tray Camera Queries."
         LANGUAGES CXX)
+
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
     add_definitions(-std=c++17)
@@ -17,6 +18,9 @@ else()
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+find_package(Threads REQUIRED)
 
 include(GNUInstallDirs)
 message("Using C compiler ${CMAKE_C_COMPILER} and C++ compiler ${CMAKE_CXX_COMPILER}")
@@ -101,8 +105,6 @@ ENDIF()
 #set(TARGET_JSON_TOOL "json")
 
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/third-party ${CMAKE_CURRENT_BINARY_DIR}/libs/third-party)
-add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.CPPUtils ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.CPPUtils)
-add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.MongoCpp ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.MongoCpp)
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
 
 add_subdirectory(src)

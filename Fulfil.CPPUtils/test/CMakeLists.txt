@@ -2,7 +2,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
    # Setup a macro to easily add new tests to be run by GoogleTest
    macro(package_add_test TESTNAME)
       add_executable(${TESTNAME} ${ARGN})
-      target_link_libraries(${TESTNAME} Fulfil.CPPUtils gtest gmock_main gtest_main pthread)
+      target_link_libraries(${TESTNAME} fmt::fmt Fulfil.CPPUtils gtest gmock_main gtest_main pthread)
       add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
       set_target_properties(${TESTNAME} PROPERTIES FOLDER test)
    endmacro()
@@ -17,7 +17,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
            processing_queue/processing_queue_tests.cpp
            test_socket_header_serialization.cpp)
 
-   target_link_libraries(test_main Fulfil.CPPUtils gtest gmock_main gtest_main pthread)
+   target_link_libraries(test_main fmt::fmt Fulfil.CPPUtils gtest gmock_main gtest_main pthread)
 
    package_add_test(test_point_3d test_point_3d.cpp)
    package_add_test(test_file_system_helper test_file_system_helper.cpp)

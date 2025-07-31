@@ -103,44 +103,44 @@ PrePostCompare::PrePostCompare(int visualize, std::shared_ptr<DropZoneSearcher> 
 
   std::shared_ptr<Session> session = nullptr; //TODO: handle this better, only used here to initialize session visualizers. Refactor visualizers to not take sessions as input
 
-  this->session_visualizer10 = std::make_shared<SessionVisualizer>(session, window_name_10, std::make_shared<std::pair <int, int>>(0,0), window_size2, wait_on_session_visualization);
+  this->session_visualizer10 = std::make_shared<SessionVisualizer>(session, window_name_10, std::make_shared<std::pair <int, int>>(0,0), window_size2, wait_on_session_visualization, false);
   this->session_visualizer11 = std::make_shared<SessionVisualizer>(session, window_name_11, std::make_shared<std::pair <int, int>>(380,0), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer12 = std::make_shared<SessionVisualizer>(session, window_name_12, std::make_shared<std::pair <int, int>>(700,0), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer13 = std::make_shared<SessionVisualizer>(session, window_name_13, std::make_shared<std::pair <int, int>>(1020,0), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer14 = std::make_shared<SessionVisualizer>(session, window_name_14, std::make_shared<std::pair <int, int>>(1340,0), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   //this->session_visualizer15 = std::make_shared<SessionVisualizer>(session, window_name_15, std::make_shared<std::pair <int, int>>(1660,0), window_size2, wait_on_session_visualization);
 
   this->session_visualizer16 = std::make_shared<SessionVisualizer>(session, window_name_16, std::make_shared<std::pair <int, int>>(0,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer17 = std::make_shared<SessionVisualizer>(session, window_name_17, std::make_shared<std::pair <int, int>>(380,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer18 = std::make_shared<SessionVisualizer>(session, window_name_18, std::make_shared<std::pair <int, int>>(700,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer19 = std::make_shared<SessionVisualizer>(session, window_name_19, std::make_shared<std::pair <int, int>>(1020,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer20 = std::make_shared<SessionVisualizer>(session, window_name_20, std::make_shared<std::pair <int, int>>(1340,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer21 = std::make_shared<SessionVisualizer>(session, window_name_21, std::make_shared<std::pair <int, int>>(1660,375), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
 
   this->session_visualizer22 = std::make_shared<SessionVisualizer>(session, window_name_22, std::make_shared<std::pair <int, int>>(0,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer23 = std::make_shared<SessionVisualizer>(session, window_name_23, std::make_shared<std::pair <int, int>>(380,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer24 = std::make_shared<SessionVisualizer>(session, window_name_24, std::make_shared<std::pair <int, int>>(700,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer25 = std::make_shared<SessionVisualizer>(session, window_name_25, std::make_shared<std::pair <int, int>>(1020,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer26 = std::make_shared<SessionVisualizer>(session, window_name_26, std::make_shared<std::pair <int, int>>(1340,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer27 = std::make_shared<SessionVisualizer>(session, window_name_27, std::make_shared<std::pair <int, int>>(1660,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
   this->session_visualizer28 = std::make_shared<SessionVisualizer>(session, window_name_28, std::make_shared<std::pair <int, int>>(1980,735), window_size2,
-    wait_on_session_visualization);
+    wait_on_session_visualization, false);
 }
 
 int PrePostCompare::check_inputs(float pre_remaining_platform, float post_remaining_platform,

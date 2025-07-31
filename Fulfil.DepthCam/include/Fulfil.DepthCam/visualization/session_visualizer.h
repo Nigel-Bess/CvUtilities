@@ -46,7 +46,7 @@ class SessionVisualizer
    * @param session where data will be drawn from.
    * @param window_name name of window that where information will be displayed.
    */
-  SessionVisualizer(std::shared_ptr<Session> session, std::shared_ptr<std::string> window_name, std::shared_ptr<std::pair <int, int>> window_location, std::shared_ptr<std::pair <int, int>> window_size, int wait_time);
+  SessionVisualizer(std::shared_ptr<Session> session, std::shared_ptr<std::string> window_name, std::shared_ptr<std::pair <int, int>> window_location, std::shared_ptr<std::pair <int, int>> window_size, int wait_time, bool rgb_base = true);
 
   /**
    * Displays the RGB image of the session

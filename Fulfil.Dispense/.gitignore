@@ -30,3 +30,4 @@ test/Makefile
 test/CMakeFiles/
 
 log/log1.txt
+data

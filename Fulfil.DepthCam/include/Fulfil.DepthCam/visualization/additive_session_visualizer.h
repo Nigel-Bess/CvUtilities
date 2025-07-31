@@ -48,11 +48,11 @@ namespace fulfil
                  */
                 AdditiveSessionVisualizer(std::shared_ptr<Session> session, std::shared_ptr<std::string> window_name,
                                           std::pair<int, int> window_location, std::pair<int, int> window_size,
-                                          int wait_time, bool rgb_base= true);
+                                          int wait_time, bool rgb_base = true);
 
                 AdditiveSessionVisualizer(cv::Mat init_image, std::shared_ptr<Session> session, std::shared_ptr<std::string> window_name,
                                           std::pair<int, int> window_location, std::pair<int, int> window_size,
-                                          int wait_time, bool rgb_base= true);
+                                          int wait_time, bool rgb_base = true);
 
                 void map_rgb_to_pointcloud(std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud);
 

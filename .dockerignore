@@ -1,5 +1,9 @@
 # ignore local Repack data
 Fulfil.AlliedVision/data
+Fulfil.Dispense/data
+Fulfil.TCS/data
+Fulfil.Dispense/configs
+*.Dockerfile
 
 # Ignore local dockerfile config
 .env

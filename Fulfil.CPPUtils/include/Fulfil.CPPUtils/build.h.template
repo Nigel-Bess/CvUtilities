@@ -1,0 +1,11 @@
+#pragma once
+#include <string>
+const std::string BUILD_DATE_STR = "Mon Apr 7 02:54:03 PM PDT 2025";
+#define BUILD_DATE_SECONDS 1744062843
+const std::string GIT_BRANCH = "repack-max-active-cams";
+const std::string GIT_SHA1 = "v1.0.0-494-gf7c3fff9f8a15d4a618c66fd5028655a497dac7c";
+const std::string GIT_DATE = "Mon Apr 7 14:42:16 2025 -0700";
+const std::string GIT_COMMIT_MSG = "this";
+inline std::string git_info(){
+    return "GIT branch: '" + GIT_BRANCH + "' date: " + GIT_DATE + "UTC \n\t\t\t GIT SHA: [" + GIT_SHA1 + "] (" + GIT_COMMIT_MSG + ")"; 
+}

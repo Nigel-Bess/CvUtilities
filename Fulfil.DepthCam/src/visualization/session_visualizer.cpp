@@ -49,7 +49,7 @@ void SessionVisualizer::display_pixels(std::shared_ptr<std::vector<std::shared_p
     cv::waitKey(this->wait_time);
 }
 
-SessionVisualizer::SessionVisualizer(shared_ptr<Session> session, shared_ptr<std::string> window_name, shared_ptr<std::pair <int, int>> window_location, shared_ptr<std::pair <int, int>> window_size, int wait_time)
+SessionVisualizer::SessionVisualizer(shared_ptr<Session> session, shared_ptr<std::string> window_name, shared_ptr<std::pair <int, int>> window_location, shared_ptr<std::pair <int, int>> window_size, int wait_time, bool rgb_base)
 {
     this->session = session;
     this->window_name = window_name;
