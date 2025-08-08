@@ -2,6 +2,16 @@
 
 The only information guaranteed to be  up-to-date is the **Starting the Mars API** section. Any information that precedes the **Depreciation Warning** section of the readme is valid. Other up-to-date information can be found on the [CV Command Guide](https://docs.google.com/document/d/14k9Jj3RgEqf9b27t3sbYC5RS6eEuN8hgaCXUnPTA268/edit?pli=1#heading=h.5wo37tlgfgcn).
 
+## Logging
+
+All Depthcam / Dispense / TrayCount / (all running Docker containers really) can be searched in [Grafana Loki](https://grafana.fulfil-api.com/explore?schemaVersion=1&panes=%7B%22pwc%22:%7B%22datasource%22:%22DOKYKGqV2%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Blocation%3D%5C%22pioneer%5C%22,%20name%3D%5C%22depthcam%5C%22%7D%20%7C%3D%20%60%60%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22DOKYKGqV2%22%7D,%22editorMode%22:%22builder%22%7D%5D,%22range%22:%7B%22from%22:%22now-5m%22,%22to%22:%22now%22%7D%7D%7D&orgId=1).  You can narrow down the logs you want by filtering on these relevent fields (Grafana's value auto-complete will help you after entering these key names):
+
+- `location`: The facility the service is running in
+- `name`: The name of the service or container (`depthcam` or `traycount`)
+- `machine`: The name of the machine running the service, ex. `P2-DAB`
+
+Grafana log scraping config can be found in the [Alloy folder](../alloy) while machine-specific env vars can be found remotely at `home/fulfil/code/Fulfil.ComputerVision/alloy/local.dev`.
+
 ## Starting the Mars API
 
 Log on as the fulfil user (or run the command from fulfil userspace). Run the simple_startup script to cycle 

@@ -1,5 +1,14 @@
-# This file is intended to be in the parent /code folder
 services:
+    alloy:
+        image: gcr.io/fulfil-web/grafana/alloy:v1.10.0
+        container_name: alloy
+        env_file: alloy/local.env
+        ports:
+          - "8777:8777" # Expose the Alloy UI port
+        volumes:
+          - "/home/fulfil/code/Fulfil.ComputerVision/alloy:/etc/alloy" # Mount Alloy configuration file
+          - /var/run/docker.sock:/var/run/docker.sock:ro # Mount Docker socket for container discovery by loki.source.docker
+          - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depthcam:
         container_name: depthcam
         logging:

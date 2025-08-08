@@ -1,0 +1,36 @@
+loki.write "loki" {
+  endpoint {
+    url = sys.env("LOKI_URL")
+  }
+}
+
+logging {
+  level = "info"
+  format = "logfmt"
+}
+
+discovery.docker "linux" {
+    host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "logs_integrations_docker" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/(.*)"
+    target_label = "name"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/(.*)"
+    target_label = "container"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host = "unix:///var/run/docker.sock"
+  labels = {"location" = sys.env("LOCATION"), "machine" = sys.env("MACHINE_NAME")}
+  targets = discovery.docker.linux.targets
+  forward_to = [loki.write.loki.receiver]
+  relabel_rules = discovery.relabel.logs_integrations_docker.rules
+}

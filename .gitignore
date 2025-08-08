@@ -44,3 +44,4 @@ Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h
 
 # Local env file
 .env
+local.env
