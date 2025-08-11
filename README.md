@@ -8,15 +8,98 @@ Useful documentation:
 The most up-to-date documentation for running with this system can be found at the [Depth Cam and DAB Commands Guide](https://docs.google.com/document/d/14k9Jj3RgEqf9b27t3sbYC5RS6eEuN8hgaCXUnPTA268/edit#heading=h.5wo37tlgfgcn).
 The most up-to-date documentation for setup & general guide for Docker integration can be found at the [CV Docker Container Setup & Guide](https://docs.google.com/document/d/16MDraQAOxy66sDTvkCYprN8X7HRokDZPE1xLYn9MRx0/edit?pli=1#heading=h.tbyc1yaxb04b).
 
-## Building the Depth Cam API 
-Current depthcam cpp sources use CMake to generate the system. For convenience there is a 
-makefile in `Fulfil.Dispense`. To kick off cpp build:
-```angular2html
-cd Fulfil.Dispense
-make
+
+## Development
+
+As of August 2025 just about all things CV run in Docker both in production and for development to ensure we have consistent builds across the many
+environments CV code must run in.  We break out the highest level Docker Compose definitions on a per machine or platform basis, with the default
+`docker-compose.yml` representing a typical dev environment such as an Intel/AMD Mac or PC, whereas `docker-compose.dab.yml` is intended
+to run on DAB machines (which are assumed to be ARM64 Jetson boards).  The docker compose files define "services" which can either be proper services
+or offline test entrypoints of different kinds.
+
+### Setup
+
+Only Docker (with Docker Compose) and the Gcloud SDK (for authentication) are necessary for developing against this repo, and we generally use either VS Code or Visual Studio for Python and C++ development.  In Slack ask `#user-access-requests` for access to GCP Artifact Registry to pull Docker images by running the following commands in a terminal:
+
 ```
-If the build succeeds, you will find the executable at `Fulfil.Dispense/build/app/main` when navigating 
-from the `Fulfil.ComputerVision` project root.  
+gcloud auth login
+gcloud auth configure-docker
+```
+
+Then test that you can pull private images with:
+
+`docker pull gcr.io/fulfil-web/cv-dispense/realsense-amd:latest`
+
+### Building
+
+(See Deploying for info on building for ARM 64, this assumes you're building locally on a typical AMD64 computer)
+
+You can build any of the *.amd.Dockerfile files directly, such as Dispense:
+
+`docker build . -f Dispense.amd.Dockerfile`
+
+or similar for services like AlliedVision.Dockerfile that is assumed to be AMD since it never runs on ARM processors (when unspecified in the file name).
+
+### Running
+
+We generally use vanilla docker compose commands to start all appropriate services per platform type, such as a DAB:
+
+`cd /home/fulfil/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml up -d`
+
+note having to opt into the DAB environment via the `-f` flag and not necessary for local development.
+
+Restarting:
+
+`cd /home/fulfil/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml restart`
+
+Stopping:
+
+`cd /home/fulfil/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml down`
+
+### Deploying
+
+Because building giant ARM64 images in Github Actions is nearly impossible, we instead use a dedicated CI build box in Whisman that can
+be used to replicate Github's current AMD images that are successfully built as a CI check on Pull requests.
+
+Fulfil.AlliedVision and Fulfil.TCS are Kubernetes apps with idealized Github CI/CD deployments that are fully automatic; GH Action build and pushes images and cloud backend's Flux CD system automatically deploys latest releases, the remainder here describes deployments for Jetson board / AGX / Xavier / Orin boards.
+
+#### 1. Login to build box
+
+`ssh fulfil@clip-tb.whisman.fulfil.ai` while connected to VPN.
+
+Ask someone on CV for access if needed.
+
+#### 2. Build and push a Production ARM image to GCP Artifact Registry
+
+See the README.md's of the appropriate sub-directory but an example build of Dispense would be:
+
+```
+cd /home/fulfil/code/Fulfil.ComputerVision
+git checkout main
+git pull
+docker build . -f Dispense.arm.Dockerfile -t main
+docker tag main gcr.io/fulfil-web/cv-dispense/main:latest
+docker push gcr.io/fulfil-web/cv-dispense/main:latest
+```
+
+which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh` from the build box
+
+#### 3. Pull latest build per machine
+
+All machines point to their respective `main:latest` docker images in Google by default, but each production machine
+will never attempt to update it's image unless told to do so in vanilla docker fashion.  An example is pulling and
+restarting the last-pushed Dispense Docker image on some DAB:
+
+
+```
+cd /home/fulfil/code/Fulfil.ComputerVision
+docker compose -f docker-compose.dab.yml pull
+docker compose -f docker-compose.dab.yml down
+docker compose -f docker-compose.dab.yml up -d
+```
+
+which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-pull-latest.sh` on the target
+machine to update and restart services on.
 
 
 ## Starting the Mars API
@@ -50,7 +133,6 @@ tmux a -t depthcam
 ```
 If the api fails to start, run `rs-fw-update -l` to list out all four cameras and ensure that they are allowing basic 
 queries. If that command fails, you may need to power cycle the board.
-
 
 ### Setup
 
