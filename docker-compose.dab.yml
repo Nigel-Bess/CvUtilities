@@ -1,26 +1,81 @@
 services:
+    traycount:
+        container_name: traycount
+        logging:
+          driver: syslog
+        build:
+            context: /home/fulfil/code/Fulfil.TrayCountAPI
+            dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
+        network_mode: "host"
+        #command: ["python3", "app_manager.py"]
+        working_dir: /home/fulfil/code/Fulfil.TrayCountAPI
+        runtime: nvidia
+        ports:
+        - "5002:5002"
+        volumes:
+        - "/tmp/.X11-unix/:/tmp/.X11-unix"
+        - "/home/fulfil/data:/home/fulfil/data"
+        - "/home/fulfil/Videos:/home/fulfil/Videos"
+        - "/home/fulfil/code/Fulfil.TrayCountAPI/models:/home/fulfil/code/Fulfil.TrayCountAPI/models"
+        - "/home/fulfil/code/credentials:/home/fulfil/code/Fulfil.TrayCountAPI/credentials"
+        env_file:
+        - path: .env
+          required: false
+        restart: unless-stopped
+
+    bgredisworker:
+        container_name: bgredisworker
+        logging:
+          driver: syslog
+        build:
+            context: /home/fulfil/code/Fulfil.TrayCountAPI
+            dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
+        network_mode: "host"
+        command: ["python3", "model_app/redis/rq_spinup.py"]
+        working_dir: /home/fulfil/code/Fulfil.TrayCountAPI
+        restart: unless-stopped
+        volumes:
+        - "/home/fulfil/data:/home/fulfil/data"
+        - "/home/fulfil/Videos:/home/fulfil/Videos"
+        - "/home/fulfil/code/Fulfil.TrayCountAPI/models:/home/fulfil/code/Fulfil.TrayCountAPI/models"
+        - "/home/fulfil/code/credentials:/home/fulfil/code/Fulfil.TrayCountAPI/credentials"
+        - "/home/fulfil/code/Fulfil.TrayCountAPI/models:/home/fulfil/code/Fulfil.TrayCountAPI/models"
+        env_file:
+        - path: .env
+          required: false
+    redis:
+        image: redis:latest
+        container_name: redis
+        restart: unless-stopped
+        network_mode: "host"
+        ports:
+          - "6379:6379"
     alloy:
-        image: gcr.io/fulfil-web/grafana/alloy:v1.10.0
+        image: gcr.io/fulfil-web/grafana/alloy-arm:v1.10.1
         container_name: alloy
         env_file: alloy/local.env
+        restart: unless-stopped
         ports:
           - "8777:8777" # Expose the Alloy UI port
         volumes:
-          - "/home/fulfil/code/Fulfil.ComputerVision/alloy:/etc/alloy" # Mount Alloy configuration file
+          - /home/fulfil/code/Fulfil.ComputerVision/alloy:/etc/alloy # Mount Alloy configuration file
+          - /home/fulfil/Videos:/home/fulfil/Videos
           - /var/run/docker.sock:/var/run/docker.sock:ro # Mount Docker socket for container discovery by loki.source.docker
           - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depthcam:
         container_name: depthcam
         logging:
           driver: syslog
-        build:
-            dockerfile: Dispense.arm.Dockerfile
+        image: "gcr.io/fulfil-web/cv-dispense/main:latest"
+        #build:
+          #context: /home/fulfil/code/Fulfil.ComputerVision
+          #dockerfile: Dispense.arm.Dockerfile
         network_mode: "host"
         command: "Fulfil.Dispense/app/main"
+        working_dir: /home/fulfil/code/Fulfil.ComputerVision
         device_cgroup_rules:
           - "c 81:* rmw"
           - "c 189:* rmw"
-        working_dir: /home/fulfil/code/Fulfil.ComputerVision
         ports:
           - 9500:9500
           - 9501:9501
@@ -30,11 +85,12 @@ services:
           - 9505:9505
         volumes:
           - "/home/fulfil/data:/home/fulfil/data"
-          - "./Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
-          - "./Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
+          - "/home/fulfil/Videos:/home/fulfil/Videos"
+          - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
+          - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
         env_file:
         - path: .env
           required: false
-        restart: on-failure:5
+        restart: unless-stopped
         privileged: true
  

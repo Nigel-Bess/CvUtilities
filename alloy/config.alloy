@@ -29,7 +29,7 @@ discovery.relabel "logs_integrations_docker" {
 
 loki.source.docker "docker_logs" {
   host = "unix:///var/run/docker.sock"
-  labels = {"location" = sys.env("LOCATION"), "machine" = sys.env("MACHINE_NAME")}
+  labels = {"location" = sys.env("LOCATION"), "machine_name" = sys.env("MACHINE_NAME")}
   targets = discovery.docker.linux.targets
   forward_to = [loki.write.loki.receiver]
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
