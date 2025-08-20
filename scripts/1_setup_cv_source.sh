@@ -30,6 +30,9 @@ else
   git pull
 fi
 
+# Ensure mkdir flask_output/formatted_visuals exists
+mkdir -p flask_output/formatted_visuals
+
 cd /home/fulfil/code/Fulfil.ComputerVision
 git checkout main
 git pull
