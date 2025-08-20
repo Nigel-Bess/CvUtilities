@@ -3,9 +3,11 @@ services:
         container_name: traycount
         logging:
           driver: syslog
-        build:
-            context: /home/fulfil/code/Fulfil.TrayCountAPI
-            dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
+        image: "gcr.io/fulfil-web/cv-traycount-arm/master:latest"
+        # Swap "image" for this to use local builds
+        #build:
+          #context: /home/fulfil/code/Fulfil.TrayCountAPI
+          #dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
         network_mode: "host"
         #command: ["python3", "app_manager.py"]
         working_dir: /home/fulfil/code/Fulfil.TrayCountAPI
@@ -14,6 +16,7 @@ services:
         - "5002:5002"
         volumes:
         - "/tmp/.X11-unix/:/tmp/.X11-unix"
+        - "/home/fulfil/code/Fulfil.TrayCountAPI/flask_output:/home/fulfil/code/Fulfil.TrayCountAPI/flask_output"
         - "/home/fulfil/data:/home/fulfil/data"
         - "/home/fulfil/Videos:/home/fulfil/Videos"
         - "/home/fulfil/code/Fulfil.TrayCountAPI/models:/home/fulfil/code/Fulfil.TrayCountAPI/models"
@@ -27,9 +30,11 @@ services:
         container_name: bgredisworker
         logging:
           driver: syslog
-        build:
-            context: /home/fulfil/code/Fulfil.TrayCountAPI
-            dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
+        image: "gcr.io/fulfil-web/cv-traycount-arm/master:latest"
+        # Swap "image" for this to use local builds
+        #build:
+          #context: /home/fulfil/code/Fulfil.TrayCountAPI
+          #dockerfile: /home/fulfil/code/Fulfil.TrayCountAPI/TrayCountAPI.arm.Dockerfile
         network_mode: "host"
         command: ["python3", "model_app/redis/rq_spinup.py"]
         working_dir: /home/fulfil/code/Fulfil.TrayCountAPI
@@ -67,6 +72,7 @@ services:
         logging:
           driver: syslog
         image: "gcr.io/fulfil-web/cv-dispense/main:latest"
+        # Swap "image" for this to use local builds
         #build:
           #context: /home/fulfil/code/Fulfil.ComputerVision
           #dockerfile: Dispense.arm.Dockerfile
