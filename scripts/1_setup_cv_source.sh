@@ -31,7 +31,7 @@ else
 fi
 
 cd /home/fulfil/code/Fulfil.ComputerVision
-#git checkout main
+git checkout main
 git pull
 
 if [[ -d /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs ]] ; then

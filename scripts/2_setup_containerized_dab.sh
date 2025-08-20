@@ -4,9 +4,34 @@ set -e
 
 # Exit if deps aren't met
 if [[ ! -f "/home/fulfil/code/credentials/fulfil-web-dc-sa.json" ]] ; then
-    echo '/home/fulfil/code/credentials/fulfil-web-dc-sa.json does not exist! Try copying from another machine in same facility.'
+    echo '/home/fulfil/code/credentials/fulfil-web-dc-sa.json does not exist! Try copying from another machine in same facility such as running:'
+    echo "scp -r fulfil@some-dab.myfacility.fulfil.ai:/home/fulfil/code/credentials ../credentials"
     exit 1
 fi
+
+if [[ ! -f "/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env" ]] ; then
+    echo '/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env does not exist! You can run the following to copy from a similar machine but be sure to update contents!'
+    echo "scp fulfil@some-dab.myfacility.fulfil.ai:/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env" alloy/local.env
+    exit 1
+fi
+
+if [ ! -d "/home/fulfil/code/Fulfil.TrayCountAPI/models" ]; then
+    echo '/home/fulfil/code/Fulfil.TrayCountAPI/models does not exist!? Perhaps copy it from another machine such as:'
+    echo "scp -r fulfil@some-dab.myfacility.fulfil.ai:/home/fulfil/code/Fulfil.TrayCountAPI/models" ../Fulfil.TrayCountAPI/models
+    exit 1
+fi
+
+echo "Setting up GCP now..."
+sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+# locked on version from the TCS setup at Pioneer just in case?
+sudo apt-get install -y google-cloud-cli=524.0.0-0
+
+gcloud auth login --cred-file=/home/fulfil/code/credentials/fulfil-web-dc-sa.json
+gcloud config set project fulfil-web
+echo "Backing up Fulfil.Dispense/configs to gs://cv-configs-backup"
+gcloud storage cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs gs://cv-configs-backup/$HOSTNAME
 
 echo "Setting up docker now..."
 echo "Ensuring Docker compose is installed"
@@ -44,7 +69,6 @@ echo "/etc/fstab modified for permanent docker nvme storage hack, be sure to tes
 sudo groupadd docker || echo "docker group already exists"
 sudo usermod -aG docker root
 sudo usermod -aG docker fulfil
-#sudo newgrp docker
 sudo systemctl restart docker
 echo "Setup for docker complete!"
 
@@ -52,22 +76,6 @@ echo "Setting up stale file TTL cronjobs"
 (crontab -l ; echo "0 9 * * * find /home/fulfil/data/saved_images_* -mtime +60 -type f -exec rm {} \; && find /home/fulfil/data/saved_images_* -empty -type d -delete")| crontab -
 (crontab -l ; echo "0 9 * * * find /home/fulfil/data/saved_videos -mtime +60 -type f -exec rm {} \; && find /home/fulfil/data/saved_videos -empty -type d -delete")| crontab -
 
-echo "Setting up GCP now..."
-sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-# locked on version from the TCS setup at Pioneer just in case?
-sudo apt-get install -y google-cloud-cli=524.0.0-0
-
-gcloud auth login --cred-file=/home/fulfil/code/credentials/fulfil-web-dc-sa.json
-gcloud config set project fulfil-web-staging-296222
-gcloud auth configure-docker
-gcloud config set project fulfil-web
-gcloud auth configure-docker
-echo "Setup for GCP complete!"
-
-echo "Backing up Fulfil.Dispense/configs to gs://cv-configs-backup"
-gcloud storage cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs gs://cv-configs-backup/$HOSTNAME
-
-# start the depthcam docker
-cd ~/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml up
+echo "Everything is nearly setup, lets reboot to make sure there's no disk shenanigans later, enter anything to reboot (and don't forget to run scripts/3_start_services.sh on restart!)"
+read ignore
+sudo reboot
