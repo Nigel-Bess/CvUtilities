@@ -65,6 +65,14 @@ target_compile_definitions(offline_test PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
 target_compile_definitions(offline_test PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
 target_compile_definitions(offline_test PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
 
+add_executable(eval eval.cpp)
+target_link_libraries(eval PRIVATE
+    Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils FulfilMongoCpp pthread)
+target_compile_definitions(eval PRIVATE BUILD_DATE="${BUILD_DATE}")
+target_compile_definitions(eval PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
+target_compile_definitions(eval PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
+target_compile_definitions(eval PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
+
 # Remove exclusion once better targeting definitions in place
 # YOU NEED TO SPECIFICALLY TARGET THESE TO TRIGGER A BUILD!
 add_executable(auto_tray_calibration

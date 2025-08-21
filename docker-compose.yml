@@ -8,14 +8,15 @@ services:
       - noop
 
   # Dispense commands
-  fed_test:
+  dispense_eval:
     build:
-      dockerfile: Dispense.Dockerfile
-    command: "Fulfil.Dispense/app/tray_offline_simulation fed /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data/by-id/Tray_Camera/680fdb4ae95a53e0a8006c89"
+      dockerfile: Dispense.amd.Dockerfile
+    command: "Fulfil.Dispense/app/eval fed all"
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./data:/home/fulfil/data"
       - "./Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
+      - "./Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
     env_file:
       - path: .env
         required: false

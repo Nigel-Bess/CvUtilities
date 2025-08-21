@@ -322,7 +322,7 @@ class TrayAlgorithm
 
   public:
 
-        // FED Hyperparameters: These handful of constants have been tuned extensively so do not
+    // FED Hyperparameters: These handful of constants have been tuned extensively so do not
     // touch without proving improvement using eval.cpp!!!
 
     // The max value in meters we expect calibration to be off by, that is
@@ -337,7 +337,8 @@ class TrayAlgorithm
     // When determining how far up the highest "true ground" proposal should be, bias the
     // Z proposal to be right where it's X% toward the ground's density as opposed to the top-most Z's
     // point density
-    double highest_proposal_ground_bias;
+    double highest_proposal_density_bias;
+    double lowest_proposal_density_bias;
 
     // How much to prefer the lowest-bound's true-ground bias over the highest true-ground Z proposal
     double lowest_proposal_scalar;

@@ -56,38 +56,40 @@ TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
       tongue_wheel_adjustment_mm(tray_config_reader.get_value("tongue_wheel_adjustment_mm", 8.0f)),
       save_tray_visualizations(tray_config_reader.get_value("flags", "save_tray_visualizations", true))
 {
+
+    // FED Hyperparameters: These handful of constants have been tuned extensively so do not
+    // touch without proving improvement using eval.cpp!!!
     lowest_ground_z = parseEnvVarDouble("FED_LOWEST_GROUND_Z", 0.8);
-    highest_ceiling_z = parseEnvVarDouble("FED_HIGHEST_CEILING_Z", -0.5);
-    top_z_ratio = parseEnvVarDouble("FED_MAX_ITEM_HEIGHT_RATIO", 0.964924);
-    highest_proposal_ground_bias = parseEnvVarDouble("FED_HIGHEST_PROPOSAL_BIAS", 0.05);
-    lowest_proposal_scalar = parseEnvVarDouble("FED_LOW_PROPOSAL_SCALAR", 0.05);
-    min_z_thickness = parseEnvVarDouble("FED_MIN_ITEM_Z_THICKNESS", 0.0001);
+    highest_ceiling_z = parseEnvVarDouble("FED_HIGHEST_CEILING_Z", -0.4);
+    top_z_ratio = parseEnvVarDouble("FED_MAX_ITEM_HEIGHT_RATIO", 0.9);
+    highest_proposal_density_bias = parseEnvVarDouble("FED_HIGHEST_PROPOSAL_BIAS", 0.99);
+    lowest_proposal_density_bias = parseEnvVarDouble("FED_LOWEST_PROPOSAL_BIAS", 0.5);
+    lowest_proposal_scalar = parseEnvVarDouble("FED_LOW_PROPOSAL_SCALAR", 0.8);
+    min_z_thickness = parseEnvVarDouble("FED_MIN_ITEM_Z_THICKNESS", 0.001);
+    max_valid_fed_y_diff_m = parseEnvVarDouble("FED_MAX_LINE_Y_DIFF", 0.078623);
+    empty_count_for_consensus = parseEnvVarDouble("FED_EMPTY_CONSENSUS_COUNT", 15);
+    similar_count_for_consensus = parseEnvVarDouble("FED_CONSENSUS_COUNT", 5.890997);
 
-    max_valid_fed_y_diff_m = parseEnvVarDouble("FED_MAX_LINE_Y_DIFF", 0.07);
-    empty_count_for_consensus = parseEnvVarDouble("FED_EMPTY_CONSENSUS_COUNT", 14);
-    similar_count_for_consensus = parseEnvVarDouble("FED_CONSENSUS_COUNT", 3.044723)
-    ;
-
-    double FED_LINE_SPREAD_MULTIPLIER = parseEnvVarDouble("FED_LINE_SPREAD_MULTIPLIER", 1.267441);
+    double FED_LINE_SPREAD_MULTIPLIER = parseEnvVarDouble("FED_LINE_SPREAD_MULTIPLIER", 2.686700);
     fed_sample_line_x_px_offsets[0] = (int)(FED_LINE_SPREAD_MULTIPLIER * -20);
     fed_sample_line_x_px_offsets[1] = (int)(FED_LINE_SPREAD_MULTIPLIER * 20);
-    fed_sample_line_x_px_offsets[2] = 0;
-    fed_sample_line_x_px_offsets[3] = (int)(FED_LINE_SPREAD_MULTIPLIER * -10);
     fed_sample_line_x_px_offsets[4] = (int)(FED_LINE_SPREAD_MULTIPLIER * 10);
+    fed_sample_line_x_px_offsets[3] = (int)(FED_LINE_SPREAD_MULTIPLIER * -10);
     fed_sample_line_x_px_offsets[7] = (int)(FED_LINE_SPREAD_MULTIPLIER * -5);
     fed_sample_line_x_px_offsets[8] = (int)(FED_LINE_SPREAD_MULTIPLIER * 5);
-    fed_sample_line_x_px_offsets[5] = (int)(FED_LINE_SPREAD_MULTIPLIER * -15);
-    fed_sample_line_x_px_offsets[6] = (int)(FED_LINE_SPREAD_MULTIPLIER * 15);
+    fed_sample_line_x_px_offsets[2] = 0;
     fed_sample_line_x_px_offsets[9] = (int)(FED_LINE_SPREAD_MULTIPLIER * -2);
     fed_sample_line_x_px_offsets[10] = (int)(FED_LINE_SPREAD_MULTIPLIER * 2);
+    fed_sample_line_x_px_offsets[5] = (int)(FED_LINE_SPREAD_MULTIPLIER * -15);
+    fed_sample_line_x_px_offsets[6] = (int)(FED_LINE_SPREAD_MULTIPLIER * 15);
+    fed_sample_line_x_px_offsets[18] = (int)(FED_LINE_SPREAD_MULTIPLIER * -6);
+    fed_sample_line_x_px_offsets[19] = (int)(FED_LINE_SPREAD_MULTIPLIER * 6);
     fed_sample_line_x_px_offsets[11] = (int)(FED_LINE_SPREAD_MULTIPLIER * -3);
     fed_sample_line_x_px_offsets[12] = (int)(FED_LINE_SPREAD_MULTIPLIER * 3);
     fed_sample_line_x_px_offsets[13] = (int)(FED_LINE_SPREAD_MULTIPLIER * -1);
     fed_sample_line_x_px_offsets[14] = (int)(FED_LINE_SPREAD_MULTIPLIER * 1);
     fed_sample_line_x_px_offsets[15] = (int)(FED_LINE_SPREAD_MULTIPLIER * -8);
     fed_sample_line_x_px_offsets[16] = (int)(FED_LINE_SPREAD_MULTIPLIER * 8);
-    fed_sample_line_x_px_offsets[18] = (int)(FED_LINE_SPREAD_MULTIPLIER * -6);
-    fed_sample_line_x_px_offsets[19] = (int)(FED_LINE_SPREAD_MULTIPLIER * 6);
     fed_sample_line_x_px_offsets[20] = (int)(FED_LINE_SPREAD_MULTIPLIER * -7);
     fed_sample_line_x_px_offsets[21] = (int)(FED_LINE_SPREAD_MULTIPLIER * 7);
 }
@@ -421,8 +423,8 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
   const TrayLane &current_lane,
   FEDParams params){
     // Step 1: Get the "bottom" and "top" Zs of the lane, either the tallest item or top of empty lane on center line
-    double max_lane_z = 1000;
-    double min_lane_z = -1000;
+    double lowest_lane_z = -1000;
+    double highest_lane_z = 1000;
     std::vector<cv::Point> filtered_lane_points;
     for(cv::Point center_point : lane_line_points)
     {
@@ -432,67 +434,71 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
           continue;
         }
         filtered_lane_points.push_back(center_point);
-        if (depth_point.z() < max_lane_z) {
-          max_lane_z = depth_point.z();
+        if (depth_point.z() < highest_lane_z) {
+          highest_lane_z = depth_point.z();
         }
-        if (depth_point.z() > min_lane_z) {
-          min_lane_z = depth_point.z();
+        if (depth_point.z() > lowest_lane_z) {
+          lowest_lane_z = depth_point.z();
         }
     }
 
     // Step 2: Sample a Z "laser" depth scan starting at lowest seen Z which we assume hits into the tread or tongue.
     // This will give us the total count of points that could be either items or lane hardwares.
-    int ground_density = count_points_above_z(filtered_lane_points, local_pix2pt, min_lane_z);
+    int ground_density = count_points_above_z(filtered_lane_points, local_pix2pt, lowest_lane_z);
 
-    // Step 3: Sample all Z points that are (some ratio) to the "top" sane Z to establish the count of points
+    // Step 3: Sample all Z points that are (some ratio) to the "top" of sane Z to establish the count of points
     // that could be EITHER pure items or pure lane hardware (in the case of empty or very flat items).
-    float top_z = max_lane_z * this->top_z_ratio;
+    float top_z = get_next_z(filtered_lane_points, local_pix2pt, highest_lane_z * this->top_z_ratio, true);
     int top_density = count_points_above_z(filtered_lane_points, local_pix2pt, top_z);
-    Logger::Instance()->Info("=============== GROUND {} min_z: {}", ground_density, min_lane_z);
-    Logger::Instance()->Info("=============== AT TOP count: {} top_z: {} max_z: {}", top_density, top_z, max_lane_z);
+    Logger::Instance()->Info("=============== GROUND {} min_z: {}", ground_density, lowest_lane_z);
+    Logger::Instance()->Info("=============== AT TOP count: {} top_z: {} max_z: {}", top_density, top_z, highest_lane_z);
 
     // If the top and bottom densities are practically the same,
     // or floor+ceiling Zs are very close, bail as empty lane
-    if (abs(ground_density - top_density) < 2 || abs(max_lane_z - min_lane_z) < this->min_z_thickness) {
+    if (filtered_lane_points.size() < 2 || abs(ground_density - top_density) < 2 || abs(lowest_lane_z - highest_lane_z) < this->min_z_thickness) {
       Logger::Instance()->Error("FED detected empty lane!");
       std::vector<Eigen::Vector3d> empty_3d;
       std::vector<cv::Point> empty_2d;
       return {empty_3d, empty_2d};
     }
 
+    // Scan for lowest potential ground from bottom to top
+    double max_low_proposal_density = ground_density * this->lowest_proposal_density_bias + top_density * (1.0 - this->lowest_proposal_density_bias);
+    double lowest_proposed_ground = get_next_z(filtered_lane_points, local_pix2pt, lowest_lane_z, false);
+    Logger::Instance()->Info("Scan for lowest z with point count >= {} between {} - {}", max_low_proposal_density, top_density, ground_density);
+    while (lowest_proposed_ground > top_z) {
+      auto density = count_points_above_z(filtered_lane_points, local_pix2pt, lowest_proposed_ground);
+      if (density <= max_low_proposal_density) {
+        break;
+      }
+      lowest_proposed_ground = get_next_z(filtered_lane_points, local_pix2pt, lowest_proposed_ground, false);
+    }
+
+    // Starting from the ground, keep raising a fake Z laser until a 2D density plane is more dense
+    // than min_high_proposal_density
+    double min_high_proposal_density = top_density * this->highest_proposal_density_bias + ground_density * (1.0 - this->highest_proposal_density_bias);
+    double highest_proposed_ground = top_z;
+    Logger::Instance()->Info("Scan for highest z with point count <= {} between {} - {}", min_high_proposal_density, top_density, ground_density);
+    while (highest_proposed_ground < lowest_lane_z) {
+      auto density = count_points_above_z(filtered_lane_points, local_pix2pt, highest_proposed_ground);
+      if (density >= min_high_proposal_density) {
+        break;
+      }
+      highest_proposed_ground = get_next_z(filtered_lane_points, local_pix2pt, highest_proposed_ground, true);
+    }
+
     // Step 4: With the ground points and half-top sample points, grab the average point count between them as a sort of
     // dynamic threshold between a point cloud looking like ground's count vs half-top's count.  The lowest Z
     // laser scan who's valid point count still exceeds this threshold will be considered the "true ground" and used
     // as the return value of item-only points.
-    double highest_proposed_ground = this->lowest_ground_z;
-    double low_count_threshold = top_density * this->highest_proposal_ground_bias + ground_density * (1.0 - this->highest_proposal_ground_bias);
-    Logger::Instance()->Info("Scan for highest z with point count <= {} between {} - {}", low_count_threshold, top_density, ground_density);
-    for (double z = get_next_z(filtered_lane_points, local_pix2pt, min_lane_z, false); z > top_z;) {
-      auto candidates = count_points_above_z(filtered_lane_points, local_pix2pt, z);
-      if (candidates < low_count_threshold) {
-        highest_proposed_ground = z;
-        break;
-      } else {
-        z = get_next_z(filtered_lane_points, local_pix2pt, z, false);
-        //Logger::Instance()->Info("Scanned z floor = {} density: {} / {}, {} > {}", z, candidates->size(), low_count_threshold, z, top_z);
-      }
-    }
 
-    // This is bad, log a deep error and fall-back to old logic that assumes z=0 is true ground plane
-    if (highest_proposed_ground == this->lowest_ground_z) {
-      Logger::Instance()->Error("FED auto-calibration failed to find lower bound!");
-      std::vector<Eigen::Vector3d> empty_3d;
-      std::vector<cv::Point> empty_2d;
-      return {empty_3d, empty_2d};
-    }
+    highest_proposed_ground = std::min(lowest_proposed_ground, highest_proposed_ground);
+    lowest_proposed_ground = std::max(highest_proposed_ground, lowest_proposed_ground);
 
-    // Look from highest proposal-down for the first Z below it that has a larger density
-    auto highest_proposal_density = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, highest_proposed_ground).size();
-    double z = get_next_z(filtered_lane_points, local_pix2pt, highest_proposed_ground, true);
-    auto candidates = trim_front_edge_points_below_z(filtered_lane_points, local_pix2pt, z);
-    auto lowest_proposed_ground = std::min(z, max_lane_z - min_z_thickness / 2);
-    Logger::Instance()->Info("Lowest possible true ground at z = {}", lowest_proposed_ground);
-    Logger::Instance()->Info("Highest possible true ground at z = {} density: {}", highest_proposed_ground, candidates.size());
+    auto highest_proposal_density = count_points_above_z(filtered_lane_points, local_pix2pt, highest_proposed_ground);
+    auto lowest_proposal_density = count_points_above_z(filtered_lane_points, local_pix2pt, lowest_proposed_ground);
+    Logger::Instance()->Info("Lowest possible true ground at z = {} density: {}", lowest_proposed_ground, lowest_proposal_density);
+    Logger::Instance()->Info("Highest possible true ground at z = {} density: {}", highest_proposed_ground, highest_proposal_density);
     // Average-ish the highest and lowest sane true ground proposals and hope the truth lies
     // somewhere inbetween.  Favor the lower proposal by a parameterized amount.
     double true_ground_z = highest_proposed_ground * (1.0d-lowest_proposal_scalar) + lowest_proposed_ground * lowest_proposal_scalar;
@@ -519,13 +525,13 @@ double TrayAlgorithm::get_next_z(
   double laser_scan_z_m,
   bool next_positive)
 {
-  double next_z = next_positive ? 9999 : -9999;
+  double next_z = laser_scan_z_m;
   for (auto center_point : lane_line_points) {
     auto depth_point = local_pix2pt.get_point_from_pixel(center_point);
-    if (next_positive && depth_point.z() > laser_scan_z_m) {
-      next_z = std::min(next_z, depth_point.z());
-    } else if (!next_positive && depth_point.z() < laser_scan_z_m) {
-      next_z = std::max(next_z, depth_point.z());
+    if (next_positive && depth_point.z() > next_z) {
+      next_z = depth_point.z();
+    } else if (!next_positive && depth_point.z() < next_z) {
+      next_z = depth_point.z();
     }
   }
   return next_z;
