@@ -64,13 +64,14 @@ TrayAlgorithm::TrayAlgorithm(const IniSectionReader &tray_config_reader)
     top_z_ratio = parseEnvVarDouble("FED_MAX_ITEM_HEIGHT_RATIO", 0.9);
     highest_proposal_density_bias = parseEnvVarDouble("FED_HIGHEST_PROPOSAL_BIAS", 0.99);
     lowest_proposal_density_bias = parseEnvVarDouble("FED_LOWEST_PROPOSAL_BIAS", 0.5);
-    lowest_proposal_scalar = parseEnvVarDouble("FED_LOW_PROPOSAL_SCALAR", 0.8);
-    min_z_thickness = parseEnvVarDouble("FED_MIN_ITEM_Z_THICKNESS", 0.001);
-    max_valid_fed_y_diff_m = parseEnvVarDouble("FED_MAX_LINE_Y_DIFF", 0.078623);
-    empty_count_for_consensus = parseEnvVarDouble("FED_EMPTY_CONSENSUS_COUNT", 15);
-    similar_count_for_consensus = parseEnvVarDouble("FED_CONSENSUS_COUNT", 5.890997);
+    lowest_proposal_scalar = parseEnvVarDouble("FED_LOW_PROPOSAL_SCALAR", 0.804247);
+    min_z_thickness = parseEnvVarDouble("FED_MIN_ITEM_Z_THICKNESS", 0.00001);
+    max_valid_fed_y_diff_m = parseEnvVarDouble("FED_MAX_LINE_Y_DIFF", 0.09);
+    empty_count_for_consensus = parseEnvVarDouble("FED_EMPTY_CONSENSUS_COUNT", 16);
+    similar_count_for_consensus = parseEnvVarDouble("FED_CONSENSUS_COUNT", 6.337253);
 
-    double FED_LINE_SPREAD_MULTIPLIER = parseEnvVarDouble("FED_LINE_SPREAD_MULTIPLIER", 2.686700);
+    double FED_LINE_SPREAD_MULTIPLIER = parseEnvVarDouble("FED_LINE_SPREAD_MULTIPLIER", 2);
+    
     fed_sample_line_x_px_offsets[0] = (int)(FED_LINE_SPREAD_MULTIPLIER * -20);
     fed_sample_line_x_px_offsets[1] = (int)(FED_LINE_SPREAD_MULTIPLIER * 20);
     fed_sample_line_x_px_offsets[4] = (int)(FED_LINE_SPREAD_MULTIPLIER * 10);
@@ -681,6 +682,7 @@ std::tuple<std::vector<Eigen::Vector3d>, std::vector<cv::Point>> TrayAlgorithm::
     {
         auto center_point = lane_line_points[i];
         depth_point = local_pix2pt.get_point_from_pixel(center_point);
+
         if (!invalid_depth(depth_point) && !in_distance_dead_zone(depth_point, center_point, log_dead_zone)) {
             push_front_edge_detection(depth_point, center_point, i);
             i = scan_for_back_item_edge(lane_line_points, i, local_pix2pt, current_lane);
