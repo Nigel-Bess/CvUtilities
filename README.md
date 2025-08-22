@@ -142,12 +142,50 @@ gcloud config set project fulfil-web
 gcloud auth configure-docker
 ```
 
-### New development workflow
+### Running Dev Containers Plugin for VS Code
 
+Pure Docker is an option but for the fastest and most complete dev experience you can use VS Code + Dev Containers
+
+#### Prerequisites
+- Docker installed on your system
+- VS Code installed with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-containers) extension
+
+#### Steps
+
+##### 1. Build a Stable Branch and Tag it Locally
+Build your Docker image using the following command, for the TCS repo in this case:
+```bash
+docker build . -f TCS.Dockerfile -t tcs
 ```
-make build
-make run
+
+This creates a tagged image (`tcs`) that you can use for running your container.
+
+##### 2. Run the Container with Mapped Folders
+Run a new container, mapping specific folders between your host machine and the container:
+```bash
+docker run -it \
+-v "/home/burt/Fulfil.ComputerVision/Fulfil.TCS/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/src" \
+-v "/home/burt/Fulfil.ComputerVision/Fulfil.TCS/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/include" \
+tcs bash
 ```
+
+This command:
+- Starts an interactive container (`-it`)
+- Maps your `src` and `include` folders to the container's file system so both VS Codes are in-sync but only where it counts.
+- Runs a Bash shell in the container that can subsequently be used for faster `make` builds rather than slower, full docker builds.  Native make can much better leverage compilation caching.
+
+##### 3. Attach VS Code to Running Container
+Open VS Code on your host machine, then:
+1. Option Actions (Ctrl+shift P?) -> **Attach to Running Container**
+2. Select the container from the list (it will have a random name like `cheerful_hamilton` or similar)
+
+This sets up VS Code in the container and allows you to edit files directly within the container environment.  You will want to install the C++ plugin when prompted.
+
+##### 4. Edit Files in VS Code
+- Make changes to your code in either VS Code on your host machine or within the container.
+- Changes will be synced between the host and container since the folders are mapped.
+- Either host docker build or the bash container's make will rebuild from shared src.
+
 
 ### Useful make commands
 make shell: ssh into the container
