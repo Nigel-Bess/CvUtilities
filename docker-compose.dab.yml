@@ -49,7 +49,7 @@ services:
         - path: .env
           required: false
     redis:
-        image: redis:latest
+        image: gcr.io/fulfil-web/redis:8.2.1
         container_name: redis
         restart: unless-stopped
         network_mode: "host"
