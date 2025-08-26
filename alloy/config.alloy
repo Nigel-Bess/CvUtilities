@@ -1,13 +1,9 @@
-loki.write "loki" {
-  endpoint {
-    url = sys.env("LOKI_URL")
-  }
-}
-
 logging {
   level = "info"
   format = "logfmt"
 }
+
+// Raw docker logs as input
 
 discovery.docker "linux" {
     host = "unix:///var/run/docker.sock"
@@ -31,6 +27,22 @@ loki.source.docker "docker_logs" {
   host = "unix:///var/run/docker.sock"
   labels = {"location" = sys.env("LOCATION"), "machine_name" = sys.env("MACHINE_NAME")}
   targets = discovery.docker.linux.targets
-  forward_to = [loki.write.loki.receiver]
+  forward_to = [loki.process.keep_newish.receiver]
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
+}
+
+// Forward logs to processors / filters
+loki.process "keep_newish" {
+  stage.drop {
+    older_than = "160h" // Drop log entries older than a week
+    longer_than = "2MB"
+  }
+  forward_to = [loki.write.loki.receiver]
+}
+
+// Final phase, send to Loki
+loki.write "loki" {
+  endpoint {
+    url = sys.env("LOKI_URL")
+  }
 }
