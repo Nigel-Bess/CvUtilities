@@ -56,51 +56,13 @@ Stopping:
 
 `cd /home/fulfil/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml down`
 
+
 ### Deploying
 
 Because building giant ARM64 images in Github Actions is nearly impossible, we instead use a dedicated CI build box in Whisman that can
-be used to replicate Github's current AMD images that are successfully built as a CI check on Pull requests.
+be used to replicate Github's current AMD images that are successfully built as a CI check on Pull requests. Also see the [Dispense README](Fulfil.Dispense/README.md) for more specific CI/CD info.
 
-Fulfil.AlliedVision and Fulfil.TCS are Kubernetes apps with idealized Github CI/CD deployments that are fully automatic; GH Action build and pushes images and cloud backend's Flux CD system automatically deploys latest releases, the remainder here describes deployments for Jetson board / AGX / Xavier / Orin boards.
-
-#### 1. Login to build box
-
-`ssh fulfil@clip-tb.whisman.fulfil.ai` while connected to VPN.
-
-Ask someone on CV for access if needed.
-
-#### 2. Build and push a Production ARM image to GCP Artifact Registry
-
-See the README.md's of the appropriate sub-directory but an example build of Dispense would be:
-
-```
-cd /home/fulfil/code/Fulfil.ComputerVision
-git checkout main
-git pull
-docker build . -f Dispense.arm.Dockerfile -t main
-docker tag main gcr.io/fulfil-web/cv-dispense/main:latest
-docker push gcr.io/fulfil-web/cv-dispense/main:latest
-```
-
-which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh` from the build box
-
-#### 3. Pull latest build per machine
-
-All machines point to their respective `main:latest` docker images in Google by default, but each production machine
-will never attempt to update it's image unless told to do so in vanilla docker fashion.  An example is pulling and
-restarting the last-pushed Dispense Docker image on some DAB:
-
-
-```
-cd /home/fulfil/code/Fulfil.ComputerVision
-docker compose -f docker-compose.dab.yml pull
-docker compose -f docker-compose.dab.yml down
-docker compose -f docker-compose.dab.yml up -d
-```
-
-which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-pull-latest.sh` on the target
-machine to update and restart services on.
-
+Fulfil.AlliedVision and Fulfil.TCS are Kubernetes apps with idealized Github CI/CD deployments that are fully automatic; GH Action build and pushes images and cloud backend's Flux CD system automatically deploys latest releases, see the [cloud-deployments](https://github.com/Fulfil0518/cloud-deployments) repo for how Kubernetes apps are deployed.
 
 ## Starting the Mars API
 Log on as the fulfil user (or run the command from fulfil userspace). Run the dc-startup script to cycle 

@@ -2,6 +2,56 @@
 
 The only information guaranteed to be  up-to-date is the **Starting the Mars API** section. Any information that precedes the **Depreciation Warning** section of the readme is valid. Other up-to-date information can be found on the [CV Command Guide](https://docs.google.com/document/d/14k9Jj3RgEqf9b27t3sbYC5RS6eEuN8hgaCXUnPTA268/edit?pli=1#heading=h.5wo37tlgfgcn).
 
+## Deploying
+
+Because building giant ARM64 images in Github Actions is nearly impossible, we instead use a dedicated CI build box in Whisman that can
+be used to replicate Github's current AMD images that are successfully built as a CI check on Pull requests.
+
+### 1. Login to build box
+
+`ssh fulfil@clip-tb.whisman.fulfil.ai` while connected to VPN.
+
+Ask someone on CV for access if needed.
+
+### 2. Build and push a Production ARM image to GCP Artifact Registry
+
+See the README.md's of the appropriate sub-directory but an example build of Dispense would be:
+
+```
+cd /home/fulfil/code/Fulfil.ComputerVision
+git checkout main
+git pull
+docker build . -f Dispense.arm.Dockerfile -t main
+docker tag main gcr.io/fulfil-web/cv-dispense/main:latest
+docker push gcr.io/fulfil-web/cv-dispense/main:latest
+```
+
+which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh` from the build box
+
+### 3a. Deploy latest facility build to entire facility
+
+All machines point to their respective `main:<FACILITY>` docker images in Google by default, but each production machine
+will never attempt to update it's image unless told to do so in vanilla docker fashion.  An example is pulling and
+restarting the last-pushed Dispense Docker image on some DAB:
+
+
+```
+cd /home/fulfil/code/Fulfil.ComputerVision
+docker compose -f docker-compose.dab.yml pull
+docker compose -f docker-compose.dab.yml down
+docker compose -f docker-compose.dab.yml up -d
+```
+
+To mass-deploy a facility-specific tagged image to an entire facility, run:
+
+`cd Fulfil.Dispense && bash scripts/dab-update-facility.sh` from _your local machine over VPN_, the Whisman build box is not allowed to connect to other facilities directly.
+
+### 3b. Pull latest build per machine
+
+For niche production deployments, run `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-pull-latest.sh` on the target
+machine to deploy and restart services on. This script also lets you select custom GIT branches.
+
+
 ## Logging
 
 All Depthcam / Dispense / TrayCount / (all running Docker containers really) can be searched in [Grafana Loki](https://grafana.fulfil-api.com/explore?schemaVersion=1&panes=%7B%22pwc%22:%7B%22datasource%22:%22DOKYKGqV2%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Blocation%3D%5C%22pioneer%5C%22,%20name%3D%5C%22depthcam%5C%22%7D%20%7C%3D%20%60%60%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22DOKYKGqV2%22%7D,%22editorMode%22:%22builder%22%7D%5D,%22range%22:%7B%22from%22:%22now-5m%22,%22to%22:%22now%22%7D%7D%7D&orgId=1).  You can narrow down the logs you want by filtering on these relevent fields (Grafana's value auto-complete will help you after entering these key names):

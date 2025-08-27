@@ -58,7 +58,9 @@ services:
     alloy:
         image: gcr.io/fulfil-web/grafana/alloy-arm:v1.10.1
         container_name: alloy
-        env_file: alloy/local.env
+        env_file:
+        - path: .env
+          required: true
         restart: unless-stopped
         ports:
           - "8777:8777" # Expose the Alloy UI port

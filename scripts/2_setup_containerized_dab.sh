@@ -9,9 +9,9 @@ if [[ ! -f "/home/fulfil/code/credentials/fulfil-web-dc-sa.json" ]] ; then
     exit 1
 fi
 
-if [[ ! -f "/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env" ]] ; then
-    echo '/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env does not exist! You can run the following to copy from a similar machine but be sure to update contents!'
-    echo "scp fulfil@some-dab.myfacility.fulfil.ai:/home/fulfil/code/Fulfil.ComputerVision/alloy/local.env" alloy/local.env
+if [[ ! -f "/home/fulfil/code/Fulfil.ComputerVision/.env" ]] ; then
+    echo '/home/fulfil/code/Fulfil.ComputerVision/.env does not exist! You can run the following to copy from a similar machine but be sure to update contents!'
+    echo "scp fulfil@some-dab.myfacility.fulfil.ai:/home/fulfil/code/Fulfil.ComputerVision/.env" .env
     exit 1
 fi
 
