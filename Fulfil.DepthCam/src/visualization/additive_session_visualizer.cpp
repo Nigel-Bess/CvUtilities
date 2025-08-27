@@ -129,7 +129,7 @@ void AdditiveSessionVisualizer::display_underlying_rgb_image()
 
 void AdditiveSessionVisualizer::add_point_cloud(bool should_include_invalid_points)
 {
-    this->add_pixels(this->session->get_point_cloud(should_include_invalid_points)->as_pixel_cloud()->get_data(),
+    this->add_pixels(this->session->get_point_cloud(should_include_invalid_points, __FUNCTION__)->as_pixel_cloud()->get_data(),
                          0,
                          0,
                          0,
@@ -153,7 +153,7 @@ void AdditiveSessionVisualizer::add_rectangle(std::shared_ptr<fulfil::utils::Poi
     (*point_cloud_data)(0,1) = center->x + width/2;
     (*point_cloud_data)(1,1) = center->y + length/2;
     (*point_cloud_data)(2,1) = center->z;
-    this->add_points(this->session->get_point_cloud(true)->as_camera_cloud()
+    this->add_points(this->session->get_point_cloud(true, __FUNCTION__)->as_camera_cloud()
                                  ->new_point_cloud(point_cloud_data));
 }
 

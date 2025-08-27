@@ -542,7 +542,7 @@ std::vector<int> DropManager::check_products_for_fit_in_bag(std::shared_ptr<nloh
         Logger::Instance()->Debug("DropManager: Check Product Fit, creating drop grid now");
         DropGrid drop_depth_grid = DropGrid(cached_post_container->width, cached_post_container->length, lfb_vision_config->num_rows_in_drop_depth_grid, lfb_vision_config->num_cols_in_drop_depth_grid); //TODO (SB): add grid squares to config? 22, 15
         Logger::Instance()->Debug("DropManager: Check Product Fit, getting point cloud now");
-        std::shared_ptr<LocalPointCloud> point_cloud = cached_post_container->get_point_cloud(false)->as_local_cloud();
+        std::shared_ptr<LocalPointCloud> point_cloud = cached_post_container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
         Logger::Instance()->Debug("DropManager: Check Product Fit, populating depth grid now");
         drop_depth_grid.populate_depth(point_cloud->get_data());
 

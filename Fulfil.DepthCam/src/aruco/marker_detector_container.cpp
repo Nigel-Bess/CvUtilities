@@ -82,7 +82,7 @@ std::shared_ptr<fulfil::utils::Point3D> convert_color_pixel_to_depth_point(float
   std::shared_ptr<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>> point =
      std::make_shared<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>>();
   point->push_back(std::make_shared<std::pair<std::shared_ptr<cv::Point2f>,float>>(std::make_shared<cv::Point2f>(x,y), depth));
-  std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true)->as_pixel_cloud()->new_point_cloud(point);
+  std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true, __FUNCTION__)->as_pixel_cloud()->new_point_cloud(point);
   std::shared_ptr<Eigen::Matrix3Xd> data = cloud->as_camera_cloud()->get_data();
   //Return the new point
   return std::make_shared<fulfil::utils::Point3D>((*data)(0,0), (*data)(1,0), (*data)(2,0));
@@ -479,36 +479,39 @@ std::shared_ptr<std::string> MarkerDetectorContainer::get_serial_number()
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud(
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
+  Logger::Instance()->Info("MarkerDetectorContainer.get_point_cloud called by " + std::string(caller));
   if(!this->cached_container)
   {
     this->setup_cached_container();
   }
-  return this->cached_container->get_point_cloud(include_invalid_depth_data);
+  return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud(
     std::shared_ptr<Eigen::Matrix3Xd> rotation,
     std::shared_ptr<Eigen::Vector3d> translation,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
+    Logger::Instance()->Info("MarkerDetectorContainer.get_point_cloud called by " + std::string(caller));
     if(!this->cached_container)
     {
       this->setup_cached_container();
     }
-    return this->cached_container->get_point_cloud(rotation, translation, include_invalid_depth_data);
+    return this->cached_container->get_point_cloud(rotation, translation, include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud(
     std::shared_ptr<Eigen::Affine3d> transform,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
+  Logger::Instance()->Info("MarkerDetectorContainer.get_point_cloud called by " + std::string(caller));
   if(!this->cached_container)
   {
     this->setup_cached_container();
   }
-  return this->cached_container->get_point_cloud(transform, include_invalid_depth_data);
+  return this->cached_container->get_point_cloud(transform, include_invalid_depth_data, __FUNCTION__);
 }
 
 void MarkerDetectorContainer::refresh(bool align_frames, bool validate_frames, bool num_retries)

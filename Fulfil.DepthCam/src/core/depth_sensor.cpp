@@ -97,8 +97,9 @@ rs2::points generate_point_cloud(std::shared_ptr<rs2::depth_frame> depth_frame, 
     return point_cloud->calculate(decimated_depth_frame);
 }
 
-std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data)
+std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data, const char* caller)
 {
+    Logger::Instance()->Info("depth_sensor->get_point_cloud called by {}", caller);
     Logger::Instance()->Trace("Getting Point Cloud in depth_sensor #1: using get_point_cloud(std::shared_ptr<rs2::frameset> frameset, bool include_invalid_depth_data)");
     rs2::points points = generate_point_cloud(raw_depth_frame, raw_color_frame, this->decimation_filter, this->pointcloud);
     const rs2::vertex* vertices = points.get_vertices();
@@ -158,6 +159,16 @@ void DepthSensor::manage_pipe(){
             //we are set to 15FPS which is every ~66ms
             total_frames++;
             auto new_frame = pipeline->wait_for_frames(15000);
+
+            auto color_width = new_frame.get_color_frame().get_width();
+            auto depth_width = new_frame.get_depth_frame().get_width();
+            if (color_width < 2) {
+                throw std::runtime_error("Bad color frame had no width");
+            }
+            if (depth_width < 2) {
+                throw std::runtime_error("Bad depth frame had no width");
+            }
+
             std::lock_guard<std::mutex> lock(_lock);
             frame_set = std::make_shared<rs2::frameset>(new_frame);
             last_frame_time = CurrentTime();
@@ -202,7 +213,7 @@ void DepthSensor::manage_pipe(){
             print_time = CurrentTime();
         }
         if(!success){
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             connected_ = false;
         }
     }

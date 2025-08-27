@@ -68,14 +68,16 @@ namespace fulfil
 
             std::shared_ptr<std::string> get_serial_number() override;
 
-            std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(bool include_invalid_depth_data) override;
+            std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(bool include_invalid_depth_data, const char* caller) override;
 
             std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(std::shared_ptr<Eigen::Matrix3Xd> rotation,
                                                                                       std::shared_ptr<Eigen::Vector3d> translation,
-                                                                                      bool include_invalid_depth_data) override;
+                                                                                      bool include_invalid_depth_data,
+                                                                                      const char* caller) override;
 
             std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(std::shared_ptr<Eigen::Affine3d> transform,
-                                                                                      bool include_invalid_depth_data) override;
+                                                                                      bool include_invalid_depth_data,
+                                                                                      const char* caller) override;
 
             std::shared_ptr<rs2_intrinsics> get_color_stream_intrinsics() override;
 

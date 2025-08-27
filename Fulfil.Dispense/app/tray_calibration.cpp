@@ -227,7 +227,7 @@ std::shared_ptr<Eigen::Matrix3Xd> select_calibration_point(std::shared_ptr<fulfi
     std::shared_ptr<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>> point =
             make_shared<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>>();
     point->push_back(make_shared<std::pair<shared_ptr<cv::Point2f>,float>>(make_shared<cv::Point2f>(calibration_routine_pixel_x, calibration_routine_pixel_y), depth));
-    std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true)->as_pixel_cloud()->new_point_cloud(point);
+    std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true, __FUNCTION__)->as_pixel_cloud()->new_point_cloud(point);
     std::shared_ptr<Eigen::Matrix3Xd> data = cloud->as_camera_cloud()->get_data();
 
     //Return the new point
@@ -257,7 +257,7 @@ bool get_calibration(std::shared_ptr<fulfil::depthcam::Session> session,
         shared_ptr<cv::Mat> RGB_matrix = session->get_color_mat();
 
         shared_ptr<SessionVisualizer> session_visualizer = make_shared<SessionVisualizer>(session, window_name_0, location_top_right, window_size, 0);
-        std::shared_ptr<PointCloud> point_cloud = session->get_point_cloud(false)->as_pixel_cloud();
+        std::shared_ptr<PointCloud> point_cloud = session->get_point_cloud(false, __FUNCTION__)->as_pixel_cloud();
         session_visualizer->display_image(session_visualizer->display_points_with_depth_coloring(point_cloud));
 
 

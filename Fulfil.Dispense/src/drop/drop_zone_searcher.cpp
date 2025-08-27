@@ -889,7 +889,7 @@ std::shared_ptr<cv::Mat> DropZoneSearcher::visualize_target(std::shared_ptr<Poin
   (*new_local_data)(1,3) = result->y - shadow_length/2;
   (*new_local_data)(2,3) = result->z;
 
-  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud2 =  container->get_point_cloud(false);
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud2 =  container->get_point_cloud(false, __FUNCTION__);
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> target_result;
   target_result = point_cloud2->as_local_cloud()->new_point_cloud(new_local_data);
 
@@ -1223,7 +1223,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(container->marker_detector->dictionary, markers, container->region_max_x, container->region_min_x, container->region_max_y, container->region_min_y);
   if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, this->PKID);
   if(this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
-  std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+  std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
 
   int original_candidate_count = point_cloud->get_data()->cols();
   std::shared_ptr<cv::Mat> image3 = session_visualizer3->display_points_with_depth_coloring(point_cloud);
@@ -1555,7 +1555,7 @@ std::shared_ptr<DropResult> DropZoneSearcher::find_drop_zone_center(std::shared_
   if(this->visualize)
   {
     //TODO: this is terribly inefficient, visualizations need refactor and shouldn't require a new PointCloud. But not executed during production so ok for now.
-    std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> temp_point_cloud =  container->get_point_cloud(false);
+    std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> temp_point_cloud =  container->get_point_cloud(false, __FUNCTION__);
     std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> remaining_candidate_point_cloud;
     remaining_candidate_point_cloud = temp_point_cloud->as_local_cloud()->new_point_cloud(valid_drop_center_data);
     session_visualizer9->display_image(session_visualizer9->display_points_with_depth_coloring(remaining_candidate_point_cloud));
@@ -1967,7 +1967,7 @@ std::shared_ptr<fulfil::dispense::commands::PostLFRResponse> DropZoneSearcher::f
   }
 
 
-  std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+  std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
 
   // remove depth points from local point cloud that are higher than 150mm above the valid depth (marker surface mostly).
   this->remove_high_depth_points(point_cloud, RGB_matrix->size(), LFB_cavity_height, lfb_vision_config->threshold_above_highest_valid_depth);
@@ -2191,7 +2191,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
 
         // this "LFB_filter" image is the plain depth map visualized
-        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
         cv::Mat depth_visualization;
         cv::Mat depth_mat = *this->session->get_depth_mat();
         Logger::Instance()->Trace("Retrieved depth mat");
@@ -2318,7 +2318,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
         // visualize the markers but don't upload
         if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
 
-        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false)->as_local_cloud();
+        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
         // depth cloud visualization but don't upload
         std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud);
         if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }

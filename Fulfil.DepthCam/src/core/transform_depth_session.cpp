@@ -74,28 +74,28 @@ std::shared_ptr<std::string> TransformDepthSession::get_serial_number()
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> TransformDepthSession::get_point_cloud(
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
-    return this->session->get_point_cloud(this->transform, include_invalid_depth_data);
+    return this->session->get_point_cloud(this->transform, include_invalid_depth_data, caller);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> TransformDepthSession::get_point_cloud(
     std::shared_ptr<Eigen::Matrix3Xd> rotation,
     std::shared_ptr<Eigen::Vector3d> translation,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
     std::shared_ptr<Eigen::Affine3d> transformation = std::make_shared<Eigen::Affine3d>();
     (*transformation).linear() = (*rotation);
     (*transformation).translation() = *translation;
-    return this->get_point_cloud(transformation, include_invalid_depth_data);
+    return this->get_point_cloud(transformation, include_invalid_depth_data, caller);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> TransformDepthSession::get_point_cloud(
     std::shared_ptr<Eigen::Affine3d> transform,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
     return this->session->get_point_cloud(std::make_shared<Eigen::Affine3d>((*transform) * (*this->transform)),
-            include_invalid_depth_data);
+            include_invalid_depth_data, caller);
 }
 
 void TransformDepthSession::refresh(bool align_frames, bool validate_frames, bool num_retries)

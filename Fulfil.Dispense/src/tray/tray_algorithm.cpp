@@ -148,7 +148,7 @@ std::shared_ptr<LocalPointCloud> TrayAlgorithm::generate_local_traycloud(
       std::make_unique<Eigen::Affine3d>(camera_to_mm_transform), true,
       container_width, this->tray_length, center_x, center_y,
       max_height_relative_to_tray_plane, min_height_relative_to_tray_plane);
-  return tray_roi->get_point_cloud(false)->as_local_cloud();
+  return tray_roi->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
 }
 
 std::array<float, 3> TrayAlgorithm::get_max_height_in_tray(
@@ -937,7 +937,7 @@ cv::Mat make_local_depth_frame(const std::shared_ptr<fulfil::depthcam::Session> 
     Eigen::Affine3f transform, cv::Size decimated_frame_size){
   // TODO remove hard code once decimation profile access enabled
   constexpr int decimation_factor = 8; // should this be a float and then floor / cast
-  Eigen::Matrix3Xf depth_camera_cloud = session->get_point_cloud(true)->as_camera_cloud()->get_data()->cast<float>();
+  Eigen::Matrix3Xf depth_camera_cloud = session->get_point_cloud(true, __FUNCTION__)->as_camera_cloud()->get_data()->cast<float>();
   cv::Mat local_aligned_depth_frame = cv::Mat::zeros(decimated_frame_size, CV_32FC1);
 
   auto depth_to_color_pt = [&](const Eigen::Vector3f& eigen_point) {
@@ -976,7 +976,7 @@ cv::Mat get_aligned_local_depth_frame(const std::shared_ptr<fulfil::depthcam::Se
     Eigen::Affine3d transform) {
   float decimation_factor = 8; // TODO @JESS Should get from decimation filter through sensor eventually
   cv::Size full_size = cv::Size(session->get_color_stream_intrinsics()->width, session->get_color_stream_intrinsics()->height);
-  cv::Size padded_decimated_frame_size = session->get_point_cloud(true)->as_pixel_cloud()->get_size_point_cloud_as_frame(decimation_factor);
+  cv::Size padded_decimated_frame_size = session->get_point_cloud(true, __FUNCTION__)->as_pixel_cloud()->get_size_point_cloud_as_frame(decimation_factor);
   Logger::Instance()->Debug("Padded decimated frame (magnitude {}) size (x,y) is: ({},{})", decimation_factor, padded_decimated_frame_size.width, padded_decimated_frame_size.height);
   cv::Size filled_decimated_frame_size = cv::Size(full_size.width/static_cast<int>(decimation_factor), full_size.height/static_cast<int>(decimation_factor));
 

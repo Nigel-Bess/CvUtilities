@@ -15,6 +15,7 @@
 #include <eigen3/Eigen/Dense>
 #include <librealsense2/rs.hpp>
 #include <memory>
+#include <cstdio>
 
 using fulfil::utils::FileSystemUtil;
 using fulfil::depthcam::DepthSession;
@@ -80,10 +81,10 @@ std::shared_ptr<rs2_extrinsics> DepthSession::get_depth_to_color_extrinsics()
     return this->sensor->depth_to_color_extrinsics;
 }
 
-std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> DepthSession::get_point_cloud(bool include_invalid_depth_data)
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> DepthSession::get_point_cloud(bool include_invalid_depth_data, const char* caller)
 {
-  Logger::Instance()->Trace("Get Point Cloud #1 called in Depth_session ");
-  return std::make_shared<NoTranslationPointCloud>(sensor->get_point_cloud(this->raw_depth_frame, this->raw_color_frame, include_invalid_depth_data),
+  Logger::Instance()->Info("Get Point Cloud #1 called in Depth_session by {}", caller);
+  return std::make_shared<NoTranslationPointCloud>(sensor->get_point_cloud(this->raw_depth_frame, this->raw_color_frame, include_invalid_depth_data, __FUNCTION__),
                                                 this->get_color_stream_intrinsics(),
                                               this->get_depth_stream_intrinsics(),
                                               this->get_color_to_depth_extrinsics(),
@@ -92,20 +93,21 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> DepthSession::get_poin
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> DepthSession::get_point_cloud(std::shared_ptr<Eigen::Matrix3Xd> rotation,
                                                                             std::shared_ptr<Eigen::Vector3d> translation,
-                                                                            bool include_invalid_depth_data)
+                                                                            bool include_invalid_depth_data,
+                                                                            const char* caller)
 {
-  Logger::Instance()->Trace("Get Point Cloud #2 called in Depth_session ");
+  Logger::Instance()->Info("Get Point Cloud #2 called in Depth_session by {}", caller);
   std::shared_ptr<Eigen::Affine3d> transform = std::make_shared<Eigen::Affine3d>();
   (*transform).linear() = *rotation;
   (*transform).translation() = *translation;
-  return this->get_point_cloud(transform, include_invalid_depth_data);
+  return this->get_point_cloud(transform, include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> DepthSession::get_point_cloud(
-    std::shared_ptr<Eigen::Affine3d> transform, bool include_invalid_depth_data)
+    std::shared_ptr<Eigen::Affine3d> transform, bool include_invalid_depth_data, const char* caller)
 {
-  Logger::Instance()->Trace("Get Point Cloud #3 called in Depth_session ");
-  std::shared_ptr<Eigen::Matrix3Xd> point_matrix = sensor->get_point_cloud(this->raw_depth_frame, this->raw_color_frame, include_invalid_depth_data);
+  Logger::Instance()->Info("Get Point Cloud #3 called in Depth_session by {}", caller);
+  std::shared_ptr<Eigen::Matrix3Xd> point_matrix = sensor->get_point_cloud(this->raw_depth_frame, this->raw_color_frame, include_invalid_depth_data, __FUNCTION__);
 
   //apply transform to point cloud
   std::shared_ptr<Eigen::Matrix3Xd> new_point_matrix = std::make_shared<Eigen::Matrix3Xd>(((*transform) * (*point_matrix)));

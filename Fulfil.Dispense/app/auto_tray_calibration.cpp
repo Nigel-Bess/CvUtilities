@@ -299,7 +299,7 @@ bool validate_markers(std::shared_ptr<fulfil::depthcam::Session> session,
         std::shared_ptr<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>> point =
                 std::make_shared<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>>();
         point->push_back(std::make_shared<std::pair<std::shared_ptr<cv::Point2f>,float>>(std::make_shared<cv::Point2f>(marker_x, marker_y), detected_depth));
-        std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true)->as_pixel_cloud()->new_point_cloud(point);
+        std::shared_ptr<PointCloud> cloud = session->get_point_cloud(true, __FUNCTION__)->as_pixel_cloud()->new_point_cloud(point);
         std::shared_ptr<Eigen::Matrix3Xd> data = cloud->as_camera_cloud()->get_data();
 
         calibration_xy.push_back(std::pair <int, int>(marker_x, marker_y));

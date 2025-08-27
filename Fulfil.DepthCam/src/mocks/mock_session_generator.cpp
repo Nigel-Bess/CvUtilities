@@ -43,7 +43,7 @@ void MockSessionGenerator::save_depth_data(shared_ptr<std::string> filename)
 
 void MockSessionGenerator::save_point_cloud(shared_ptr<std::string> directory_path)
 {
-  shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = session->get_point_cloud(true);
+  shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = session->get_point_cloud(true, __FUNCTION__);
   shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_cloud = point_cloud->as_camera_cloud();
   shared_ptr<Eigen::Matrix3Xd> data = camera_cloud->get_data();
   point_cloud->encode_to_directory(directory_path);

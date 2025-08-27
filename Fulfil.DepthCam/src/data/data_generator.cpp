@@ -74,7 +74,7 @@ void DataGenerator::save_raw_depth_data(std::shared_ptr<std::string> filename)
 void DataGenerator::save_point_cloud(std::shared_ptr<std::string> directory_path)
 {
   Logger::Instance()->Trace("Data Generator: save_point_cloud started");
-  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = session->get_point_cloud(true);
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = session->get_point_cloud(true, __FUNCTION__);
   std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_cloud = point_cloud->as_camera_cloud();
   std::shared_ptr<Eigen::Matrix3Xd> data = camera_cloud->get_data();
   point_cloud->encode_to_directory(directory_path);

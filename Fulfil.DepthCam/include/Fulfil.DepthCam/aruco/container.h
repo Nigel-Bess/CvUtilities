@@ -47,16 +47,16 @@ class Container : public Session
   std::shared_ptr<std::string> get_serial_number() override = 0;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
-      bool include_invalid_depth_data) override = 0;
+      bool include_invalid_depth_data, const char* caller) override = 0;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Matrix3Xd> rotation,
       std::shared_ptr<Eigen::Vector3d> translation,
-      bool include_invalid_depth_data) override = 0;
+      bool include_invalid_depth_data, const char* caller) override = 0;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Affine3d> transform,
-      bool include_invalid_depth_data) override = 0;
+      bool include_invalid_depth_data, const char* caller) override = 0;
 
   void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) override = 0;
 

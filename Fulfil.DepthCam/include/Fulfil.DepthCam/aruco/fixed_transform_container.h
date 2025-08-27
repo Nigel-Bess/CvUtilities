@@ -99,16 +99,16 @@ class FixedTransformContainer : public Container
   std::shared_ptr<std::string> get_serial_number() override;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
-      bool include_invalid_depth_data) override;
+      bool include_invalid_depth_data, const char* caller) override;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Matrix3Xd> rotation,
       std::shared_ptr<Eigen::Vector3d> translation,
-      bool include_invalid_depth_data) override;
+      bool include_invalid_depth_data, const char* caller) override;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Affine3d> transform,
-      bool include_invalid_depth_data) override;
+      bool include_invalid_depth_data, const char* caller) override;
 
   void refresh(bool align_frames = true, bool validate_frames = true, bool num_retries = 3) override;
 

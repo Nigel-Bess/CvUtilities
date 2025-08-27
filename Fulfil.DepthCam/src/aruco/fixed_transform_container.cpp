@@ -56,13 +56,13 @@ void FixedTransformContainer::set_service(std::shared_ptr<GrpcService> serv){
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud(
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
     //TODO: add some caching
     //std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> full_point_cloud = this->session->get_point_cloud(
       //  this->transform, include_invalid_depth_data);
     std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = this->session->get_point_cloud(
-                                                this->transform, include_invalid_depth_data)->as_local_cloud();
+                                                this->transform, include_invalid_depth_data, caller)->as_local_cloud();
 
     if(!this->should_filter_points_outside_of_container) { return local_point_cloud; }
     //std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = full_point_cloud->as_local_cloud();
@@ -76,18 +76,18 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud(
     std::shared_ptr<Eigen::Matrix3Xd> rotation,
     std::shared_ptr<Eigen::Vector3d> translation,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
   //TODO: think about what to do here about filtering out non container points, right now just not filtering them out.
-  return this->session->get_point_cloud(rotation, translation, include_invalid_depth_data);
+  return this->session->get_point_cloud(rotation, translation, include_invalid_depth_data, caller);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud(
     std::shared_ptr<Eigen::Affine3d> transform,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
   //TODO: think about what to do here about filtering out non container points, right now just not filtering them out.
-  return this->session->get_point_cloud(transform, include_invalid_depth_data);
+  return this->session->get_point_cloud(transform, include_invalid_depth_data, caller);
 }
 
 void FixedTransformContainer::refresh(bool align_frames, bool validate_frames, bool num_retries)
@@ -138,7 +138,7 @@ float FixedTransformContainer::depth_at_pixel(int x, int y)
       = std::make_shared<std::vector<std::shared_ptr<std::pair<std::shared_ptr<cv::Point2f>, float>>>>();
   pixel_with_depth->push_back(std::make_shared<std::pair<std::shared_ptr<cv::Point2f>, float>>(point, depth));
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> cloud =
-      this->session->get_point_cloud(this->transform, true)->as_pixel_cloud()->new_point_cloud(pixel_with_depth);
+      this->session->get_point_cloud(this->transform, true, __FUNCTION__)->as_pixel_cloud()->new_point_cloud(pixel_with_depth);
   float new_depth = (*cloud->as_local_cloud()->get_data())(2,0);
   return new_depth;
 }

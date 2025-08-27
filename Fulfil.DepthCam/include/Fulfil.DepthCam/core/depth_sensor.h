@@ -79,7 +79,7 @@ class DepthSensor
     *
     * @return a 3xN matrix of points in the depth sensor's coordinate system (in meters).
     */
-    std::shared_ptr<Eigen::Matrix3Xd> get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data);
+    std::shared_ptr<Eigen::Matrix3Xd> get_point_cloud(std::shared_ptr<rs2::depth_frame> raw_depth_frame, std::shared_ptr<rs2::video_frame> raw_color_frame, bool include_invalid_depth_data, const char* caller);
 
     /**
     * Gets the current frameset from the sensor

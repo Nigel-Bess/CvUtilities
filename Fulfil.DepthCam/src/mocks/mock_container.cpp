@@ -53,10 +53,10 @@ std::shared_ptr<std::string> MockContainer::get_serial_number()
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud>
-    MockContainer::get_point_cloud(bool include_invalid_depth_data)
+    MockContainer::get_point_cloud(bool include_invalid_depth_data, const char* caller)
 {
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> full_point_cloud =
-      this->session->get_point_cloud(include_invalid_depth_data);
+      this->session->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
   if(this->should_filter_points_outside_of_container)
   {
     std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = full_point_cloud->as_local_cloud();
@@ -74,18 +74,18 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud>
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockContainer::get_point_cloud(std::shared_ptr<Eigen::Matrix3Xd> rotation,
                                                                                          std::shared_ptr<Eigen::Vector3d> translation,
-                                                                                         bool include_invalid_depth_data)
+                                                                                         bool include_invalid_depth_data, const char* caller)
 {
   std::shared_ptr<Eigen::Affine3d> transform = std::shared_ptr<Eigen::Affine3d>(new Eigen::Affine3d());
   (*transform).linear() = *rotation;
   (*transform).translation() = *translation;
-  return this->get_point_cloud(transform, include_invalid_depth_data);
+  return this->get_point_cloud(transform, include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockContainer::get_point_cloud(std::shared_ptr<Eigen::Affine3d> transform,
-                                                                                         bool include_invalid_depth_data)
+                                                                                         bool include_invalid_depth_data, const char* caller)
 {
-  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = this->get_point_cloud(include_invalid_depth_data);
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud = this->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
   point_cloud->add_transformation(transform);
   return point_cloud;
 }

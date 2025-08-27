@@ -53,7 +53,7 @@ class Session
     * it will return only the points where the session was able to find valid depth data.
     * @return a point cloud of the data from the session.
     */
-  virtual std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(bool include_invalid_depth_data) = 0;
+  virtual std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(bool include_invalid_depth_data, const char* caller) = 0;
    /**
     * Gets the a point cloud from the session where the local cloud is the local cloud of the session
     * with the extra step of applying the given transformation.
@@ -69,7 +69,7 @@ class Session
   virtual std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Matrix3Xd> rotation,
       std::shared_ptr<Eigen::Vector3d> translation,
-      bool include_invalid_depth_data) = 0;
+      bool include_invalid_depth_data, const char* caller) = 0;
   /**
    * Gets the a point cloud from the session where the local cloud is the local cloud of the session
    * with the extra step of applying the given transformation.
@@ -83,7 +83,7 @@ class Session
    */
   virtual std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Affine3d> transform,
-      bool include_invalid_depth_data) = 0;
+      bool include_invalid_depth_data, const char* caller) = 0;
   /**
    * Captures a new set of frame from the session to be used for processing
    * point clouds and images.

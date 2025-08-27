@@ -511,7 +511,7 @@ int PrePostCompare::process_RGB()
   (*corner_data)(0,3) = 0 + container_width/2;
   (*corner_data)(1,3) = 0 - container_length/2;
   (*corner_data)(2,3) = 0;
-  std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = post_container->get_point_cloud(true)->
+  std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = post_container->get_point_cloud(true, __FUNCTION__)->
           as_local_cloud()->new_point_cloud(corner_data)->as_pixel_cloud()->get_data();
 
   cv::Mat LFB_corner_graphic;
@@ -673,9 +673,9 @@ int PrePostCompare::process_depth()
    *  Depth difference analysis
    */
   Logger::Instance()->Debug("Getting pre container point cloud now");
-  std::shared_ptr<LocalPointCloud> pre_local_point_cloud = pre_container->get_point_cloud(false)->as_local_cloud();
+  std::shared_ptr<LocalPointCloud> pre_local_point_cloud = pre_container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
   Logger::Instance()->Debug("Getting post container point cloud now");
-  std::shared_ptr<LocalPointCloud> post_local_point_cloud = post_container->get_point_cloud(false)->as_local_cloud();
+  std::shared_ptr<LocalPointCloud> post_local_point_cloud = post_container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
 
   if(this->visualize)
   {

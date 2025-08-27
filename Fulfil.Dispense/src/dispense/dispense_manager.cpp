@@ -79,6 +79,21 @@ DispenseManager::DispenseManager(
                                                                          dispense_reader(dispense_man_reader), tray_config_reader(tray_config_reader)
 {
     Logger::Instance()->Trace("DispenseManager Constructor Called");
+    long numProcessors = sysconf(_SC_NPROCESSORS_ONLN);
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    Logger::Instance()->Info("============================================");
+    if (numProcessors > 0) {
+        Logger::Instance()->Info("Number of processors: {}", numProcessors);
+    } else {
+        Logger::Instance()->Info("Couldn't get processor count");
+    }
 
     // setting up networking stuff
     //  TODO Once needs stabilize, we should probably just add data members in reader to interface

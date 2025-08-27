@@ -136,7 +136,7 @@ MockSession::MockSession(std::shared_ptr<fulfil::depthcam::Session> session)
   this->raw_color_frame = std::make_shared<cv::Mat>(color_img);
 
   //Todo: this point cloud needs to be re-created from data so it is not still tied to the original capture frame?? Maybe not
-  this->point_cloud = session->get_point_cloud(true);
+  this->point_cloud = session->get_point_cloud(true, __FUNCTION__);
 
   this->serial_number = nullptr;
   this->color_stream_intrinsics = session->get_color_stream_intrinsics();
@@ -202,7 +202,7 @@ std::shared_ptr<rs2_extrinsics> MockSession::get_depth_to_color_extrinsics()
 
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point_cloud(
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
   if (this->point_cloud == nullptr)
   {
@@ -226,18 +226,18 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point_cloud(
     std::shared_ptr<Eigen::Matrix3Xd> rotation,
     std::shared_ptr<Eigen::Vector3d> translation,
-    bool include_invalid_depth_data)
+    bool include_invalid_depth_data, const char* caller)
 {
     std::shared_ptr<Eigen::Affine3d> transform = std::shared_ptr<Eigen::Affine3d>(new Eigen::Affine3d());
     (*transform).linear() = *rotation;
     (*transform).translation() = *translation;
-    return this->get_point_cloud(transform, include_invalid_depth_data);
+    return this->get_point_cloud(transform, include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point_cloud(std::shared_ptr<Eigen::Affine3d> transform,
-                                                               bool include_invalid_depth_data)
+                                                               bool include_invalid_depth_data, const char* caller)
 {
-  shared_ptr<CameraPointCloud> cam_cloud = this->get_point_cloud(include_invalid_depth_data)->as_camera_cloud();
+  shared_ptr<CameraPointCloud> cam_cloud = this->get_point_cloud(include_invalid_depth_data, __FUNCTION__)->as_camera_cloud();
   return cam_cloud->add_transformation(transform);
 }
 
