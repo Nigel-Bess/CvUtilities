@@ -15,38 +15,18 @@ Ask someone on CV for access if needed.
 
 ### 2. Build and push a Production ARM image to GCP Artifact Registry
 
-See the README.md's of the appropriate sub-directory but an example build of Dispense would be:
-
-```
-cd /home/fulfil/code/Fulfil.ComputerVision
-git checkout main
-git pull
-docker build . -f Dispense.arm.Dockerfile -t main
-docker tag main gcr.io/fulfil-web/cv-dispense/main:latest
-docker push gcr.io/fulfil-web/cv-dispense/main:latest
-```
-
-which as a shortcut you can run with `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh` from the build box
+From the build box, run `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh`, it will prompt you for the branch and facility to build against.
 
 ### 3a. Deploy latest facility build to entire facility
 
 All machines point to their respective `main:<FACILITY>` docker images in Google by default, but each production machine
-will never attempt to update it's image unless told to do so in vanilla docker fashion.  An example is pulling and
-restarting the last-pushed Dispense Docker image on some DAB:
-
-
-```
-cd /home/fulfil/code/Fulfil.ComputerVision
-docker compose -f docker-compose.dab.yml pull
-docker compose -f docker-compose.dab.yml down
-docker compose -f docker-compose.dab.yml up -d
-```
+will never attempt to update it's image unless told to do so in vanilla docker fashion.
 
 To mass-deploy a facility-specific tagged image to an entire facility, run:
 
-`cd Fulfil.Dispense && bash scripts/dab-update-facility.sh` from _your local machine over VPN_, the Whisman build box is not allowed to connect to other facilities directly.
+`cd Fulfil.Dispense && bash scripts/dab-update-facility.sh` from _your local machine over VPN_, the Whisman build box is not allowed to connect to other facilities directly.  This option forces you to use `main:<FACILITY>` docker images only!
 
-### 3b. Pull latest build per machine
+### 3b. Deploy custom builds per machine
 
 For niche production deployments, run `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-pull-latest.sh` on the target
 machine to deploy and restart services on. This script also lets you select custom GIT branches.
