@@ -18,7 +18,7 @@ cd /home/fulfil/code/Fulfil.ComputerVision
 
 echo "Ensuring Git up-to-date (use your GH username / PAT token): "
 # Force compose file to be fresh from GH to avoid Git conflicts
-git checkout origin/$BRANCH -- ../docker-compose.dab.yml
+git checkout origin/$BRANCH -- docker-compose.dab.yml
 git fetch
 git checkout $BRANCH
 
