@@ -73,7 +73,7 @@ services:
         container_name: depthcam
         logging:
           driver: syslog
-        image: "gcr.io/fulfil-web/cv-dispense/main:latest"
+        image: "gcr.io/fulfil-web/cv-dispense/main:$LOCATION"
         # Swap "image" for this to use local builds
         #build:
           #context: /home/fulfil/code/Fulfil.ComputerVision
@@ -98,7 +98,7 @@ services:
           - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
         env_file:
         - path: .env
-          required: false
+          required: true
         restart: unless-stopped
         privileged: true
  
