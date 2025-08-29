@@ -21,8 +21,8 @@ const uint32_t MULTIFRAME_COUNT = 2;
 // Reset camera exposure every 4 hours to account for changing sunlight
 const auto EXPOSURE_RESET_INTERVAL = 4h;
 
-VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv): 
-                camera_ip_(ip), bay_(bay), log_(log), service_(serv){
+VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log): 
+                camera_ip_(ip), bay_(bay), log_(log){
     SetName();
 }
 
@@ -66,8 +66,8 @@ void VmbCamera::RunSetup(bool isInitSetup){
     auto first = true;
     while(code != VmbErrorSuccess){
         log_->Error("{} returned {} when trying to open camera", name_, GetVimbaCode(code));
-        if(first)
-            AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
+        //if(first)
+            //AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
         camera_->Close();
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         code = camera_->Open(VmbAccessModeFull);
@@ -96,7 +96,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
         camera_->GetPayloadSize( payloadSize_ );
     }
     connected_ = true;
-    AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
+    //AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
     this->LogPingSuccess();
     // For now, do not take an init debug snapshot since it stirs the network
     // too much when connecting to all cameras at once
@@ -137,7 +137,7 @@ void VmbCamera::RunCamera(){
     }
 }
 
-void VmbCamera::AddCameraStatus(DepthCameras::DcCameraStatusCodes code){
+/*void VmbCamera::AddCameraStatus(DepthCameras::DcCameraStatusCodes code){
     if(service_ == nullptr)return;
     log_->Info("{} Sending status code to FC [{}]", name_,  DcCameraStatusCodes_Name(code));
     DepthCameras::CameraStatusUpdate msg;
@@ -149,7 +149,7 @@ void VmbCamera::AddCameraStatus(DepthCameras::DcCameraStatusCodes code){
     msg.set_status_code(code);
     msg.SerializeToString(&tostr);
     service_->AddStatusUpdate(msg.msg_type(), tostr, msg.command_id());
-}
+}*/
 
 void VmbCamera::SaveLastImage(std::string path){
     try{

@@ -1,0 +1,2031 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <job>
+      <id>4</id>
+      <size>334</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <created>2025-07-17 19:43:04.723653+00:00</created>
+      <updated>2025-07-17 20:22:12.503341+00:00</updated>
+      <subset>default</subset>
+      <start_frame>0</start_frame>
+      <stop_frame>333</stop_frame>
+      <frame_filter></frame_filter>
+      <segments>
+        <segment>
+          <id>4</id>
+          <start>0</start>
+          <stop>333</stop>
+          <url>http://localhost:8080/api/jobs/4</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>ericeric</username>
+        <email>eric@eric.com</email>
+      </owner>
+      <assignee></assignee>
+      <labels>
+        <label>
+          <name>top_left_open</name>
+          <color>#0d37fb</color>
+          <type>tag</type>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>top_right_open</name>
+          <color>#e366a1</color>
+          <type>tag</type>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>bottom_left_open</name>
+          <color>#7f4d7a</color>
+          <type>tag</type>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>bottom_right_open</name>
+          <color>#71a899</color>
+          <type>tag</type>
+          <attributes>
+          </attributes>
+        </label>
+      </labels>
+    </job>
+    <dumped>2025-07-17 20:24:15.883485+00:00</dumped>
+  </meta>
+  <image id="0" name="6876892c424b9cf1906a30ab.png" width="1280" height="720">
+  </image>
+  <image id="1" name="6876892c424b9cf1906a30d3.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="2" name="68768937424b9cf1906b0009.png" width="1280" height="720">
+  </image>
+  <image id="3" name="68768937424b9cf1906b0031.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="4" name="68768944424b9cf1906b7c15.png" width="1280" height="720">
+  </image>
+  <image id="5" name="68768944424b9cf1906b7c3d.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="6" name="6876896c424b9cf1906cc0aa.png" width="1280" height="720">
+  </image>
+  <image id="7" name="6876896c424b9cf1906cc0d2.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="8" name="6876897f424b9cf1906db49f.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="9" name="6876897f424b9cf1906db4c7.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="10" name="68768996424b9cf1906e8c6f.png" width="1280" height="720">
+  </image>
+  <image id="11" name="68768996424b9cf1906e8c97.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="12" name="687689ad424b9cf1906f3b67.png" width="1280" height="720">
+  </image>
+  <image id="13" name="687689ad424b9cf1906f3b90.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="14" name="687689c4424b9cf1907052a5.png" width="1280" height="720">
+  </image>
+  <image id="15" name="687689c4424b9cf1907052ce.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="16" name="687689da424b9cf190713d45.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="17" name="687689da424b9cf190713d6d.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="18" name="687689f1424b9cf190726bb5.png" width="1280" height="720">
+  </image>
+  <image id="19" name="687689f1424b9cf190726bdd.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="20" name="68768a08424b9cf190731f17.png" width="1280" height="720">
+  </image>
+  <image id="21" name="68768a08424b9cf190731f3f.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="22" name="68768a1f424b9cf19073e9a4.png" width="1280" height="720">
+  </image>
+  <image id="23" name="68768a1f424b9cf19073e9cc.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="24" name="68768a36424b9cf19074fe2c.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="25" name="68768a36424b9cf19074fe54.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="26" name="68768a4c424b9cf19075d47f.png" width="1280" height="720">
+  </image>
+  <image id="27" name="68768a4c424b9cf19075d4a7.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="28" name="68768a63424b9cf1907681b6.png" width="1280" height="720">
+  </image>
+  <image id="29" name="68768a63424b9cf1907681de.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="30" name="68768a7a424b9cf19077a3f2.png" width="1280" height="720">
+  </image>
+  <image id="31" name="68768a7a424b9cf19077a41a.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="32" name="68768a91424b9cf190787eaf.png" width="1280" height="720">
+  </image>
+  <image id="33" name="68768a91424b9cf190787ed7.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="34" name="68768aa8424b9cf1907934bd.png" width="1280" height="720">
+  </image>
+  <image id="35" name="68768aa8424b9cf1907934e5.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="36" name="68768abf424b9cf1907a531f.png" width="1280" height="720">
+  </image>
+  <image id="37" name="68768abf424b9cf1907a5347.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="38" name="68768ad6424b9cf1907b33ee.png" width="1280" height="720">
+  </image>
+  <image id="39" name="68768ad6424b9cf1907b3416.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="40" name="68768aec424b9cf1907c4590.png" width="1280" height="720">
+  </image>
+  <image id="41" name="68768aec424b9cf1907c45b8.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="42" name="68768b03424b9cf1907d2588.png" width="1280" height="720">
+  </image>
+  <image id="43" name="68768b03424b9cf1907d25b1.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="44" name="68768b1a424b9cf1907de7cf.png" width="1280" height="720">
+  </image>
+  <image id="45" name="68768b1a424b9cf1907de7f7.png" width="1280" height="720">
+    <tag label="top_right_open" source="manual">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="46" name="68768b31424b9cf1907f169d.png" width="1280" height="720">
+  </image>
+  <image id="47" name="68768b31424b9cf1907f16c5.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="48" name="68768b48424b9cf1907fe6af.png" width="1280" height="720">
+  </image>
+  <image id="49" name="68768b48424b9cf1907fe6d7.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="50" name="68768b5f424b9cf19080ac5d.png" width="1280" height="720">
+  </image>
+  <image id="51" name="68768b5f424b9cf19080ac85.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="52" name="68768b77424b9cf19081d745.png" width="1280" height="720">
+  </image>
+  <image id="53" name="68768b77424b9cf19081d76d.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="54" name="68768b8d424b9cf19082bbbc.png" width="1280" height="720">
+  </image>
+  <image id="55" name="68768b8d424b9cf19082bbe4.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="56" name="68768ba4424b9cf190836d5b.png" width="1280" height="720">
+  </image>
+  <image id="57" name="68768ba4424b9cf190836d83.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="58" name="68768bbb424b9cf19084b950.png" width="1280" height="720">
+  </image>
+  <image id="59" name="68768bbb424b9cf19084b978.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="60" name="68768bd2424b9cf190857c42.png" width="1280" height="720">
+  </image>
+  <image id="61" name="68768bd2424b9cf190857c6a.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="62" name="68768be9424b9cf190869157.png" width="1280" height="720">
+  </image>
+  <image id="63" name="68768be9424b9cf19086917f.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="64" name="68768bff424b9cf190876a03.png" width="1280" height="720">
+  </image>
+  <image id="65" name="68768bff424b9cf190876a2b.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="66" name="68768c17424b9cf1908826ed.png" width="1280" height="720">
+  </image>
+  <image id="67" name="68768c17424b9cf190882715.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="68" name="68768c2e424b9cf190893788.png" width="1280" height="720">
+  </image>
+  <image id="69" name="68768c2e424b9cf1908937b0.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="70" name="68768c44424b9cf1908a1e82.png" width="1280" height="720">
+  </image>
+  <image id="71" name="68768c44424b9cf1908a1eaa.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="72" name="68768c5b424b9cf1908ad164.png" width="1280" height="720">
+  </image>
+  <image id="73" name="68768c5b424b9cf1908ad18c.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="74" name="68768c96424b9cf1908d379a.png" width="1280" height="720">
+  </image>
+  <image id="75" name="68768c96424b9cf1908d37c2.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="76" name="68768cab424b9cf1908e6b8c.png" width="1280" height="720">
+  </image>
+  <image id="77" name="68768cab424b9cf1908e6bb4.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="78" name="68768cbc424b9cf1908ee917.png" width="1280" height="720">
+  </image>
+  <image id="79" name="68768cbc424b9cf1908ee93f.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="80" name="68768ccd424b9cf1908f6e2c.png" width="1280" height="720">
+  </image>
+  <image id="81" name="68768ccd424b9cf1908f6e54.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="82" name="68768ce0424b9cf190907994.png" width="1280" height="720">
+  </image>
+  <image id="83" name="68768ce0424b9cf1909079bc.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="84" name="68768cf7424b9cf190915e7d.png" width="1280" height="720">
+  </image>
+  <image id="85" name="68768cf7424b9cf190915ea5.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="86" name="68768d11424b9cf1909229db.png" width="1280" height="720">
+  </image>
+  <image id="87" name="68768d11424b9cf190922a03.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="88" name="68768d25424b9cf190935a5b.png" width="1280" height="720">
+  </image>
+  <image id="89" name="68768d25424b9cf190935a83.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="90" name="68768d3c424b9cf190941c52.png" width="1280" height="720">
+  </image>
+  <image id="91" name="68768d3c424b9cf190941c7a.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="92" name="68768d53424b9cf19094d1a1.png" width="1280" height="720">
+  </image>
+  <image id="93" name="68768d53424b9cf19094d1c9.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="94" name="68768d69424b9cf190961855.png" width="1280" height="720">
+  </image>
+  <image id="95" name="68768d69424b9cf19096187d.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="96" name="68768d80424b9cf19096d7da.png" width="1280" height="720">
+  </image>
+  <image id="97" name="68768d80424b9cf19096d802.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="98" name="68768d97424b9cf190979a6d.png" width="1280" height="720">
+  </image>
+  <image id="99" name="68768d97424b9cf190979a95.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="100" name="68768dae424b9cf19098dcc5.png" width="1280" height="720">
+  </image>
+  <image id="101" name="68768dae424b9cf19098dced.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="102" name="68768dc4424b9cf190999c6d.png" width="1280" height="720">
+  </image>
+  <image id="103" name="68768dc4424b9cf190999c95.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="104" name="68768ddc424b9cf1909adfe4.png" width="1280" height="720">
+  </image>
+  <image id="105" name="68768ddc424b9cf1909ae00c.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="106" name="68768df3424b9cf1909b8ded.png" width="1280" height="720">
+  </image>
+  <image id="107" name="68768df3424b9cf1909b8e15.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="108" name="68768e0a424b9cf1909c4e38.png" width="1280" height="720">
+  </image>
+  <image id="109" name="68768e0a424b9cf1909c4e60.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="110" name="68768e21424b9cf1909d984d.png" width="1280" height="720">
+  </image>
+  <image id="111" name="68768e21424b9cf1909d9875.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="112" name="68768e38424b9cf1909e5d40.png" width="1280" height="720">
+  </image>
+  <image id="113" name="68768e38424b9cf1909e5d68.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="114" name="68768e50424b9cf1909f180e.png" width="1280" height="720">
+  </image>
+  <image id="115" name="68768e50424b9cf1909f1836.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="116" name="68768e67424b9cf190a04ac5.png" width="1280" height="720">
+  </image>
+  <image id="117" name="68768e67424b9cf190a04aed.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="118" name="68768e7e424b9cf190a109cb.png" width="1280" height="720">
+  </image>
+  <image id="119" name="68768e7e424b9cf190a109f4.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="120" name="68768e95424b9cf190a25160.png" width="1280" height="720">
+  </image>
+  <image id="121" name="68768e95424b9cf190a25190.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="122" name="68768eac424b9cf190a319d5.png" width="1280" height="720">
+  </image>
+  <image id="123" name="68768eac424b9cf190a319fd.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="124" name="68768ec3424b9cf190a3c647.png" width="1280" height="720">
+  </image>
+  <image id="125" name="68768ec3424b9cf190a3c66f.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="126" name="68768eda424b9cf190a51cdc.png" width="1280" height="720">
+  </image>
+  <image id="127" name="68768eda424b9cf190a51d04.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="128" name="68768f30424b9cf190a873be.png" width="1280" height="720">
+  </image>
+  <image id="129" name="68768f30424b9cf190a873e6.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="130" name="68768f45424b9cf190a92241.png" width="1280" height="720">
+  </image>
+  <image id="131" name="68768f45424b9cf190a92269.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="132" name="68768f56424b9cf190aa2d00.png" width="1280" height="720">
+  </image>
+  <image id="133" name="68768f56424b9cf190aa2d28.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="134" name="68768f69424b9cf190aac850.png" width="1280" height="720">
+  </image>
+  <image id="135" name="68768f69424b9cf190aac878.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="136" name="68768fae424b9cf190ad8090.png" width="1280" height="720">
+  </image>
+  <image id="137" name="68768fae424b9cf190ad80b8.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="manual">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="138" name="68768fbb424b9cf190ade4c9.png" width="1280" height="720">
+  </image>
+  <image id="139" name="68768fbb424b9cf190ade4f1.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="140" name="68768fc8424b9cf190ae6a7c.png" width="1280" height="720">
+  </image>
+  <image id="141" name="68768fc8424b9cf190ae6aa4.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="142" name="68768fd6424b9cf190af366d.png" width="1280" height="720">
+  </image>
+  <image id="143" name="68768fd6424b9cf190af3695.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="144" name="68768fe6424b9cf190afa90b.png" width="1280" height="720">
+  </image>
+  <image id="145" name="68768fe6424b9cf190afa933.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="146" name="68768ff6424b9cf190b022a4.png" width="1280" height="720">
+  </image>
+  <image id="147" name="68768ff6424b9cf190b022cc.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="148" name="6876900c424b9cf190b14ea8.png" width="1280" height="720">
+  </image>
+  <image id="149" name="6876900c424b9cf190b14ed0.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="150" name="68769020424b9cf190b1e4e2.png" width="1280" height="720">
+  </image>
+  <image id="151" name="68769020424b9cf190b1e50a.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="152" name="68769037424b9cf190b28b2c.png" width="1280" height="720">
+  </image>
+  <image id="153" name="68769037424b9cf190b28b54.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="154" name="6876904e424b9cf190b3c5bb.png" width="1280" height="720">
+  </image>
+  <image id="155" name="6876904e424b9cf190b3c5e5.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="156" name="68769065424b9cf190b46c31.png" width="1280" height="720">
+  </image>
+  <image id="157" name="68769065424b9cf190b46c59.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="158" name="68769080424b9cf190b54d99.png" width="1280" height="720">
+  </image>
+  <image id="159" name="68769080424b9cf190b54dc1.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="160" name="68769099424b9cf190b66c0f.png" width="1280" height="720">
+  </image>
+  <image id="161" name="68769099424b9cf190b66c37.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="manual">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="manual">
+    </tag>
+  </image>
+  <image id="162" name="687690ab424b9cf190b6f76c.png" width="1280" height="720">
+  </image>
+  <image id="163" name="687690ab424b9cf190b6f794.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="164" name="687690c2424b9cf190b7ca2e.png" width="1280" height="720">
+  </image>
+  <image id="165" name="687690c2424b9cf190b7ca56.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="166" name="687690d9424b9cf190b8e5b4.png" width="1280" height="720">
+  </image>
+  <image id="167" name="687690d9424b9cf190b8e5dc.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="168" name="687690f0424b9cf190b99ca2.png" width="1280" height="720">
+  </image>
+  <image id="169" name="687690f0424b9cf190b99cca.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="170" name="68769107424b9cf190bac112.png" width="1280" height="720">
+  </image>
+  <image id="171" name="68769107424b9cf190bac13a.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="172" name="6876911e424b9cf190bb732b.png" width="1280" height="720">
+  </image>
+  <image id="173" name="6876911e424b9cf190bb7353.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="174" name="68769135424b9cf190bc43c1.png" width="1280" height="720">
+  </image>
+  <image id="175" name="68769135424b9cf190bc43e9.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="176" name="6876914c424b9cf190bd5452.png" width="1280" height="720">
+  </image>
+  <image id="177" name="6876914c424b9cf190bd547a.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="178" name="68769163424b9cf190bdfbe5.png" width="1280" height="720">
+  </image>
+  <image id="179" name="68769163424b9cf190bdfc0d.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="180" name="6876917a424b9cf190bed07b.png" width="1280" height="720">
+  </image>
+  <image id="181" name="6876917a424b9cf190bed0a3.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="182" name="68769191424b9cf190bfdaf4.png" width="1280" height="720">
+  </image>
+  <image id="183" name="68769191424b9cf190bfdb1c.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="184" name="687691a9424b9cf190c0b79d.png" width="1280" height="720">
+  </image>
+  <image id="185" name="687691a9424b9cf190c0b7c5.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="186" name="687691bf424b9cf190c167b2.png" width="1280" height="720">
+  </image>
+  <image id="187" name="687691bf424b9cf190c167da.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="188" name="687691d6424b9cf190c28565.png" width="1280" height="720">
+  </image>
+  <image id="189" name="687691d6424b9cf190c2858d.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="190" name="687691ed424b9cf190c354b2.png" width="1280" height="720">
+  </image>
+  <image id="191" name="687691ed424b9cf190c354da.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="192" name="68769205424b9cf190c47057.png" width="1280" height="720">
+  </image>
+  <image id="193" name="68769205424b9cf190c4707f.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="194" name="6876921c424b9cf190c523c5.png" width="1280" height="720">
+  </image>
+  <image id="195" name="6876921c424b9cf190c523ed.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="196" name="68769232424b9cf190c5f9d3.png" width="1280" height="720">
+  </image>
+  <image id="197" name="68769232424b9cf190c5f9fb.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="198" name="68769249424b9cf190c70ff0.png" width="1280" height="720">
+  </image>
+  <image id="199" name="68769249424b9cf190c71018.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="200" name="68769260424b9cf190c7eb4c.png" width="1280" height="720">
+  </image>
+  <image id="201" name="68769260424b9cf190c7eb74.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="202" name="68769278424b9cf190c8a4a9.png" width="1280" height="720">
+  </image>
+  <image id="203" name="68769278424b9cf190c8a4d1.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="204" name="6876928e424b9cf190c9bae6.png" width="1280" height="720">
+  </image>
+  <image id="205" name="6876928e424b9cf190c9bb0e.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="206" name="687692a6424b9cf190ca8bc4.png" width="1280" height="720">
+  </image>
+  <image id="207" name="687692a6424b9cf190ca8bec.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="208" name="687692bd424b9cf190cb952b.png" width="1280" height="720">
+  </image>
+  <image id="209" name="687692bd424b9cf190cb9553.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="210" name="687692d4424b9cf190cc57e8.png" width="1280" height="720">
+  </image>
+  <image id="211" name="687692d4424b9cf190cc5810.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="manual">
+    </tag>
+  </image>
+  <image id="212" name="68769334424b9cf190cfdf28.png" width="1280" height="720">
+  </image>
+  <image id="213" name="68769334424b9cf190cfdf50.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="214" name="687693b2424b9cf190d48d6d.png" width="1280" height="720">
+  </image>
+  <image id="215" name="687693b2424b9cf190d48d95.png" width="1280" height="720">
+    <tag label="top_left_open" source="manual">
+    </tag>
+    <tag label="top_right_open" source="manual">
+    </tag>
+  </image>
+  <image id="216" name="687693c2424b9cf190d56a5b.png" width="1280" height="720">
+  </image>
+  <image id="217" name="687693c2424b9cf190d56a83.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="218" name="687693d0424b9cf190d5ebf3.png" width="1280" height="720">
+  </image>
+  <image id="219" name="687693d0424b9cf190d5ec1b.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="220" name="687693dd424b9cf190d649f9.png" width="1280" height="720">
+  </image>
+  <image id="221" name="687693dd424b9cf190d64a21.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="222" name="687693ee424b9cf190d6bb4c.png" width="1280" height="720">
+  </image>
+  <image id="223" name="687693ee424b9cf190d6bb74.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="224" name="687693fe424b9cf190d79769.png" width="1280" height="720">
+  </image>
+  <image id="225" name="687693fe424b9cf190d79791.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="226" name="68769416424b9cf190d8740d.png" width="1280" height="720">
+  </image>
+  <image id="227" name="68769416424b9cf190d87435.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="228" name="68769426424b9cf190d8ea1d.png" width="1280" height="720">
+  </image>
+  <image id="229" name="68769426424b9cf190d8ea45.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="230" name="6876948e424b9cf190dd4ac7.png" width="1280" height="720">
+  </image>
+  <image id="231" name="6876948e424b9cf190dd4aef.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="232" name="687694a5424b9cf190de098a.png" width="1280" height="720">
+  </image>
+  <image id="233" name="687694a5424b9cf190de09b2.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="234" name="687694bb424b9cf190df1aeb.png" width="1280" height="720">
+  </image>
+  <image id="235" name="687694bb424b9cf190df1b13.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="236" name="687694d2424b9cf190dfee5f.png" width="1280" height="720">
+  </image>
+  <image id="237" name="687694d2424b9cf190dfee87.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="238" name="687694e9424b9cf190e09d74.png" width="1280" height="720">
+  </image>
+  <image id="239" name="687694e9424b9cf190e09d9c.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="240" name="68769500424b9cf190e1dd12.png" width="1280" height="720">
+  </image>
+  <image id="241" name="68769500424b9cf190e1dd3a.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="242" name="68769518424b9cf190e284d2.png" width="1280" height="720">
+  </image>
+  <image id="243" name="68769518424b9cf190e284fa.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="244" name="6876952f424b9cf190e39fa7.png" width="1280" height="720">
+  </image>
+  <image id="245" name="6876952f424b9cf190e39fcf.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="246" name="68769546424b9cf190e48036.png" width="1280" height="720">
+  </image>
+  <image id="247" name="68769546424b9cf190e4805e.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="248" name="6876955d424b9cf190e53b93.png" width="1280" height="720">
+  </image>
+  <image id="249" name="6876955d424b9cf190e53bbb.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="250" name="68769574424b9cf190e653df.png" width="1280" height="720">
+  </image>
+  <image id="251" name="68769574424b9cf190e65407.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="252" name="6876958c424b9cf190e73f01.png" width="1280" height="720">
+  </image>
+  <image id="253" name="6876958c424b9cf190e73f29.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="254" name="687695a2424b9cf190e7f256.png" width="1280" height="720">
+  </image>
+  <image id="255" name="687695a2424b9cf190e7f27e.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="256" name="687695b8424b9cf190e930a0.png" width="1280" height="720">
+  </image>
+  <image id="257" name="687695b8424b9cf190e930c8.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="258" name="687695d1424b9cf190e9f5bc.png" width="1280" height="720">
+  </image>
+  <image id="259" name="687695ea424b9cf190eb28e7.png" width="1280" height="720">
+  </image>
+  <image id="260" name="687695ea424b9cf190eb2910.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="261" name="687695fe424b9cf190ebebfc.png" width="1280" height="720">
+  </image>
+  <image id="262" name="687695fe424b9cf190ebec24.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="263" name="68769616424b9cf190ecac1f.png" width="1280" height="720">
+  </image>
+  <image id="264" name="68769616424b9cf190ecac47.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="265" name="6876962d424b9cf190edfd63.png" width="1280" height="720">
+  </image>
+  <image id="266" name="6876962d424b9cf190edfd8b.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="267" name="68769644424b9cf190eeb07b.png" width="1280" height="720">
+  </image>
+  <image id="268" name="68769644424b9cf190eeb0a3.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="269" name="6876965c424b9cf190ef7148.png" width="1280" height="720">
+  </image>
+  <image id="270" name="6876965c424b9cf190ef7170.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="271" name="68769674424b9cf190f0bf19.png" width="1280" height="720">
+  </image>
+  <image id="272" name="68769674424b9cf190f0bf41.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="273" name="6876968b424b9cf190f17733.png" width="1280" height="720">
+  </image>
+  <image id="274" name="6876968b424b9cf190f1775b.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="275" name="687696a2424b9cf190f23254.png" width="1280" height="720">
+  </image>
+  <image id="276" name="687696a2424b9cf190f2327c.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="277" name="687696b8424b9cf190f36401.png" width="1280" height="720">
+  </image>
+  <image id="278" name="687696b8424b9cf190f36429.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="279" name="68769700424b9cf190f5def4.png" width="1280" height="720">
+  </image>
+  <image id="280" name="68769700424b9cf190f5df1c.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="281" name="68769718424b9cf190f68365.png" width="1280" height="720">
+  </image>
+  <image id="282" name="68769718424b9cf190f6838d.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="283" name="68769731424b9cf190f7bd07.png" width="1280" height="720">
+  </image>
+  <image id="284" name="6876974a424b9cf190f87784.png" width="1280" height="720">
+  </image>
+  <image id="285" name="6876974a424b9cf190f877ac.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="manual">
+    </tag>
+    <tag label="bottom_right_open" source="manual">
+    </tag>
+  </image>
+  <image id="286" name="68769757424b9cf190f8c965.png" width="1280" height="720">
+  </image>
+  <image id="287" name="68769757424b9cf190f8c98d.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="288" name="68769770424b9cf190fa107f.png" width="1280" height="720">
+  </image>
+  <image id="289" name="68769770424b9cf190fa10a7.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="290" name="68769788424b9cf190fab8f3.png" width="1280" height="720">
+  </image>
+  <image id="291" name="68769788424b9cf190fab91d.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="292" name="6876979c424b9cf190fb6359.png" width="1280" height="720">
+  </image>
+  <image id="293" name="6876979c424b9cf190fb6381.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="294" name="687697b4424b9cf190fc76f8.png" width="1280" height="720">
+  </image>
+  <image id="295" name="687697b4424b9cf190fc7720.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="296" name="687697c8424b9cf190fd0ca1.png" width="1280" height="720">
+  </image>
+  <image id="297" name="687697c8424b9cf190fd0cc9.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="298" name="687697e0424b9cf190fe42a8.png" width="1280" height="720">
+  </image>
+  <image id="299" name="687697e0424b9cf190fe42d0.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="300" name="687697f4424b9cf190fece68.png" width="1280" height="720">
+  </image>
+  <image id="301" name="687697f4424b9cf190fece90.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="manual">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="manual">
+    </tag>
+  </image>
+  <image id="302" name="68769808424b9cf190ff61e8.png" width="1280" height="720">
+  </image>
+  <image id="303" name="68769808424b9cf190ff6210.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="304" name="68769819424b9cf190000153.png" width="1280" height="720">
+  </image>
+  <image id="305" name="68769819424b9cf19000017b.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="306" name="68769830424b9cf1900111ec.png" width="1280" height="720">
+  </image>
+  <image id="307" name="68769830424b9cf190011214.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="308" name="68769849424b9cf19001c403.png" width="1280" height="720">
+  </image>
+  <image id="309" name="68769849424b9cf19001c42b.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="310" name="6876985e424b9cf19002f444.png" width="1280" height="720">
+  </image>
+  <image id="311" name="6876985e424b9cf19002f46c.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="manual">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="manual">
+    </tag>
+  </image>
+  <image id="312" name="68769878424b9cf19003b4bf.png" width="1280" height="720">
+  </image>
+  <image id="313" name="68769878424b9cf19003b4e7.png" width="1280" height="720">
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="314" name="6876988d424b9cf190046ffe.png" width="1280" height="720">
+  </image>
+  <image id="315" name="6876988d424b9cf190047026.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+  </image>
+  <image id="316" name="687698a4424b9cf190058780.png" width="1280" height="720">
+  </image>
+  <image id="317" name="687698a4424b9cf1900587a8.png" width="1280" height="720">
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="318" name="687698bb424b9cf190063aac.png" width="1280" height="720">
+  </image>
+  <image id="319" name="687698bb424b9cf190063ad4.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="320" name="687698d3424b9cf1900712fc.png" width="1280" height="720">
+  </image>
+  <image id="321" name="687698d3424b9cf190071324.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="322" name="687698ea424b9cf19008211c.png" width="1280" height="720">
+  </image>
+  <image id="323" name="687698ea424b9cf190082144.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="324" name="68769900424b9cf19008d08e.png" width="1280" height="720">
+  </image>
+  <image id="325" name="68769900424b9cf19008d0b6.png" width="1280" height="720">
+    <tag label="top_right_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+  </image>
+  <image id="326" name="68769918424b9cf19009caa4.png" width="1280" height="720">
+  </image>
+  <image id="327" name="68769918424b9cf19009cace.png" width="1280" height="720">
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="file">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+    <tag label="top_right_open" source="file">
+    </tag>
+  </image>
+  <image id="328" name="687699ac424b9cf1900f5b5c.png" width="1280" height="720">
+  </image>
+  <image id="329" name="687699ac424b9cf1900f5b84.png" width="1280" height="720">
+    <tag label="top_right_open" source="manual">
+    </tag>
+    <tag label="bottom_left_open" source="file">
+    </tag>
+    <tag label="top_left_open" source="manual">
+    </tag>
+    <tag label="bottom_right_open" source="file">
+    </tag>
+  </image>
+  <image id="330" name="6876a2fa424b9cf1904af5be.png" width="1280" height="720">
+  </image>
+  <image id="331" name="6876a2fa424b9cf1904af5dc.png" width="1280" height="720">
+  </image>
+  <image id="332" name="6876a34a424b9cf1904d19dd.png" width="1280" height="720">
+  </image>
+  <image id="333" name="6876a34a424b9cf1904d19fb.png" width="1280" height="720">
+  </image>
+</annotations>

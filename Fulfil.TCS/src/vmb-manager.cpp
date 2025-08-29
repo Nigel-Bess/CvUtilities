@@ -29,10 +29,10 @@ void sig_handler(int sig_no){
 
 VmbManager::VmbManager(std::map<int, std::string> cam_map, fulfil::utils::Logger* logger){
     log_ = logger;
-    service_ = std::shared_ptr<GrpcService>(new GrpcService());
+    //service_ = std::shared_ptr<GrpcService>(new GrpcService());
     for(auto const & [bay, ip] : cam_map){
         log_->Info("Setting up new VmbCamera on TCS {} with IP:{}",bay ,ip);
-        cameras_.emplace(bay, std::make_shared<VmbCamera>(ip, bay, log_, service_));
+        cameras_.emplace(bay, std::make_shared<VmbCamera>(ip, bay, log_/*, service_*/));
     }
     active_cams = 0;
     RunManager();//block
@@ -88,16 +88,16 @@ void VmbManager::RunManager(){
         log_->Error("No cameras found, exiting");
         RUN = false;
     }
-    service_->Run(9395);
+    //service_->Run(9395);
     log_->Info("{} Cameras initialized", found);
     while (RUN){
         // Throttle queue handling slightly
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-        if(!service_->IsConnected())continue;
-        if(!service_->HasNewRequest())continue;
-        auto request = service_->GetNextRequest();
-        std::thread(&VmbManager::HandleRequest, this, request, 1).detach();
+        //if(!service_->IsConnected())continue;
+        //if(!service_->HasNewRequest())continue;
+        //auto request = service_->GetNextRequest();
+        //std::thread(&VmbManager::HandleRequest, this, request, 1).detach();
     }
     for(auto const & [ip, cam] : cameras_){
         cam->KillCamera();
@@ -107,13 +107,13 @@ void VmbManager::RunManager(){
 }
 
 void VmbManager::SendResponse(std::string cmd_id, std::string response){
-    auto api_resp = std::make_shared<DcResponse>();
+    /*auto api_resp = std::make_shared<DcResponse>();
     api_resp->set_command_id(cmd_id);
     log_->Debug("Response id: {}", api_resp->command_id());
     api_resp->set_type(MESSAGE_TYPE_GENERIC_QUERY);
     api_resp->set_message_size(response.size());
-    api_resp->set_message_data(response.data(), response.size());
-    service_->QueueResponse(api_resp);
+    api_resp->set_message_data(response.data(), response.size());*/
+    //service_->QueueResponse(api_resp);
 }
 
 /* Returns true if image saving was successful, false otherwise */
@@ -139,7 +139,7 @@ bool VmbManager::SaveImages(cv::Mat bag_image, std::string image_path) {
     }
 }
 
-void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request, int remainingRetries){
+void /*VmbManager::*/HandleRequest(/*std::shared_ptr<DepthCameras::DcRequest> request, */int remainingRetries){
     auto startTime = std::chrono::steady_clock::now();
     
     /*

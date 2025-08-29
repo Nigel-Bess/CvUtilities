@@ -16,6 +16,8 @@ namespace fulfil::dispense::commands::tcs {
         NoMarkersDetected = 1,
         /* Not enough Aruco markers detected */
         NotEnoughMarkersDetected = 2,
+        /* Low confidence, inference can't be sure about the result */
+        LowConfidenceError = 3,
         /* Unspecified error encountered in Empty Bag Algorithm */
         UnspecifiedError = 10,
         /* Vimba Camera Errors */

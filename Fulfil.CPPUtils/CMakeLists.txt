@@ -35,7 +35,7 @@ write_basic_package_version_file(
   COMPATIBILITY SameMajorVersion )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfig.cmake
               ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfigVersion.cmake
-        DESTINATION ${LIB_INSTALL_DIR}/Fulfil.CPPUtils/cmake )
+        PUBLIC_HEADER DESTINATION ${LIB_INSTALL_DIR}/Fulfil.CPPUtils/cmake )
 
 # set(GRPC_FETCHCONTENT ON)
 if(MSVC)

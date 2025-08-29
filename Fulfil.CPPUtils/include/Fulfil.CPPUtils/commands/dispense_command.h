@@ -57,7 +57,10 @@ namespace fulfil::utils::commands
         /// Pre side dispense image
         pre_side_dispense = 34,
         /// Bag release image at repack cabinet
-        bag_release = 35
+        bag_release = 35,
+        pre_pickup_clip_actuator = 36,
+        tcs_pickup_bag_release = 37,
+        pbl_baguette_orientation = 38
     };
 } // namespace fulfil::utils::commands
 

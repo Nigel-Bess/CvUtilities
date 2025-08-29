@@ -18,12 +18,18 @@
 #include <tuple>
 #include "commands/tcs/tcs_error_codes.h"
 #include <json.hpp>
-#include "aruco/aruco_utils.h"
+#include "Fulfil.CPPUtils/aruco/aruco_utils.h"
 #include <chrono>
+#include <assert.h>
+#include <string_view>
 
 using fulfil::dispense::commands::tcs::get_error_name_from_code;
 using fulfil::dispense::commands::tcs::TCSErrorCodes;
 using fulfil::dispense::commands::tcs::TCSPerception;
+using fulfil::dispense::commands::tcs::SiftEncoding;
+using fulfil::dispense::commands::tcs::BagClipBaseline;
+using fulfil::dispense::commands::tcs::SiftMatch;
+using fulfil::dispense::commands::tcs::SiftEncoding;
 using fulfil::dispense::commands::tcs::BagClipInference;
 using fulfil::dispense::commands::tcs::BagClipsInference;
 using fulfil::dispense::commands::tcs::BagLoadInference;
@@ -32,7 +38,6 @@ using fulfil::dispense::commands::tcs::PBLBaguetteOrientation;
 using fulfil::dispense::commands::tcs::BagType;
 using fulfil::utils::aruco::ArucoTransforms;
 using fulfil::utils::aruco::HomographyResult;
-//using fulfil::utils::aruco::SiftBaseline;
 using fulfil::utils::Logger;
 
 /**
@@ -106,18 +111,20 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSLFRT
     // Ignore boxes that are too tiny
     parameters->maxMarkerPerimeterRate = 4 * 0.0463; // = 4 edges * 120px / 2592px eyeballing in img editor
     // Ignore boxes that are too big
-    parameters->minMarkerPerimeterRate = 4 * 0.0135; // = 4 edges * 35px / 2592px eyeballing in img editor
+    //parameters->minMarkerPerimeterRate = 4 * 0.0135; // = 4 edges * 35px / 2592px eyeballing in img editor
     // Use newest fastest algo
-    // TODO: Restore for openCV 4.7+
-    //parameters.useAruco3Detection = true;
 
-    // TODO: Switch to this for OpenCV 4.7+
-    //auto dict = cv::aruco:: Dictionary::extendDictionary(8, 4);
     auto dict = cv::aruco::generateCustomDictionary(8,4);
-    topViewAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 5, 8);
-    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFB-3.2.jpeg", "LFB-3.2", 8);
-    // TODO: Side dispense LFR model should be loaded here
+    topViewAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 2, 6);
 
+
+    // !!!!!!!!!!!!  If you add to this be sure to update TCSPerception constructor too  !!!!!!!!!!!!!
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-B_closed_white-liner.jpeg", "LFP-B_closed_white-liner", 6);
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-B_open_white-liner.jpeg", "LFP-B_open_white-liner", 6);
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-A_closed_white-liner.jpeg", "LFP-A_closed_white-liner", 4);
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-A_open_white-liner.jpeg", "LFP-A_open_white-liner", 4);
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-A_closed_brown-bag.jpeg", "LFP-A_closed_brown-bag", 4);
+    topViewAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFP-A_open_brown-bag.jpeg", "LFP-A_open_brown-bag", 3);
     return topViewAruco;
 }
 
@@ -148,7 +155,6 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSBagT
     return bagTypeAruco;
 }
 
-
 static std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> toteIDAruco;
 
 /**
@@ -157,7 +163,7 @@ static std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> toteIDAruco;
 std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSToteIDAruco() {
     if (toteIDAruco != nullptr) {
         return toteIDAruco;
-    }
+   }
 
     auto parameters = std::make_shared<cv::aruco::DetectorParameters>();
     // Width of border boundry is same as 1 bit column
@@ -179,7 +185,109 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSTote
     return toteIDAruco;
 }
 
-TCSPerception::TCSPerception() {}
+std::shared_ptr<cv::Mat> TCSPerception::crop_clip_arm(std::shared_ptr<cv::Mat> image, std::string baseline_name) {
+    auto bounding_box = (*bag_clip_bounding_boxes)[baseline_name];
+    auto p1 = std::get<0>(*bounding_box);
+    auto p2 = std::get<1>(*bounding_box);
+    cv::Mat roi(*image, cv::Rect(std::min(p1->x, p2->x), std::min(p1->y, p2->y), std::abs(p2->x - p1->x), std::abs(p2->y - p1->y)));
+    auto croppedImage = std::make_shared<cv::Mat>();
+    roi.copyTo(*croppedImage);
+    return croppedImage;
+}
+
+std::shared_ptr<SiftEncoding> TCSPerception::sift_encode_arm(std::shared_ptr<cv::Mat> image, std::string baseline_name) {
+    auto cropped_img = crop_clip_arm(image, baseline_name);
+    std::vector<cv::KeyPoint> kps;
+    cv::Mat descriptors;
+    sift->detectAndCompute(*cropped_img, cv::noArray(), kps, descriptors);
+    auto kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    // Copy ref keypoints to proper shared ptrs
+    for (auto const& kp : kps) {
+        kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    return std::make_shared<SiftEncoding>(kp_ptrs, std::make_shared<cv::Mat>(descriptors));
+}
+
+// Register a baseline image's corner clips, the crop corners must first be defined in bag_clip_bounding_boxes
+void TCSPerception::register_clip_baselines(std::string lfr_and_cavity, bool is_closed, std::string name) {
+    std::string img_key = lfr_and_cavity + "_" + (is_closed ? "closed" : "open") + "_" + name;
+    std::shared_ptr<cv::Mat> img = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/" + img_key + ".jpeg", cv::IMREAD_COLOR));
+    for (int i = 0; i < 4; i++) {
+        auto corner_name = clip_index_to_hash(i);
+        auto clip_key = img_key + "_" + corner_name;
+        (*bag_clip_baselines)[clip_key] =
+            std::make_shared<BagClipBaseline>(img, lfr_and_cavity, is_closed, i, sift_encode_arm(img, clip_key));
+    }
+}
+
+TCSPerception::TCSPerception() {
+    this->sift = cv::SIFT::create();
+    // Pre-compute all SIFT keypoint/descriptors for all baseline images
+    this->bag_orientation_baselines = new std::map<std::string, std::shared_ptr<SiftEncoding>>();
+    this->bag_clip_baselines = new std::map<std::string, std::shared_ptr<BagClipBaseline>>();
+    this->bag_clip_bounding_boxes = new std::map<std::string, std::tuple<cv::Point2f*, cv::Point2f*>*>();
+
+    // Bag orientation SIFT pre-computes
+    auto bag_front_right_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-front-right.jpeg", cv::IMREAD_COLOR);
+    std::vector<cv::KeyPoint> front_right_kps;
+    cv::Mat front_right_descriptors;
+    sift->detectAndCompute(bag_front_right_img, cv::noArray(), front_right_kps, front_right_descriptors);
+    std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> front_right_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    for (auto const& kp : front_right_kps) {
+        front_right_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    (*bag_orientation_baselines)["Bag-front-right"] = std::make_shared<SiftEncoding>(front_right_kp_ptrs, std::make_shared<cv::Mat>(front_right_descriptors));
+
+    auto bag_back_left_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-back-left.jpeg", cv::IMREAD_COLOR);
+    std::vector<cv::KeyPoint> back_left_kps;
+    cv::Mat back_left_descriptors;
+    sift->detectAndCompute(bag_back_left_img, cv::noArray(), back_left_kps, back_left_descriptors);
+    auto back_left_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    for (auto const& kp : back_left_kps) {
+        back_left_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    (*bag_orientation_baselines)["Bag-back-left"] = std::make_shared<SiftEncoding>(back_left_kp_ptrs, std::make_shared<cv::Mat>(back_left_descriptors));
+
+    // Bag clip bounding boxes and SIFT pre-computes
+
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tl"] = new std::tuple(new cv::Point2f(432, 165), new cv::Point2f(477, 217));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tr"] = new std::tuple(new cv::Point2f(850, 170), new cv::Point2f(896, 220));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_bl"] = new std::tuple(new cv::Point2f(432, 526), new cv::Point2f(475, 571));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_br"] = new std::tuple(new cv::Point2f(842, 526), new cv::Point2f(890, 577));
+    register_clip_baselines("LFP-B", false, "white-liner");
+
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(449, 187), new cv::Point2f(493, 249));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(841, 193), new cv::Point2f(877, 250));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(444, 486), new cv::Point2f(486, 541));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_br"] = new std::tuple(new cv::Point2f(822, 492), new cv::Point2f(871, 551));
+    register_clip_baselines("LFP-B", true, "white-liner");
+
+
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tl"] = new std::tuple(new cv::Point2f(433, 190), new cv::Point2f(476, 254));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tr"] = new std::tuple(new cv::Point2f(808, 206), new cv::Point2f(852, 258));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_bl"] = new std::tuple(new cv::Point2f(429, 488), new cv::Point2f(473, 552));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_br"] = new std::tuple(new cv::Point2f(799, 494), new cv::Point2f(842, 565));
+    register_clip_baselines("LFP-A", true, "brown-bag");
+
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tl"] = new std::tuple(new cv::Point2f(415, 166), new cv::Point2f(464, 250));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tr"] = new std::tuple(new cv::Point2f(821, 171), new cv::Point2f(870, 250));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_bl"] = new std::tuple(new cv::Point2f(421, 504), new cv::Point2f(461, 576));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_br"] = new std::tuple(new cv::Point2f(816, 520), new cv::Point2f(864, 578));
+    register_clip_baselines("LFP-A", false, "brown-bag");
+
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tl"] = new std::tuple(new cv::Point2f(416, 171), new cv::Point2f(469, 256));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tr"] = new std::tuple(new cv::Point2f(817, 181), new cv::Point2f(847, 258));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_bl"] = new std::tuple(new cv::Point2f(409, 507), new cv::Point2f(460, 581));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_br"] = new std::tuple(new cv::Point2f(808, 526), new cv::Point2f(858, 588));
+    register_clip_baselines("LFP-A", false, "white-liner");
+
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(433, 173), new cv::Point2f(476, 254));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(812, 187), new cv::Point2f(849, 261));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(427, 499), new cv::Point2f(474, 568));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_br"] = new std::tuple(new cv::Point2f(803, 502), new cv::Point2f(847, 580));
+    register_clip_baselines("LFP-A", true, "white-liner");
+
+}
 
 void SaveImages(cv::Mat image, std::string image_path)
 {
@@ -202,234 +310,89 @@ void SaveImages(cv::Mat image, std::string image_path)
     }
 }
 
-//To-Do - Check if Eric needs any of this logic, if not - remove all the sift madness
+void TCSPerception::write_clip_closed_result_file(std::shared_ptr<BagClipsInference> result, std::string request_id, std::string labelFilename) {
+    try {
+        std::ofstream file(labelFilename);
+        if (file.is_open())
+        {
+            // Build JSON object and stringify it to file
+            std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
+            (*result_json)["status"] = result->status;
+            (*result_json)["requestId"] = request_id;
+            (*result_json)["allClosed"] = result->all_clips_closed;
+            (*result_json)["lfbCavityType"] = result->lfb_cavity_type;
+            (*result_json)["topLeftIsClosed"] = result->top_left_inference->is_closed;
+            (*result_json)["topLeftConfidence"] = result->top_left_inference->confidence;
+            (*result_json)["topLeftStatus"] = result->top_left_inference->status;
+            (*result_json)["topRightIsClosed"] = result->top_right_inference->is_closed;
+            (*result_json)["topRightConfidence"] = result->top_right_inference->confidence;
+            (*result_json)["topRightStatus"] = result->top_right_inference->status;
+            (*result_json)["bottomLeftIsClosed"] = result->bottom_left_inference->is_closed;
+            (*result_json)["bottomLeftConfidence"] = result->bottom_left_inference->confidence;
+            (*result_json)["bottomLeftStatus"] = result->bottom_left_inference->status;
+            (*result_json)["bottomRightIsClosed"] = result->bottom_right_inference->is_closed;
+            (*result_json)["bottomRightConfidence"] = result->bottom_right_inference->confidence;
+            (*result_json)["bottomRightStatus"] = result->bottom_right_inference->status;
+            file << result_json->dump();
+            file.close();
+            Logger::Instance()->Info("Wrote result file: {}", labelFilename);
+        }
+        else {
+            Logger::Instance()->Info("Could not write file: {}", labelFilename);
+        }
+    }
+    catch (...)
+    {
+        Logger::Instance()->Error("Could not write file: " + labelFilename);
+    }
+}
 
-//SiftBaseline calculateSiftBaseline(cv::Mat baseline_image, std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> markerCorners, std::shared_ptr<std::vector<int>> markerIds) {
-//    SiftBaseline siftBaseline;
-//
-//    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-//    std::vector<std::vector<cv::Point2f>> corners;
-//    sift->detectAndCompute(baseline_image, cv::noArray(), siftBaseline.keypoints, siftBaseline.descriptors);
-//    for (auto& ptr : *markerCorners) {
-//        if (ptr) {
-//            corners.push_back(*ptr);
-//        }
-//    }
-//    siftBaseline.markerCorners = corners;
-//    siftBaseline.markerIds = *markerIds;
-//
-//    return siftBaseline;
-//}
-//
-//
-//
-//double computeMarkerSimilarity(std::vector<int> baselineIds, std::vector<int> ids) {
-//    if (baselineIds.empty()) {
-//        Logger::Instance()->Info("No marker ids to compare with baseline!");
-//        return 0.0;
-//    }
-//    int count = 0;
-//    for (int id : baselineIds) {
-//        if (std::find(ids.begin(), ids.end(), id) != ids.end()) {
-//            count++;
-//        }
-//    }
-//    return static_cast<double>(count) / baselineIds.size();
-//}
-//
-//
-//bool TCSPerception::compareOrientationWithBaseline(cv::Mat image,
-//    std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> markerCorners, std::shared_ptr<std::vector<int>> markerIds) {
-//    SiftBaseline baseline = calculateSiftBaseline(image, markerCorners, markerIds);
-//    double keypointSimilarityThreshold = 0.8;
-//    double markerSimilarityThreshold = 0.9;
-//    bool baslineMatch = false;
-//    std::vector<cv::KeyPoint> keypoints;
-//    cv::Mat descriptors;
-//    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-//    sift->detectAndCompute(image, cv::noArray(), keypoints, descriptors);
-//    
-//    double keypointSimilarity = computeKeypointSimilarity(baseline.descriptors, descriptors);
-//    bool keypointMatch = keypointSimilarity >= keypointSimilarityThreshold;
-// 
-//    double markerSimilarity = computeMarkerSimilarity(baseline.markerIds, *markerIds);
-//    bool markersMatch = markerSimilarity >= markerSimilarityThreshold;
-//
-//    if (keypointMatch && markersMatch) {
-//        baslineMatch = true;
-//    }
-//    return baslineMatch;
-//}
-//
-////baseline calculation, move the baseline results to class variables, use later fpr comparison
-//cv::Mat TCSPerception::siftDetection(std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> sharedCorners, cv::Mat img) {
-//    std::vector<cv::KeyPoint> keyPoints;
-//    cv::Mat descriptors;
-//    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-//    sift->detectAndCompute(img, cv::noArray(), keyPoints, descriptors);
-//    cv::Mat sift_image;
-//    std::vector<cv::KeyPoint> filteredKeyPoints;
-//    std::vector<float> keypointAngles;
-//
-//    for (const auto& kp : keyPoints) {
-//        for (const auto& markerPtr : *sharedCorners) {
-//            if (markerPtr == nullptr) continue;
-//            const std::vector<cv::Point2f>& marker = *markerPtr;
-//            if (cv::pointPolygonTest(marker, kp.pt, false) >= 0) {
-//                filteredKeyPoints.push_back(kp);
-//                keypointAngles.push_back(kp.angle);
-//                break;
-//            }
-//        }
-//    }
-//    Logger::Instance()->Info("Display Filtered Key Angles!");
-//
-//    for (int i = 0; i < keypointAngles.size(); i++) {
-//        Logger::Instance()->Info("Keypoint {} : {} degrees", i, keypointAngles[i]);
-//    }
-//
-//    cv::drawKeypoints(img, filteredKeyPoints, sift_image, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-//    
-//    cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/sift_output.jpeg", sift_image);
-//    cv::Mat test_image = cv::imread("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/test/assets/Bag-front-right.jpeg", cv::IMREAD_COLOR);
-//    compareSift(test_image, img, descriptors, filteredKeyPoints, sharedCorners);
-//    return descriptors;
-//}
-//
-//
-//void TCSPerception::compareSift(cv::Mat baseline_image, cv::Mat image, cv::Mat descriptors_baseline, std::vector<cv::KeyPoint> keypoints_baseline, std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> sharedCorners) {
-//    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-//
-//    std::vector<cv::KeyPoint> keyPoints;
-//    cv::Mat descriptors;
-//    //cv::Mat test_image = cv::imread("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/test_image.jpeg");
-//    
-//    sift->detectAndCompute(image, cv::noArray(), keyPoints, descriptors);
-//    //cv::Mat sift_image;
-//    std::vector<cv::KeyPoint> filteredKeyPoints;
-//    std::vector<float> keypointAngles;
-//
-//    if (descriptors.empty()) {
-//        Logger::Instance()->Info("No descriptors detected in the image!");
-//        //return 0;
-//    }
-//
-//    for (const auto& kp : keyPoints) {
-//        for (const auto& markerPtr : *sharedCorners) {
-//            if (markerPtr == nullptr) continue;
-//            const std::vector<cv::Point2f>& marker = *markerPtr;
-//            if (cv::pointPolygonTest(marker, kp.pt, false) >= 0) {
-//                filteredKeyPoints.push_back(kp);
-//                keypointAngles.push_back(kp.angle);
-//                break;
-//            }
-//        }
-//    }
-//    //Logger::Instance()->Info("Display Filtered Key Angles!");
-//
-//    /*for (int i = 0; i < keypointAngles.size(); i++) {
-//        Logger::Instance()->Info("Keypoint {} : {} degrees", i, keypointAngles[i]);
-//    }*/
-//    
-//   // cv::drawKeypoints(image, filteredKeyPoints, sift_image, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-//    
-//    cv::BFMatcher matcher(cv::NORM_L2);
-//    std::vector<std::vector<cv::DMatch>> matches;
-//    matcher.knnMatch(descriptors_baseline, descriptors, matches, 2);
-//    
-//    float ratioThreshold = 0.75f;
-//    //int goodMatches = 0;
-//    std::vector<cv::DMatch> goodMatches;
-//    for (int i = 0; i < matches.size(); ++i) {
-//        if (matches[i].size() >= 2 && matches[i][0].distance < ratioThreshold * matches[i][1].distance) {
-//            goodMatches.push_back(matches[i][0]);
-//        }
-//    }
-//    
-//    cv::Mat sift_image_again;
-//    cv::drawKeypoints(image, filteredKeyPoints, sift_image_again, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-//
-//    cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/sift_image_again.jpeg", sift_image_again);
-//    //Logger::Instance()->Info("Good Matches {}", goodMatches);
-//    cv::Mat imageMatches;
-//    ///Can't figure out what went wrong1
-//    //cv::drawMatches(image, keypoints_baseline, test_image, filteredKeyPoints, goodMatches, imageMatches, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-//    drawMatchingKeypoints(baseline_image, keypoints_baseline, image, filteredKeyPoints, goodMatches, imageMatches);
-//   
-//    //cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/sift_match_image.jpeg", imageMatches);
-//    //return keypoints_baseline.empty() ? 0.0 : static_cast<double>(goodMatches);
-//
-//}
+void TCSPerception::drawMatchingKeypoints(std::shared_ptr<cv::Mat> baseline,  std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keypoints1,
+                         std::shared_ptr<cv::Mat> testImage, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keypoints2,
+                             std::vector<cv::DMatch> matches){
+    int rows = std::max(baseline->rows, testImage->rows);
+    int columns = baseline->cols + testImage->cols;
 
-
-//void write_result_file(std::string labelFilename, auto homog) {
-//    try {
-//        std::ofstream file(labelFilename);
-//        if (file.is_open())
-//        {
-//            // Build JSON object and stringify it to file
-//            std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
-//            file << result_json->dump();
-//            file.close();
-//            Logger::Instance()->Info("Wrote result file: {}", labelFilename);
-//        }
-//        else {
-//            Logger::Instance()->Info("Could not open file: {}", labelFilename);
-//        }
-//    }
-//    catch (...)
-//    {
-//        Logger::Instance()->Error("Could not write file: " + labelFilename);
-//    }
-//}
-
-void TCSPerception::drawMatchingKeypoints(cv::Mat baseline,  std::vector<cv::KeyPoint> keypoints1,
-                         cv::Mat testImage, std::vector<cv::KeyPoint> keypoints2,
-                             std::vector<cv::DMatch> matches, cv::Mat siftImage){
-    int rows = std::max(baseline.rows, testImage.rows);
-    int columns = baseline.cols + testImage.cols;
-
-    siftImage = cv::Mat::zeros(rows, columns, baseline.type());
+    cv::Mat siftImage = cv::Mat::zeros(rows, columns, baseline->type());
     
     double maxSpatialDiff = 10.0;
 
-    baseline.copyTo(siftImage(cv::Rect(0, 0, baseline.cols, baseline.rows)));
-    testImage.copyTo(siftImage(cv::Rect(baseline.cols, 0, testImage.cols, testImage.rows)));
+    baseline->copyTo(siftImage(cv::Rect(0, 0, baseline->cols, baseline->rows)));
+    testImage->copyTo(siftImage(cv::Rect(baseline->cols, 0, testImage->cols, testImage->rows)));
 
     for (int i = 0; i < matches.size(); ++i) {
-        cv::Point2f point1 = keypoints1[matches[i].queryIdx].pt;
-        cv::Point2f point2 = keypoints2[matches[i].trainIdx].pt;
+        cv::Point2f point1 = (*keypoints1)[matches[i].queryIdx]->pt;
+        cv::Point2f point2 = (*keypoints2)[matches[i].trainIdx]->pt;
 
         if (std::abs(point1.x - point2.x) <= maxSpatialDiff && std::abs(point1.y - point2.y) <= maxSpatialDiff) {
 
             cv::Point2f newPoint2 = point2;
-            newPoint2.x += baseline.cols;
+            newPoint2.x += baseline->cols;
 
             cv::Scalar color(rand() % 256, rand() % 256, rand() % 256);
 
             cv::circle(siftImage, point1, 4, color, 1, cv::LINE_AA);
             cv::circle(siftImage, newPoint2, 4, color, 1, cv::LINE_AA);
-
             cv::line(siftImage, point1, newPoint2, color, 1, cv::LINE_AA);
         }
     }
+    Logger::Instance()->Info("DRAWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW!");
     cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/sift_match.jpeg", siftImage);
 }
 
-float TCSPerception::computeDescriptorSimilarity(cv::Mat baselineDescriptors, cv::Mat descriptors, std::vector<cv::KeyPoint> keyPointsBaseline, std::vector<cv::KeyPoint> keyPoints, cv::Mat baseline, cv::Mat image) {
-  
-    float similarity = 0.0f;
+double TCSPerception::computeDescriptorSimilarity(std::shared_ptr<cv::Mat> baselineDescriptors, std::shared_ptr<cv::Mat> descriptors, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keyPointsBaseline, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keyPoints, std::shared_ptr<cv::Mat> image, cv::Mat baseline) {
+    double similarity = 0.0f;
     
-    if (baselineDescriptors.empty() || descriptors.empty()) {
+    if (baselineDescriptors->empty() || descriptors->empty()) {
         Logger::Instance()->Info("No descriptors to compare with baseline!");
         return 0.0;
     }
 
     cv::BFMatcher matcher(cv::NORM_L2);
     std::vector<std::vector<cv::DMatch>> matches;
-    matcher.knnMatch(baselineDescriptors, descriptors, matches, 2);
+    matcher.knnMatch(*baselineDescriptors, *descriptors, matches, 2);
 
-    float ratioThreshold = 0.75f;
+    double ratioThreshold = 0.68f;
     std::vector<cv::DMatch> baselineMatches;
 
     for (auto match : matches) {
@@ -438,35 +401,34 @@ float TCSPerception::computeDescriptorSimilarity(cv::Mat baselineDescriptors, cv
         }
     }
    
-    cv::Mat outImg;
-    drawMatchingKeypoints(baseline, keyPointsBaseline, image, keyPoints, baselineMatches, outImg);
-    similarity = (float)baselineMatches.size() / (float)std::min(keyPointsBaseline.size(), keyPoints.size());
-    Logger::Instance()->Info("Similarity with the baseline image : {}", similarity);
-    
+    if (!baseline.empty()) {
+        drawMatchingKeypoints(std::make_shared<cv::Mat>(baseline), keyPointsBaseline, image, keyPoints, baselineMatches);
+    }
+    similarity = (float)baselineMatches.size() / (float)std::min(keyPointsBaseline->size(), keyPoints->size());
     return similarity;
 }
 
 //To-Do Priyanka - Fix/Improve the logic to detect structure accurately
 //Ideas - Crop out only the rough bag area
-bool TCSPerception::bagStructureSimilarity(cv::Mat image, PBLBaguetteOrientation orient, cv::Mat transformedImage) {
-
+bool TCSPerception::bagStructureSimilarity(std::shared_ptr<cv::Mat> image, PBLBaguetteOrientation orient, std::shared_ptr<cv::Mat> transformedImage) {
     bool bagproblem = false; //default false, doesn't have high accuracy yet
-    float threshold = 0.8f;
-    cv::Mat baseline;
-    cv::Mat baseline1 = cv::imread("Fulfil.TCS/assets/baselines/Bag-front-right.jpeg", cv::IMREAD_COLOR);
-    cv::Mat baseline2 = cv::imread("Fulfil.TCS/assets/baselines/Bag-back-left.jpeg", cv::IMREAD_COLOR);
-    baseline = (orient == PBLBaguetteOrientation::FRONT_RIGHT_OPENING || orient == PBLBaguetteOrientation::FRONT_LEFT_OPENING) ? baseline1 : baseline2;
+    double threshold = 0.8f; // TODO: tune this after collecting enough prod samples and maybe hypertune best case?
+    auto baseline = (orient == PBLBaguetteOrientation::FRONT_RIGHT_OPENING || orient == PBLBaguetteOrientation::FRONT_LEFT_OPENING) ?
+        (*bag_orientation_baselines)["Bag-front-right"] :
+        (*bag_orientation_baselines)["Bag-back-left"];
     
-    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-    std::vector<cv::KeyPoint> keyPointsBaseline, keyPoints;
-    cv::Mat descriptorsBaseline, descriptors;
+    std::vector<cv::KeyPoint> keyPoints;
+    cv::Mat descriptors;
    
-    sift->detectAndCompute(baseline, cv::noArray(), keyPointsBaseline, descriptorsBaseline);
-    sift->detectAndCompute(transformedImage, cv::noArray(), keyPoints, descriptors);
+    sift->detectAndCompute(*transformedImage, cv::noArray(), keyPoints, descriptors);
+    auto shared_kps = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    for (auto const& kp : keyPoints) {
+        shared_kps->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    cv::Mat empty_mat;
+    double similarity_ratio = computeDescriptorSimilarity(baseline->descriptors, std::make_shared<cv::Mat>(descriptors), baseline->keypoints, shared_kps, transformedImage, empty_mat);
 
-    float similarityRatio = computeDescriptorSimilarity(descriptorsBaseline, descriptors, keyPointsBaseline, keyPoints, baseline, transformedImage);
-
-    if (similarityRatio > threshold) {
+    if (similarity_ratio > threshold) {
         bagproblem = false;
         Logger::Instance()->Info("Bag structure matches baseline!!");
     }
@@ -474,30 +436,30 @@ bool TCSPerception::bagStructureSimilarity(cv::Mat image, PBLBaguetteOrientation
     return bagproblem;
 }
 
-cv::Point2f TCSPerception::transformRotation(cv::Point2f point, cv::Mat homography_matrix) {
-    cv::Mat pointMatrix = (cv::Mat_<double>(3, 1) << point.x, point.y, 1.0);
+std::shared_ptr<cv::Point2f> TCSPerception::transformRotation(std::shared_ptr<cv::Point2f> point, cv::Mat homography_matrix) {
+    cv::Mat pointMatrix = (cv::Mat_<double>(3, 1) << point->x, point->y, 1.0);
     cv::Mat distanceMatrix = homography_matrix * pointMatrix;
 
     double w = distanceMatrix.at<double>(2, 0);
     double x = distanceMatrix.at<double>(0, 0) / w;
     double y = distanceMatrix.at<double>(1, 0) / w;
 
-    return cv::Point2f(static_cast<float>(x), static_cast<float>(y));
+    return std::make_shared<cv::Point2f>(static_cast<float>(x), static_cast<float>(y));
 }
 
 //Maybe include this later if orientation result isn't accurate
-double TCSPerception::calculateSlope(cv::Point2f p1, cv::Point2f p2) {
-    if (p2.x == p1.x) {
+double TCSPerception::calculateSlope(std::shared_ptr<cv::Point2f> p1, std::shared_ptr<cv::Point2f> p2) {
+    if (p2->x == p1->x) {
         return std::numeric_limits<double>::infinity();
         Logger::Instance()->Info("Both points have the same x coordinate value");
     }
-    return (p2.y - p1.y) / (p2.x - p1.x);
+    return (p2->y - p1->y) / (p2->x - p1->x);
 }
 
 PBLBaguetteOrientation TCSPerception::calculateBagOrientation(std::shared_ptr<HomographyResult> homography, cv::Rect quadrant1) {
     PBLBaguetteOrientation orient;
     int idx = 0;
-    std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> corners = homography->imgMarkers->markers;
+    auto corners = homography->imgMarkers->matches->markers;
     cv::Mat homography_matrix = homography->transformMatrix;
     if (!corners || corners->empty()) {
         return PBLBaguetteOrientation::UNEXPECTED;
@@ -506,15 +468,15 @@ PBLBaguetteOrientation TCSPerception::calculateBagOrientation(std::shared_ptr<Ho
     if (!markerCorners || markerCorners->size() < 2) {
         return PBLBaguetteOrientation::UNEXPECTED;
     }
-    cv::Point2f point1 = markerCorners->at(1);
-    cv::Point2f point2 = markerCorners->at(0);
+    std::shared_ptr<cv::Point2f> point1 = markerCorners->at(1);
+    std::shared_ptr<cv::Point2f> point2 = markerCorners->at(0);
 
-    cv::Point2f point1Transform = transformRotation(point1, homography_matrix);
+    std::shared_ptr<cv::Point2f> point1Transform = transformRotation(point1, homography_matrix);
 
-    float length = std::abs(point1.x - point1Transform.x);
-    float breadth = std::abs(point1.y - point1Transform.y);
-    float pixelThreshold = 200.0f;
-    if (quadrant1.contains(point1Transform)) {
+    double length = std::abs(point1->x - point1Transform->x);
+    double breadth = std::abs(point1->y - point1Transform->y);
+    double pixelThreshold = 200.0f; // TODO: tune this after collecting enough prod samples and maybe hypertune best case?
+    if (quadrant1.contains(*point1Transform)) {
         orient = (length < pixelThreshold && breadth < pixelThreshold) ? PBLBaguetteOrientation::FRONT_RIGHT_OPENING : PBLBaguetteOrientation::FRONT_LEFT_OPENING;       
     }
     else {
@@ -525,9 +487,10 @@ PBLBaguetteOrientation TCSPerception::calculateBagOrientation(std::shared_ptr<Ho
 }
 
 //To-Do: Add aditional checks for INSULATED bags when we have the final tag/id info
+// for now default to ambient
 BagType TCSPerception::computeBagType(std::shared_ptr<HomographyResult> homography) {
     BagType bagType;
-    std::shared_ptr<std::vector<int>> markerIds = homography->imgMarkers->ids;
+    std::shared_ptr<std::vector<int>> markerIds = homography->imgMarkers->matches->ids;
     if (markerIds->size() == 0) return BagType::UNKNOWN;
     bagType = (markerIds->size()==1 && ((*markerIds)[0]==5 || (*markerIds)[0] == 0)) ? BagType::AMBIENT : BagType::INSULATED;
     return bagType;
@@ -536,12 +499,12 @@ BagType TCSPerception::computeBagType(std::shared_ptr<HomographyResult> homograp
 //To-Do - Add logging/detailed function descriptions
 std::shared_ptr<BagOrientationInference> TCSPerception::getBagOrientation(std::shared_ptr<cv::Mat> bag_image, std::string directoryPath) {
     // Prep save results to local file
-    std::string labelFilename = directoryPath + "result.json";
+    std::string labelFilename = directoryPath + "bag_orientation.json";
 
-    cv::Mat image = *bag_image;
+    auto image = std::make_shared<cv::Mat>(*bag_image);
     auto startTime = std::chrono::steady_clock::now();
      
-    auto homog = TCSPerception::getTCSBagTypeAruco()->findImgHomographyFromMarkers(image, directoryPath);
+    auto homog = (*TCSPerception::getTCSBagTypeAruco()->findImgHomographyFromMarkers(*image, directoryPath))[0];
     
     if (homog->transformMatrix.empty()) {
         auto errCode = homog->maxMatchesSeen > 0 ? (TCSErrorCodes::NotEnoughMarkersDetected) : (TCSErrorCodes::NoMarkersDetected);
@@ -555,34 +518,91 @@ std::shared_ptr<BagOrientationInference> TCSPerception::getBagOrientation(std::s
         Logger::Instance()->Info("Detected more than 1 marker on the bag");
     }
    
-    auto repinnedImg = TCSPerception::getTCSBagTypeAruco()->applyHomographyToImg(image, homog);
+    auto repinnedImg = TCSPerception::getTCSBagTypeAruco()->applyHomographyToImg(*image, homog);
     BagType bagType = computeBagType(homog);
     
-    int width = image.cols;
-    int height = image.rows;
+    int width = image->cols;
+    int height = image->rows;
     cv::Rect quadrant1(width / 2, 0, width / 2, height / 2);
     PBLBaguetteOrientation orientation = calculateBagOrientation(homog, quadrant1);
     Logger::Instance()->Info("Detected Bag Orientation: {}", static_cast<int>(orientation));
     Logger::Instance()->Info("Detected Bag type: {}", static_cast<int>(bagType));
     
-    bool bagProblem = bagStructureSimilarity(image, orientation, repinnedImg);
+    bool bagProblem = bagStructureSimilarity(image, orientation, std::make_shared<cv::Mat>(repinnedImg));
     return std::make_shared<BagOrientationInference>(BagOrientationInference{orientation, bagType, bagProblem});
 }
 
-// TODO: probly not a bool
 std::shared_ptr<BagLoadInference> TCSPerception::getBagLoadedState(std::shared_ptr<cv::Mat> top_image, std::shared_ptr<cv::Mat> side1_image, std::shared_ptr<cv::Mat> side2_image, std::string directoryPath) {
     return std::make_shared<BagLoadInference>(BagLoadInference{1});
 }
 
-std::shared_ptr<BagClipInference> inferBagClipState(cv::Mat image, int clipIndex, std::string lfrVersion, std::string directoryPath) {
-    // TODO: Implement the actual algo here!  SIFT would probably work fine...
-    return std::make_shared<BagClipInference>(BagClipInference{true, 1, TCSErrorCodes::Success});
+std::string TCSPerception::clip_index_to_hash(int clip_index) {
+    std::string upper_lower = clip_index < 2 ? "t" : "b";
+    std::string left_right = clip_index % 2 == 0 ? "l" : "r";
+    return upper_lower + left_right;
 }
 
-std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfrVersion, std::string directoryPath)
+static bool ends_with(std::string_view str, std::string_view suffix)
 {
+    return str.size() >= suffix.size() && str.compare(str.size()-suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::shared_ptr<BagClipInference> TCSPerception::inferBagClipState(std::map<std::string, std::shared_ptr<cv::Mat>> baseline_to_repinned_img, int clip_index, std::string lfr_version_and_cavity, std::string directoryPath) {
+    double threshold = 0.095d; // TODO: tune this after collecting enough prod samples and maybe hypertune best case?
+    // Now that we know cavity type from Aruco match, we can iter through all matching cavity baselines to determine
+    // both the clip crop and resulting clip inference inference state
+
+    // Iterate through all bag_clip_baselines for best baseline matches excluding mismatching cavity types
+    // and collect the highest confidence clip matching states
+    double best_similarity = -1.0;
+    std::string best_key = "";
+    for (auto clip_base = bag_clip_baselines->begin(); clip_base != bag_clip_baselines->end(); ++clip_base) {
+        auto clip_name = clip_base->first;
+        std::string baseline_name = clip_name.substr(0, clip_name.find_last_of("_"));
+        // Skip if not the right cavity
+        if (lfr_version_and_cavity != clip_base->second->lfb_type_cavity) {
+            continue;
+        }
+        // Skip if not the correct clip
+        if (clip_index != clip_base->second->clip_index) {
+            continue;
+        }
+        // Skip if the parent Aruco transformed image never made it this far
+        if (baseline_to_repinned_img.count(baseline_name) == 0) {
+            continue;
+        }
+
+        auto baseline = (*bag_clip_baselines)[clip_name];
+        assert(baseline != nullptr);
+        auto match = std::make_shared<SiftMatch>(sift_encode_arm(baseline_to_repinned_img[baseline_name], clip_name), baseline->encoded);
+
+        auto baseline_img = cv::imread("Fulfil.TCS/assets/baselines/" + baseline_name + ".jpeg", cv::IMREAD_COLOR);
+        double similarity = computeDescriptorSimilarity(
+            match->baseline->descriptors, 
+            match->candidate->descriptors, 
+            match->baseline->keypoints, 
+            match->candidate->keypoints, baseline_to_repinned_img[baseline_name], baseline_img);
+
+        // take the max of the baseline with highest similarity and must also be above some confidence threshold
+        if (similarity > best_similarity) {
+            best_similarity = similarity;
+            best_key = clip_name;
+        }
+    }
+    assert(best_similarity != -1.0);
+    if (best_similarity < threshold) {
+        Logger::Instance()->Info("Too low of confidence for clip! best similarity: {}", best_similarity);
+        return std::make_shared<BagClipInference>(false, best_similarity, TCSErrorCodes::LowConfidenceError, best_key);
+    }
+    bool is_closed = best_key.find("_closed_") != std::string::npos;
+    Logger::Instance()->Info("Picked {} similarity: {} for {} (closed: {})", best_key, best_similarity, clip_index, is_closed);
+    return std::make_shared<BagClipInference>(is_closed, best_similarity, TCSErrorCodes::Success, best_key);
+}
+
+std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfr_version, std::string request_id, std::string directoryPath) {
     // Prep save results to local file
-    std::string labelFilename = directoryPath + "result.json";
+    std::string labelFilename = directoryPath + "bag_clips.json";
+    std::cerr << "label file: " + labelFilename;
     
     cv::Mat image = *bag_image;
     int clips_closed_count = 0;
@@ -592,34 +612,52 @@ std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_p
     // match as closely as possible to a clean baseline and transform the entire image accordingly to coerce
     // the LFR into a perfectly horizontally aligned and rotated rectangle.  Also scale a baseline region of
     // interest rectangle based on the discovered homography between Aruco corners.
-    auto homog = TCSPerception::getTCSLFRTopViewAruco()->findImgHomographyFromMarkers(image, directoryPath);
+    auto homogs = TCSPerception::getTCSLFRTopViewAruco()->findImgHomographyFromMarkers(image, directoryPath);
 
-    if (homog->transformMatrix.empty()) {
-        auto errCode = homog->maxMatchesSeen > 0 ? (TCSErrorCodes::NotEnoughMarkersDetected) : (TCSErrorCodes::NoMarkersDetected);
+    if (homogs->size() == 0) {
+        auto errCode = TCSErrorCodes::NotEnoughMarkersDetected;
         //write_result_file(labelFilename, homog->maxMatchesSeen);
-        auto topLeft = std::make_shared<BagClipInference>(BagClipInference{false, 0.0, errCode});
-        auto topRight = std::make_shared<BagClipInference>(BagClipInference{false, 0.0, errCode});
-        auto bottomLeft = std::make_shared<BagClipInference>(BagClipInference{false, 0.0, errCode});
-        auto bottomRight = std::make_shared<BagClipInference>(BagClipInference{false, 0.0, errCode});
-        return std::make_shared<BagClipsInference>(BagClipsInference{false, false, topLeft, topRight, bottomLeft, bottomRight});
+        auto topLeft = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
+        auto topRight = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
+        auto bottomLeft = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
+        auto bottomRight = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
+        return std::make_shared<BagClipsInference>("", false, false, errCode, topLeft, topRight, bottomLeft, bottomRight);
     }
 
     // Aruco transform the image to a more baseline-like positioning
-    auto repinnedImg = TCSPerception::getTCSLFRTopViewAruco()->applyHomographyToImg(image, homog);
+    std::string best_homog_name = (*homogs)[0]->bestCandidateName;
+    int first_split = best_homog_name.find("_");
+    std::string lfr_version_and_cavity = best_homog_name.substr(0, first_split);
+    std::cerr << "\nAruco deduced img to " + lfr_version_and_cavity;
+
+    // Extract the winning cavity, it's the only decision point we fully trust from Aruco homog to cut baseline candidates in half
+    // and may the best clip match win per clip among the halved baseline candidates remaining.
+
+    // Pre-compute stretching the input image to fit all valid Aruco baselines for use in per-clip inference
+    std::map<std::string, std::shared_ptr<cv::Mat>> baseline_to_repinned_img;
+    for (auto const& homog : *homogs) {
+        // Only consider Aruco baselines matching the best's LFR and cavity type
+        if (homog->bestCandidateName.find(lfr_version_and_cavity) == 0) {
+            auto repinned_img = std::make_shared<cv::Mat>(TCSPerception::getTCSLFRTopViewAruco()->applyHomographyToImg(image, homog));
+            baseline_to_repinned_img[homog->bestCandidateName] = repinned_img;
+        }
+    }
 
     // Run 4 mini-inferences against all 4 cropped bag clips
-    auto topLeft = inferBagClipState(repinnedImg, 0, lfrVersion, directoryPath);
-    auto topRight = inferBagClipState(repinnedImg, 1, lfrVersion, directoryPath);
-    auto bottomLeft = inferBagClipState(repinnedImg, 2, lfrVersion, directoryPath);
-    auto bottomRight = inferBagClipState(repinnedImg, 3, lfrVersion, directoryPath);
+    auto topLeft = inferBagClipState(baseline_to_repinned_img, 0, lfr_version_and_cavity, directoryPath);
+    auto topRight = inferBagClipState(baseline_to_repinned_img, 1, lfr_version_and_cavity, directoryPath);
+    auto bottomLeft = inferBagClipState(baseline_to_repinned_img, 2, lfr_version_and_cavity, directoryPath);
+    auto bottomRight = inferBagClipState(baseline_to_repinned_img, 3, lfr_version_and_cavity, directoryPath);
 
     bool allSuccess = topLeft->status == TCSErrorCodes::Success && topRight->status == TCSErrorCodes::Success && bottomLeft->status == TCSErrorCodes::Success && bottomRight->status == TCSErrorCodes::Success;
-    bool allOpen = allSuccess && !topLeft->isClosed && !topRight->isClosed && !bottomLeft->isClosed && !bottomRight->isClosed;
-    bool allClosed = allSuccess && topLeft->isClosed && topRight->isClosed && bottomLeft->isClosed && bottomRight->isClosed;
+    bool allOpen = allSuccess && !topLeft->is_closed && !topRight->is_closed && !bottomLeft->is_closed && !bottomRight->is_closed;
+    bool allClosed = allSuccess && topLeft->is_closed && topRight->is_closed && bottomLeft->is_closed && bottomRight->is_closed;
+    TCSErrorCodes status = allSuccess ? TCSErrorCodes::Success : (TCSErrorCodes)(topLeft->status | topRight->status | bottomLeft->status | bottomRight->status);
 
     auto stopTime = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
     Logger::Instance()->Info("getBagClipStates took {}ms", duration);
-    // TODO: write result file
-    return std::make_shared<BagClipsInference>(BagClipsInference{allClosed, allOpen, topLeft, topRight, bottomLeft, bottomRight});
+    auto res = std::make_shared<BagClipsInference>(lfr_version_and_cavity, allClosed, allOpen, status, topLeft, topRight, bottomLeft, bottomRight);
+    write_clip_closed_result_file(res, request_id, labelFilename);
+    return res;
 }

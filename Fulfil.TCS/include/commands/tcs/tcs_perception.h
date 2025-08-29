@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <numeric>
 #include <Fulfil.CPPUtils/logging.h>
-#include "aruco/aruco_utils.h"
+#include "Fulfil.CPPUtils/aruco/aruco_utils.h"
 #include "tcs_response.h"
 #include "tcs_error_codes.h"
 
@@ -29,38 +29,52 @@ namespace fulfil::dispense::commands::tcs {
      * the bag clip is open or closed
      */
     struct BagClipInference {
+
+        BagClipInference(bool is_closed, double confidence, TCSErrorCodes status, std::string best_name) : is_closed(is_closed), confidence(confidence), status(status), best_name(best_name) {}
         /**
          * Final bool result of whether clip is open or closed
          */
-        bool isClosed;
+        bool is_closed;
         /**
-         * Number between 0-1 representing confidence in isClosed state
+         * Number between 0-1 representing confidence in is_closed state
          */
         double confidence;
         /**
-         * Error preventing any sort of meaningful result, isClosed should
+         * Error preventing any sort of meaningful result, is_closed should
          * be ignored if error is anything but success (0)
          */
         TCSErrorCodes status;
+
+        std::string best_name;
     };
 
     /**
      * Aggregate result of infering all 4 bag clip states
      */
     struct BagClipsInference {
+        BagClipsInference(std::string lfb_cavity_type, bool all_clips_closed, bool all_clips_open, 
+        TCSErrorCodes status,
+        std::shared_ptr<BagClipInference> top_left_inference,
+        std::shared_ptr<BagClipInference> top_right_inference,
+        std::shared_ptr<BagClipInference> bottom_left_inference,
+        std::shared_ptr<BagClipInference> bottom_right_inference) : status(status), lfb_cavity_type(lfb_cavity_type), all_clips_closed(all_clips_closed), all_clips_open(all_clips_open),
+        top_left_inference(top_left_inference), top_right_inference(top_right_inference), bottom_left_inference(bottom_left_inference), bottom_right_inference(bottom_right_inference) {}
+
+        TCSErrorCodes status;
+        std::string lfb_cavity_type; // Ex. "LFP-B"
         /**
          * True if all clips were validly detected in closed state, false if any errors
          */
-        bool allClipsClosed;
+        bool all_clips_closed;
         /**
          * True if all clips were validly detected in open state, false if any errors
          */
-        bool allClipsOpen;
+        bool all_clips_open;
 
-        std::shared_ptr<BagClipInference> topLeftInference;
-        std::shared_ptr<BagClipInference> topRightInference;
-        std::shared_ptr<BagClipInference> bottomLeftInference;
-        std::shared_ptr<BagClipInference> bottomRightInference;
+        std::shared_ptr<BagClipInference> top_left_inference;
+        std::shared_ptr<BagClipInference> top_right_inference;
+        std::shared_ptr<BagClipInference> bottom_left_inference;
+        std::shared_ptr<BagClipInference> bottom_right_inference;
     };
 
     // TODO
@@ -120,6 +134,30 @@ namespace fulfil::dispense::commands::tcs {
 
     };
 
+    struct SiftEncoding {
+        SiftEncoding(std::shared_ptr<std::vector<
+            std::shared_ptr<cv::KeyPoint>>> keypoints,
+            std::shared_ptr<cv::Mat> descriptors) : keypoints(keypoints), descriptors(descriptors) {}
+        std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keypoints;
+        std::shared_ptr<cv::Mat> descriptors;
+    };
+
+    struct SiftMatch {
+        SiftMatch(std::shared_ptr<SiftEncoding> candidate, std::shared_ptr<SiftEncoding> baseline) : candidate(candidate), baseline(baseline) {};
+        std::shared_ptr<SiftEncoding> candidate;
+        std::shared_ptr<SiftEncoding> baseline;
+    };
+
+    struct BagClipBaseline {
+        BagClipBaseline(std::shared_ptr<cv::Mat> img, std::string lfb_type_cavity, bool is_closed, int clip_index, std::shared_ptr<SiftEncoding> encoded) : img(img), lfb_type_cavity(lfb_type_cavity), is_closed(is_closed), clip_index(clip_index), encoded(encoded) {};
+
+        std::shared_ptr<cv::Mat> img;
+        std::string lfb_type_cavity;
+        bool is_closed;
+        int clip_index; // 0-4 in order: ul, ur, ll, lr
+        std::shared_ptr<SiftEncoding> encoded;
+    };
+
     class TCSPerception {
 
         public:
@@ -138,6 +176,10 @@ namespace fulfil::dispense::commands::tcs {
          */
         std::shared_ptr<BagLoadInference> getBagLoadedState(std::shared_ptr<cv::Mat> top_image, std::shared_ptr<cv::Mat> side1_image, std::shared_ptr<cv::Mat> side2_image, std::string directoryPath);
 
+        std::shared_ptr<BagClipInference> inferBagClipState(std::map<std::string, std::shared_ptr<cv::Mat>> baseline_to_repinned_img, int clipIndex, std::string lfr_version_and_cavity, std::string directoryPath);
+
+        void write_clip_closed_result_file(std::shared_ptr<BagClipsInference> result, std::string request_id, std::string labelFilename);
+
         /**
          * Get the orientation of a bag, bag type and bag structure information.
          */
@@ -146,34 +188,34 @@ namespace fulfil::dispense::commands::tcs {
         /*
         * Return the visible state of all 4 bag clips.
         */
-        std::shared_ptr<BagClipsInference> getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfrGeneration, std::string directoryPath);
+        std::shared_ptr<BagClipsInference> getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfrGeneration, std::string request_id, std::string directoryPath);
 
         /*
         * Draw sift structure match keypoints in baseline and test image
         */
-        void drawMatchingKeypoints(cv::Mat baseline, std::vector<cv::KeyPoint> keypoints1,
-            cv::Mat testImage, std::vector<cv::KeyPoint> keypoints2,
-            std::vector<cv::DMatch> matches, cv::Mat siftImage);
+        void drawMatchingKeypoints(std::shared_ptr<cv::Mat> baseline, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keypoints1,
+            std::shared_ptr<cv::Mat> testImage, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keypoints2,
+            std::vector<cv::DMatch> matches);
 
         /*
         * Helper function - Calculate the sift descriptor similarity score
         */
-        float computeDescriptorSimilarity(cv::Mat baselineDescriptors, cv::Mat descriptors, std::vector<cv::KeyPoint> keyPointsBaseline, std::vector<cv::KeyPoint> keyPoints, cv::Mat baseline, cv::Mat image);
+        double computeDescriptorSimilarity(std::shared_ptr<cv::Mat> baselineDescriptors, std::shared_ptr<cv::Mat> descriptors, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keyPointsBaseline, std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> keyPoints, std::shared_ptr<cv::Mat> image, cv::Mat baseline);
 
         /*
         * Compare and calculate the similarity score between baseline and test bag image
         */
-        bool bagStructureSimilarity(cv::Mat image, PBLBaguetteOrientation orientation, cv::Mat transformedImage);
+        bool bagStructureSimilarity(std::shared_ptr<cv::Mat> image, PBLBaguetteOrientation orientation, std::shared_ptr<cv::Mat> transformedImage);
 
         /*
         * Convert the test image marker points to baseline points using transformation matrix
         */
-        cv::Point2f transformRotation(cv::Point2f point, cv::Mat homography_matrix);
+        std::shared_ptr<cv::Point2f> transformRotation(std::shared_ptr<cv::Point2f> point, cv::Mat homography_matrix);
 
         /*
         * Slope calculation - Basic Mathematic function
         */
-        double calculateSlope(cv::Point2f p1, cv::Point2f p2);
+        double calculateSlope(std::shared_ptr<cv::Point2f> p1, std::shared_ptr<cv::Point2f> p2);
 
         /*
         * Calculate the bag Orientation 
@@ -185,17 +227,38 @@ namespace fulfil::dispense::commands::tcs {
         */
         BagType computeBagType(std::shared_ptr<HomographyResult> homography);
 
-        //Check if Eric needs any of this functionality
-        /*cv::Mat siftDetection(std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> sharedCorners, cv::Mat img);
+        private:
 
-        void compareSift(cv::Mat baseline_image, cv::Mat image, cv::Mat descriptors_baseline, std::vector<cv::KeyPoint> keypoints_baseline, std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> sharedCorners);
+        /**
+         * Crop a hardcoded rectangle out of a preprocessed image that hopefully contains one of 4 clip corners, the exact rectangle
+         * is selected based on LFB+cavity+open/closed states that were defined based on baseline images.
+         */
+        std::shared_ptr<cv::Mat> crop_clip_arm(std::shared_ptr<cv::Mat> image, std::string baseline_name);
 
-        void customDrawMatches(const cv::Mat img1, const std::vector<cv::KeyPoint> keypoints1,
-            const cv::Mat img2, const std::vector<cv::KeyPoint> keypoints2,
-            const std::vector<cv::DMatch> matches, cv::Mat outImg);
+        /**
+         * Returns a tuple of (is_closed, SiftEncoding)
+         */
+        std::shared_ptr<SiftEncoding> sift_encode_arm(std::shared_ptr<cv::Mat> image, std::string baseline_name);
 
-        bool compareOrientationWithBaseline(cv::Mat image,
-            std::shared_ptr<std::vector<std::shared_ptr<std::vector<cv::Point2f>>>> markerCorners, std::shared_ptr<std::vector<int>> markerIds);*/
+        /**
+         * Called in constructor only for initializing baseline SIFT data for corner clip detections
+         */
+        void register_clip_baselines(std::string lfr_and_cavity, bool is_closed, std::string name);
+
+        std::string clip_index_to_hash(int clip_index);
+
+        cv::Ptr<cv::SIFT> sift;
+
+        // Map of LFB+clip state + corner type strings to a tuple of (baseline image name, SIFT keypoints, SIFT descriptors),
+        // key name convention is: <LFBTYPE_SLOT_open/closed_ul/ur/ll/lr> to address each clip corner by baseline name / image
+        std::map<std::string, std::shared_ptr<BagClipBaseline>>* bag_clip_baselines;
+        // Map of orientation name to tuple of (SIFT keypoints, SIFT descriptors), key naming convention is by <orientation>
+        std::map<std::string, std::shared_ptr<SiftEncoding>>* bag_orientation_baselines;
+
+        // A mapping from LFB+clip state type to upper-left + lower-right rectangle coordinates containing the clip.
+        // A well-cropped clip should extend from the edges of the clip by about 20 pixels on all 4 sides.
+        std::map<std::string, std::tuple<cv::Point2f*, cv::Point2f*>*>* bag_clip_bounding_boxes;
+
     };
 
 

@@ -10,6 +10,7 @@
 #include <Fulfil.Dispense/commands/floor_view/floor_view_response.h>
 #include <Fulfil.Dispense/commands/item_edge_distance/item_edge_distance_response.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
+#include <Fulfil.Dispense/commands/pre_pickup_clip_actuator/pre_pickup_clip_actuator_response.h>
 #include <Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_response.h>
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
 #include <Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h>
@@ -95,8 +96,7 @@ class DispenseRequestDelegate
   virtual std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
   virtual std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
   virtual std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
-
-
+  virtual std::shared_ptr<fulfil::dispense::commands::PrePickupClipActuatorResponse> handle_pre_pickup_clip_actuator(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
 };
 } // namespace fulfil::dispense::commands
 

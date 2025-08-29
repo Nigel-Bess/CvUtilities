@@ -6,7 +6,6 @@
 #include "VmbCPP/VmbCPP.h"
 #include <filesystem>
 
-#include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include "commands/tcs/tcs_error_codes.h"
 
@@ -15,7 +14,7 @@ using fulfil::dispense::commands::tcs::TCSErrorCodes;
 
 class VmbCamera{
     public:
-        VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log, std::shared_ptr<GrpcService> serv);
+        VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log);
         std::shared_ptr<cv::Mat> GetImageBlocking();
         std::chrono::_V2::system_clock::time_point last_exposure_reset_time = std::chrono::system_clock::now();
         void StartCamera();
@@ -45,7 +44,6 @@ class VmbCamera{
         void SetFeature(std::string feature, double value);
         void SetExposureSettings();
         void AdjustPacketSize();
-        void AddCameraStatus(DepthCameras::DcCameraStatusCodes code);
         void RunSetup(bool isInitSetup);
         std::string GetMacAddress();
         volatile bool run_ = true;
@@ -53,7 +51,6 @@ class VmbCamera{
         int bay_;
         std::recursive_mutex _lifecycleLock;
         fulfil::utils::Logger* log_;
-        std::shared_ptr<GrpcService> service_;
         inline void SetName(){
             std::stringstream ss;
             ss << "TCS" << std::setw(2) << std::setfill('0') << bay_;

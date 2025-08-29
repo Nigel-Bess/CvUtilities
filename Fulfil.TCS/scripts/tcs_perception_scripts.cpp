@@ -27,7 +27,7 @@ void setupRequestIdFiles(std::string requestId) {
 }
 
 /*
-* Test the some TCS Detection Algorithm
+* Test some TCS Detection Algorithm
 */
 void testTCSPerception(std::string requestId) {
     if (requestId == "all") {

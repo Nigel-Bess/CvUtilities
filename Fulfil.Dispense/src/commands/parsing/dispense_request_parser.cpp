@@ -25,7 +25,7 @@
 #include "Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_request.h"
 #include "Fulfil.Dispense/commands/post_side_dispense/post_side_dispense_request.h"
 #include "Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_request.h"
-
+#include "Fulfil.Dispense/commands/pre_pickup_clip_actuator/pre_pickup_clip_actuator_request.h"
 
 using fulfil::utils::Logger;
 
@@ -50,6 +50,7 @@ using fulfil::dispense::commands::TrayViewRequest;
 using fulfil::dispense::commands::errors::InvalidCommandFormatException;
 using fulfil::dispense::commands::SideDispenseTargetRequest;
 using fulfil::dispense::commands::PostSideDispenseRequest;
+using fulfil::dispense::commands::PrePickupClipActuatorRequest;
 using fulfil::dispense::commands::PreSideDispenseRequest;
 using fulfil::utils::commands::DispenseCommand;
 
@@ -141,7 +142,10 @@ std::shared_ptr<DispenseRequest> DispenseRequestParser::parse_payload(std::share
     case DispenseCommand::pre_side_dispense:
       Logger::Instance()->Info("Received Pre Side Dispense Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
       return std::make_shared<PreSideDispenseRequest>(request_id, PrimaryKeyID, request_json);
-
+    case DispenseCommand::pre_pickup_clip_actuator:
+      Logger::Instance()->Info("Received PrePickupClipActuator Request, PKID: {}, request_id: {}", *PrimaryKeyID, *request_id);
+      return std::make_shared<PrePickupClipActuatorRequest>(request_id, PrimaryKeyID, request_json);
+    
     default:
       throw InvalidCommandFormatException(request_id);
   }

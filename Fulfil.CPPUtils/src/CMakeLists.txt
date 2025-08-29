@@ -3,12 +3,8 @@
 set(PACKAGE_VERSION "1.0.0")
 include(CMakePackageConfigHelpers)
 include_directories(include/Fulfil.CPPUitls)
-include_directories(include/Fulfil.CPPUitls/comm/)
-include_directories(include/Fulfil.CPPUitls/eigen)
-include_directories(include/Fulfil.CPPUitls/networking)
-include_directories(include/Fulfil.CPPUitls/processing_queue)
-include_directories(include/Fulfil.CPPUitls/inih)
-file(GLOB SOURCES "*.cpp" "comm/*.cc" "networking/*.cpp" "eigen/*.cpp" "comm/*.h")
+include_directories(include/Fulfil.CPPUitls/*)
+file(GLOB SOURCES "*.cpp" "*.h" "*.cc" "*.cpp **/*.cpp" "**/*.h" "**/*.cc" "**/*.cpp")
 
 add_library(Fulfil.CPPUtils STATIC ${SOURCES})
 

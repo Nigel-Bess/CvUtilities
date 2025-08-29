@@ -316,6 +316,13 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         response = handle_post_side_dispense(command_id, request_json);
         break;
     }
+    case DispenseCommand::pre_pickup_clip_actuator:
+    {
+        Logger::Instance()->Info("Received PrePickupClipActuator Request on Machine {}, PKID: {}, request_id: {}",
+                                 this->machine_name, *pkid, *command_id);
+        response = handle_pre_pickup_clip_actuator(command_id, request_json);
+        break;
+    }
     case DispenseCommand::start_lfb_video:
     {
         Logger::Instance()->Info("Received Start LFB Video Request on Bay {}, PKID: {}, request_id: {}",
@@ -1249,5 +1256,15 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     return post_side_dispense_response;
 }
 #pragma endregion side_bag
+
+#pragma region tcs
+std::shared_ptr<fulfil::dispense::commands::PrePickupClipActuatorResponse>
+fulfil::dispense::DispenseManager::handle_pre_pickup_clip_actuator(std::shared_ptr<std::string> request_id,
+                                                                   std::shared_ptr<nlohmann::json> request_json)
+{
+    // TODO @ERIC 
+    return nullptr;
+}
+#pragma endregion tcs
 
 int fulfil::dispense::DispenseManager::get_induction_cam_distance_from_tray() { return this->induction_cam_distance_from_tray; }
