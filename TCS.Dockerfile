@@ -15,15 +15,15 @@ RUN curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \
 RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
 | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
 RUN apt-get update
-RUN apt-get install pkg-config libssl-dev libsasl2-dev openssl -y
 RUN apt upgrade openssl libssl-dev libsasl2-dev -y
 
-WORKDIR /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 ENV MDB_VERSION="3.10.0"
 RUN curl -OL https://github.com/mongodb/mongo-cxx-driver/releases/download/r${MDB_VERSION}/mongo-cxx-driver-r${MDB_VERSION}.tar.gz
 RUN tar -xzf mongo-cxx-driver-r${MDB_VERSION}.tar.gz
 RUN cd mongo-cxx-driver-r${MDB_VERSION} && cmake . -DCMAKE_BUILD_TYPE=Release -DMONGOCXX_OVERRIDE_DEFAULT_INSTALL_PREFIX=OFF && cmake --build . && cmake --build . -j$(($(nproc)-1)) --target install
-
+# I don't understand why this hack is needed for the runtime to see the mongo driver lib, but it's important
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 # Build MongoCpp
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
@@ -71,6 +71,6 @@ RUN cd Fulfil.TCS/ \
     && cd build && cmake ..
 #RUN ls Fulfil.CPPUtils/build && exit 1
 #RUN cd Fulfil.TCS/build && cmake --build .  -j$(($(nproc)-1))
-RUN cd Fulfil.TCS/build && cmake . && cmake --build . -j$(($(nproc)-1)) # && make
+RUN cd Fulfil.TCS/build && cmake . && cmake --build . -j$(($(nproc)-1))
 
 CMD ["./Fulfil.TCS/build/tcs"]

@@ -12,6 +12,7 @@ include_directories(include/utils)
 
 find_package(Threads REQUIRED)
 find_package(OpenCV 4.6.0 REQUIRED)
+find_package(libmongoc-1.0 REQUIRED)
 
 message("-- Found OpenCV lib ${OpenCV_VERSION}!")
 include_directories(${OpenCV_INCLUDE_DIRS})

@@ -38,6 +38,23 @@ services:
     profiles:
       - tcs_test
 
+  tcs:
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "Fulfil.TCS/build/tcs"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+    environment:
+      - "FACILITY_IDENTIFIER=local"
+      - "CAMERAS=0:0000000000001"
+      - "VIMBA_CAMERAS=fake:ClipOpener"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - tcs
+
   # PBL commands
   pbl:
     build:

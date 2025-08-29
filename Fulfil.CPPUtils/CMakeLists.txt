@@ -175,7 +175,8 @@ endif()
 #set_property(TARGET FulfilMongoCpp PROPERTY
 #             IMPORTED_LOCATION "Fulfil.MongoCpp")
 add_subdirectory("../Fulfil.MongoCpp" build)
-find_package(FulfilMongoCpp)
+find_package(FulfilMongoCpp REQUIRED)
+find_package(libmongoc-1.0 REQUIRED)
 
 #add_library(FulfilMongoCpp STATIC IMPORTED)
 #set_property(TARGET FulfilMongoCpp PROPERTY
