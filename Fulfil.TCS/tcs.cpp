@@ -27,17 +27,20 @@ void handle_request(std::shared_ptr<GrpcService> port, std::shared_ptr<DepthCame
     auto type = (*request_json)["Type"].get<DispenseCommand>();
     auto pkid = std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>());
     Logger::Instance()->Info("tcs::handle_request new request {} with pkid {} and payload: {}", (int)type, *pkid, payload);
-    switch(type){
-        case DispenseCommand::pre_pickup_clip_actuator:
-        {
+    //switch(type){
+        //case DispenseCommand::pre_pickup_clip_actuator:
+        //{
             try {
                 std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
                 (*result_json)["Error"] = 0;
                 (*result_json)["Error_Description"] = "";
                 (*result_json)["Tote_Id"] = 1;
-                (*result_json)["Facility_Id"] = "pioneer";
-                (*result_json)["Clip_Open_States"] = nlohmann::json::parse("[1, 1, 1, 1]");
+                (*result_json)["Tote_Id"] = 1;
+                (*result_json)["Primary_Key_ID"] = "0000000000000000000000001";
+                (*result_json)["Facility_Id"] = 0;
+                (*result_json)["Clip_Open_States"] = nlohmann::json::parse("[true, true, true, true]");
                 auto response = to_response(*cmd_id, result_json->dump());
+                Logger::Instance()->Info("Sending response: {}", result_json->dump());
                 port->QueueResponse(response);
 
                 auto stopTime = std::chrono::steady_clock::now();
@@ -51,10 +54,10 @@ void handle_request(std::shared_ptr<GrpcService> port, std::shared_ptr<DepthCame
                     return handle_request(port, request, remainingRetries-1);
                 }*/
             }
-        }
-        default:
-            Logger::Instance()->Error("tcs::handle_request unhandled command {}", (int)type);
-    }
+        //}
+        //default:
+            //Logger::Instance()->Error("tcs::handle_request unhandled command {}", (int)type);
+    //}
 }
 
 void update_port_status(std::shared_ptr<GrpcService> port, std::string port_name, DepthCameras::DcCameraStatusCodes code) {
