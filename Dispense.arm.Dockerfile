@@ -53,7 +53,7 @@ COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 
 COPY third-party ./Fulfil.MongoCpp/third-party/
 RUN cd Fulfil.MongoCpp && mkdir -p build
-RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cd Fulfil.MongoCpp && cmake --build . -j$(($(nproc)-1)) && cd Fulfil.MongoCpp && cmake --install .
+RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
 
 # Build CPPUtils
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
