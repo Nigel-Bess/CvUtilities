@@ -5,7 +5,29 @@
 FROM gcr.io/fulfil-web/cv-dispense/realsense-amd:latest AS base
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt install rsync -y
+RUN apt-get install -y rsync libgl1-mesa-dev libjson-c-dev udev protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev curl make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
+
+# Install Orbbec SDK
+ENV ORBBEC_SDK_VERSION=v2.4.11
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
+RUN mkdir orbbec && cd orbbec && curl -o orbbec.zip https://storage.googleapis.com/public-libs/OrbbecSDK-${ORBBEC_SDK_VERSION}.zip
+RUN cd orbbec && unzip orbbec.zip && rm orbbec.zip
+RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK
+RUN ./orbbec/OrbbecSDK/setup.sh
+
+RUN cd orbbec && git clone  https://github.com/Orbbec/OrbbecSDK_v2.git
+RUN cd orbbec && cd OrbbecSDK_v2 && mkdir build && cd build && cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
+RUN cd orbbec && cd OrbbecSDK_v2/build && cmake --build . -j$(($(nproc)-1))
+
+RUN /lib/systemd/systemd-udevd --daemon && udevadm trigger && cd orbbec/OrbbecSDK_v2/scripts && chmod -R +x ./env_setup && ./env_setup/install_udev_rules.sh && ./env_setup/setup.sh
+ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/lib:$LD_LIBRARY_PATH
+#ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/lib:$LD_LIBRARY_PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/bin:$PATH
+# Reload linux libs
+RUN ldconfig
 
 # Fulfil.ComputerVision from here!
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
@@ -48,6 +70,9 @@ RUN sed -i 's/\r//' ./scripts/build_date.sh
 #COPY .git .git
 RUN cd scripts && bash build_date.sh
 RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp
+RUN cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK
+RUN mkdir -p Fulfil.CPPUtils/lib
+RUN cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
 # Remove broken old tests for now
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 # For now don't bother building since Depthcam can't just add_project and avoid rebuilding without a lot of refactoring,
@@ -57,7 +82,7 @@ RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && cmake --build . -j$(($(nproc)-1))
 
 # Build DepthCam lib
-RUN apt-get install -qq -y --no-install-recommends libjson-c-dev && cp -r third-party Fulfil.DepthCam/third-party
+RUN cp -r third-party Fulfil.DepthCam/third-party
 RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
 RUN cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
 RUN cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt

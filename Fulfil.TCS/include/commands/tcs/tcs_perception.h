@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <numeric>
 #include <Fulfil.CPPUtils/logging.h>
-#include "Fulfil.CPPUtils/aruco/aruco_utils.h"
+#include <Fulfil.CPPUtils/aruco/aruco_utils.h>
 #include "tcs_response.h"
 #include "tcs_error_codes.h"
 

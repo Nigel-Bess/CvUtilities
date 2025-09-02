@@ -26,11 +26,11 @@ VmbCamera::VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log):
     SetName();
 }
 
-void VmbCamera::StartCamera(){
-    std::thread(&VmbCamera::RunCamera, this).detach();
+void VmbCamera::start_camera(){
+    std::thread(&VmbCamera::run_camera_thread, this).detach();
 }
 
-void VmbCamera::KillCamera(){
+void VmbCamera::kill_camera(){
     run_ = false;
     connected_ = false;
     log_->Info("VmbCamera shutdown on {}", name_);
@@ -38,9 +38,9 @@ void VmbCamera::KillCamera(){
         camera_->Close();
 }
 
-void VmbCamera::RunAutoExposure() {
+void VmbCamera::run_auto_exposure() {
     std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
-        log_->Info("RunAutoExposure for {}", name_);
+        log_->Info("run_auto_exposure for {}", name_);
         SetFeature("ExposureAuto", "Once");
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));//wait for auto exp to kick in
         last_exposure_reset_time = std::chrono::system_clock::now();
@@ -56,12 +56,12 @@ void VmbCamera::SetExposureSettings() {
  * Call this whenever a steady-state ping/pong with camera succeeds to
  * help mark that it's alive
  */
-void VmbCamera::LogPingSuccess() {
+void VmbCamera::log_ping_success() {
     log_->Info("Pinged {}", name_);
 }
 
-void VmbCamera::RunSetup(bool isInitSetup){
-    log_->Info("VmbCamera RunSetup on {}", name_);
+void VmbCamera::run_setup(bool is_init_setup){
+    log_->Info("VmbCamera run_setup on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
     auto first = true;
     while(code != VmbErrorSuccess){
@@ -77,43 +77,43 @@ void VmbCamera::RunSetup(bool isInitSetup){
     camera_->GetName(name);
     log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID")); 
 
-    if (isInitSetup) {
+    if (is_init_setup) {
         // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
         // based on the network switch on neighboring camera count
         VmbInt64_t maxBandwidthBytes = 42000000;
         log_->Info("Setting link to {}", maxBandwidthBytes);
         SetFeature("DeviceLinkThroughputLimitMode", "On");
         SetFeature("DeviceLinkThroughputLimit", maxBandwidthBytes);
-        log_->Info("Got feature {}", GetFeatureInt("DeviceLinkThroughputLimit"));
+        log_->Info("Got feature {}", get_feature_int("DeviceLinkThroughputLimit"));
 
         SetFeature("PixelFormat", "BGR8");
         SetFeature("Hue", -2.0);
         SetFeature("Saturation", 1.0);
         
         AdjustPacketSize();
-        RunAutoExposure();
+        run_auto_exposure();
         // Record image size for future frame allocation
         camera_->GetPayloadSize( payloadSize_ );
     }
     connected_ = true;
     //AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
-    this->LogPingSuccess();
+    this->log_ping_success();
     // For now, do not take an init debug snapshot since it stirs the network
     // too much when connecting to all cameras at once
-    if (isInitSetup) {
+    if (is_init_setup) {
         GetImageBlocking();
         SaveLastImage(name_);
     }
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
-void VmbCamera::RunCamera(){
-    bool isInitConnection = true;
+void VmbCamera::run_camera_thread(){
+    bool is_init_connection = true;
     while(run_){
         if(!connected_) {
             std::lock_guard<std::recursive_mutex> lock(_lifecycleLock);{
-                RunSetup(isInitConnection);
-                isInitConnection = false;
+                run_setup(is_init_connection);
+                is_init_connection = false;
             }
         }
         else{
@@ -128,10 +128,10 @@ void VmbCamera::RunCamera(){
                     camera_->Close();
                 connected_ = false;
             } else {
-                this->LogPingSuccess();
+                this->log_ping_success();
             }
             if ((std::chrono::system_clock::now() - last_exposure_reset_time) > EXPOSURE_RESET_INTERVAL) {
-                RunAutoExposure();
+                run_auto_exposure();
             }
         }
     }
@@ -243,7 +243,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         auto stopTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
         log_->Info("GetImageBlocking took {}ms on {}", duration, name_);
-        this->LogPingSuccess();
+        this->log_ping_success();
 
         auto val = frame_ptr_->GetImage(img_buffer_);
         frame_ptr_->GetHeight(height);
@@ -291,7 +291,7 @@ void VmbCamera::SetFeature(std::string feature, std::string value){
 }
 
 void VmbCamera::SetFeature(std::string feature, VmbInt64_t value){
-    VmbInt64_t fvalue = GetFeatureInt(feature.c_str());
+    VmbInt64_t fvalue = get_feature_int(feature.c_str());
     log_->Info("Previous Feature value: {} {} = {}", name_, feature, fvalue);
     if(fvalue == value || fvalue == -1)return; //already set!
     feature_ptr_->SetValue(value);
@@ -321,11 +321,11 @@ std::string VmbCamera::GetFeatureString(std::string fname){
     return fval;
 }
 
-VmbInt64_t VmbCamera::GetFeatureInt(std::string fname){
+VmbInt64_t VmbCamera::get_feature_int(std::string fname){
     VmbInt64_t fval;
     auto val = camera_->GetFeatureByName(fname.c_str(), feature_ptr_);
     if(val != VmbErrorSuccess){
-        log_->Info("VmbCamera::GetFeatureInt failed with code {}", GetVimbaCode(val));
+        log_->Info("VmbCamera::get_feature_int failed with code {}", GetVimbaCode(val));
         return -1;
     }
     feature_ptr_->GetValue(fval);

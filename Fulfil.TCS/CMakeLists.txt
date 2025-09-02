@@ -2,16 +2,17 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Project Name
-project(allied-vision LANGUAGES CXX)
+project(tcs LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CACHE_VERSION 2)
 set(FULFIL_LOG_DIR /code/mars/vimba)
-include_directories(include)
-include_directories(include/commands)
-include_directories(include/utils)
 
-find_package(Threads REQUIRED)
+
 find_package(OpenCV 4.6.0 REQUIRED)
+find_package(Threads REQUIRED)
+
+include_directories(include)
 find_package(libmongoc-1.0 REQUIRED)
 
 message("-- Found OpenCV lib ${OpenCV_VERSION}!")
@@ -20,6 +21,9 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 include(/home/fulfil/VimbaX_2024-1/api/examples/cmake/vmb_cmake_prefix_paths.cmake)
 find_package(Vmb REQUIRED COMPONENTS CPP NAMES Vmb VmbC VmbCPP VmbImageTransform)
 message(STATUS "Using Vmb ${Vmb_VERSION}")
+
+set(OrbbecSDK_DIR "../Fulfil.CPPUtils/lib/orbbecsdk/lib")
+find_package(OrbbecSDK REQUIRED)
 
 link_directories(/home/fulfil/VimbaX_2024-1/api/lib)
 
@@ -36,18 +40,23 @@ file(GLOB SOURCES "src/commands/**/*.cpp" "src/*.cpp" "src/**/*.cpp")
 
 # TCS entrypoint
 add_executable(tcs "tcs.cpp" ${SOURCES})
-target_link_libraries(tcs Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
+target_link_libraries(tcs Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(tcs PROPERTIES CXX_STANDARD 17)
 
 # TCS eval entrypoint
 add_executable(eval "eval.cpp" ${SOURCES})
-target_link_libraries(eval Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
+target_link_libraries(eval Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(eval PROPERTIES CXX_STANDARD 17)
 
 # PBL entrypoint
 add_executable(pbl "pbl.cpp" ${SOURCES})
-target_link_libraries(pbl Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS} )
+target_link_libraries(pbl Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(pbl PROPERTIES CXX_STANDARD 17)
+
+# Orbbec playground entrypoint
+add_executable(orbbec "orbbec.cpp" ${SOURCES})
+target_link_libraries(orbbec Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
+set_target_properties(orbbec PROPERTIES CXX_STANDARD 17)
 
 # Test stuff
 include(FetchContent)

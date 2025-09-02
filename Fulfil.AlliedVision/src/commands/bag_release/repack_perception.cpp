@@ -18,7 +18,7 @@
 #include <tuple>
 #include "repack_error_codes.h"
 #include <json.hpp>
-#include "aruco/aruco_utils.h"
+#include <FulfilCPPUtils/aruco/aruco_utils.h>
 #include <chrono>
 
 using fulfil::dispense::commands::get_error_name_from_code;

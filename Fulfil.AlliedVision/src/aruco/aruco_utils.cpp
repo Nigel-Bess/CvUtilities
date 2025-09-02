@@ -7,7 +7,7 @@
 
 #include <algorithm>
 #include <limits.h>
-#include "aruco/aruco_utils.h"
+#include <Fulfil.CPPUtils/aruco/aruco_utils.h>
 #include <numeric>
 #include "Fulfil.CPPUtils/logging.h"
 #include <filesystem>

@@ -1,7 +1,32 @@
 FROM gcr.io/fulfil-web/nvidia-cv/master:latest AS base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
-RUN apt-get install -y curl make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
+RUN apt-get install -y udev libgl1-mesa-dev make curl wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev libjpeg8 libpng-dev unzip libcurl4-openssl-dev libspdlog-dev libeigen3-dev
+
+# Install Orbbec SDK
+ENV ORBBEC_SDK_VERSION=v2.4.11
+WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
+RUN mkdir orbbec
+RUN cd orbbec && curl -o orbbec.zip https://storage.googleapis.com/public-libs/OrbbecSDK-${ORBBEC_SDK_VERSION}.zip
+RUN cd orbbec && unzip orbbec.zip && rm orbbec.zip
+RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK
+RUN ./orbbec/OrbbecSDK/setup.sh
+#RUN ls orbbec/OrbbecSDK && exit 1
+
+RUN cd orbbec && git clone  https://github.com/Orbbec/OrbbecSDK_v2.git
+RUN cd orbbec && cd OrbbecSDK_v2 && mkdir build && cd build && cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
+RUN cd orbbec && cd OrbbecSDK_v2/build && cmake --build . -j$(($(nproc)-1))
+
+#RUN ls orbbec/OrbbecSDK_v2/scripts/env_setup && exit 1
+RUN /lib/systemd/systemd-udevd --daemon && udevadm trigger && cd orbbec/OrbbecSDK_v2/scripts && chmod -R +x ./env_setup && ./env_setup/install_udev_rules.sh && ./env_setup/setup.sh
+ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/lib:$LD_LIBRARY_PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/bin:$PATH
+# Reload linux libs
+RUN ldconfig
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 # COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
@@ -14,8 +39,6 @@ RUN curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \
     gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
 RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
 | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-RUN apt-get update
-RUN apt upgrade openssl libssl-dev libsasl2-dev -y
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 ENV MDB_VERSION="3.10.0"
@@ -43,6 +66,10 @@ RUN sed -i 's/\r//' ./scripts/build_date.sh
 RUN cd scripts && bash build_date.sh
 
 RUN cp -r ./Fulfil.MongoCpp ./Fulfil.CPPUtils/
+RUN cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK
+RUN mkdir -p Fulfil.CPPUtils/lib
+RUN cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
+
 # Remove broken old tests
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/test
@@ -66,11 +93,10 @@ WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 COPY Fulfil.TCS/ ./Fulfil.TCS/
 RUN mkdir -p /code/mars/vimba
 ENV PATH="/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/build/:${PATH}"
+
 RUN cd Fulfil.TCS/ \
     && mkdir -p build/ \
     && cd build && cmake ..
-#RUN ls Fulfil.CPPUtils/build && exit 1
-#RUN cd Fulfil.TCS/build && cmake --build .  -j$(($(nproc)-1))
 RUN cd Fulfil.TCS/build && cmake . && cmake --build . -j$(($(nproc)-1))
 
 CMD ["./Fulfil.TCS/build/tcs"]

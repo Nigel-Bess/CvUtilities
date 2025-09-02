@@ -18,5 +18,5 @@ target_include_directories(Fulfil.CPPUtils PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(Fulfil.CPPUtils PUBLIC ${PROJECT_SOURCE_DIR}/src/comm)
 target_include_directories(Fulfil.CPPUtils SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(Fulfil.CPPUtils SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/src/comm)
-target_link_libraries(Fulfil.CPPUtils ${CURL_LIBRARIES} ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} FulfilMongoCpp)
+target_link_libraries(Fulfil.CPPUtils ${CURL_LIBRARIES}  ob::OrbbecSDK ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} FulfilMongoCpp)
 

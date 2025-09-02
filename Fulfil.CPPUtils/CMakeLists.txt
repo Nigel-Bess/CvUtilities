@@ -51,6 +51,10 @@ find_package(OpenCV 4.6.0 REQUIRED)
 message("-- Found OpenCV lib ${OpenCV_VERSION}!")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+# Require Orbbec
+set(OrbbecSDK_DIR "lib/orbbecsdk/lib")
+find_package(OrbbecSDK REQUIRED)
+
 if(GRPC_AS_SUBMODULE)
   # One way to build a projects that uses gRPC is to just include the
   # entire gRPC project tree via "add_subdirectory".

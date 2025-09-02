@@ -17,10 +17,10 @@ class VmbCamera{
         VmbCamera(std::string ip, int bay, fulfil::utils::Logger* log);
         std::shared_ptr<cv::Mat> GetImageBlocking();
         std::chrono::_V2::system_clock::time_point last_exposure_reset_time = std::chrono::system_clock::now();
-        void StartCamera();
-        void RunAutoExposure();
-        void KillCamera();
-        inline bool Connected(){ return connected_; }        
+        void start_camera();
+        void run_auto_exposure();
+        void kill_camera();
+        inline bool connected(){ return connected_; }        
         VmbCPP::CameraPtr camera_;
         std::string camera_ip_;
         std::string name_;
@@ -34,17 +34,17 @@ class VmbCamera{
         VmbUint32_t payloadSize_;
         VmbCPP::FramePtr frame_ptr_;
         VmbCPP::FeaturePtr feature_ptr_;
-        void RunCamera();
+        void run_camera_thread();
         std::string GetFeatureString(std::string fname);
-        VmbInt64_t GetFeatureInt(std::string fname);
+        VmbInt64_t get_feature_int(std::string fname);
         double GetFeatureDouble(std::string fname);
-        void LogPingSuccess();
+        void log_ping_success();
         void SetFeature(std::string feature, std::string value);
         void SetFeature(std::string feature, VmbInt64_t value);
         void SetFeature(std::string feature, double value);
         void SetExposureSettings();
         void AdjustPacketSize();
-        void RunSetup(bool isInitSetup);
+        void run_setup(bool is_init_setup);
         std::string GetMacAddress();
         volatile bool run_ = true;
         volatile bool connected_ = false;

@@ -22,7 +22,7 @@ const int MAX_ACTIVE_CAMERAS = 2;
 struct sigaction old_action;
 bool RUN = true;
 
-void sig_handler(int sig_no){
+void vimba_sig_handler(int sig_no){
     printf("Graceful termination requested");
     RUN = false;
 }
@@ -43,7 +43,7 @@ void VmbManager::RunManager(){
     if(!RUN)return;
     struct sigaction action;
     memset(&action, 0, sizeof(action));
-    action.sa_handler = &sig_handler;
+    action.sa_handler = &vimba_sig_handler;
     sigaction(SIGINT, &action, &old_action);
     // Applies the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
     sigaction(SIGTERM, &action, &old_action);
@@ -74,10 +74,10 @@ void VmbManager::RunManager(){
             auto code = vmb_system.GetCameraByID(cam->camera_ip_.c_str(), cam->camera_);
             if(code != VmbErrorSuccess){
                 log_->Error("Could not get camera {} at {} [{}]", cam->name_, cam->camera_ip_, GetVimbaCode(code));
-                cam->KillCamera();
+                cam->kill_camera();
             }
             else {
-                cam->StartCamera();
+                cam->start_camera();
                 found++;
                 break;
             }
@@ -100,7 +100,7 @@ void VmbManager::RunManager(){
         //std::thread(&VmbManager::HandleRequest, this, request, 1).detach();
     }
     for(auto const & [ip, cam] : cameras_){
-        cam->KillCamera();
+        cam->kill_camera();
     }
     vmb_system.Shutdown();
     log_->Info("Exiting VmbManager after shutdown");
@@ -205,7 +205,7 @@ void /*VmbManager::*/HandleRequest(/*std::shared_ptr<DepthCameras::DcRequest> re
                         // Re-run auto exposure just in case if no markers were found
                         if (remainingRetries > 0 && TCS_percep.success_code == TCSErrorCodes::NoMarkersDetected) {
                             log_->Warn("No markers found at {}, trying to reset exposure", cam->name_);
-                            cam->RunAutoExposure();
+                            cam->run_auto_exposure();
                             return this->HandleRequest(request, remainingRetries-1);
                         }
                     } else 
