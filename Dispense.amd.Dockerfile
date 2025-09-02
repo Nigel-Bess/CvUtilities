@@ -12,8 +12,7 @@ ENV ORBBEC_SDK_VERSION=v2.4.11
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 RUN mkdir orbbec && cd orbbec && curl -o orbbec.zip https://storage.googleapis.com/public-libs/OrbbecSDK-${ORBBEC_SDK_VERSION}.zip
 RUN cd orbbec && unzip orbbec.zip && rm orbbec.zip
-RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK
-RUN ./orbbec/OrbbecSDK/setup.sh
+RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK && ./orbbec/OrbbecSDK/setup.sh
 
 RUN cd orbbec && git clone  https://github.com/Orbbec/OrbbecSDK_v2.git
 RUN cd orbbec && cd OrbbecSDK_v2 && mkdir build && cd build && cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
@@ -54,10 +53,7 @@ COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 
 COPY third-party ./Fulfil.MongoCpp/third-party/
 RUN cd Fulfil.MongoCpp && mkdir -p build
-# Don't actually bother building since Depthcam will forcably need to rebuild anyway without a lot of refactoring :-(
-RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1)
-RUN cd Fulfil.MongoCpp && cmake --build . -j$(($(nproc)-1))
-RUN cd Fulfil.MongoCpp && cmake --install .
+RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cd Fulfil.MongoCpp && cmake --build . -j$(($(nproc)-1)) && cd Fulfil.MongoCpp && cmake --install .
 
 # Build CPPUtils
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
@@ -69,10 +65,7 @@ RUN sed -i 's/\r//' ./scripts/build_date.sh
 # will become aware of it's git branch again
 #COPY .git .git
 RUN cd scripts && bash build_date.sh
-RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp
-RUN cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK
-RUN mkdir -p Fulfil.CPPUtils/lib
-RUN cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
+RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK && mkdir -p Fulfil.CPPUtils/lib && cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
 # Remove broken old tests for now
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 # For now don't bother building since Depthcam can't just add_project and avoid rebuilding without a lot of refactoring,
@@ -82,9 +75,7 @@ RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && cmake --build . -j$(($(nproc)-1))
 
 # Build DepthCam lib
-RUN cp -r third-party Fulfil.DepthCam/third-party
-RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
-RUN cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
+RUN cp -r third-party Fulfil.DepthCam/third-party && mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
 RUN cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt
 RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && cmake --build . -j$(($(nproc)-1)) || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/CMakeFiles/CMakeOutput.log && exit 1)
