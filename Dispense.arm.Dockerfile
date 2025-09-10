@@ -10,21 +10,20 @@ RUN apt-get install -y rsync libgl1-mesa-dev libjson-c-dev udev protobuf-compile
 # Install Orbbec SDK
 ENV ORBBEC_SDK_VERSION=v2.4.11
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
-RUN mkdir orbbec && cd orbbec && curl -o orbbec.zip https://storage.googleapis.com/public-libs/OrbbecSDK-${ORBBEC_SDK_VERSION}.zip
-RUN cd orbbec && unzip orbbec.zip && rm orbbec.zip
-RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK && ./orbbec/OrbbecSDK/setup.sh
+RUN mkdir orbbec
 
-RUN cd orbbec && git clone  https://github.com/Orbbec/OrbbecSDK_v2.git
-RUN cd orbbec && cd OrbbecSDK_v2 && mkdir build && cd build && cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
-RUN cd orbbec && cd OrbbecSDK_v2/build && cmake --build . -j$(($(nproc)-1))
+RUN cd orbbec && \
+    git clone https://github.com/Orbbec/OrbbecSDK_v2.git && \
+    cd OrbbecSDK_v2 && mkdir build && cd build && \
+    cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
 
 RUN /lib/systemd/systemd-udevd --daemon && udevadm trigger && cd orbbec/OrbbecSDK_v2/scripts && chmod -R +x ./env_setup && ./env_setup/install_udev_rules.sh && ./env_setup/setup.sh
 ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/lib:$LD_LIBRARY_PATH
-#ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/lib:$LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/lib:$LD_LIBRARY_PATH
 ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/bin:$PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/bin:$PATH
 ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_arm64/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_arm64/lib:$PATH
 # Reload linux libs
 RUN ldconfig
 
@@ -59,13 +58,23 @@ RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVisio
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 RUN cp Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h.template Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h
 COPY scripts/build_date.sh ./scripts/build_date.sh
-RUN sed -i 's/\r//' ./scripts/build_date.sh
+RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
 # Maybe bring this back in some form, but it thrashes the docker layer caching constantly leading to mega slow development, instead we
 # should depend on docker image names and tags to check what builds are running going forward, else flip this back on and the runtime
 # will become aware of it's git branch again
 #COPY .git .git
-RUN cd scripts && bash build_date.sh
-RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK && mkdir -p Fulfil.CPPUtils/lib && cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
+
+#RUN ls orbbec/OrbbecSDK_v2/build/linux_arm64 && exit 1 # bin and lib
+RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && \
+    mkdir -p Fulfil.CPPUtils/lib && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/lib && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/bin && \
+    cp -r orbbec/OrbbecSDK_v2/* Fulfil.CPPUtils/lib/orbbecsdk && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/bin/* Fulfil.CPPUtils/lib/orbbecsdk/bin/ && \
+    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib
+
 # Remove broken old tests for now
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 # For now don't bother building since Depthcam can't just add_project and avoid rebuilding without a lot of refactoring,
@@ -85,5 +94,7 @@ RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake . || (ca
 RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1))
 
 # Harmless test run setup stuff
+RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs
+RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/csvs
 
 CMD ["./Fulfil.Dispense/app/main"]
