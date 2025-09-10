@@ -104,6 +104,7 @@ LfbVisionConfiguration::LfbVisionConfiguration(const std::shared_ptr<nlohmann::j
     max_num_depth_detections{input_json->value("MaxNumberOfDepthDetections", 1250)},
 
     // drop target damage risk assessment
+    min_mass_drop_item_to_center_grams{input_json->value("MinMassDropItemToCenterGrams", 0)},
     avoid_metal_on_metal{input_json->value("AvoidMetalOnMetal", true)},
     max_allowable_damage_rejections{input_json->value("MaxAllowableDamageRejections", 2)},
     mass_threshold_extra_fragile{input_json->value("MassThresholdExtraFragileGrams", (float)150.0)},

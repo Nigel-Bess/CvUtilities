@@ -229,6 +229,8 @@ namespace fulfil::configuration::lfb {
         int max_num_depth_detections {1250};
 
         // drop target damage risk assessment
+        // minimum mass in grams needed for an item to be dropped to center to avoid damaging the LFB lift
+        int min_mass_drop_item_to_center_grams{0};
         /** Feature flag for avoiding dispensing metal items onto metal items in the bag. */
         bool avoid_metal_on_metal {true};
         // TODO

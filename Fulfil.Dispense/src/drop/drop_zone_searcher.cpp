@@ -1,3 +1,4 @@
+#include <climits>
 #include <filesystem>
 #include <memory>
 #include <tuple>
@@ -237,9 +238,11 @@ std::shared_ptr<Point3D> DropZoneSearcher::get_empty_bag_target(std::shared_ptr<
   // negative Z is depth into bag, 0 is marker height, positive is above bag
   float target_Z = -1*(LFB_cavity_height - details->remaining_platform);
 
-  // 21 is extra fragile
-  if (details->item_damage_code == 21) {
-    Logger::Instance()->Debug("Bag Item Count is input as 0, item is marked as extra fragile, so target will be set at the center of bag");
+  // check whether the default drop target should be the center of the bag
+  auto extra_fragile_code = 21; // this should not be hardcoded
+  if (details->item_damage_code == extra_fragile_code or (lfb_vision_config->min_mass_drop_item_to_center_grams >= 1 and lfb_vision_config->min_mass_drop_item_to_center_grams < INT_MAX - 1 and details->item_mass > lfb_vision_config->min_mass_drop_item_to_center_grams)) {
+    Logger::Instance()->Debug("Bag Item Count is input as 0, item is {} marked as extra fragile, item mass is {}, the minimum mass threshold for items to drop to center is {}, so target will be set at the center of bag", 
+      details->item_damage_code, lfb_vision_config->min_mass_drop_item_to_center_grams, details->item_mass);
     return std::make_shared<Point3D>(0.0f, 0.0f, target_Z);
   } 
 
