@@ -62,26 +62,34 @@ void OrbbecCamera::disconnect(std::string err_msg) {
 void OrbbecCamera::run_camera_thread(){
     auto info = this->device->getDeviceInfo();
     // Log device info for easy debugging
-    logger->Info("{}: Got SerialNumber: {}", _name, info->serialNumber());
-    logger->Info("{}: Got Orbbec registered name: {}", _name, info->name());
+    logger->Info("{}: Setting up S/N {}, IP: {}, on version {}", _name, info->serialNumber(), info->getIpAddress(), info->getFirmwareVersion());
+    logger->Info("{}: Got Orbbec-registered name: {}", _name, info->name());
 
     pipe = std::make_shared<ob::Pipeline>(device);
     config = std::make_shared<ob::Config>();
-    // Configure which streams to enable or disable for the Pipeline by creating a Config
-    config->enableVideoStream(OB_STREAM_COLOR);
-    config->setAlignMode(ALIGN_D2C_SW_MODE);
 
+    // Configure which streams to enable or disable for the Pipeline by creating a Config
+    config->enableVideoStream(OB_STREAM_COLOR, 640, 360, 5, OB_FORMAT_RGB);
+    config->setAlignMode(ALIGN_D2C_SW_MODE);
+    config->setFrameAggregateOutputMode(OB_FRAME_AGGREGATE_OUTPUT_ALL_TYPE_FRAME_REQUIRE);
+
+    // Depth configuration
     auto depthProfiles = pipe->getStreamProfileList(OB_SENSOR_DEPTH);
-    auto depthProfile = depthProfiles->getVideoStreamProfile(640, 576, OB_FORMAT_Y16, 30);
-    // 2. Color configuration
-    auto colorProfiles = pipe->getStreamProfileList(OB_SENSOR_COLOR);
-    auto colorProfile = colorProfiles->getVideoStreamProfile(1920, 1080, OB_FORMAT_RGB, 30);
-    // 3. Enable Depth stream
+    auto depthProfile = depthProfiles->getVideoStreamProfile(320, 200, OB_FORMAT_Y16, 5);
     config->enableStream(depthProfile);
-    // 4. Enable Color stream
+    logger->Info("{}: depth set", _name);
+
+    // Color configuration
+    auto colorProfiles = pipe->getStreamProfileList(OB_SENSOR_COLOR);
+
+    // Largest
+    //auto colorProfile = colorProfiles->getVideoStreamProfile(1280, 800, OB_FORMAT_RGB, 5);
+    // Smallest (test only)
+    auto colorProfile = colorProfiles->getVideoStreamProfile(640, 360, OB_FORMAT_RGB, 5);
     config->enableStream(colorProfile);
 
     run_auto_exposure();
+    logger->Info("autoexp", _name);
 
     reconnect();
 
@@ -118,8 +126,17 @@ void OrbbecCamera::reconnect(){
     try {
         logger->Info("Starting pipe on {}", _name);
         pipe->start(config);
+        logger->Info("Started pipe on {}", _name);
         
         auto test_rgb = get_rgb_blocking();
+        if (!test_rgb->empty()) {
+            logger->Info("Saving debug image for {} to /home/fulfil/data/debug", _name);
+            cv::imwrite("/home/fulfil/data/debug/" + _name + ".png", *test_rgb);
+            logger->Info("Saved debug image for {} to /home/fulfil/data/debug", _name);
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            throw std::runtime_error("Image was empty??? " + _name);
+        }
         _connected = true;
         logger->Info("Test image success on {}, connected!", _name);
         // Write reconnection image to pod on every fresh connection
@@ -128,13 +145,14 @@ void OrbbecCamera::reconnect(){
     catch (std::exception &e) {
         logger->Error("{} returned {} when trying to open camera", _name, e.what());
         pipe->stop();
+        reconnect();
     }
     // TODO observer pattern
     //AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
     this->log_ping_success();
 }
 
-// Save depth map in PNG format
+// Get depth map in PNG format
 std::shared_ptr<cv::Mat> frame_to_depth_mat( std::shared_ptr< ob::DepthFrame > depthFrame ) {
     std::vector< int > compression_params;
     compression_params.push_back( cv::IMWRITE_PNG_COMPRESSION );
@@ -146,24 +164,34 @@ std::shared_ptr<cv::Mat> frame_to_depth_mat( std::shared_ptr< ob::DepthFrame > d
     return std::make_shared<cv::Mat>(depth_mat);
 }
 
-// Save color images in PNG format
+// Get color images in PNG format
 std::shared_ptr<cv::Mat> frame_to_color_mat( std::shared_ptr< ob::ColorFrame > colorFrame ) {
-    std::vector< int > compression_params;
-    compression_params.push_back( cv::IMWRITE_PNG_COMPRESSION );
-    compression_params.push_back( 0 );
-    compression_params.push_back( cv::IMWRITE_PNG_STRATEGY );
-    compression_params.push_back( cv::IMWRITE_PNG_STRATEGY_DEFAULT );
-    std::string colorName = "Color_" + std::to_string( colorFrame->timeStamp() ) + ".png";
-    const cv::Mat color_raw_mat( 1, colorFrame->dataSize(), CV_8UC1, colorFrame->data() );
+    ob::FormatConvertFilter formatConverFilter;
+    formatConverFilter.setFormatConvertType(FORMAT_MJPEG_TO_RGB888);
+   std::cout<< "1";
+    auto pColorFrame = formatConverFilter.process(colorFrame)->as<ob::ColorFrame>();
+    formatConverFilter.setFormatConvertType(FORMAT_RGB_TO_BGR);
+   std::cout<< "2";
+    pColorFrame = formatConverFilter.process(pColorFrame)->as<ob::ColorFrame>();
+   std::cout<< "3";
+
+
+    const cv::Mat color_raw_mat( 1, colorFrame->dataSize(), CV_8UC1, pColorFrame->data() );
+   std::cout<< "4";
     const cv::Mat color_mat = cv::imdecode( color_raw_mat, 1 );
+   std::cout<< "65";
     return std::make_shared<cv::Mat>(color_mat);
 }
 
 std::shared_ptr<ColorDepthFrame> OrbbecCamera::get_rgb_depth_blocking(){
     try {
-        auto startTime = std::chrono::steady_clock::now();
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
-            auto frameSet = pipe->waitForFrames(500);
+            auto startTime = std::chrono::steady_clock::now();
+            auto frameSet = pipe->waitForFrames(30000);
+            if (frameSet == nullptr) {
+                logger->Error("OrbbecCamera::get_rgb_depth_blocking got null frameset! {}", _name);
+                throw std::runtime_error("pipe->waitForFrames returned null!");
+            }
             auto raw_color_frame = frameSet->colorFrame();
             auto color_mat = frame_to_color_mat(raw_color_frame);
             auto raw_depth_frame = frameSet->depthFrame();
@@ -184,9 +212,13 @@ std::shared_ptr<ColorDepthFrame> OrbbecCamera::get_rgb_depth_blocking(){
 
 std::shared_ptr<cv::Mat> OrbbecCamera::get_depth_blocking() {
     try {
-        auto startTime = std::chrono::steady_clock::now();
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
-            const auto frameSet = pipe->waitForFrames(500);
+            auto startTime = std::chrono::steady_clock::now();
+            const auto frameSet = pipe->waitForFrames(30000);
+            if (frameSet == nullptr) {
+                logger->Error("OrbbecCamera::get_depth_blocking got null frameset! {}", _name);
+                throw std::runtime_error("pipe->waitForFrames returned null!");
+            }
             const auto raw_depth_frame = frameSet->depthFrame();
             const auto depth_mat = frame_to_depth_mat(raw_depth_frame);
 
@@ -205,11 +237,29 @@ std::shared_ptr<cv::Mat> OrbbecCamera::get_depth_blocking() {
 
 std::shared_ptr<cv::Mat> OrbbecCamera::get_rgb_blocking() {
     try {
-        auto startTime = std::chrono::steady_clock::now();
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
-            auto frameSet = this->pipe->waitForFrames(500);
+            auto startTime = std::chrono::steady_clock::now();
+            logger->Info("waiting... {}", _name);
+            auto frameSet = this->pipe->waitForFrames(30000);
+            if (frameSet == nullptr) {
+                logger->Error("OrbbecCamera::get_rgb_blocking got null frameset! {}", _name);
+                throw std::runtime_error("pipe->waitForFrames returned null!");
+            }
+            logger->Info("waited... {}", _name);
             auto raw_color_frame = frameSet->colorFrame();
+
+
+            auto data = raw_color_frame->data();
+            Logger::Instance()->Info("OrbbecCamera::get_rgb_depth_blocking got some pixels size={}", raw_color_frame->dataSize());
+
+
+            if (raw_color_frame == nullptr) {
+                logger->Error("OrbbecCamera::get_rgb_blocking got null color frame! {}", _name);
+                throw std::runtime_error("pipe->waitForFrames returned null!");
+            }
+            logger->Info("callinggggg");
             auto color_mat = frame_to_color_mat(raw_color_frame);
+            logger->Info("got color mat {}, isEmpty: {}", _name, color_mat->empty());
             auto stopTime = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
             logger->Info("OrbbecCamera::get_rgb_depth_blocking took {}ms on {}", duration, _name);
@@ -218,6 +268,10 @@ std::shared_ptr<cv::Mat> OrbbecCamera::get_rgb_blocking() {
         }
     } catch (std::exception &e) {
         // Assume we lost connection and trigger reconnection
+
+        // TODO: remove this reboot, only for early debugging!
+        //logger->Info("OrbbecCamera::get_rgb_depth_blocking failed, rebooting {}", _name);
+        //this->device->reboot();
         disconnect(e.what());
         throw e;
     }

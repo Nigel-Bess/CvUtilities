@@ -162,9 +162,14 @@ namespace fulfil::dispense::commands::tcs {
 
         public:
 
-        static std::shared_ptr<ArucoTransforms> getTCSLFRTopViewAruco();
-        static std::shared_ptr<ArucoTransforms> getTCSBagTypeAruco();
-        static std::shared_ptr<ArucoTransforms> getTCSToteIDAruco();
+        cv::Ptr<cv::aruco::Dictionary> bag_type_id_aruco_dict;
+        cv::Ptr<cv::aruco::Dictionary> tote_id_aruco_dict;
+        cv::Ptr<cv::aruco::Dictionary> facility_id_aruco_dict;
+        cv::Ptr<cv::aruco::Dictionary> bag_cavity_markers_aruco_dict;
+
+        std::shared_ptr<ArucoTransforms> getTCSLFRTopViewAruco();
+        std::shared_ptr<ArucoTransforms> getTCSBagTypeAruco();
+        std::shared_ptr<ArucoTransforms> getTCSToteIDAruco();
 
         /**
         * TCSPerception Constructor that takes in the lfb generation that will be used to

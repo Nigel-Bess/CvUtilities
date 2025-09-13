@@ -15,8 +15,8 @@
 #include <cmath>
 #include <Fulfil.CPPUtils/logging.h>
 #include "commands/tcs/tcs_perception.h"
-#include <tuple>
 #include "commands/tcs/tcs_error_codes.h"
+#include <tuple>
 #include <json.hpp>
 //#include "orbbec/orbbec_camera.h"
 #include <Fulfil.CPPUtils/aruco/aruco_utils.h>
@@ -40,6 +40,86 @@ using fulfil::dispense::commands::tcs::BagType;
 using fulfil::utils::aruco::ArucoTransforms;
 using fulfil::utils::aruco::HomographyResult;
 using fulfil::utils::Logger;
+
+TCSPerception::TCSPerception() {
+
+    Logger::Instance()->Info("Generating Aruco dicts...");
+    bag_type_id_aruco_dict = cv::aruco::generateCustomDictionary(2,3);
+    tote_id_aruco_dict = cv::aruco::generateCustomDictionary(250,5);
+    facility_id_aruco_dict = cv::aruco::generateCustomDictionary(999,6);
+    bag_cavity_markers_aruco_dict = cv::aruco::generateCustomDictionary(8,4);
+    Logger::Instance()->Info("Aruco dicts generated");
+
+
+    Logger::Instance()->Info("Generating SIFT keypoints from baseline images");
+    this->sift = cv::SIFT::create();
+    // Pre-compute all SIFT keypoint/descriptors for all baseline images
+    this->bag_orientation_baselines = new std::map<std::string, std::shared_ptr<SiftEncoding>>();
+    this->bag_clip_baselines = new std::map<std::string, std::shared_ptr<BagClipBaseline>>();
+    this->bag_clip_bounding_boxes = new std::map<std::string, std::tuple<cv::Point2f*, cv::Point2f*>*>();
+
+    // Bag orientation SIFT pre-computes
+    auto bag_front_right_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-front-right.jpeg", cv::IMREAD_COLOR);
+    std::vector<cv::KeyPoint> front_right_kps;
+    cv::Mat front_right_descriptors;
+    sift->detectAndCompute(bag_front_right_img, cv::noArray(), front_right_kps, front_right_descriptors);
+    std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> front_right_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    for (auto const& kp : front_right_kps) {
+        front_right_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    (*bag_orientation_baselines)["Bag-front-right"] = std::make_shared<SiftEncoding>(front_right_kp_ptrs, std::make_shared<cv::Mat>(front_right_descriptors));
+
+    auto bag_back_left_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-back-left.jpeg", cv::IMREAD_COLOR);
+    std::vector<cv::KeyPoint> back_left_kps;
+    cv::Mat back_left_descriptors;
+    sift->detectAndCompute(bag_back_left_img, cv::noArray(), back_left_kps, back_left_descriptors);
+    auto back_left_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
+    for (auto const& kp : back_left_kps) {
+        back_left_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
+    }
+    (*bag_orientation_baselines)["Bag-back-left"] = std::make_shared<SiftEncoding>(back_left_kp_ptrs, std::make_shared<cv::Mat>(back_left_descriptors));
+
+    // Bag clip bounding boxes and SIFT pre-computes
+
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tl"] = new std::tuple(new cv::Point2f(432, 165), new cv::Point2f(477, 217));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tr"] = new std::tuple(new cv::Point2f(850, 170), new cv::Point2f(896, 220));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_bl"] = new std::tuple(new cv::Point2f(432, 526), new cv::Point2f(475, 571));
+    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_br"] = new std::tuple(new cv::Point2f(842, 526), new cv::Point2f(890, 577));
+    register_clip_baselines("LFP-B", false, "white-liner");
+
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(449, 187), new cv::Point2f(493, 249));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(841, 193), new cv::Point2f(877, 250));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(444, 486), new cv::Point2f(486, 541));
+    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_br"] = new std::tuple(new cv::Point2f(822, 492), new cv::Point2f(871, 551));
+    register_clip_baselines("LFP-B", true, "white-liner");
+
+
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tl"] = new std::tuple(new cv::Point2f(433, 190), new cv::Point2f(476, 254));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tr"] = new std::tuple(new cv::Point2f(808, 206), new cv::Point2f(852, 258));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_bl"] = new std::tuple(new cv::Point2f(429, 488), new cv::Point2f(473, 552));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_br"] = new std::tuple(new cv::Point2f(799, 494), new cv::Point2f(842, 565));
+    register_clip_baselines("LFP-A", true, "brown-bag");
+
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tl"] = new std::tuple(new cv::Point2f(415, 166), new cv::Point2f(464, 250));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tr"] = new std::tuple(new cv::Point2f(821, 171), new cv::Point2f(870, 250));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_bl"] = new std::tuple(new cv::Point2f(421, 504), new cv::Point2f(461, 576));
+    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_br"] = new std::tuple(new cv::Point2f(816, 520), new cv::Point2f(864, 578));
+    register_clip_baselines("LFP-A", false, "brown-bag");
+
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tl"] = new std::tuple(new cv::Point2f(416, 171), new cv::Point2f(469, 256));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tr"] = new std::tuple(new cv::Point2f(817, 181), new cv::Point2f(847, 258));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_bl"] = new std::tuple(new cv::Point2f(409, 507), new cv::Point2f(460, 581));
+    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_br"] = new std::tuple(new cv::Point2f(808, 526), new cv::Point2f(858, 588));
+    register_clip_baselines("LFP-A", false, "white-liner");
+
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(433, 173), new cv::Point2f(476, 254));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(812, 187), new cv::Point2f(849, 261));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(427, 499), new cv::Point2f(474, 568));
+    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_br"] = new std::tuple(new cv::Point2f(803, 502), new cv::Point2f(847, 580));
+    register_clip_baselines("LFP-A", true, "white-liner");
+
+    Logger::Instance()->Info("TCS Perception inference loaded");
+}
 
 /**
  * Any array of ideal rectangles that bound all 4 LFR bag clip locations.
@@ -115,8 +195,7 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSLFRT
     //parameters->minMarkerPerimeterRate = 4 * 0.0135; // = 4 edges * 35px / 2592px eyeballing in img editor
     // Use newest fastest algo
 
-    auto dict = cv::aruco::generateCustomDictionary(8,4);
-    topViewAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 2, 6);
+    topViewAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(bag_cavity_markers_aruco_dict, parameters, 0.75, 2, 6);
 
 
     // !!!!!!!!!!!!  If you add to this be sure to update TCSPerception constructor too  !!!!!!!!!!!!!
@@ -147,7 +226,7 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSBagT
     //parameters->maxMarkerPerimeterRate = 4 * 0.0500; // = 4 edges * 120px / 2592px eyeballing in img editor
     // Ignore boxes that are too big
    // parameters->minMarkerPerimeterRate = 4 * 0.0300; // = 4 edges * 35px / 2592px eyeballing in img editor
-    auto dict = cv::aruco::generateCustomDictionary(8, 4);
+    auto dict = bag_type_id_aruco_dict;
     bagTypeAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 1, 2);
     //Baseline 1 - Front facing bag with opening towards right
     bagTypeAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/Bag-front-right.jpeg", "Front", 1);
@@ -179,7 +258,7 @@ std::shared_ptr<fulfil::utils::aruco::ArucoTransforms> TCSPerception::getTCSTote
 
     // TODO: Switch to this for OpenCV 4.7+
     //auto dict = cv::aruco:: Dictionary::extendDictionary(8, 4);
-    auto dict = cv::aruco::generateCustomDictionary(1000, 4);
+    auto dict = tote_id_aruco_dict;
     toteIDAruco = std::make_shared<fulfil::utils::aruco::ArucoTransforms>(dict, parameters, 0.75, 5, 8);
     toteIDAruco->loadBaselineImageAsCandidate("Fulfil.TCS/assets/baselines/LFB-3.2.jpeg", "LFB-3.2", 8);
 
@@ -219,75 +298,6 @@ void TCSPerception::register_clip_baselines(std::string lfr_and_cavity, bool is_
         (*bag_clip_baselines)[clip_key] =
             std::make_shared<BagClipBaseline>(img, lfr_and_cavity, is_closed, i, sift_encode_arm(img, clip_key));
     }
-}
-
-TCSPerception::TCSPerception() {
-    this->sift = cv::SIFT::create();
-    // Pre-compute all SIFT keypoint/descriptors for all baseline images
-    this->bag_orientation_baselines = new std::map<std::string, std::shared_ptr<SiftEncoding>>();
-    this->bag_clip_baselines = new std::map<std::string, std::shared_ptr<BagClipBaseline>>();
-    this->bag_clip_bounding_boxes = new std::map<std::string, std::tuple<cv::Point2f*, cv::Point2f*>*>();
-
-    // Bag orientation SIFT pre-computes
-    auto bag_front_right_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-front-right.jpeg", cv::IMREAD_COLOR);
-    std::vector<cv::KeyPoint> front_right_kps;
-    cv::Mat front_right_descriptors;
-    sift->detectAndCompute(bag_front_right_img, cv::noArray(), front_right_kps, front_right_descriptors);
-    std::shared_ptr<std::vector<std::shared_ptr<cv::KeyPoint>>> front_right_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
-    for (auto const& kp : front_right_kps) {
-        front_right_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
-    }
-    (*bag_orientation_baselines)["Bag-front-right"] = std::make_shared<SiftEncoding>(front_right_kp_ptrs, std::make_shared<cv::Mat>(front_right_descriptors));
-
-    auto bag_back_left_img = cv::imread("Fulfil.TCS/assets/baselines/Bag-back-left.jpeg", cv::IMREAD_COLOR);
-    std::vector<cv::KeyPoint> back_left_kps;
-    cv::Mat back_left_descriptors;
-    sift->detectAndCompute(bag_back_left_img, cv::noArray(), back_left_kps, back_left_descriptors);
-    auto back_left_kp_ptrs = std::make_shared<std::vector<std::shared_ptr<cv::KeyPoint>>>();
-    for (auto const& kp : back_left_kps) {
-        back_left_kp_ptrs->push_back(std::make_shared<cv::KeyPoint>(kp));
-    }
-    (*bag_orientation_baselines)["Bag-back-left"] = std::make_shared<SiftEncoding>(back_left_kp_ptrs, std::make_shared<cv::Mat>(back_left_descriptors));
-
-    // Bag clip bounding boxes and SIFT pre-computes
-
-    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tl"] = new std::tuple(new cv::Point2f(432, 165), new cv::Point2f(477, 217));
-    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_tr"] = new std::tuple(new cv::Point2f(850, 170), new cv::Point2f(896, 220));
-    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_bl"] = new std::tuple(new cv::Point2f(432, 526), new cv::Point2f(475, 571));
-    (*bag_clip_bounding_boxes)["LFP-B_open_white-liner_br"] = new std::tuple(new cv::Point2f(842, 526), new cv::Point2f(890, 577));
-    register_clip_baselines("LFP-B", false, "white-liner");
-
-    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(449, 187), new cv::Point2f(493, 249));
-    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(841, 193), new cv::Point2f(877, 250));
-    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(444, 486), new cv::Point2f(486, 541));
-    (*bag_clip_bounding_boxes)["LFP-B_closed_white-liner_br"] = new std::tuple(new cv::Point2f(822, 492), new cv::Point2f(871, 551));
-    register_clip_baselines("LFP-B", true, "white-liner");
-
-
-    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tl"] = new std::tuple(new cv::Point2f(433, 190), new cv::Point2f(476, 254));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_tr"] = new std::tuple(new cv::Point2f(808, 206), new cv::Point2f(852, 258));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_bl"] = new std::tuple(new cv::Point2f(429, 488), new cv::Point2f(473, 552));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_brown-bag_br"] = new std::tuple(new cv::Point2f(799, 494), new cv::Point2f(842, 565));
-    register_clip_baselines("LFP-A", true, "brown-bag");
-
-    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tl"] = new std::tuple(new cv::Point2f(415, 166), new cv::Point2f(464, 250));
-    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_tr"] = new std::tuple(new cv::Point2f(821, 171), new cv::Point2f(870, 250));
-    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_bl"] = new std::tuple(new cv::Point2f(421, 504), new cv::Point2f(461, 576));
-    (*bag_clip_bounding_boxes)["LFP-A_open_brown-bag_br"] = new std::tuple(new cv::Point2f(816, 520), new cv::Point2f(864, 578));
-    register_clip_baselines("LFP-A", false, "brown-bag");
-
-    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tl"] = new std::tuple(new cv::Point2f(416, 171), new cv::Point2f(469, 256));
-    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_tr"] = new std::tuple(new cv::Point2f(817, 181), new cv::Point2f(847, 258));
-    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_bl"] = new std::tuple(new cv::Point2f(409, 507), new cv::Point2f(460, 581));
-    (*bag_clip_bounding_boxes)["LFP-A_open_white-liner_br"] = new std::tuple(new cv::Point2f(808, 526), new cv::Point2f(858, 588));
-    register_clip_baselines("LFP-A", false, "white-liner");
-
-    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tl"] = new std::tuple(new cv::Point2f(433, 173), new cv::Point2f(476, 254));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_tr"] = new std::tuple(new cv::Point2f(812, 187), new cv::Point2f(849, 261));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(427, 499), new cv::Point2f(474, 568));
-    (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_br"] = new std::tuple(new cv::Point2f(803, 502), new cv::Point2f(847, 580));
-    register_clip_baselines("LFP-A", true, "white-liner");
-
 }
 
 void SaveImages(cv::Mat image, std::string image_path)

@@ -25,7 +25,11 @@ std::vector<std::string> split_str(std::string str, char delimiter)
     return res;
 }
 
-std::map<std::string, std::string> get_orbbec_cam_list_from_env() {
+std::map<std::string, std::shared_ptr<OrbbecCamera>>* OrbbecManager::get_cameras_by_name() {
+    return &name_to_cam;
+}
+
+std::map<std::string, std::string> get_orbbec_cam_list_from_env(fulfil::utils::Logger* logger) {
     std::map<std::string, std::string> cam_serial_to_name;
     auto camera_csv_raw = getenv("ORBBEC_CAMERAS");
     std::string camera_csv = std::string(camera_csv_raw);
@@ -33,11 +37,13 @@ std::map<std::string, std::string> get_orbbec_cam_list_from_env() {
         printf("ORBBEC_CAMERAS not set, exiting\n");
         exit(1);
     }
+    logger->Info("Env-registered ORBBEC_CAMERAS are {}", camera_csv);
     // Split camera_csv on comma to get camera info pairs
     auto tuples = split_str(camera_csv, ',');
     for (auto const &tuple : tuples) {
         auto name_serial = split_str(tuple, ':');
-        cam_serial_to_name.emplace(name_serial[1], name_serial[0]);
+        cam_serial_to_name.emplace(name_serial[0], name_serial[1]);
+        logger->Info("debug {} {}", name_serial[0], name_serial[1]);
     }
     return cam_serial_to_name;
 }
@@ -45,7 +51,7 @@ std::map<std::string, std::string> get_orbbec_cam_list_from_env() {
 void OrbbecManager::run_manager() {
     logger->Info("=== Orbbec {} starting ===\n", "");
 
-    auto serial_to_name = get_orbbec_cam_list_from_env();
+    auto serial_to_name = get_orbbec_cam_list_from_env(logger);
 
     // Apply the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
     struct sigaction action;
@@ -76,8 +82,9 @@ void OrbbecManager::run_manager() {
                 logger->Info("Connecting to {}, SN: {}", cam_name, serial_number);
                 device = devices->getDeviceBySN(serial_number.c_str());
                 name_to_cam[cam_name] = std::make_shared<OrbbecCamera>(cam_name, device, logger);
+                name_to_cam[cam_name]->start_camera();
             } else {
-                logger->Info("Found Orbbec not registered by env vars, SN: ", serial_number);
+                logger->Info("Found Orbbec not registered by env vars, SN: {}", serial_number);
             }
         }
         if (name_to_cam.size() < serial_to_name.size()) {

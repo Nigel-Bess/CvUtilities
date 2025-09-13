@@ -7,24 +7,19 @@ RUN apt-get install -y udev libgl1-mesa-dev make curl wget unzip git protobuf-co
 ENV ORBBEC_SDK_VERSION=v2.4.11
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 RUN mkdir orbbec
-RUN cd orbbec && curl -o orbbec.zip https://storage.googleapis.com/public-libs/OrbbecSDK-${ORBBEC_SDK_VERSION}.zip
-RUN cd orbbec && unzip orbbec.zip && rm orbbec.zip
-RUN mv orbbec/OrbbecSDK_* orbbec/OrbbecSDK
-RUN ./orbbec/OrbbecSDK/setup.sh
-#RUN ls orbbec/OrbbecSDK && exit 1
 
-RUN cd orbbec && git clone  https://github.com/Orbbec/OrbbecSDK_v2.git
-RUN cd orbbec && cd OrbbecSDK_v2 && mkdir build && cd build && cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
-RUN cd orbbec && cd OrbbecSDK_v2/build && cmake --build . -j$(($(nproc)-1))
+RUN cd orbbec && \
+    git clone https://github.com/Orbbec/OrbbecSDK_v2.git && \
+    cd OrbbecSDK_v2 && mkdir build && cd build && \
+    cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
 
-#RUN ls orbbec/OrbbecSDK_v2/scripts/env_setup && exit 1
 RUN /lib/systemd/systemd-udevd --daemon && udevadm trigger && cd orbbec/OrbbecSDK_v2/scripts && chmod -R +x ./env_setup && ./env_setup/install_udev_rules.sh && ./env_setup/setup.sh
 ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/lib:$LD_LIBRARY_PATH
-ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/lib:$LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/lib:$LD_LIBRARY_PATH
 ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/bin:$PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/bin:$PATH
 ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/bin:$PATH
+ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_x86_64/lib:$PATH
 # Reload linux libs
 RUN ldconfig
 
@@ -65,10 +60,15 @@ RUN sed -i 's/\r//' ./scripts/build_date.sh
 #COPY .git .git
 RUN cd scripts && bash build_date.sh
 
-RUN cp -r ./Fulfil.MongoCpp ./Fulfil.CPPUtils/
-RUN cp -r orbbec/OrbbecSDK_v2 Fulfil.CPPUtils/OrbbecSDK
-RUN mkdir -p Fulfil.CPPUtils/lib
-RUN cp -r orbbec/OrbbecSDK Fulfil.CPPUtils/lib/orbbecsdk
+RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && \
+    mkdir -p Fulfil.CPPUtils/lib && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/lib && \
+    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/bin && \
+    cp -r orbbec/OrbbecSDK_v2/* Fulfil.CPPUtils/lib/orbbecsdk && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_x86_64/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_x86_64/bin/* Fulfil.CPPUtils/lib/orbbecsdk/bin/ && \
+    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib
 
 # Remove broken old tests
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
