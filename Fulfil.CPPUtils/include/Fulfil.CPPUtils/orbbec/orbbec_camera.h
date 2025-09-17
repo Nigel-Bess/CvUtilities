@@ -17,9 +17,9 @@ namespace fulfil
         {
             struct ColorDepthFrame
             {
-                ColorDepthFrame(std::shared_ptr<cv::Mat> color_img, std::shared_ptr<cv::Mat> depth_img) : color_img(color_img), depth_img(depth_img) {};
-                std::shared_ptr<cv::Mat> color_img;
-                std::shared_ptr<cv::Mat> depth_img;
+                ColorDepthFrame(cv::Mat color_img, cv::Mat depth_img) : color_img(color_img), depth_img(depth_img) {};
+                cv::Mat color_img;
+                cv::Mat depth_img;
             };
 
             class OrbbecObserver {
@@ -31,8 +31,8 @@ namespace fulfil
             {
             public:
                 OrbbecCamera(std::string _name, std::shared_ptr<ob::Device> device, fulfil::utils::Logger *logger): _name(_name), device(device), logger(logger) {};
-                std::shared_ptr<cv::Mat> get_rgb_blocking();
-                std::shared_ptr<cv::Mat> get_depth_blocking();
+                cv::Mat get_rgb_blocking();
+                cv::Mat get_depth_blocking();
                 std::shared_ptr<ColorDepthFrame> get_rgb_depth_blocking();
                 void start_camera();
                 void run_auto_exposure();

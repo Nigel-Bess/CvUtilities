@@ -69,7 +69,7 @@ void OrbbecManager::run_manager() {
         logger->Info("Done querying Orbbec device list, saw {}", devices->deviceCount());
 
         std::shared_ptr<ob::Config> config = std::make_shared<ob::Config>();
-        config->enableVideoStream(OB_STREAM_COLOR);
+        //config->enableVideoStream(OB_STREAM_COLOR);
 
         for (int i = 0; i < devices->deviceCount(); i++) {
             auto device = devices->getDevice(i);
