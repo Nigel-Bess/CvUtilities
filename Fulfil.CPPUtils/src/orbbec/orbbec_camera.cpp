@@ -75,6 +75,10 @@ void OrbbecCamera::run_camera_thread(){
         if(colorProfiles) {
             colorProfile = std::const_pointer_cast<ob::StreamProfile>(colorProfiles->getProfile(OB_PROFILE_DEFAULT))->as<ob::VideoStreamProfile>();
         }
+        else {
+            logger->Info("No color profiles!!!!");
+            exit(1);
+        }
         config->enableStream(colorProfile);
     }
     catch(ob::Error &e) {
@@ -276,19 +280,27 @@ cv::Mat OrbbecCamera::get_rgb_blocking() {
             auto startTime = std::chrono::steady_clock::now();
             logger->Info("waiting... {}", _name);
             auto frameSet = this->pipe->waitForFrames(30000);
+
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");
             }
-            logger->Info("waited... {}", _name);
-            auto raw_color_frame = frameSet->colorFrame();
-            auto data = raw_color_frame->data();
-            Logger::Instance()->Info("OrbbecCamera::get_rgb_depth_blocking got some pixels size={}", raw_color_frame->dataSize());
 
+            auto stopTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+            logger->Info("OrbbecCamera::get_rgb_depth_blocking took {}ms on {}", duration, _name);
+            logger->Info("waited for non-null frameset... {}", _name);
+            auto raw_color_frame = frameSet->colorFrame();
+            
             if (raw_color_frame == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_blocking got null color frame! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");
             }
+
+            Logger::Instance()->Info("got color frame");
+            Logger::Instance()->Info("OrbbecCamera::get_rgb_depth_blocking got some pixels size={}", raw_color_frame->dataSize());
+            auto data = raw_color_frame->data();
+
             logger->Info("callinggggg");
 
             cv::Mat colorRawMat( 1, raw_color_frame->dataSize(), CV_8UC1, raw_color_frame->data() );
@@ -297,7 +309,7 @@ cv::Mat OrbbecCamera::get_rgb_blocking() {
                 logger->Info("got color mat1 {}, isEmpty: {}", _name, color_mat.empty());
             } else {
                 logger->Info("Good 1!!!! {}, isEmpty: {}", _name, color_mat.empty());
-                cv::imwrite("/home/fulfil/data/debug/test.png", color_mat);
+                cv::imwrite("/home/fulfil/data/test.png", color_mat);
                 logger->Info("Wrote 1!!!! {}, isEmpty: {}", _name, color_mat.empty());
             }
 
@@ -311,9 +323,6 @@ cv::Mat OrbbecCamera::get_rgb_blocking() {
 
             auto color = frame_to_color_mat(raw_color_frame);
             logger->Info("got color mat {}, isEmpty: {}", _name, color.empty());
-            auto stopTime = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-            logger->Info("OrbbecCamera::get_rgb_depth_blocking took {}ms on {}", duration, _name);
             exit(1);
             this->log_ping_success();
             return color;
