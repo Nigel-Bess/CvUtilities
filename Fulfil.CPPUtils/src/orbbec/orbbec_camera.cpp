@@ -1,11 +1,13 @@
 #include <chrono>
 #include <Fulfil.CPPUtils/orbbec/orbbec_camera.h>
+#include <Fulfil.CPPUtils/logging.h>
 #include "libobsensor/ObSensor.hpp"
 #include <opencv2/opencv.hpp>
 
 using namespace std::chrono_literals;
 using fulfil::utils::orbbec::ColorDepthFrame;
 using fulfil::utils::orbbec::OrbbecCamera;
+using fulfil::utils::Logger;
 
 /// Max snapshot retries till GetBlockingImage gives up taking a valid frame
 const int MAX_SNAPSHOT_RETRIES = 20;
@@ -191,19 +193,25 @@ cv::Mat frame_to_depth_mat( std::shared_ptr< ob::DepthFrame > depthFrame ) {
 }
 
 // Get color images in PNG format
+
 cv::Mat frame_to_color_mat( std::shared_ptr< ob::ColorFrame > colorFrame ) {
     ob::FormatConvertFilter formatConverFilter;
     formatConverFilter.setFormatConvertType(FORMAT_MJPEG_TO_RGB888);
-   std::cout<< "1";
-    auto pColorFrame = formatConverFilter.process(colorFrame)->as<ob::ColorFrame>();
+   Logger::Instance()->Info("1");
+
     formatConverFilter.setFormatConvertType(FORMAT_RGB_TO_BGR);
+   Logger::Instance()->Info("1.5");
+    auto pColorFrame = formatConverFilter.process(colorFrame)->as<ob::ColorFrame>();
    std::cout<< "2";
-    pColorFrame = formatConverFilter.process(pColorFrame)->as<ob::ColorFrame>();
+   Logger::Instance()->Info("2");
+    //pColorFrame = formatConverFilter.process(pColorFrame)->as<ob::ColorFrame>();
    std::cout<< "3";
+   Logger::Instance()->Info("3");
 
 
-    const cv::Mat color_raw_mat( 1, colorFrame->dataSize(), CV_8UC1, pColorFrame->data() );
+    const cv::Mat color_raw_mat( 1, pColorFrame->dataSize(), CV_8UC1, pColorFrame->data() );
    std::cout<< "4";
+   Logger::Instance()->Info("4");
     const cv::Mat color_mat = cv::imdecode( color_raw_mat, 1 );
    std::cout<< "65";
     return color_mat;
@@ -213,7 +221,7 @@ std::shared_ptr<ColorDepthFrame> OrbbecCamera::get_rgb_depth_blocking(){
     try {
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
             auto startTime = std::chrono::steady_clock::now();
-            auto frameSet = pipe->waitForFrames(30000);
+            auto frameSet = pipe->waitForFrameset(10000);
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_depth_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");
@@ -240,7 +248,7 @@ cv::Mat OrbbecCamera::get_depth_blocking() {
     try {
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
             auto startTime = std::chrono::steady_clock::now();
-            const auto frameSet = pipe->waitForFrames(30000);
+            const auto frameSet = pipe->waitForFrameset(10000);
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_depth_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");
@@ -279,8 +287,7 @@ cv::Mat OrbbecCamera::get_rgb_blocking() {
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
             auto startTime = std::chrono::steady_clock::now();
             logger->Info("waiting... {}", _name);
-            auto frameSet = this->pipe->waitForFrames(30000);
-
+            auto frameSet = this->pipe->waitForFrameset(10000);
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");

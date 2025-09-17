@@ -17,7 +17,35 @@ Currently the [Grafana dashboard](https://grafana.fulfil-api.com/d/f8533408-b7a4
 
 I think there's some Streamlit stuff somewhere too...
 
-# Testing + Debugging
+# Basic Testing
+
+Tests in TCS are split into "unit" or inference tests and "integration" or simulated grpc endpoint call tests in "tests/unit_tests.cpp" and "tests/int_tests.cpp" respectively.
+
+## Build and Unit Test
+
+To run unit tests against your current code changes, run:
+
+```
+docker compose up tcs_unit_test --build
+```
+
+## Build and Integration Test
+
+To run integration (grpc simulation) tests against your current code changes, run:
+
+```
+docker compose up tcs_unit_test --build
+```
+
+## Build and run all tests
+
+To run all tests against your current code changes, run:
+
+```
+docker compose up --profile=tcs_test --build
+```
+
+# Evaluation + Debugging
 
 ## 0. Local env setup
 

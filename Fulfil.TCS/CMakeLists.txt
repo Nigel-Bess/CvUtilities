@@ -66,14 +66,26 @@ FetchContent_Declare(
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # TODO!!! Restore this but there's a weird mongo lib docker error...
-#FetchContent_MakeAvailable(googletest)
-#enable_testing()
-#add_executable(
-#  unit_test ${SOURCES} "test/tests.cpp"
-#)
-#target_link_libraries(
-#    unit_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
-#)
-#set_target_properties(unit_test PROPERTIES CXX_STANDARD 17)
-#include(GoogleTest)
-#gtest_discover_tests(unit_test)
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+
+# Unit tests
+add_executable(
+  unit_test ${SOURCES} "test/unit_tests.cpp"
+)
+target_link_libraries(
+    unit_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
+)
+set_target_properties(unit_test PROPERTIES CXX_STANDARD 17)
+
+# Integration tests
+add_executable(
+  int_test ${SOURCES} "test/int_tests.cpp"
+)
+target_link_libraries(
+    int_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
+)
+set_target_properties(int_test PROPERTIES CXX_STANDARD 17)
+
+include(GoogleTest)
+gtest_discover_tests(int_test)

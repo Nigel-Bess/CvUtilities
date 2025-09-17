@@ -1,15 +1,16 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TCS_CONTROLLER_H
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TCS_CONTROLLER_H
 
+/*
 #include <Fulfil.CPPUtils/logging.h>
-#include <Fulfil.CPPUtils/aruco/aruco_utils.h>
 #include <Fulfil.CPPUtils/comm/GrpcService.h>
 #include <Fulfil.CPPUtils/orbbec/orbbec_manager.h>
 #include "tcs_perception.h"
 #include "tcs_error_codes.h"
 #include "tcs_response.h"
-//#include "depthCams.pb.h"
-//#include "depthCams.grpc.pb.h"
+#include <Fulfil.CPPUtils/commands/dispense_command.h>
+*/
+#include "tcs_actions.h"
 
 namespace fulfil::dispense::commands::tcs {
 
@@ -38,13 +39,12 @@ namespace fulfil::dispense::commands::tcs {
         private:
             volatile bool is_listening;
             TCSPerception* tcs_perception;
+            TCSActions* actions;
             OrbbecManager* orbbec_manager;
             GrpcPort* open_port(std::string cam_name);
             void update_port_status(GrpcPort *port, DepthCameras::DcCameraStatusCodes code);
             void listen_loop();
             void handle_request(GrpcPort *port, std::shared_ptr<DepthCameras::DcRequest> request, int remainingRetries);
-            std::shared_ptr<DcResponse> handle_pre_pick_clip_actuator_request(GrpcPort *port, std::string &pkid, std::string &cmd_id);
-            std::shared_ptr<DcResponse> to_response(std::string &cmd_id, std::string &json_response);
     };
 }
 

@@ -10,11 +10,20 @@ const std::string reqDir = "Fulfil.TCS/data/by-id/";
 const std::string testOutDir = "Fulfil.TCS/data/test/";
 const std::string testInDir = "Fulfil.TCS/test/assets/bag_clips/";
 
+static TCSPerception* tcsInference;
+
+static TCSPerception* setup() {
+  if (tcsInference == nullptr) {
+    tcsInference = new TCSPerception();
+  }
+  return tcsInference;
+}
+
 // Bag Clip states
 
 TEST(BagClip, DetectsAllOpen) {
+  setup();
   auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-A_open_white-liner.jpeg", cv::IMREAD_COLOR));
-  auto tcsInference = new TCSPerception();
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
   EXPECT_EQ(clipsState->top_left_inference->status, fulfil::dispense::commands::tcs::TCSErrorCodes::Success);
@@ -27,8 +36,8 @@ TEST(BagClip, DetectsAllOpen) {
 }
 
 TEST(BagClip, DetectsAllClosedA) {
+  setup();
   auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-A_closed_white-liner.jpeg", cv::IMREAD_COLOR));
-  auto tcsInference = new TCSPerception();
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
@@ -42,8 +51,8 @@ TEST(BagClip, DetectsAllClosedA) {
 }
 
 TEST(BagClip, DetectsAllClosedB) {
+  setup();
   auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-B_closed_white-liner.jpeg", cv::IMREAD_COLOR));
-  auto tcsInference = new TCSPerception();
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
@@ -57,8 +66,8 @@ TEST(BagClip, DetectsAllClosedB) {
 }
 
 TEST(BagClip, ThrowsLowConfidence) {
+  setup();
   auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/covered_clips.jpeg", cv::IMREAD_COLOR));
-  auto tcsInference = new TCSPerception();
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
   EXPECT_EQ(clipsState->top_left_inference->status, fulfil::dispense::commands::tcs::TCSErrorCodes::LowConfidenceError);
@@ -71,8 +80,8 @@ TEST(BagClip, ThrowsLowConfidence) {
 }
 
 TEST(BagClip, DetectsAllClosedHellMode) {
+  setup();
   auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/hell.jpeg", cv::IMREAD_COLOR));
-  auto tcsInference = new TCSPerception();
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
@@ -88,8 +97,8 @@ TEST(BagClip, DetectsAllClosedHellMode) {
 //Bag Orientation - FRONT_RIGHT_OPENING (Similar to baseline1)
 
 TEST(BagOrientationTest, DetectBagOrientationFrontRight) {
+  setup();
 	auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/Bag-front-right.jpeg", cv::IMREAD_COLOR));
-	auto tcsInference = new TCSPerception();
 	auto tcsBagOrientation = tcsInference->getBagOrientation(image, testOutDir);
 
 	EXPECT_EQ(tcsBagOrientation->bagOrientation, PBLBaguetteOrientation::FRONT_RIGHT_OPENING);
@@ -100,7 +109,6 @@ TEST(BagOrientationTest, DetectBagOrientationFrontRight) {
 //Bag Orientation - BACK_LEFT_OPENING (Similar to baseline2)
 TEST(BagOrientationTest, DetectBagOrientationBackLeft) {
 	auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/Bag-back-left.jpeg", cv::IMREAD_COLOR));
-	auto tcsInference = new TCSPerception();
 	auto tcsBagOrientation = tcsInference->getBagOrientation(image, testOutDir);
 
 	EXPECT_EQ(tcsBagOrientation->bagOrientation, PBLBaguetteOrientation::BACK_LEFT_OPENING);
@@ -111,8 +119,8 @@ TEST(BagOrientationTest, DetectBagOrientationBackLeft) {
 
 //Bag Orientation - BACK_RIGHT_OPENING
 TEST(BagOrientationTest, DetectBagOrientationBackRight) {
+  setup();
 	auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/Bag-back-right.jpeg", cv::IMREAD_COLOR));
-	auto tcsInference = new TCSPerception();
 	auto tcsBagOrientation = tcsInference->getBagOrientation(image, testOutDir);
 
 	EXPECT_EQ(tcsBagOrientation->bagOrientation, PBLBaguetteOrientation::BACK_RIGHT_OPENING);
@@ -122,8 +130,8 @@ TEST(BagOrientationTest, DetectBagOrientationBackRight) {
 
 //Bag Orientation - FRONT_LEFT_OPENING 
 TEST(BagOrientationTest, DetectBagOrientationFrontLeft) {
+  setup();
 	auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/Bag-front-left.jpeg", cv::IMREAD_COLOR));
-	auto tcsInference = new TCSPerception();
 
 	auto tcsBagOrientation = tcsInference->getBagOrientation(image, testOutDir);
 

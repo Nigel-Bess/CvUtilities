@@ -387,7 +387,6 @@ void TCSPerception::drawMatchingKeypoints(std::shared_ptr<cv::Mat> baseline,  st
             cv::line(siftImage, point1, newPoint2, color, 1, cv::LINE_AA);
         }
     }
-    Logger::Instance()->Info("DRAWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW!");
     cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data/test/sift_match.jpeg", siftImage);
 }
 

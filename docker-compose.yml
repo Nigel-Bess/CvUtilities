@@ -25,10 +25,23 @@ services:
       - fed_test
 
   # TCS commands
-  tcs_test:
+  tcs_unit_test:
     build:
       dockerfile: TCS.Dockerfile
     command: "Fulfil.TCS/build/unit_test"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - tcs_test
+
+  tcs_int_test:
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "Fulfil.TCS/build/int_test"
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
