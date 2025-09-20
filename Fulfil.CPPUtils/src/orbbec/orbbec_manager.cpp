@@ -1,17 +1,10 @@
 #include <Fulfil.CPPUtils/orbbec/orbbec_manager.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <signal.h>
 #include <string.h>
 #include <tuple>
 #include <filesystem>
 #include <chrono>
-
-struct sigaction orbbec_manager_destructor;
-
-void orbbec_sig_handler(int sig_no){
-    printf("Graceful termination requested");
-}
 
 std::vector<std::string> split_str(std::string str, char delimiter)
 {
@@ -48,17 +41,16 @@ std::map<std::string, std::string> get_orbbec_cam_list_from_env(fulfil::utils::L
     return cam_serial_to_name;
 }
 
+void OrbbecManager::stop_manager() {
+    for (auto it = name_to_cam.begin(); it != name_to_cam.end(); it++) {
+        it->second->kill_camera();
+    }
+}
+
 void OrbbecManager::run_manager() {
     logger->Info("=== Orbbec {} starting ===\n", "");
 
     auto serial_to_name = get_orbbec_cam_list_from_env(logger);
-
-    // Apply the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
-    struct sigaction action;
-    memset(&action, 0, sizeof(action));
-    action.sa_handler = &orbbec_sig_handler;
-    sigaction(SIGINT, &action, &orbbec_manager_destructor);
-    sigaction(SIGTERM, &action, &orbbec_manager_destructor);
 
     try{
         ob::Context ctx;

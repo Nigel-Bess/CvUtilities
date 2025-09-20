@@ -7,7 +7,6 @@
 #include "tcs_perception.h"
 #include "tcs_error_codes.h"
 #include "tcs_response.h"
-#include <Fulfil.CPPUtils/commands/dispense_command.h>
 
 namespace fulfil::dispense::commands::tcs {
 
@@ -18,11 +17,10 @@ namespace fulfil::dispense::commands::tcs {
     class TCSActions {
         public:
             TCSActions(TCSPerception* tcs_perception);
-            std::shared_ptr<DepthCameras::DcResponse> handle_pre_pick_clip_actuator_request(cv::Mat color_bag_clips_img, std::string &pkid, std::string &cmd_id);
+            std::shared_ptr<nlohmann::json> handle_pre_pick_clip_actuator_request(cv::Mat color_bag_clips_img, std::shared_ptr<nlohmann::json> request, std::string &cmd_id);
 
         private:
             TCSPerception* tcs_perception;
-            std::shared_ptr<DcResponse> to_response(std::string &cmd_id, std::string &json_response);
     };
 }
 

@@ -193,7 +193,7 @@ namespace fulfil::dispense::commands::tcs {
         /*
         * Return the visible state of all 4 bag clips.
         */
-        std::shared_ptr<BagClipsInference> getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfrGeneration, std::string request_id, std::string directoryPath);
+        std::shared_ptr<BagClipsInference> getBagClipStates(cv::Mat bag_image, std::string lfrGeneration, std::string request_id, std::string directoryPath);
 
         /*
         * Draw sift structure match keypoints in baseline and test image

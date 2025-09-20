@@ -9,6 +9,7 @@ class OrbbecManager{
     public:
         OrbbecManager(fulfil::utils::Logger* logger) : logger(logger) {};
         void start_manager();
+        void stop_manager();
         std::map<std::string, std::shared_ptr<OrbbecCamera>>* get_cameras_by_name();
 
     private:

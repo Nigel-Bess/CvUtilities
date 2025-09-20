@@ -74,7 +74,7 @@ void testTCSBagClipsDetection(std::string request_id)
     auto requestImg = append_first_seen_dir(prefix_dir) + "color_image.png";
     
     std::string lfb_generation = "LFB-3.2";
-    auto image = std::make_shared<cv::Mat>(cv::imread(requestImg, cv::IMREAD_COLOR));
+    auto image = cv::imread(requestImg, cv::IMREAD_COLOR);
     Logger::Instance()->Info("RUN {}", testInDir);
     auto clipsState = tcsInference->getBagClipStates(image, "LFP", request_id, testInDir);
     

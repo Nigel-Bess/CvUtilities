@@ -35,7 +35,8 @@ void TCSController::update_port_status(GrpcPort *port, DepthCameras::DcCameraSta
 
 void TCSController::start_listening() {
     is_listening = true;
-    std::thread(&TCSController::listen_loop, this).detach();
+    listen_loop();
+    //std::thread(&TCSController::listen_loop, this).detach();
 }
 
 void TCSController::stop_listening() {
@@ -52,23 +53,40 @@ void TCSController::handle_request(GrpcPort *port, std::shared_ptr<DepthCameras:
     auto cmd_id = request->command_id();
     auto request_json = std::make_shared<nlohmann::json>(nlohmann::json::parse(payload.c_str()));
     auto type = (*request_json)["Type"].get<DispenseCommand>();
-    auto pkid = (*request_json)["Primary_Key_ID"].get<std::string>();
-    Logger::Instance()->Info("tcs::handle_request new request {} with pkid {} and payload: {}", (int)type, pkid, payload);
+    type = (DispenseCommand)36;
+    Logger::Instance()->Info("tcs::handle_request new request {}", payload);
 
     try {
         switch(type){
             case DispenseCommand::pre_pickup_clip_actuator:
+            default:
             {
-                // TODO: take orbbec snapshot
-                cv::Mat empty;
-                auto response = actions->handle_pre_pick_clip_actuator_request(empty, pkid, cmd_id);
-                port->service->QueueResponse(response);
+                Logger::Instance()->Info("tcs::handle_request okkkkkkk");
+                auto bag_cavity_index = (*request_json)["Bag_Cavity_Index"].get<int>();
+                std::string cam_name = bag_cavity_index == 0 ? "clipopener-top" : "clipopener-bottom";
+                auto cam = (*orbbec_manager->get_cameras_by_name())[cam_name];
+                if (cam == nullptr) {
+                    throw std::runtime_error(cam_name + " not found!???");
+                }
+                Logger::Instance()->Info("Taking snapshot");
+                cv::Mat color_img = cam->get_rgb_blocking();
+                Logger::Instance()->Info("Took snapshot");
+                // TODO: remove this resize
+                    cv::Size target_size(1280, 720);
+                    cv::Mat resized_img;
+                    cv::resize(color_img, resized_img, target_size, 0, 0, cv::INTER_LINEAR);
+
+                Logger::Instance()->Info("CALL INFERENCE");
+                auto response = actions->handle_pre_pick_clip_actuator_request(resized_img, request_json, cmd_id);
+                Logger::Instance()->Info("CALL INFERENCE2222222222");
+                port->service->QueueResponse(to_response(cmd_id, response));
                 return;
             }
-            default:
-                Logger::Instance()->Error("tcs::handle_request unhandled command {}", (int)type);
+            //default:
+                //Logger::Instance()->Error("tcs::handle_request unhandled command {}", (int)type);
         }
     } catch (std::exception &e) {
+        Logger::Instance()->Error("ERRRORRRRR {}", e.what());
         // Re-run auto exposure just in case if no markers were found
         //(if (remainingRetries > 0 && TCS_percep.success_code == TCSErrorCodes::NoMarkersDetected) {
         //    Logger::Instance()->Warn("No markers found at {}, trying to reset exposure", cam->name_);
@@ -120,4 +138,17 @@ void TCSController::listen_loop() {
         //port.service->
     }
 
+}
+
+std::shared_ptr<DcResponse> TCSController::to_response(std::string &cmd_id, std::shared_ptr<nlohmann::json> result_json){
+    auto response = result_json->dump();
+    Logger::Instance()->Info("Sending response: {}", result_json->dump());
+
+    auto api_resp = std::make_shared<DcResponse>();
+    api_resp->set_command_id(cmd_id);
+    Logger::Instance()->Debug("Response id: {}", api_resp->command_id());
+    api_resp->set_type(MESSAGE_TYPE_GENERIC_QUERY);
+    api_resp->set_message_size(response.size());
+    api_resp->set_message_data(response.data(), response.size());
+    return api_resp;
 }

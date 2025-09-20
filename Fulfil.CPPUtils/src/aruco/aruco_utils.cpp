@@ -168,11 +168,6 @@ std::shared_ptr<BestMarkers> ArucoTransforms::findBestMarkers(cv::Mat targetImag
         }
     }
 
-    Logger::Instance()->Info("[Aruco]: db 1 {}", cids->size());
-    Logger::Instance()->Info("[Aruco]: db 2 {}", ids->size());
-    Logger::Instance()->Info("[Aruco]: db 3 {}", instance->ids->size());
-
-    Logger::Instance()->Info("[Aruco]: Candidate was missing {} tags", missing_count);
     // Penalize missing IDs by 4 / N baseline markers, roughly equal to worse-case point distances for 4 corner points
     distance_score += (missing_count * 4.0) / candidate->ids->size();
     auto to_return = std::make_shared<BestMarkers>(std::make_shared<ImageMarkers>(markers, ids), distance_score);
@@ -319,7 +314,6 @@ std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> ArucoTransforms:
             Logger::Instance()->Info("[Aruco]: Insufficient markers seen for {} ()", it->first, curSize);
             continue;
         }
-        Logger::Instance()->Info("[Aruco]: find best in {}", it->first);
         auto bestMatches = findBestMarkers(targetImage, it->second, marks);
         results->push_back(to_homog_result(targetImage, it->first, bestMatches, debugDrawDir));
         //Logger::Instance()->Info("[Aruco]: Eval candidate: {} scored {}", it->first, best->distance_score);

@@ -9,6 +9,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <thread>
+#include <future>
 #include <fstream>
 #include <stdexcept>
 #include <numeric>
@@ -40,16 +42,21 @@ using fulfil::dispense::commands::tcs::BagType;
 using fulfil::utils::aruco::ArucoTransforms;
 using fulfil::utils::aruco::HomographyResult;
 using fulfil::utils::Logger;
+using cv::aruco::generateCustomDictionary;
+
+// An unfortunate wrapper needed for std::async to resolve stuff
+cv::Ptr<cv::aruco::Dictionary> generateCustomDictionary2Args(int a, int b) {
+    return generateCustomDictionary(a, b);
+}
 
 TCSPerception::TCSPerception() {
 
-    Logger::Instance()->Info("Generating Aruco dicts...");
-    bag_type_id_aruco_dict = cv::aruco::generateCustomDictionary(2,3);
-    tote_id_aruco_dict = cv::aruco::generateCustomDictionary(250,5);
-    facility_id_aruco_dict = cv::aruco::generateCustomDictionary(999,6);
-    bag_cavity_markers_aruco_dict = cv::aruco::generateCustomDictionary(8,4);
-    Logger::Instance()->Info("Aruco dicts generated");
-
+    Logger::Instance()->Info("Generating Aruco dicts in BG...");
+    // Slightly important to do biggest compute first
+    std::future<cv::Ptr<cv::aruco::Dictionary>> facility_id_future_dict = std::async(std::launch::async, generateCustomDictionary2Args, 999, 6); 
+    std::future<cv::Ptr<cv::aruco::Dictionary>> tote_id_future_dict = std::async(std::launch::async, generateCustomDictionary2Args, 250, 5); 
+    std::future<cv::Ptr<cv::aruco::Dictionary>> bag_cavity_future_dict = std::async(std::launch::async, generateCustomDictionary2Args, 8, 4); 
+    std::future<cv::Ptr<cv::aruco::Dictionary>> bag_type_future_dict = std::async(std::launch::async, generateCustomDictionary2Args, 2, 3); 
 
     Logger::Instance()->Info("Generating SIFT keypoints from baseline images");
     this->sift = cv::SIFT::create();
@@ -117,6 +124,12 @@ TCSPerception::TCSPerception() {
     (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_bl"] = new std::tuple(new cv::Point2f(427, 499), new cv::Point2f(474, 568));
     (*bag_clip_bounding_boxes)["LFP-A_closed_white-liner_br"] = new std::tuple(new cv::Point2f(803, 502), new cv::Point2f(847, 580));
     register_clip_baselines("LFP-A", true, "white-liner");
+
+    Logger::Instance()->Info("Waiting for Aruco dicts to wrap up...");
+    bag_type_id_aruco_dict = bag_type_future_dict.get();
+    tote_id_aruco_dict = tote_id_future_dict.get();
+    facility_id_aruco_dict = facility_id_future_dict.get();
+    bag_cavity_markers_aruco_dict = bag_cavity_future_dict.get();
 
     Logger::Instance()->Info("TCS Perception inference loaded");
 }
@@ -609,12 +622,11 @@ std::shared_ptr<BagClipInference> TCSPerception::inferBagClipState(std::map<std:
     return std::make_shared<BagClipInference>(is_closed, best_similarity, TCSErrorCodes::Success, best_key);
 }
 
-std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_ptr<cv::Mat> bag_image, std::string lfr_version, std::string request_id, std::string directoryPath) {
+std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(cv::Mat bag_image, std::string lfr_version, std::string request_id, std::string directoryPath) {
     // Prep save results to local file
     std::string labelFilename = directoryPath + "bag_clips.json";
     std::cerr << "label file: " + labelFilename;
     
-    cv::Mat image = *bag_image;
     int clips_closed_count = 0;
     auto startTime = std::chrono::steady_clock::now();
 
@@ -622,7 +634,7 @@ std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_p
     // match as closely as possible to a clean baseline and transform the entire image accordingly to coerce
     // the LFR into a perfectly horizontally aligned and rotated rectangle.  Also scale a baseline region of
     // interest rectangle based on the discovered homography between Aruco corners.
-    auto homogs = TCSPerception::getTCSLFRTopViewAruco()->findImgHomographyFromMarkers(image, directoryPath);
+    auto homogs = TCSPerception::getTCSLFRTopViewAruco()->findImgHomographyFromMarkers(bag_image, directoryPath);
 
     if (homogs->size() == 0) {
         auto errCode = TCSErrorCodes::NotEnoughMarkersDetected;
@@ -648,7 +660,7 @@ std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(std::shared_p
     for (auto const& homog : *homogs) {
         // Only consider Aruco baselines matching the best's LFR and cavity type
         if (homog->bestCandidateName.find(lfr_version_and_cavity) == 0) {
-            auto repinned_img = std::make_shared<cv::Mat>(TCSPerception::getTCSLFRTopViewAruco()->applyHomographyToImg(image, homog));
+            auto repinned_img = std::make_shared<cv::Mat>(TCSPerception::getTCSLFRTopViewAruco()->applyHomographyToImg(bag_image, homog));
             baseline_to_repinned_img[homog->bestCandidateName] = repinned_img;
         }
     }

@@ -1,15 +1,7 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TCS_CONTROLLER_H
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TCS_CONTROLLER_H
 
-/*
-#include <Fulfil.CPPUtils/logging.h>
-#include <Fulfil.CPPUtils/comm/GrpcService.h>
-#include <Fulfil.CPPUtils/orbbec/orbbec_manager.h>
-#include "tcs_perception.h"
-#include "tcs_error_codes.h"
-#include "tcs_response.h"
 #include <Fulfil.CPPUtils/commands/dispense_command.h>
-*/
 #include "tcs_actions.h"
 
 namespace fulfil::dispense::commands::tcs {
@@ -45,6 +37,7 @@ namespace fulfil::dispense::commands::tcs {
             void update_port_status(GrpcPort *port, DepthCameras::DcCameraStatusCodes code);
             void listen_loop();
             void handle_request(GrpcPort *port, std::shared_ptr<DepthCameras::DcRequest> request, int remainingRetries);
+            std::shared_ptr<DcResponse> to_response(std::string &cmd_id, std::shared_ptr<nlohmann::json> result_json);
     };
 }
 

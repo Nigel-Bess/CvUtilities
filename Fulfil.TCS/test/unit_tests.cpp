@@ -23,7 +23,7 @@ static TCSPerception* setup() {
 
 TEST(BagClip, DetectsAllOpen) {
   setup();
-  auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-A_open_white-liner.jpeg", cv::IMREAD_COLOR));
+  auto image = cv::imread("Fulfil.TCS/assets/baselines/LFP-A_open_white-liner.jpeg", cv::IMREAD_COLOR);
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
   EXPECT_EQ(clipsState->top_left_inference->status, fulfil::dispense::commands::tcs::TCSErrorCodes::Success);
@@ -37,7 +37,7 @@ TEST(BagClip, DetectsAllOpen) {
 
 TEST(BagClip, DetectsAllClosedA) {
   setup();
-  auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-A_closed_white-liner.jpeg", cv::IMREAD_COLOR));
+  auto image = cv::imread("Fulfil.TCS/assets/baselines/LFP-A_closed_white-liner.jpeg", cv::IMREAD_COLOR);
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
@@ -52,7 +52,7 @@ TEST(BagClip, DetectsAllClosedA) {
 
 TEST(BagClip, DetectsAllClosedB) {
   setup();
-  auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/assets/baselines/LFP-B_closed_white-liner.jpeg", cv::IMREAD_COLOR));
+  auto image = cv::imread("Fulfil.TCS/assets/baselines/LFP-B_closed_white-liner.jpeg", cv::IMREAD_COLOR);
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
@@ -67,7 +67,7 @@ TEST(BagClip, DetectsAllClosedB) {
 
 TEST(BagClip, ThrowsLowConfidence) {
   setup();
-  auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/covered_clips.jpeg", cv::IMREAD_COLOR));
+  auto image = cv::imread("Fulfil.TCS/test/assets/covered_clips.jpeg", cv::IMREAD_COLOR);
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
   EXPECT_EQ(clipsState->top_left_inference->status, fulfil::dispense::commands::tcs::TCSErrorCodes::LowConfidenceError);
@@ -81,7 +81,7 @@ TEST(BagClip, ThrowsLowConfidence) {
 
 TEST(BagClip, DetectsAllClosedHellMode) {
   setup();
-  auto image = std::make_shared<cv::Mat>(cv::imread("Fulfil.TCS/test/assets/hell.jpeg", cv::IMREAD_COLOR));
+  auto image = cv::imread("Fulfil.TCS/test/assets/hell.jpeg", cv::IMREAD_COLOR);
 
   auto clipsState = tcsInference->getBagClipStates(image, "LFP", "0", testOutDir);
 
