@@ -1,0 +1,17 @@
+services:
+
+  # TCS commands
+
+  tcs_int_test:
+    # image: "gcr.io/fulfil-web/cv-tcs/${BRANCH_NAME}:latest"
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "Fulfil.TCS/build/int_test"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - tcs_test

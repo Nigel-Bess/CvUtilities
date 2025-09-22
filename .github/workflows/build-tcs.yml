@@ -1,10 +1,11 @@
-name: Build TCS
+name: TCS CI
 on:
   push:
     paths:
     - Fulfil.TCS/**
     - TCS.Dockerfile
-    #- Fulfil.CPPUtils/**
+    - docker-compose-ci.yml
+    - Fulfil.CPPUtils/**
     - .github/workflows/*-tcs.yml
 
 env:
@@ -16,12 +17,12 @@ env:
 
 jobs:
   build:
-    name: Build Prod
+    name: Build Latest Branch
     runs-on: ubuntu-latest
     steps:
       - name: Tweak ENV
         run: |
-          CLEAN_BRANCH_NAME=${_BRANCH_NAME//\//_}
+          export CLEAN_BRANCH_NAME=${_BRANCH_NAME//\//_}
           echo "CLEAN_BRANCH_NAME: $CLEAN_BRANCH_NAME"
           echo "BRANCH_NAME=$CLEAN_BRANCH_NAME" >> $GITHUB_ENV
           echo BRANCH_NAME: ${BRANCH_NAME}, IMAGE_NAME: ${IMAGE_NAME}
@@ -54,11 +55,10 @@ jobs:
           # See: https://github.com/docker/buildx/issues/1533
           provenance: false
 
-      - name: Run tests
+      - name: Run Integration Tests
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
         run: |
-          docker pull ${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:latest || true
-          docker compose --profile tcs_test up
+          docker compose -f docker-compose-ci.yml up tcs_int_test
