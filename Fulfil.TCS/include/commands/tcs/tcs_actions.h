@@ -3,7 +3,7 @@
 
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.CPPUtils/comm/GrpcService.h>
-#include <Fulfil.CPPUtils/orbbec/orbbec_manager.h>
+#include <Fulfil.OrbbecUtils/orbbec/orbbec_manager.h>
 #include "tcs_perception.h"
 #include "tcs_error_codes.h"
 #include "tcs_response.h"

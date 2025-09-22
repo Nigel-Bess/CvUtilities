@@ -78,12 +78,12 @@ void test_marker_detection(std::string requestId) {
     auto requestImg = reqDir + requestId + "/color_image.jpeg";
     Logger::Instance()->Info("Opening " + requestImg);
     auto image = cv::imread(requestImg, cv::IMREAD_COLOR);
-    auto result = aruco->findImgHomographyFromMarkers(image, testOutDir);
+    auto result = (*aruco->findImgHomographyFromMarkers(image, testOutDir))[0];
     Logger::Instance()->Info("Got homogggg ");
     auto scaled = aruco->applyHomographyToImg(image, result);
     cv::imwrite(testOutDir + requestId + "/corrected.jpeg", scaled);
 
-    Logger::Instance()->Info("Img {} has {} markers", requestImg, result->maxMatchesSeen);
+    Logger::Instance()->Info("Img {} has {} markers", requestImg, result->max_markers_seen);
 }
 
 int main(int argc, char** argv) {

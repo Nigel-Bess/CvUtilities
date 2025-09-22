@@ -2,7 +2,11 @@
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_COMMANDS_TCS_CONTROLLER_H
 
 #include <Fulfil.CPPUtils/commands/dispense_command.h>
+#include <Fulfil.CPPUtils/comm/GrpcService.h>
+#include <Fulfil.OrbbecUtils/orbbec/orbbec_manager.h>
 #include "tcs_actions.h"
+#include "tcs_perception.h"
+#include "tcs_error_codes.h"
 
 namespace fulfil::dispense::commands::tcs {
 

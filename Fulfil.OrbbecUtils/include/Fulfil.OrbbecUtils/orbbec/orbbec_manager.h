@@ -1,7 +1,6 @@
 #pragma once
 
-#include <json.hpp>
-#include <Fulfil.CPPUtils/orbbec/orbbec_camera.h>
+#include "Fulfil.OrbbecUtils/orbbec/orbbec_camera.h"
 
 using fulfil::utils::orbbec::OrbbecCamera;
 

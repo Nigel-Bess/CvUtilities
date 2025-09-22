@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <filesystem>
 
-#include <Fulfil.CPPUtils/logging.h>
+#include "Fulfil.OrbbecUtils/logging.h"
 #include <iostream>
 #include "libobsensor/ObSensor.hpp"
 

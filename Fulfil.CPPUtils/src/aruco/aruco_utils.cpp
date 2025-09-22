@@ -16,6 +16,7 @@ using fulfil::utils::aruco::ArucoTransforms;
 using fulfil::utils::aruco::ImageMarkers;
 using fulfil::utils::aruco::HomographyResult;
 using fulfil::utils::aruco::BestMarkers;
+using fulfil::utils::aruco::CountedHomographyResult;
 using fulfil::utils::Logger;
 
 const auto EMPTY_POINT_ARRAY = std::make_shared<std::vector<std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>>>>();
@@ -209,9 +210,9 @@ void ArucoTransforms::loadBaselineImageAsCandidate(std::string srcImgFile, std::
 
 std::shared_ptr<HomographyResult> ArucoTransforms::to_homog_result(cv::Mat &targetImage, std::string name, std::shared_ptr<BestMarkers> bestMatches, std::string debugDrawDir) {
     // Trim the worst matching markers until at most maxCandidateMarkerMatches remain
-    int maxMatchesSeen = bestMatches->matches->markers->size();
-    int newSize = maxMatchesSeen > maxCandidateMarkerMatches ? maxCandidateMarkerMatches : maxMatchesSeen;
-    int trimCount = maxMatchesSeen > maxCandidateMarkerMatches ? (maxMatchesSeen - maxCandidateMarkerMatches) : 0;
+    int max_markers_seen = bestMatches->matches->markers->size();
+    int newSize = max_markers_seen > maxCandidateMarkerMatches ? maxCandidateMarkerMatches : max_markers_seen;
+    int trimCount = max_markers_seen > maxCandidateMarkerMatches ? (max_markers_seen - maxCandidateMarkerMatches) : 0;
     auto truncatedMarkers = std::make_shared<std::vector<std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>>>>();
     auto truncatedIds = std::make_shared<std::vector<int>>();
     for (int i = 0; i < newSize; i++) {
@@ -291,7 +292,7 @@ std::shared_ptr<HomographyResult> ArucoTransforms::to_homog_result(cv::Mat &targ
     }
     auto trimmedCandidates = std::make_shared<ImageMarkers>(trimmedMarkers, trimmedIds);
     auto new_best = std::make_shared<BestMarkers>(truncatedBest, bestMatches->distance_score);
-    return std::make_shared<HomographyResult>(new_best, trimmedCandidates, homog, name, maxMatchesSeen);
+    return std::make_shared<HomographyResult>(new_best, trimmedCandidates, homog, name, max_markers_seen);
 }
 
 struct less_than_homog
@@ -303,12 +304,18 @@ struct less_than_homog
 };
 
 std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> ArucoTransforms::findImgHomographyFromMarkers(cv::Mat targetImage, std::string debugDrawDir) {
+    return findAndCountImgHomographyFromMarkers(targetImage, debugDrawDir)->results;
+}
+
+std::shared_ptr<CountedHomographyResult> ArucoTransforms::findAndCountImgHomographyFromMarkers(cv::Mat targetImage, std::string debugDrawDir) {
+    int max_markers_seen = 0;
     auto results = std::make_shared<std::vector<std::shared_ptr<HomographyResult>>>();
     // Iterate over all baselineCandidates to findBestMarkers
     Logger::Instance()->Info("[Aruco]: baselineCandidates size = {}", this->baselineCandidates->size());
     for (auto it = this->baselineCandidates->begin(); it != this->baselineCandidates->end(); ++it) {
         auto marks = detectArucoMarkers(targetImage, it->first);
         auto curSize = (int)marks->markers->size();
+        max_markers_seen = std::max(max_markers_seen, curSize);
 
         if (curSize < minCandidateMarkerMatches) {
             Logger::Instance()->Info("[Aruco]: Insufficient markers seen for {} ()", it->first, curSize);
@@ -325,7 +332,7 @@ std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> ArucoTransforms:
     // Sort results by score ascending order
     std::sort(results->begin(), results->end(), less_than_homog());
     Logger::Instance()->Error("[Aruco]: winner {}", (*results)[0]->bestCandidateName);
-    return results;
+    return std::make_shared<CountedHomographyResult>(max_markers_seen, results);
 }
 
 cv::Mat ArucoTransforms::applyHomographyToImg(cv::Mat img, std::shared_ptr<HomographyResult> homography) {

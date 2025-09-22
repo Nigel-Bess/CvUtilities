@@ -530,13 +530,13 @@ std::shared_ptr<BagOrientationInference> TCSPerception::getBagOrientation(std::s
     auto homog = (*TCSPerception::getTCSBagTypeAruco()->findImgHomographyFromMarkers(*image, directoryPath))[0];
     
     if (homog->transformMatrix.empty()) {
-        auto errCode = homog->maxMatchesSeen > 0 ? (TCSErrorCodes::NotEnoughMarkersDetected) : (TCSErrorCodes::NoMarkersDetected);
+        auto errCode = homog->max_markers_seen > 0 ? (TCSErrorCodes::NotEnoughMarkersDetected) : (TCSErrorCodes::NoMarkersDetected);
         Logger::Instance()->Info("Aruco homograhy returned empty results");
         return std::make_shared<BagOrientationInference>(BagOrientationInference{ PBLBaguetteOrientation::UNEXPECTED, BagType::UNKNOWN, false});
     }
-    //write_result_file(labelFilename, homog->maxMatchesSeen);
+    //write_result_file(labelFilename, homog->max_markers_seen);
     // Aruco transform the image to a more baseline-like positioning
-    if (homog->maxMatchesSeen > 1) {
+    if (homog->max_markers_seen > 1) {
         auto errCode = TCSErrorCodes::NotEnoughMarkersDetected;
         Logger::Instance()->Info("Detected more than 1 marker on the bag");
     }
@@ -638,7 +638,7 @@ std::shared_ptr<BagClipsInference> TCSPerception::getBagClipStates(cv::Mat bag_i
 
     if (homogs->size() == 0) {
         auto errCode = TCSErrorCodes::NotEnoughMarkersDetected;
-        //write_result_file(labelFilename, homog->maxMatchesSeen);
+        //write_result_file(labelFilename, homog->max_markers_seen);
         auto topLeft = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
         auto topRight = std::make_shared<BagClipInference>(false, 0.0, errCode, "");
         auto bottomLeft = std::make_shared<BagClipInference>(false, 0.0, errCode, "");

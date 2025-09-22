@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.22)
 
 # Project name and settings
 project(
-        Fulfil.CPPUtils
+        Fulfil.OrbbecUtils
         VERSION 1.0
         DESCRIPTION "A library of generic utils for c++ projects"
         LANGUAGES CXX
@@ -21,21 +21,21 @@ else()
    set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
-set(INCLUDE_INSTALL_DIR /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPP/include/ )
+set(INCLUDE_INSTALL_DIR /home/fulfil/code/Fulfil.ComputerVision/Fulfil.OrbbecUtils/include/ )
 set(LIB_INSTALL_DIR lib/ )
-set(SYSCONFIG_INSTALL_DIR usr/bin/Fulfil.CPPUtils/ )
+set(SYSCONFIG_INSTALL_DIR usr/bin/Fulfil.OrbbecUtils/ )
 include(CMakePackageConfigHelpers)
 configure_package_config_file(CMakeLists.txt.in
-  ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfig.cmake
-  INSTALL_DESTINATION ${LIB_INSTALL_DIR}/Fulfil.CPPUtils/cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.OrbbecUtilsConfig.cmake
+  INSTALL_DESTINATION ${LIB_INSTALL_DIR}/Fulfil.OrbbecUtils/cmake
   PATH_VARS INCLUDE_INSTALL_DIR SYSCONFIG_INSTALL_DIR)
 write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfigVersion.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.OrbbecUtilsConfigVersion.cmake
   VERSION 1.0.0
   COMPATIBILITY SameMajorVersion )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfig.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.CPPUtilsConfigVersion.cmake
-        PUBLIC_HEADER DESTINATION ${LIB_INSTALL_DIR}/Fulfil.CPPUtils/cmake )
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.OrbbecUtilsConfig.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/Fulfil.OrbbecUtilsConfigVersion.cmake
+        PUBLIC_HEADER DESTINATION ${LIB_INSTALL_DIR}/Fulfil.OrbbecUtils/cmake )
 
 # set(GRPC_FETCHCONTENT ON)
 if(MSVC)
@@ -50,6 +50,10 @@ find_package(Threads REQUIRED)
 find_package(OpenCV 4.6.0 REQUIRED)
 message("-- Found OpenCV lib ${OpenCV_VERSION}!")
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+# Require Orbbec
+set(OrbbecSDK_DIR "lib/orbbecsdk/lib")
+find_package(OrbbecSDK)
 
 if(GRPC_AS_SUBMODULE)
   # One way to build a projects that uses gRPC is to just include the
@@ -169,18 +173,4 @@ else ()
    set(FULFIL_INI_DIR "${CMAKE_SOURCE_DIR}/configs")
    message("-- Using default config directory ${FULFIL_INI_DIR}")
 endif()
-
-#add_subdirectory("../Fulfil.MongoCpp" "build/FulfilMongoCpp")
-#add_library(FulfilMongoCpp STATIC IMPORTED)
-#set_property(TARGET FulfilMongoCpp PROPERTY
-#             IMPORTED_LOCATION "Fulfil.MongoCpp")
-add_subdirectory("../Fulfil.MongoCpp" build)
-find_package(FulfilMongoCpp REQUIRED)
-find_package(libmongoc-1.0 REQUIRED)
-
-#add_library(FulfilMongoCpp STATIC IMPORTED)
-#set_property(TARGET FulfilMongoCpp PROPERTY
-#             IMPORTED_LOCATION "../Fulfil.MongoCpp/build")
-
-#add_subdirectory(app)
 add_subdirectory(src)

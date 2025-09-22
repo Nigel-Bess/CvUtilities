@@ -1,6 +1,5 @@
 #include <chrono>
-#include <Fulfil.CPPUtils/orbbec/orbbec_camera.h>
-#include <Fulfil.CPPUtils/logging.h>
+#include "Fulfil.OrbbecUtils/orbbec/orbbec_camera.h"
 #include "libobsensor/ObSensor.hpp"
 #include <opencv2/opencv.hpp>
 

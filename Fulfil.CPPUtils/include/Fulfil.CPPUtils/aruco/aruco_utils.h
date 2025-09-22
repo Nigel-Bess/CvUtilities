@@ -39,11 +39,11 @@ namespace fulfil
                 std::shared_ptr<ImageMarkers> baselineMarkers,
                 cv::Mat transformMatrix,
                 std::string bestCandidateName,
-                int maxMatchesSeen) : imgMarkers(imgMarkers),
+                int max_markers_seen) : imgMarkers(imgMarkers),
                                      baselineMarkers(baselineMarkers),
                                      transformMatrix(transformMatrix),
                                      bestCandidateName(bestCandidateName),
-                                     maxMatchesSeen(maxMatchesSeen) {};
+                                     max_markers_seen(max_markers_seen) {};
                 /**
                  * The raw Aruco ImageMarkers in the target image that (roughly) match to a matching baseline
                  * candidate image.
@@ -73,8 +73,14 @@ namespace fulfil
                  * Same as imgMarkers->size() if set, otherwise the max number of Aruco markers seen for
                  * the best (but failed) baseline candidate image.
                 */
-                int maxMatchesSeen;
+                int max_markers_seen;
 
+            };
+
+            struct CountedHomographyResult {
+                CountedHomographyResult(int max_markers_seen, std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> results) : max_markers_seen(max_markers_seen), results(results) {};
+                int max_markers_seen;
+                std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> results;
             };
 
             /**
@@ -152,6 +158,14 @@ namespace fulfil
                 }
 
                 /**
+                 * Highschool geometric distance between 2 2D points
+                 */
+                static double distance(const cv::Point2f &p1, const cv::Point2f &p2)
+                {
+                    return std::sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+                }
+
+                /**
                  * Load an image file and find the Aruco markers to record as a baseline candidate
                  * for future findImgHomographyFromMarkers calls instead of passing hand-crafted
                  * vectors into the ArucoTransforms constructor.  Throws dangerously if expectedMarkerCount
@@ -178,6 +192,10 @@ namespace fulfil
                  */
                 std::shared_ptr<std::vector<std::shared_ptr<HomographyResult>>> findImgHomographyFromMarkers(cv::Mat targetImage, std::string debugDrawDir);
 
+                /**
+                 * Same as findImgHomographyFromMarkers but also return the max marker count seen in the best match regardless of being a valid match
+                 */
+                std::shared_ptr<CountedHomographyResult> findAndCountImgHomographyFromMarkers(cv::Mat targetImage, std::string debugDrawDir);
                 /**
                  * Apply a homography matrix obtained in sibling methods to an image to rotate/scale/translate it
                  * into matching the most similar candidate in this->baselineCandidates

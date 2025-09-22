@@ -22,13 +22,14 @@ include(/home/fulfil/VimbaX_2024-1/api/examples/cmake/vmb_cmake_prefix_paths.cma
 find_package(Vmb REQUIRED COMPONENTS CPP NAMES Vmb VmbC VmbCPP VmbImageTransform)
 message(STATUS "Using Vmb ${Vmb_VERSION}")
 
-set(OrbbecSDK_DIR "../Fulfil.CPPUtils/lib/orbbecsdk/lib")
+set(OrbbecSDK_DIR "../Fulfil.OrbbecUtils/lib/orbbecsdk/lib")
 find_package(OrbbecSDK REQUIRED)
 
 link_directories(/home/fulfil/VimbaX_2024-1/api/lib)
 
 add_subdirectory(../third-party ${CMAKE_CURRENT_BINARY_DIR}/libs/third-party)
 add_subdirectory(../Fulfil.CPPUtils build)
+add_subdirectory(../Fulfil.OrbbecUtils build/orbbec)
 #set(Fulfil.CPPUtils_DIR ../Fulfil.CPPUtils/build)
 #find_package("Fulfil.CPPUtils" REQUIRED)
 
@@ -40,22 +41,22 @@ file(GLOB SOURCES "src/commands/**/*.cpp" "src/*.cpp" "src/**/*.cpp")
 
 # TCS entrypoint
 add_executable(tcs "tcs.cpp" ${SOURCES})
-target_link_libraries(tcs Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
+target_link_libraries(tcs Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(tcs PROPERTIES CXX_STANDARD 17)
 
 # TCS eval entrypoint
 add_executable(eval "eval.cpp" ${SOURCES})
-target_link_libraries(eval Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
+target_link_libraries(eval Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(eval PROPERTIES CXX_STANDARD 17)
 
 # PBL entrypoint
 add_executable(pbl "pbl.cpp" ${SOURCES})
-target_link_libraries(pbl Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
+target_link_libraries(pbl Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(pbl PROPERTIES CXX_STANDARD 17)
 
 # Orbbec playground entrypoint
 add_executable(orbbec "orbbec.cpp" ${SOURCES})
-target_link_libraries(orbbec Fulfil.CPPUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
+target_link_libraries(orbbec Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(orbbec PROPERTIES CXX_STANDARD 17)
 
 # Test stuff
@@ -74,7 +75,7 @@ add_executable(
   unit_test ${SOURCES} "test/unit_tests.cpp"
 )
 target_link_libraries(
-    unit_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
+    unit_test GTest::gtest_main Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP pthread json ${OpenCV_LIBS}
 )
 set_target_properties(unit_test PROPERTIES CXX_STANDARD 17)
 
@@ -83,7 +84,7 @@ add_executable(
   int_test ${SOURCES} "test/int_tests.cpp"
 )
 target_link_libraries(
-    int_test GTest::gtest_main Fulfil.CPPUtils Vmb::CPP pthread json ${OpenCV_LIBS}
+    int_test GTest::gtest_main Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP pthread json ${OpenCV_LIBS}
 )
 set_target_properties(int_test PROPERTIES CXX_STANDARD 17)
 

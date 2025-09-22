@@ -18,7 +18,7 @@
 #include <tuple>
 #include "repack_error_codes.h"
 #include <json.hpp>
-#include <FulfilCPPUtils/aruco/aruco_utils.h>
+#include <Fulfil.CPPUtils/aruco/aruco_utils.h>
 #include <chrono>
 
 using fulfil::dispense::commands::get_error_name_from_code;
@@ -392,7 +392,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
     // match as closely as possible to a clean baseline and transform the entire image accordingly to coerce
     // the LFR into a perfectly horizontally aligned and rotated rectangle.  Also scale a baseline region of
     // interest rectangle based on the discovered homography between Aruco corners.
-    auto homog = RepackPerception::getRepackArucoTransforms()->findImgHomographyFromMarkers(image, directory_path);
+    auto homogs = RepackPerception::getRepackArucoTransforms()->findAndCountImgHomographyFromMarkers(image, directory_path);
     auto startTime = std::chrono::steady_clock::now();
 
     // default if any errors are encountered in the algorithm is true, to assume the bag is empty
@@ -400,13 +400,14 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
     { 
         // Set default cynical value in case of marker error
         this->is_bag_empty = false;
-        if (homog->transformMatrix.empty()) {
-            this->success_code = homog->maxMatchesSeen > 0 ? (RepackErrorCodes::NotEnoughMarkersDetected) : (RepackErrorCodes::NoMarkersDetected);
-            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Could not find Aruco marker baseline, found: " + std::to_string(homog->maxMatchesSeen));
+        if (homogs->results->size() == 0) {
+            this->success_code = homogs->max_markers_seen > 0 ? (RepackErrorCodes::NotEnoughMarkersDetected) : (RepackErrorCodes::NoMarkersDetected);
+            this->error_description = get_error_name_from_code((RepackErrorCodes)this->success_code) + " -> " + std::string("Could not find Aruco marker baseline, found: " + std::to_string(homogs->max_markers_seen));
             Logger::Instance()->Error(this->error_description);
-            write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
+            write_result_file(labelFilename, requestId, cameraId, homogs->max_markers_seen, lfbId);
             return false;
         }
+        auto homog = (*homogs->results)[0];
 
         // Apply and (estimated) best linear tranform to input image to reposition pixel points more like baseline's
         auto imgRepinnedToBaseline = RepackPerception::getRepackArucoTransforms()->applyHomographyToImg(image, homog);
@@ -433,7 +434,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
         Logger::Instance()->Info("is_bot_ready_for_release took {}ms", duration);
 
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
+        write_result_file(labelFilename, requestId, cameraId, homog->max_markers_seen, lfbId);
 
         Logger::Instance()->Info("Returning is_bag_empty: {}", std::to_string(bag_has_no_items));
         return this->is_bag_empty;
@@ -451,7 +452,7 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
         {
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch exception block already has success_code {} so no error fields will be updated", this->success_code);
         }
-        write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
+        write_result_file(labelFilename, requestId, cameraId, homogs->max_markers_seen, lfbId);
         return this->is_bag_empty;
     }
     catch (...)
@@ -468,6 +469,6 @@ bool RepackPerception::is_bot_ready_for_release(std::shared_ptr<cv::Mat> bag_ima
             Logger::Instance()->Debug("RepackPerception is_bot_ready_for_release in catch (...) block already has success_code {} so no error fields will be updated", this->success_code);
         }
     }
-    write_result_file(labelFilename, requestId, cameraId, homog->maxMatchesSeen, lfbId);
+    write_result_file(labelFilename, requestId, cameraId, homogs->max_markers_seen, lfbId);
     return this->is_bag_empty;
 }

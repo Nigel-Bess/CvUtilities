@@ -82,7 +82,7 @@ void test_marker_detection(std::string requestId) {
     Logger::Instance()->Info("Got homogggg ");
     auto scaled = aruco->applyHomographyToImg(image, result);
     cv::imwrite(testOutDir + requestId + "/corrected.jpeg", scaled);
-    Logger::Instance()->Info("Img {} has {} markers", requestImg, result->maxMatchesSeen);
+    Logger::Instance()->Info("Img {} has {} markers", requestImg, result->max_markers_seen);
     */
 }
 

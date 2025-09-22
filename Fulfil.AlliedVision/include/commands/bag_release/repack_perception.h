@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <numeric>
 #include <Fulfil.CPPUtils/logging.h>
-#include <FulfilCPPUtils/aruco/aruco_utils.h>
+#include <Fulfil.CPPUtils/aruco/aruco_utils.h>
 #include "bag_release_response.h"
 
 using fulfil::utils::aruco::ArucoTransforms;
