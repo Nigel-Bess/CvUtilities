@@ -23,6 +23,11 @@ class TrayValidationResponse final : public fulfil::dispense::commands::Dispense
       std::shared_ptr<std::string> command_id;
 
       /**
+       * The error message to be sent in response to the request
+       */
+      std::shared_ptr<std::string> error_description;
+
+      /**
        * The payload to be sent in response to the request
        */
       std::shared_ptr<std::string> payload;
@@ -33,14 +38,14 @@ class TrayValidationResponse final : public fulfil::dispense::commands::Dispense
        * @param command_id the command id of the request that led to this response
        * @param success_code indicates what kind of error took place. > 0 means an error
        */
-      explicit TrayValidationResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> payload);
+      explicit TrayValidationResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> payload, std::shared_ptr<std::string> err_msg = nullptr);
 
       /**
        * TrayValidationResponse constructor that initializes a response indicating a failure.
        * @param command_id the command id of the request that led to this response
        * @param success_code indicates what kind of error took place. > 0 means an error
        */
-      explicit TrayValidationResponse(std::shared_ptr<std::string> command_id, int success_code);
+      explicit TrayValidationResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg = nullptr);
 
       /**
        * Returns the command id for the response.

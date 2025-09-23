@@ -25,6 +25,11 @@ class CodeResponse : public fulfil::dispense::commands::DispenseResponse
   int success_code;
 
   /**
+   * The error message to be sent in response to the request
+   */
+  std::shared_ptr<std::string> error_description;
+
+  /**
    * The payload to be sent in response to the request
    */
   std::shared_ptr<std::string> payload;
@@ -38,7 +43,7 @@ class CodeResponse : public fulfil::dispense::commands::DispenseResponse
   /**
    *  constructor that initializes a response indicating a success / failure based on error code.
    */
-  explicit CodeResponse(std::shared_ptr<std::string> command_id, int success_code);
+  explicit CodeResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg = nullptr);
 
   /**
    * Returns the command id for the response.

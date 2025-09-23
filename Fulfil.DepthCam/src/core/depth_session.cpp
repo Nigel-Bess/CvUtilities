@@ -8,6 +8,7 @@
  */
 #include <Fulfil.CPPUtils/file_system_util.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.DepthCam/core/depth_sensor.h>
 #include <Fulfil.DepthCam/core/depth_session.h>
 #include <Fulfil.DepthCam/point_cloud/no_translation_point_cloud.h>
@@ -15,6 +16,7 @@
 #include <eigen3/Eigen/Dense>
 #include <librealsense2/rs.hpp>
 #include <memory>
+#include <stdexcept>
 #include <cstdio>
 
 using fulfil::utils::FileSystemUtil;
@@ -22,6 +24,8 @@ using fulfil::depthcam::DepthSession;
 using fulfil::depthcam::pointcloud::NoTranslationPointCloud;
 using fulfil::depthcam::pointcloud::TranslatedPointCloud;
 using fulfil::utils::Logger;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
+using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 
 /**
  auto try_set_emitter_control = [&sensor](int desired_setting) {
@@ -183,7 +187,62 @@ void DepthSession::refresh(bool align_frames, bool validate_frames, bool num_ret
       std::this_thread::sleep_for(std::chrono::milliseconds(time_ms_to_new_frame));
     }
   }
-  // TODO throw error here to be caught in FC
+
+  // Check for frame number comparison to detect frozen camera
+  if (raw_depth_frame && raw_color_frame)
+  {
+    uint64_t current_depth_frame_number = raw_depth_frame->get_frame_number();
+    uint64_t current_color_frame_number = raw_color_frame->get_frame_number();
+    
+    // Check if frames are identical to previous frames
+    bool depth_frame_same = (current_depth_frame_number == previous_depth_frame_number);
+    bool color_frame_same = (current_color_frame_number == previous_color_frame_number);
+    
+    if (depth_frame_same || color_frame_same)
+    {
+      // Get current timestamp for timeout check
+      auto current_time = std::chrono::steady_clock::now();
+      
+      // Initialize frozen_frame_start_time if this is the first time we detect frozen frames
+      if (!frozen_frame_detected)
+      {
+        frozen_frame_start_time = current_time;
+        frozen_frame_detected = true;
+      }
+      
+      // Check if camera has been frozen for more than the configured timeout
+      auto frozen_duration = std::chrono::duration_cast<std::chrono::seconds>(current_time - frozen_frame_start_time);
+      if (frozen_duration.count() > FROZEN_CAMERA_TIMEOUT_SECONDS)
+      {
+        std::string error_msg = "Camera frozen for more than " + std::to_string(FROZEN_CAMERA_TIMEOUT_SECONDS) + " seconds. ";
+        if (depth_frame_same && color_frame_same)
+        {
+          error_msg += "Both depth and color frames are stuck";
+        }
+        else if (depth_frame_same)
+        {
+          error_msg += "Depth frame stuck";
+        }
+        else 
+        {
+          error_msg += "Color frame stuck";
+        }
+        error_msg += ". Camera serial: " + *(this->sensor->serial_number);
+        
+        Logger::Instance()->Error(error_msg);
+        throw DcApiError(DcApiErrorCode::FrozenCameraStream, error_msg);
+      }
+    }
+    else
+    {
+      // Frames have changed, reset frozen detection
+      frozen_frame_detected = false;
+    }
+    
+    // Update previous frame numbers for next comparison
+    previous_depth_frame_number = current_depth_frame_number;
+    previous_color_frame_number = current_color_frame_number;
+  }
 }
 
 bool DepthSession::set_emitter(bool state)

@@ -16,6 +16,7 @@
 #include <Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
 #include <Fulfil.Dispense/commands/tray_view/tray_view_response.h>
+#include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
 
@@ -89,7 +90,11 @@ class DispenseRequestDelegate
 
   virtual int handle_update_state(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
 
-  virtual int handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) = 0;
+  virtual std::shared_ptr<fulfil::dispense::commands::CodeResponse> handle_pre_LFR(
+    std::shared_ptr<std::string> PrimaryKeyID,
+    std::shared_ptr<std::string> command_id,
+    std::shared_ptr<nlohmann::json> request_json
+  ) = 0;
 
   virtual bool check_motor_in_position() = 0;
 

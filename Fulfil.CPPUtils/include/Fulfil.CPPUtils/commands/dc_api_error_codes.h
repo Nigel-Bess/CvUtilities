@@ -64,6 +64,8 @@ namespace fulfil::utils::commands::dc_api_error_codes {
         FrameRefreshError = 25,
         /* Missing bag state or lfb vision configuration */
         MissingBagStateOrLfbConfig = 26,
+        /* Camera stream is frozen */
+        FrozenCameraStream = 27,
         /* UnrecoverableRealSenseError */
         UnrecoverableRealSenseError = 255,
         /* CommandDelegateExpired */
@@ -133,6 +135,8 @@ namespace fulfil::utils::commands::dc_api_error_codes {
                 return "UnrecoverableRealSenseError";
             case DcApiErrorCode::CommandDelegateExpired:
                 return "CommandDelegateExpired";
+            case DcApiErrorCode::FrozenCameraStream:
+                return "FrozenCameraStream";
             default:
                 return "UndefinedError - Not in DcApiErrorCode";
         }
@@ -165,12 +169,12 @@ namespace fulfil::utils::commands::dc_api_error_codes {
         /**
         * Getter for the error's status code
         */
-        DcApiErrorCode get_status_code();
+        DcApiErrorCode get_status_code() const;
 
         /**
         * Getter for the error's custom description
         */
-        std::string get_description();
+        std::string get_description() const;
     };
 } // namespace fulfil::utils::commands::dc_api_error_codes
 #endif //FULFIL_DISPENSE_DC_API_ERROR_CODES_H

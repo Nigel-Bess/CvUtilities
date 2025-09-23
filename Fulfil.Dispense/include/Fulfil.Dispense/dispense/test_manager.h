@@ -108,7 +108,10 @@ namespace fulfil::dispense {
 
 
 
-           inline  int handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override {return 1;}
+           inline  std::shared_ptr<fulfil::dispense::commands::CodeResponse> handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) override
+           {
+                return std::make_shared<fulfil::dispense::commands::CodeResponse>(request_id, 1);
+           }
 
         };
     } // namespace fulfil

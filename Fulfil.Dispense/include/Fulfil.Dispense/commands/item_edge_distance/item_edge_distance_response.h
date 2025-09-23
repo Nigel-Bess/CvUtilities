@@ -29,6 +29,11 @@ namespace fulfil::dispense::commands
         int success_code {0};
 
         /**
+         * The error message to be sent in response to the request
+         */
+        std::shared_ptr<std::string> error_description;
+
+        /**
          * The payload to be sent in response to the request
          */
         std::shared_ptr<std::string> payload;
@@ -41,11 +46,12 @@ namespace fulfil::dispense::commands
         void encode_payload();
     public:
 
-        explicit ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code);
+        explicit ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg = nullptr);
 
         ItemEdgeDistanceResponse(results_to_vlsg::LaneItemDistance lane_item_distance,
                                  results_to_vlsg::TrayValidationCounts lane_count_result,
-                                 std::shared_ptr<std::string> command_id);
+                                 std::shared_ptr<std::string> command_id,
+                                 std::shared_ptr<std::string> err_msg = nullptr);
 
         std::shared_ptr<std::string> get_command_id() override;
 

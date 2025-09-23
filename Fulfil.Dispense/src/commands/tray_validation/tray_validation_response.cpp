@@ -12,9 +12,10 @@ using fulfil::dispense::commands::TrayValidationResponse;
 using fulfil::utils::Logger;
 
 
-TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> payload)
+TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> payload, std::shared_ptr<std::string> err_msg)
 {
   this->command_id = command_id;
+  this->error_description = err_msg;
 
   std::string json_string = *payload;
   Logger::Instance()->Info("Encoding TrayValidation Response: {}", json_string);
@@ -27,9 +28,15 @@ TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> comm
   delete [] response;
 }
 
-TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, int success_code) {
+TrayValidationResponse::TrayValidationResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg) {
   this->command_id = command_id;
-  this->payload = std::make_shared<std::string>("{\"Error\":" + std::to_string(success_code) + "}");
+  this->error_description = err_msg;
+  
+  nlohmann::json result_json;
+  result_json["Error"] = success_code;
+  result_json["Error_Description"] = this->error_description ? *(this->error_description) : "";
+
+  this->payload = std::make_shared<std::string>(result_json.dump());
 }
 
 std::shared_ptr<std::string> TrayValidationResponse::get_command_id()

@@ -14,6 +14,7 @@ void CodeResponse::encode_payload()
 {
   std::shared_ptr<nlohmann::json> result_json = std::make_shared<nlohmann::json>();
   (*result_json)["Error"] = this->success_code;
+  (*result_json)["Error_Description"] = this->error_description ? *(this->error_description) : "";
 
   std::string json_string = result_json->dump();
   int json_length = json_string.size();
@@ -25,10 +26,11 @@ void CodeResponse::encode_payload()
   delete [] response;
 }
 
-CodeResponse::CodeResponse(std::shared_ptr<std::string> command_id, int success_code)
+CodeResponse::CodeResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg)
 {
   this->success_code = success_code;
   this->command_id = command_id;
+  this->error_description = err_msg;
 }
 
 std::shared_ptr<std::string> CodeResponse::get_command_id()

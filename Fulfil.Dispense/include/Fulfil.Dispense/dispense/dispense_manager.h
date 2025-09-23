@@ -238,7 +238,11 @@ namespace fulfil::dispense {
             // TODO: delete, unused
             void handle_request(std::shared_ptr<std::string> payload, std::shared_ptr<std::string> command_id) override;
 
-            int handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID, std::shared_ptr<nlohmann::json> request_json) override;
+            std::shared_ptr<fulfil::dispense::commands::CodeResponse> handle_pre_LFR(
+                std::shared_ptr<std::string> PrimaryKeyID,
+                std::shared_ptr<std::string> command_id,
+                std::shared_ptr<nlohmann::json> request_json
+            ) override;
 
             int get_induction_cam_distance_from_tray();
 

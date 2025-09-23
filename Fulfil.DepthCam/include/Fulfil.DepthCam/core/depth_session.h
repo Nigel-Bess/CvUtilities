@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <mutex>
+#include <chrono>
 
 #include <Fulfil.DepthCam/core/session.h>
 #include <Fulfil.DepthCam/core/depth_sensor.h>
@@ -22,6 +23,11 @@ namespace fulfil
         class DepthSession : public Session
         {
         private:
+            /**
+             * Timeout for frozen camera detection in seconds
+             */
+            static constexpr int FROZEN_CAMERA_TIMEOUT_SECONDS = 120;
+            
             /**
              * The underlying sensor of the session.
              */
@@ -51,6 +57,14 @@ namespace fulfil
 
             // returns true if one of these two images matches what has been cached from the previous refresh
             bool check_for_same_frame(cv::Mat color_image, cv::Mat depth_image);
+
+            // Frame numbers (milliseconds since camera startup) for previously capture frames
+            uint64_t previous_depth_frame_number{0};
+            uint64_t previous_color_frame_number{0};
+            
+            // Timestamp when frozen frame was first detected
+            std::chrono::steady_clock::time_point frozen_frame_start_time;
+            bool frozen_frame_detected{false};
 
         public:
             /**

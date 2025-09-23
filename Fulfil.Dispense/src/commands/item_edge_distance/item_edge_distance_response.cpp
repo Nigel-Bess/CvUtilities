@@ -23,6 +23,7 @@ void ItemEdgeDistanceResponse::encode_payload()
     if (success_code > 0) {
         result_json["Errors"] = std::vector<int>{success_code};
     }
+    result_json["Error_Description"] = this->error_description ? *(this->error_description) : "";
   //result_json["First_Item_Distance"] = this->fed_result;
   //result_json["First_Item_Length"] = this->detected_item_length;
   //result_json["Centers"] = this->transformed_lane_center_pixels;
@@ -60,12 +61,12 @@ int fulfil::dispense::commands::ItemEdgeDistanceResponse::get_fed_value() const 
 }
 
 
-ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code)
-    : command_id{std::move(command_id)}, success_code{success_code} {}
+ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(std::shared_ptr<std::string> command_id, int success_code, std::shared_ptr<std::string> err_msg)
+    : command_id{std::move(command_id)}, success_code{success_code}, error_description{err_msg} {}
 
 
 fulfil::dispense::commands::ItemEdgeDistanceResponse::ItemEdgeDistanceResponse(
         results_to_vlsg::LaneItemDistance lane_item_distance, results_to_vlsg::TrayValidationCounts lane_count_result,
-        std::shared_ptr<std::string> command_id) :
-        lane_distance_info(std::move(lane_item_distance)), count_result(std::move(lane_count_result)), command_id{std::move(command_id)} {}
+        std::shared_ptr<std::string> command_id, std::shared_ptr<std::string> err_msg) :
+        lane_distance_info(std::move(lane_item_distance)), count_result(std::move(lane_count_result)), command_id{std::move(command_id)}, error_description{err_msg} {}
 

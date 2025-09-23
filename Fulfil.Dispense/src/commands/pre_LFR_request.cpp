@@ -23,9 +23,7 @@ std::shared_ptr<DispenseResponse> PreLFRRequest::execute()
   {
     std::shared_ptr<DispenseRequestDelegate> tmp_delegate = this->delegate.lock();
 
-    int error_code = tmp_delegate->handle_pre_LFR(this->PrimaryKeyID, this->request_json);
-
-    return std::make_shared<CodeResponse>(this->request_id, error_code);
+    return tmp_delegate->handle_pre_LFR(this->PrimaryKeyID, this->request_id, this->request_json);
   }
   else
   {

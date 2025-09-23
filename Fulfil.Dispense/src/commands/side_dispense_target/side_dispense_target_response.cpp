@@ -13,6 +13,7 @@ void SideDispenseTargetResponse::encode_payload()
 {
     nlohmann::json result_json {};
     result_json["Error"] = this->success_code;
+    result_json["Error_Description"] = this->error_description ? *(this->error_description) : "";
     result_json["X"] = this->x;
     result_json["Y"] = this->y;
     result_json["Extend_Contact_Distance"] = this->extend_contact_distance;
@@ -29,7 +30,12 @@ void SideDispenseTargetResponse::encode_payload()
 
 
 SideDispenseTargetResponse::SideDispenseTargetResponse(
-        std::shared_ptr<std::string> command_handshake_id) : command_id(command_handshake_id){}
+        std::shared_ptr<std::string> command_handshake_id, 
+        int success_code, 
+        std::shared_ptr<std::string> error_desc) : 
+        command_id(command_handshake_id), 
+        success_code(success_code), 
+        error_description(error_desc) {}
 
 std::shared_ptr<std::string> SideDispenseTargetResponse::get_command_id()
 {

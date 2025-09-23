@@ -27,7 +27,7 @@ namespace fulfil::dispense::commands {
         /**
          * Description of the error code thrown. Will be empty string if code is success.
          */
-        std::string error_description{};
+        std::shared_ptr<std::string> error_description;
         /**
          * The payload to be sent in response to the request
          */
@@ -42,7 +42,9 @@ namespace fulfil::dispense::commands {
          * @param command_id the command id of the request that led to this response
          * @param success_code indicates what kind of error took place. > 0 means an error
          */
-        explicit SideDispenseTargetResponse(std::shared_ptr<std::string> command_handshake_id);
+        explicit SideDispenseTargetResponse(std::shared_ptr<std::string> command_handshake_id, 
+                                           int success_code = 0, 
+                                           std::shared_ptr<std::string> error_desc = nullptr);
         /**
          * Returns the command id for the response.
          * @return pointer to string containing command id for the response.

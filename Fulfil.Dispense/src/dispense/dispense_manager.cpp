@@ -59,6 +59,7 @@ using fulfil::dispense::tray_processing::TrayAlgorithm;
 using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
+using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::commands::dc_api_error_codes::get_error_name_from_code;
 using fulfil::utils::commands::DispenseCommand;
 using fulfil::utils::FileSystemUtil;
@@ -272,8 +273,7 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
     {
         Logger::Instance()->Info("Received Pre Drop LFB Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
-        auto code = handle_pre_LFR(pkid, request_json);
-        response = std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, code);
+        response = handle_pre_LFR(pkid, command_id, request_json);
         break;
     }
     case DispenseCommand::post_LFR:
@@ -446,7 +446,27 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
         return std::make_shared<FloorViewResponse>(command_id, 12, "No LFB Session", false, false, 0);
     }
 
-    this->LFB_session->refresh();
+    try
+    {
+        this->LFB_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("LFB Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->LFB_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<FloorViewResponse>(
+            command_id,
+            static_cast<int>(e.get_status_code()),
+            e.get_description(),
+            false,
+            false,
+            0.0f
+        );
+    }
 
     // initial data generation
     std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
@@ -630,16 +650,20 @@ std::string DispenseManager::handle_get_state(std::shared_ptr<std::string> Prima
     }
 }
 
-int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
-                                    std::shared_ptr<nlohmann::json> request_json)
+std::shared_ptr<fulfil::dispense::commands::CodeResponse> DispenseManager::handle_pre_LFR(
+    std::shared_ptr<std::string> PrimaryKeyID,
+    std::shared_ptr<std::string> command_id,
+    std::shared_ptr<nlohmann::json> request_json
+)
 {
     auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_pre_LFR for " + this->machine_name + " request " + *PrimaryKeyID);
     Logger::Instance()->Debug("Handling Pre Drop Command {} for Bay: {}", *PrimaryKeyID, this->machine_name);
 
     if (!this->LFB_session)
     {
-        Logger::Instance()->Warn("No LFB Session: Bouncing Drop Camera Pre LFR");
-        return 12; // TODO CHANGE CODE TO BE USEFUL !!!!
+        std::shared_ptr<std::string> error_msg = std::make_shared<std::string>("No LFB Session: Bouncing Drop Camera Pre LFR");
+        Logger::Instance()->Warn(error_msg->c_str());
+        return std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 12, error_msg);
     }
 
     try
@@ -647,9 +671,26 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
         float remaining_platform = request_json->value("Remaining_Platform", 0.0);
         Logger::Instance()->Debug("Remaining_Platform from Pre_LFR / PreDropImage request: {}", remaining_platform);
 
-        // this->LFB_session->set_emitter(true); //turn on emitter for imaging
-        this->LFB_session->refresh();
-        // this->LFB_session->set_emitter(false); //turn off emitter after imaging
+        try
+        {
+            // this->LFB_session->set_emitter(true); //turn on emitter for imaging
+            this->LFB_session->refresh();
+            // this->LFB_session->set_emitter(false); //turn off emitter after imaging
+        }
+        catch (const DcApiError& e)
+        {
+            Logger::Instance()->Error("LFB Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+                this->machine_name,
+                *this->LFB_session->get_serial_number(),
+                e.what()
+            );
+
+            return std::make_shared<fulfil::dispense::commands::CodeResponse>(
+                command_id,
+                static_cast<int>(e.get_status_code()),
+                std::make_shared<std::string>(e.get_description())
+            );
+        }
 
         Logger::Instance()->Debug("Getting container for caching now");
         std::shared_ptr<MockSession> mock_session_pre = std::make_shared<MockSession>(this->LFB_session);
@@ -694,19 +735,28 @@ int DispenseManager::handle_pre_LFR(std::shared_ptr<std::string> PrimaryKeyID,
         std::ofstream error_file(*error_code_file);
         error_file << "0";
 
-        return 0;
+        return std::make_shared<fulfil::dispense::commands::CodeResponse>(command_id, 0);
     }
     catch (const std::exception &e)
     {
         Logger::Instance()->Error("Issue handling pre dispense request: \n\t{}", e.what());
 
-        return 1;
+        return std::make_shared<fulfil::dispense::commands::CodeResponse>(
+            command_id,
+            DcApiErrorCode::UnspecifiedError,
+            std::make_shared<std::string>(e.what())
+        );
     }
     catch (...)
     {
-        Logger::Instance()->Error("Unspecified error caught during pre dispense request handling");
+        std::shared_ptr<std::string> error_msg = std::make_shared<std::string>("Unspecified error caught during pre dispense request handling");
+        Logger::Instance()->Error(error_msg->c_str());
 
-        return 1;
+        return std::make_shared<fulfil::dispense::commands::CodeResponse>(
+            command_id,
+            DcApiErrorCode::UnspecifiedError,
+            error_msg
+        );
     }
 }
 
@@ -817,7 +867,25 @@ std::shared_ptr<TrayViewResponse> DispenseManager::handle_tray_view(std::shared_
         Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray View!", this->machine_name);
         return std::make_shared<TrayViewResponse>(command_id, 12, std::make_shared<std::string>("No Tray Session"));
     }
-    this->tray_session->refresh();
+
+    try
+    {
+        this->tray_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Tray Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->tray_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<TrayViewResponse>(
+            command_id,
+            static_cast<int>(e.get_status_code()),
+            std::make_shared<std::string>(e.get_description())
+        );
+    }
 
     // data generation
     std::shared_ptr<std::string> time_stamp = FileSystemUtil::create_datetime_string();
@@ -931,8 +999,29 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
         Logger::Instance()->Warn("No Tray Session on Bay {}: Bouncing Tray Item Edge Distance!", this->machine_name);
         return std::make_shared<ItemEdgeDistanceResponse>(command_id, 12);
     }
-    // only refresh once at the beginning of the request handling
-    this->tray_session->refresh();
+    try
+    {
+        // only refresh once at the beginning of the request handling
+        this->tray_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Tray Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->tray_session->get_serial_number(),
+            e.what()
+        );
+
+        //TODO Does ItemEdgeDistanceResponse have its own error codes (ItemEdgeDistanceErrorCodes)?
+        // How do they relate to the DC API error codes?
+
+        return std::make_shared<ItemEdgeDistanceResponse>(
+            command_id,
+            static_cast<int>(e.get_status_code()),
+            std::make_shared<std::string>(e.get_description())
+        );
+    }
+    
 
     bool is_pre_dispense = single_lane_val_req.get_sequence_step().substr(0,3) == "Pre";
     Logger::Instance()->Debug("{} Is Pre Dispense: {}", single_lane_val_req.get_sequence_step(), is_pre_dispense); 
@@ -1006,7 +1095,25 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
         return std::make_shared<TrayValidationResponse>(command_id, std::make_shared<std::string>(tray_result.dump()));
     }
 
-    this->tray_session->refresh();
+    try
+    {
+        this->tray_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Handling Tray Validation Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->tray_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<TrayValidationResponse>(
+            command_id,
+            static_cast<int>(e.get_status_code()),
+            std::make_shared<std::string>(e.get_description())
+        );
+    }
+    
 
     std::string saved_images_base_directory = this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir");
     double resize_factor = 1;
@@ -1117,7 +1224,24 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
                             "Side_Bag_Camera/") /
                         (*request_json)["Primary_Key_ID"].get<std::string>();
     data_fs_path /= "Side_Dispense_Target";
-    this->LFB_session->refresh();
+    try
+    {
+        this->LFB_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Side Dispense Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->LFB_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(
+            request_id,
+            static_cast<int>(e.get_status_code()),
+            std::make_shared<std::string>(e.get_description())
+        );
+    }
     auto data_generator = DataGenerator(this->LFB_session, std::make_unique<std::string>(data_fs_path.string()), request_json);
     data_generator.save_data(std::make_shared<std::string>());
     return std::make_shared<fulfil::dispense::commands::SideDispenseTargetResponse>(request_id);
@@ -1142,8 +1266,29 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
     }
     Logger::Instance()->Trace("Refresh Session Called in Drop Manager -> Handle PreSideDrop");
-    // need to refresh the session to get updated frames
-    this->LFB_session->refresh();
+
+    try
+    {
+        // need to refresh the session to get updated frames
+        this->LFB_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Pre Side Dispense Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->LFB_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<PreSideDispenseResponse>(
+            request_id,
+            primary_key_id,
+            nullptr,
+            -1.0f, -1.0f,
+            e.get_status_code(),
+            e.get_description()
+        );
+    }
     this->drop_manager->cached_pre_container = nullptr;  // cache for potential use in prepostcomparison later
     this->drop_manager->cached_pre_request = request_json; // cache for potential use in prepostcomparison later
 
@@ -1204,7 +1349,29 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
                                                          DcApiErrorCode::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"), 1);
     }
-    this->LFB_session->refresh();
+
+    try
+    {
+        this->LFB_session->refresh();
+    }
+    catch (const DcApiError& e)
+    {
+        Logger::Instance()->Error("Post Side Dispense Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+            this->machine_name,
+            *this->LFB_session->get_serial_number(),
+            e.what()
+        );
+
+        return std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(
+            request_id,
+            primary_key_id,
+            nullptr,
+            -1, -1,
+            e.get_status_code(),
+            e.get_description(),
+            1
+        );
+    }
 
     auto data_fs_path = make_media::paths::add_basedir_date_suffix_and_join(
                             this->dispense_reader->Get(this->dispense_reader->get_default_section(), "data_gen_image_base_dir"),

@@ -93,8 +93,8 @@ using fulfil::utils::Logger;
       {
         session_visualizer->display_image(RGB_matrix);
       }
-   }
-   sleep(1);
+    }
+    sleep(1);
   }
 }
 

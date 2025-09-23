@@ -23,10 +23,10 @@ DcApiError::DcApiError(DcApiErrorCode status_code,
 
 const char* DcApiError::what() const noexcept { return this->message.data(); }
 
-DcApiErrorCode DcApiError::get_status_code() {
+DcApiErrorCode DcApiError::get_status_code() const {
     return this->status_code;
 }
 
-std::string DcApiError::get_description() {
+std::string DcApiError::get_description() const {
     return this->description;
 }
