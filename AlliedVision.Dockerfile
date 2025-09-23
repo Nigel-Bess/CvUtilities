@@ -1,7 +1,8 @@
 FROM gcr.io/fulfil-web/nvidia-cv/master:latest AS base
 
 # Mongo stuff
-RUN apt install curl -y
+RUN apt install curl -y && \
+    apt-get autoclean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
 COPY third-party ./third-party/
 
 # Install MongoDB C++ Driver
@@ -21,10 +22,10 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY third-party ./Fulfil.MongoCpp/third-party/
-RUN cd Fulfil.MongoCpp && mkdir -p build
-RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1)
-RUN cd Fulfil.MongoCpp && cmake --build . -j$(($(nproc)-1))
-RUN cd Fulfil.MongoCpp && cmake --install .
+RUN cd Fulfil.MongoCpp && mkdir -p build && \
+    cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && \
+    cmake --build . -j$(($(nproc)-1)) && \
+    cmake --install .
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
 COPY Fulfil.DepthCam/ ./Fulfil.DepthCam/
@@ -34,8 +35,8 @@ COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
 RUN mkdir Fulfil.AlliedVision
 COPY Fulfil.AlliedVision/VimbaX_Setup-2024-1-Linux64.tar.gz ./Fulfil.AlliedVision/
 
-RUN cd Fulfil.AlliedVision && tar -xvf VimbaX_Setup-2024-1-Linux64.tar.gz
-RUN cp -r ./Fulfil.AlliedVision/VimbaX_2024-1 /home/fulfil
+RUN cd Fulfil.AlliedVision && tar -xvf VimbaX_Setup-2024-1-Linux64.tar.gz && \
+    cp -r ./VimbaX_2024-1 /home/fulfil
 
 COPY third-party/ ./third-party/
 COPY scripts/build_date.sh ./scripts/build_date.sh
