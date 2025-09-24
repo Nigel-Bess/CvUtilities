@@ -225,7 +225,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
 
             if (err != VmbErrorSuccess) {
                 camera_error_code = RepackErrorCodes::VimbaCameraError;
-                camera_error_description = "{} could not get frame with code {}", name_, GetVimbaCode(err);
+                camera_error_description = std::string(name_) + std::string(" could not get frame with code ") + GetVimbaCode(err);
                 log_->Error(camera_error_description);
             }
             // Better to get the LAST good frame since it's more likely to have more accurate interlacing
