@@ -10,7 +10,7 @@ project(Fulfil.Dispense
         DESCRIPTION "Higher level API that allows clients to interface with depth cams via socket connection. Handles Drop camera nad Tray Camera Queries."
         LANGUAGES CXX)
 
-set(OrbbecSDK_DIR "../Fulfil.CPPUtils/lib/orbbecsdk/lib")
+set(OrbbecSDK_DIR "../Fulfil.OrbbecUtils/lib/orbbecsdk/lib")
 find_package(OrbbecSDK REQUIRED)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")

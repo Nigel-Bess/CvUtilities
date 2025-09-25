@@ -54,8 +54,9 @@ COPY third-party ./Fulfil.MongoCpp/third-party/
 RUN cd Fulfil.MongoCpp && mkdir -p build
 RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
 
-# Build CPPUtils
+# Build CPPUtils + OrbbecUtils
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
+COPY Fulfil.OrbbecUtils/ ./Fulfil.OrbbecUtils/
 RUN cp Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h.template Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h
 COPY scripts/build_date.sh ./scripts/build_date.sh
 RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
@@ -66,14 +67,15 @@ RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
 
 #RUN ls orbbec/OrbbecSDK_v2/build/linux_arm64 && exit 1 # bin and lib
 RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && \
-    mkdir -p Fulfil.CPPUtils/lib && \
-    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk && \
-    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/lib && \
-    mkdir -p Fulfil.CPPUtils/lib/orbbecsdk/bin && \
-    cp -r orbbec/OrbbecSDK_v2/* Fulfil.CPPUtils/lib/orbbecsdk && \
-    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib && \
-    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/bin/* Fulfil.CPPUtils/lib/orbbecsdk/bin/ && \
-    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* Fulfil.CPPUtils/lib/orbbecsdk/lib
+    mkdir -p Fulfil.CPPUtils/lib
+RUN mkdir -p Fulfil.OrbbecUtils/lib && \
+    mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk && \
+    mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
+    mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/bin && \
+    cp -r orbbec/OrbbecSDK_v2/* Fulfil.OrbbecUtils/lib/orbbecsdk && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/lib/* Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/bin/* Fulfil.OrbbecUtils/lib/orbbecsdk/bin/ && \
+    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.OrbbecUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* Fulfil.OrbbecUtils/lib/orbbecsdk/lib
 
 # Remove broken old tests for now
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test

@@ -18,6 +18,7 @@ set(LIB_INSTALL_DIR lib/ )
 set(SYSCONFIG_INSTALL_DIR lib/Fulfil.Dispense/ )
 
 add_subdirectory("../Fulfil.CPPUtils" build)
+add_subdirectory("../Fulfil.OrbbecUtils" build/orbbec)
 #set(Fulfil.CPPUtils_DIR ../Fulfil.CPPUtils)
 #find_package("Fulfil.CPPUtils" REQUIRED)
 
