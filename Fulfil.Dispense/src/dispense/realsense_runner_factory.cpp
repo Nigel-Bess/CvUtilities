@@ -13,8 +13,10 @@ using fulfil::dispense::RealsenseRunnerFactory;
 using fulfil::utils::Logger;
 using fulfil::mongo::MongoTrayCalibration;
 
-fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(std::shared_ptr<INIReader> reader) :
-                                             dispense_man_reader{reader}
+fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(
+    std::shared_ptr<INIReader> reader,
+    std::vector<std::string> cam_serial_nums
+) : dispense_man_reader{reader}
 {
   //TODO once dispense manager needs stabilizes, we should pass config info through interface, not config pointer
   std::experimental::filesystem::path config_base = INIReader::get_compiled_default_dir_prefix();
@@ -24,11 +26,54 @@ fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(std::shared_ptr
   std::shared_ptr<INIReader> tray_reader = std::make_shared<INIReader>("tray_config.ini", true);
   fulfil::utils::ini::validate_ini_parse(*tray_reader, "tray_config.ini", ini_parse_log);
 
-  if (tray_reader->GetBoolean("flags", "use_mock_calibration", false)){
+  if (tray_reader->GetBoolean("flags", "use_mock_calibration", false)){ 
       tray_reader->appendReader(INIReader(config_base / "tray_mock_calibration_data.ini", false));
   } else {
-      tray_reader->appendReader(INIReader(config_base / "tray_calibration_data_dispense.ini", false));
-      tray_reader->appendReader(INIReader(config_base / "tray_calibration_data_hover.ini", false));
+      // Loop over the connected_sensors and check if we can find a file with matching serial number and append it
+      bool found_hover_config_with_serial = false;
+      bool found_dispense_config_with_serial = false;
+      for (const auto& serial_num : cam_serial_nums){
+        std::string tray_calib_file_name = std::string("tray_calibration_data_").append(serial_num).append("_dispense.ini");
+        std::experimental::filesystem::path dispense_file_path = config_base / tray_calib_file_name;
+        int dispense_result = -1;
+        if (std::experimental::filesystem::exists(dispense_file_path))
+        {
+          Logger::Instance()->Info("Dispense tray calibration file {} exists, loading...", dispense_file_path.string());
+          dispense_result = tray_reader->appendReader(INIReader(dispense_file_path, false));
+          Logger::Instance()->Info("Result of loading dispense tray calibration file: {}", dispense_result);
+        }
+        else
+        {
+          Logger::Instance()->Info("Dispense tray calibration file {} does not exist. ", dispense_file_path.string());
+        }
+
+        std::string hover_calib_file_name = std::string("tray_calibration_data_").append(serial_num).append("_hover.ini");
+        std::experimental::filesystem::path hover_file_path = config_base / hover_calib_file_name;
+        int hover_result = -1;
+        if (std::experimental::filesystem::exists(hover_file_path))
+        {
+          Logger::Instance()->Info("Hover tray calibration file {} exists, loading...", hover_file_path.string());
+          hover_result = tray_reader->appendReader(INIReader(hover_file_path, false));
+          Logger::Instance()->Info("Result of loading hover tray calibration file: {}", hover_result);
+        }
+        else
+        {
+          Logger::Instance()->Info("Hover tray calibration file {} does not exist. ", hover_file_path.string());
+        }
+
+        if (hover_result == 0) found_hover_config_with_serial = true;
+        if (dispense_result == 0) found_dispense_config_with_serial = true;
+      }
+      if (!found_dispense_config_with_serial)
+      {
+        tray_reader->appendReader(INIReader(config_base / "tray_calibration_data_dispense.ini", false));
+        Logger::Instance()->Info("No dispense tray calibration data found with matching serial number, using default dispense tray calibration file name format.");
+      }
+      if (!found_hover_config_with_serial)
+      {
+        tray_reader->appendReader(INIReader(config_base / "tray_calibration_data_hover.ini", false));
+        Logger::Instance()->Info("No hover tray calibration data found with matching serial number, using default hover tray calibration file name format.");
+      }
   }
   fulfil::utils::ini::validate_ini_parse(*tray_reader, "tray_calibration_data_*.ini", ini_parse_log);
   this->tray_config_reader = std::move(tray_reader);

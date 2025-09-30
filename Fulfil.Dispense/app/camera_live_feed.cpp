@@ -35,10 +35,11 @@ using fulfil::utils::Logger;
     if (calibration_line_y==-1)  Logger::Instance()->Error("Could not read calibration line value from tray config, check configs");
 
     try {
-      std::shared_ptr <INIReader> tray_calib_reader = std::make_shared<INIReader>("tray_calibration_data_dispense.ini", true);;
+      std::string tray_calib_file_name = std::string("tray_calibration_data_").append(*current_session->get_serial_number()).append("_");
+      std::shared_ptr <INIReader> tray_calib_reader = std::make_shared<INIReader>(tray_calib_file_name.append("dispense.ini"), true);
       std::string section = std::string(serial_number) + "_pixel_locations";
       if (cam_type == "Induction"){
-          tray_calib_reader = std::make_shared<INIReader>("tray_calibration_data_induction.ini", true);
+          tray_calib_reader = std::make_shared<INIReader>("tray_calibration_data_induction.ini", true); //TODO do we need to add serial number? (tray_calibration_data_<serial>_induction.ini)
           section = serial_number + "_induction_pixel_locations";
       }
 

@@ -12,10 +12,10 @@ all:
 	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 	cmake --build build --target main -- -j $(PROC)
 
-.PHONY : calibrate
-calibrate:
-	cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-	cmake --build build --target auto_tray_calibration -- -j $(PROC)
+.PHONY : test_calibration
+test_calibration:
+	cmake -DCMAKE_BUILD_TYPE=Debug -B build -S .
+	cmake --build build --target test_auto_tray_calibration -- -j $(PROC)
 
 .PHONY : client
 client:

@@ -76,11 +76,17 @@ target_compile_definitions(eval PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_C
 
 # Remove exclusion once better targeting definitions in place
 # YOU NEED TO SPECIFICALLY TARGET THESE TO TRIGGER A BUILD!
-add_executable(auto_tray_calibration
+
+# Test executable for auto_tray_calibration with mocked dependencies
+add_executable(test_auto_tray_calibration
    EXCLUDE_FROM_ALL
-   auto_tray_calibration.cpp ../include/Fulfil.Dispense/tray/tray_process_logging_messages.h ../include/Fulfil.Dispense/recipes/visualization_presets.h)
-target_link_libraries(auto_tray_calibration PRIVATE
-   Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils Fulfil.OrbbecUtils FulfilMongoCpp pthread)
+   test_auto_tray_calibration.cpp)
+target_link_libraries(test_auto_tray_calibration PRIVATE
+   Fulfil.Dispense Fulfil.DepthCam Fulfil.CPPUtils pthread)
+target_compile_definitions(test_auto_tray_calibration PRIVATE BUILD_DATE="${BUILD_DATE}")
+target_compile_definitions(test_auto_tray_calibration PRIVATE FW_VERSION="${LATEST_GIT_TAG}")
+target_compile_definitions(test_auto_tray_calibration PRIVATE DISPENSE_COMMIT="${DISPENSE_COMMIT}")
+target_compile_definitions(test_auto_tray_calibration PRIVATE IS_SOURCE_REPO_CLEAN="${IS_SOURCE_REPO_CLEAN}")
 
 add_executable(tray_calibration EXCLUDE_FROM_ALL
    tray_calibration.cpp)

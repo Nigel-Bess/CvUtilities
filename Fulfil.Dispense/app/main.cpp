@@ -83,10 +83,11 @@ int main(int argc, char** argv)
   try {
     std::shared_ptr<RealsenseBayParser> parser = std::make_shared<RealsenseBayParser>(reader);
 
+    auto cam_serial_nums = parser->get_camera_ids();
     std::shared_ptr<RealsenseManager> sensor_manager = std::make_shared<RealsenseManager>(
-            std::make_shared<DeviceManager>(parser->get_camera_ids(), frozen));
+            std::make_shared<DeviceManager>(cam_serial_nums, frozen));
     // pass in the connection here so that it can be used to retrieve configurations in dispense manager
-    std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader);
+    std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader, cam_serial_nums);
     BayManager<std::shared_ptr<Session>> manager(sensor_manager, factory, parser, expected_number_bays,
                                                  both_cameras_required, frozen);
 

@@ -33,44 +33,27 @@ message("Found project root at ${COMPUTER_VISION_MODULES_PARENT_PATH}")
 option(BUILD_TESTS "Enable CTesting for dispense code." OFF)
 
 IF(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTS)
-    IF(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/googletest-src)
-        #Don't install google test
-        # Add googletest directly to our build. This defines
-        # the gtest and gtest_main targets.
-        add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                EXCLUDE_FROM_ALL)
-    else()
-        # ------ Setup Google Test
-        configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-        execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-                RESULT_VARIABLE result
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
-        if(result)
-            message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-        endif()
-        execute_process(COMMAND ${CMAKE_COMMAND} --build .
-                RESULT_VARIABLE result
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
-        if(result)
-            message(FATAL_ERROR "Build step for googletest failed: ${result}")
-        endif()
-        # Prevent overriding the parent project's compiler/linker
-        # settings on Windows
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-        # Add googletest directly to our build. This defines
-        # the gtest and gtest_main targets.
-        add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                EXCLUDE_FROM_ALL)
-
-        # The gtest/gtest_main targets carry header search path
-        # dependencies automatically when using CMake 2.8.11 or
-        # later. Otherwise we have to add them here ourselves.
-    endif()
     include(CTest)
     enable_testing()
+
+    include(FetchContent)
+
+    # Self-contained GTest (does not install anything)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+    set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+
+    # Fetch googletest at configure time
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.14.0
+    )
+
+    # This will download (if needed) and add_subdirectory() googletest
+    FetchContent_MakeAvailable(googletest)
+
+    # Add tests
     add_subdirectory(test)
 endif()
 

@@ -7,6 +7,7 @@
 #define FULFIL_DEPTHCAM_DEPTH_SENSOR_H_
 #include<memory>
 #include<chrono>
+#include <iomanip>
 #include <Fulfil.CPPUtils/timer.h>
 #include<eigen3/Eigen/Dense>
 #include <Fulfil.CPPUtils/comm/depthCams.pb.h>
@@ -44,8 +45,24 @@ class DepthSensor
     void manage_pipe();
     void create_camera_status_msg(DepthCameras::DcCameraStatusCodes code);
 
+    std::string getTimestamp() {
+
+        //Get current time
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+        //Format timestamp
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&in_time_t), "%m-%dT%H:%M:%S")
+            << "." << std::setfill('0') << std::setw(3) << ms.count();
+        return ss.str();
+    }
+
     inline void print_framestats(){
-        printf("%s:[%s] Avg frame: %.01fms, total frames: %ld [good: %ld, unrecov exc: %ld, recov exc: %ld, std exc: %ld]\n", name_.c_str(),
+        printf("[%s] %s:[%s] Avg frame: %.01fms, total frames: %ld [good: %ld, unrecov exc: %ld, recov exc: %ld, std exc: %ld]\n",
+               getTimestamp().c_str(),
+               name_.c_str(),
                serial_number->c_str(), average_frame_time, total_frames, good_frames, unrecoverable_exc, recoverable_exc, std_exceptions);
     }
 

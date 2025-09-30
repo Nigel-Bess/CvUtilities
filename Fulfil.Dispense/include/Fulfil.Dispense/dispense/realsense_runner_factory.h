@@ -34,7 +34,7 @@ class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory<s
    * @param reader contains all the main program configs
    * @return
    */
-  RealsenseRunnerFactory(std::shared_ptr<INIReader> reader);
+  RealsenseRunnerFactory(std::shared_ptr<INIReader> reader, std::vector<std::string> cam_serial_nums);
   /**
    * Given the bay number and the session, creates a runner that will belong
    * to the bay with the given identifier.

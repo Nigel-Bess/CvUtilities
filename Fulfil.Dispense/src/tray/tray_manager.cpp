@@ -11,6 +11,8 @@
 
 using fulfil::dispense::tray::Tray;
 using fulfil::dispense::tray::TrayManager;
+using fulfil::dispense::tray::TrayCameraCalibrationOutput;
+using fulfil::dispense::tray::TrayCameraCalibration;
 namespace std_filesystem = std::experimental::filesystem;
 
 
@@ -133,6 +135,15 @@ void TrayManager::crop_image(cv::Mat &input_image, float tray_width, float tray_
     cv::Rect roi(x_start, y_start, 2 * width_offset, 2 * height_offset);
     // crop the image
     input_image = input_image(roi).clone();
+}
+
+TrayCameraCalibrationOutput TrayManager::calibrate_tray_camera(const std::shared_ptr<nlohmann::json>& request_json) {
+
+    std::unique_ptr<TrayCameraCalibration> trayCameraCalibration =
+        std::make_unique<TrayCameraCalibration>(this->session, request_json);
+
+    auto calibrationOutput = trayCameraCalibration->tryCameraCalibrationCycle();
+    return calibrationOutput;
 }
 
 /*

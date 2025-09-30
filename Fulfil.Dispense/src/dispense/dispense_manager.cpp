@@ -17,6 +17,7 @@
 #include <Fulfil.Dispense/commands/parsing/dispense_request_parser.h>
 #include <Fulfil.Dispense/commands/parsing/tray_parser.h>
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h>
+#include <Fulfil.Dispense/commands/tray_camera_calibration/tray_camera_calibration_response.h>
 #include "Fulfil.Dispense/dispense/dispense_manager.h"
 #include <Fulfil.Dispense/dispense/dispense_processing_queue_predicate.h>
 #include <Fulfil.Dispense/drop/side_drop_result.h>
@@ -51,6 +52,7 @@ using fulfil::dispense::commands::PostLFRResponse;
 using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::dispense::commands::TrayValidationResponse;
 using fulfil::dispense::commands::TrayViewResponse;
+using fulfil::dispense::commands::CalibrateTrayDepthCameraResponse;
 using fulfil::dispense::drop::DropManager;
 using fulfil::dispense::drop::DropResult;
 using fulfil::dispense::drop::SideDropResult;
@@ -374,6 +376,13 @@ void DispenseManager::handle_request_in_thread(std::shared_ptr<std::string> payl
         Logger::Instance()->Info("Received Tray Dispense Lane Request on Bay {}, PKID: {}, request_id: {}",
                                  this->machine_name, *pkid, *command_id);
         response = handle_item_edge_distance(command_id, request_json);
+        break;
+    }
+    case DispenseCommand::tray_camera_calibration:
+    {
+        Logger::Instance()->Info("Received Tray Camera Calibration Request on Bay {}, PKID: {}, request_id: {}",
+                                 this->machine_name, *pkid, *command_id);
+        response = handle_tray_camera_calibration(command_id, request_json);
         break;
     }
     default:
@@ -1424,6 +1433,39 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
 }
 #pragma endregion side_bag
 
+#pragma region tray_camera_calibration
+
+std::shared_ptr<CalibrateTrayDepthCameraResponse>
+fulfil::dispense::DispenseManager::handle_tray_camera_calibration(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<nlohmann::json> request_json
+) {
+
+    auto timer = fulfil::utils::timing::Timer("DispenseManager::handle_tray_camera_calibration for " + this->machine_name + " request " + *request_id);
+    Logger::Instance()->Debug("Handling TrayCameraCalibration Command for Bay: {} Request ID: {}", this->machine_name, *request_id);
+
+    std::shared_ptr<CalibrateTrayDepthCameraResponse> response = std::make_shared<CalibrateTrayDepthCameraResponse>(request_id);
+
+    if (!this->tray_session) {
+
+        Logger::Instance()->Fatal("No Tray Session. Check all cameras registering and serial numbers match!");
+        
+        response->tray_calibration_output->return_code = DcApiErrorCode::UnrecoverableRealSenseError;
+        response->tray_calibration_output->error_description = "No Tray Session. Check all cameras are registering and the serial numbers match!";
+        return response;
+    }
+
+    this->tray_session->refresh();
+
+    fulfil::dispense::tray::TrayCameraCalibrationOutput output = tray_manager->calibrate_tray_camera(request_json);
+    response->tray_calibration_output = std::make_shared<fulfil::dispense::tray::TrayCameraCalibrationOutput>(output);
+
+    return response;
+}
+
+#pragma endregion tray_camera_calibration
+
+int fulfil::dispense::DispenseManager::get_induction_cam_distance_from_tray() { return this->induction_cam_distance_from_tray; }
 #pragma region tcs
 std::shared_ptr<fulfil::dispense::commands::PrePickupClipActuatorResponse>
 fulfil::dispense::DispenseManager::handle_pre_pickup_clip_actuator(std::shared_ptr<std::string> request_id,
@@ -1433,5 +1475,3 @@ fulfil::dispense::DispenseManager::handle_pre_pickup_clip_actuator(std::shared_p
     return nullptr;
 }
 #pragma endregion tcs
-
-int fulfil::dispense::DispenseManager::get_induction_cam_distance_from_tray() { return this->induction_cam_distance_from_tray; }

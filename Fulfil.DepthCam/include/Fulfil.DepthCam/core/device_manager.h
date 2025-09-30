@@ -56,6 +56,8 @@ class DeviceManager
   DeviceManager();
   DeviceManager(std::vector<std::string> expected_devices, bool frozen);
 
+  virtual ~DeviceManager() = default;
+
    /**
     * @purpose Attempts to return the session with the given serial number
     * @param serial_number of the desired session.
@@ -69,13 +71,13 @@ class DeviceManager
     * the list of sessions returned by get_connected_sessions to check if
     * the desired one is connected.
     */
-  std::shared_ptr<Session> session_by_serial_number(const std::string &serial_number);
+  virtual std::shared_ptr<Session> session_by_serial_number(const std::string &serial_number);
    /**
     * @purpose Returns a list of sessions corresponding to the connected
     * devices.
     * @return a vector of sessions.
     */
-  std::shared_ptr<std::vector<std::shared_ptr<Session>>> get_connected_sessions();
+  virtual std::shared_ptr<std::vector<std::shared_ptr<Session>>> get_connected_sessions();
 
 
   /**

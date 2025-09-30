@@ -60,7 +60,9 @@ namespace fulfil::utils::commands
         bag_release = 35,
         pre_pickup_clip_actuator = 36,
         tcs_pickup_bag_release = 37,
-        pbl_baguette_orientation = 38
+        pbl_baguette_orientation = 38,
+        /// Perform tray camera calibration
+        tray_camera_calibration = 39
     };
 } // namespace fulfil::utils::commands
 

@@ -1,24 +1,7 @@
 # Define the library called "Fulfil.Dispense" and link all third party libraries needed by it
 
-include_directories(include/Fulfil.Dispense)
-include_directories(include/Fulfil.Dispense/bays)
-include_directories(include/Fulfil.Dispense/commands)
-include_directories(include/Fulfil.Dispense/commands/drop_target)
-include_directories(include/Fulfil.Dispense/commands/item_edge_distance)
-include_directories(include/Fulfil.Dispense/commands/nop)
-include_directories(include/Fulfil.Dispense/commands/parsing)
-include_directories(include/Fulfil.Dispense/commands/pre_side_dispense)
-include_directories(include/Fulfil.Dispense/commands/post_drop)
-include_directories(include/Fulfil.Dispense/commands/post_side_dispense)
-include_directories(include/Fulfil.Dispense/commands/side_dispense_target)
-include_directories(include/Fulfil.Dispense/commands/tray_validation)
-include_directories(include/Fulfil.Dispense/commands/video)
-include_directories(include/Fulfil.Dispense/dispense)
-include_directories(include/Fulfil.Dispense/drop)
-include_directories(include/Fulfil.Dispense/mongo)
-include_directories(include/Fulfil.Dispense/recipes)
-include_directories(include/Fulfil.Dispense/tray)
-include_directories(include/Fulfil.Dispense/visualization)
+file(GLOB_RECURSE SUBDIRS LIST_DIRECTORIES true "include/Fulfil.Dispense/*")
+include_directories(include/Fulfil.Dispense ${SUBDIRS})
 
 file(GLOB_RECURSE SOURCES "*.cpp")
 

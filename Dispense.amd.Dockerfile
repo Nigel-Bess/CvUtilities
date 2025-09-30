@@ -92,7 +92,7 @@ RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && cmake --build . -j$(($(nproc)-1)) || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/CMakeFiles/CMakeOutput.log && exit 1)
 
 # Build Dispense
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/CMakeFiles/CMakeError.log && exit 1)
+RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake -DBUILD_TESTS=ON . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/CMakeFiles/CMakeError.log && exit 1)
 RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1))
 
 # Harmless test run setup stuff

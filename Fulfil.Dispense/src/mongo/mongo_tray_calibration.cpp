@@ -90,11 +90,13 @@ void MongoTrayCalibration::checkCalibrationExists(std::string serial_num)
 
     // TODO this is real fuckin dumb. Fix
 
-    std::shared_ptr<INIReader> cam_calib_reader = std::make_shared<INIReader>("tray_calibration_data_dispense.ini", true);
-    fulfil::utils::ini::validate_ini_parse(*cam_calib_reader, "tray_calibration_data_dispense.ini", ini_parse_log);
+    const std::string tray_calib_data = std::string("tray_calibration_data").append(serial_num).append("_");
 
-    cam_calib_reader->appendReader(INIReader("tray_calibration_data_hover.ini", true));
-    fulfil::utils::ini::validate_ini_parse(*cam_calib_reader, "tray_calibration_data_hover.ini", ini_parse_log);
+    std::shared_ptr<INIReader> cam_calib_reader = std::make_shared<INIReader>(tray_calib_data + "dispense.ini", true);
+    fulfil::utils::ini::validate_ini_parse(*cam_calib_reader, tray_calib_data + "dispense.ini", ini_parse_log);
+
+    cam_calib_reader->appendReader(INIReader(tray_calib_data + "hover.ini", true));
+    fulfil::utils::ini::validate_ini_parse(*cam_calib_reader, tray_calib_data + "hover.ini", ini_parse_log);
 
 
     cam_calib_reader->appendReader(INIReader("tray_calibration_data_tongue.ini", true));

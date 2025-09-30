@@ -13,6 +13,7 @@
 #include <Fulfil.Dispense/recipes/tray_calibration_manager.h>
 #include <Fulfil.Dispense/recipes/tray_dimensional_configuration.h>
 #include <Fulfil.Dispense/recipes/tray_item_distance_calculation_settings.h>
+#include <Fulfil.Dispense/tray/tray_camera_calibration.h>
 
 namespace fulfil::dispense::tray
 {
@@ -76,6 +77,11 @@ namespace fulfil::dispense::tray
 
     // set image rotation angle to compensate for rotated cameras
     void set_image_rotation_angle(float angle);
+
+    // Function we will call from dispense_manager to run tray calibration
+    // Takes the request json parameters as argument
+    fulfil::dispense::tray::TrayCameraCalibrationOutput calibrate_tray_camera(const std::shared_ptr<nlohmann::json>& request_json);
+
   };
 
 }

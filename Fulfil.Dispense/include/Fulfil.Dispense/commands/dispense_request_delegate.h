@@ -16,6 +16,7 @@
 #include <Fulfil.Dispense/commands/side_dispense_target/side_dispense_target_response.h>
 #include <Fulfil.Dispense/commands/tray_validation/tray_validation_response.h>
 #include <Fulfil.Dispense/commands/tray_view/tray_view_response.h>
+#include <Fulfil.Dispense/commands/tray_camera_calibration/tray_camera_calibration_response.h>
 #include <Fulfil.Dispense/commands/code_response.h>
 #include <Fulfil.Dispense/drop/drop_result.h>
 #include <Fulfil.Dispense/tray/tray_algorithm.h>
@@ -101,6 +102,19 @@ class DispenseRequestDelegate
   virtual std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> handle_pre_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
   virtual std::shared_ptr<fulfil::dispense::commands::SideDispenseTargetResponse> handle_side_dispense_target(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
   virtual std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> handle_post_side_dispense(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
+
+
+  /**
+   * Performs the tray camera calibration and returns response
+   * @param request_id the request id
+   * @param request_json the request json containing calibration parameters
+   */
+  virtual std::shared_ptr<fulfil::dispense::commands::CalibrateTrayDepthCameraResponse> handle_tray_camera_calibration(
+    std::shared_ptr<std::string> request_id,
+    std::shared_ptr<nlohmann::json> request_json
+  ) = 0;
+
+
   virtual std::shared_ptr<fulfil::dispense::commands::PrePickupClipActuatorResponse> handle_pre_pickup_clip_actuator(std::shared_ptr<std::string> request_id, std::shared_ptr<nlohmann::json> request_json) = 0;
 };
 } // namespace fulfil::dispense::commands
