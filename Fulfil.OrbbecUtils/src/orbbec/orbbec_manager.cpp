@@ -55,8 +55,8 @@ void OrbbecManager::run_manager() {
     try{
         ob::Context ctx;
         logger->Info("Creating Orbbec context");
-
         ctx.enableNetDeviceEnumeration(true);
+        logger->Info("Enabled net device enum");
         std::shared_ptr<ob::DeviceList> devices = ctx.queryDeviceList();
         logger->Info("Done querying Orbbec device list, saw {}", devices->deviceCount());
 

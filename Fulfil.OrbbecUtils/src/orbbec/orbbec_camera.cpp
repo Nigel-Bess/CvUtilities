@@ -188,7 +188,7 @@ std::shared_ptr<ColorDepthFrame> OrbbecCamera::get_rgb_depth_blocking(){
     try {
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
             auto startTime = std::chrono::steady_clock::now();
-            auto frameSet = pipe->waitForFrameset(10000);
+            auto frameSet = pipe->waitForFrameset(30000);
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_depth_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");
@@ -255,7 +255,7 @@ cv::Mat OrbbecCamera::get_rgb_blocking() {
         std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
             auto startTime = std::chrono::steady_clock::now();
             logger->Info("waiting... {}", _name);
-            auto frameSet = this->pipe->waitForFrameset(20000);
+            auto frameSet = this->pipe->waitForFrameset(60000);
             if (frameSet == nullptr) {
                 logger->Error("OrbbecCamera::get_rgb_blocking got null frameset! {}", _name);
                 throw std::runtime_error("pipe->waitForFrames returned null!");

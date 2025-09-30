@@ -40,6 +40,7 @@ file(GLOB SOURCES "src/commands/**/*.cpp" "src/*.cpp" "src/**/*.cpp")
 #set_target_properties(scripts PROPERTIES CXX_STANDARD 17)
 
 # TCS entrypoint
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 add_executable(tcs "tcs.cpp" ${SOURCES})
 target_link_libraries(tcs Fulfil.CPPUtils Fulfil.OrbbecUtils Vmb::CPP ob::OrbbecSDK pthread json ${OpenCV_LIBS} )
 set_target_properties(tcs PROPERTIES CXX_STANDARD 17)
