@@ -59,13 +59,14 @@ DepthSensor::DepthSensor(const std::string &serial)
 
     // WARM UP
     fulfil::utils::Logger::Instance()->Trace("WARM UP starting for camera {}.", serial);
-    print_framestats();
+    print_framestats(); 
     auto start = CurrentTime();
     while((good_frames < 30) || (ms_elapsed(start) < 1500)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        fulfil::utils::Logger::Instance()->Error("WARM UP ongoing for camera {}. Started {}ms ago", serial, ms_elapsed(start));
     }
     print_framestats();
-    fulfil::utils::Logger::Instance()->Trace("WARM UP complete for camera {}.", serial);
+    fulfil::utils::Logger::Instance()->Trace("WARM UP complete for camera {}. Total warm up duration: {}ms", serial, ms_elapsed(start));
 }
 
 int DepthSensor::get_frame_rate_in_seconds() {
