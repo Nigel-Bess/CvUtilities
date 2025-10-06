@@ -8,6 +8,7 @@
 #include <Fulfil.Dispense/bays/bay_manager.h>
 
 #include <Fulfil.DepthCam/core.h>
+#include <Fulfil.DepthCam/core/sigterm.h>
 #include <Fulfil.CPPUtils/inih/ini_utils.h>
 
 #include <Fulfil.CPPUtils/inih/INIReader.h>
@@ -62,8 +63,8 @@ int main(int argc, char** argv)
   logger->Info("Fulfil.Dispense::main GIT info [{}]", git_info());
   logger->Info("Run Fulfil.Dispense::main\n********Dispense application starting********");
 
-
-
+  // Register a listener for graceful termination
+  fulfil::depthcam::sigterm::register_handler();
 
   // Manager parameters
 

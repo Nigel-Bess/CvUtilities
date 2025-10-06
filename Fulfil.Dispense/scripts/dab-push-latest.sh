@@ -14,8 +14,7 @@ TAG=${TAG:-$LOCATION}
 
 cd /home/fulfil/code/Fulfil.ComputerVision
 echo "Ensuring Git up-to-date (use your GH username / PAT token): "
-git fetch
-git checkout $BRANCH
+(git checkout $BRANCH && git pull --rebase) || (git fetch && git checkout $BRANCH)
 echo "Checked out $BRANCH, building and pushing to gcr.io/fulfil-web/cv-dispense/$BRANCH:$TAG"
 docker build . -f Dispense.arm.Dockerfile -t $BRANCH
 docker tag $BRANCH gcr.io/fulfil-web/cv-dispense/$BRANCH:$TAG

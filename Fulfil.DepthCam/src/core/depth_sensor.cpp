@@ -10,9 +10,13 @@
 #include<librealsense2/rs.hpp>
 #include<librealsense2/rsutil.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.DepthCam/core/sigterm.h>
 
 using fulfil::depthcam::DepthSensor;
 using fulfil::utils::Logger;
+using fulfil::depthcam::sigterm::app_running;
+using fulfil::depthcam::sigterm::exit_counter_dec;
+using fulfil::depthcam::sigterm::exit_counter_inc;
 
 // TODO need to make frame size, rate, decimation factor configurable!!!
 DepthSensor::DepthSensor(const std::string &serial)
@@ -153,7 +157,11 @@ void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes cod
 void DepthSensor::manage_pipe(){
     print_time = CurrentTime();
     static auto start_time = CurrentTime();
-    while(true){
+
+    // Register this running camera as a count to block graceful exits
+    std::string dc_prefix = "DC-";
+    exit_counter_inc(dc_prefix + serial_number->c_str());
+    while(app_running()){
         auto timer = CurrentTime();
         auto success = false;
         try{
@@ -175,7 +183,7 @@ void DepthSensor::manage_pipe(){
             last_frame_time = CurrentTime();
             good_frames++;
             success = true;
-            if(!connected_ && name_.compare("D")){//wait for name to be assigned
+            if(app_running() && !connected_ && name_.compare("D")){//wait for name to be assigned
                 connected_ = true;
                 create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
                 auto cf = frame_set->get_color_frame();
@@ -218,6 +226,12 @@ void DepthSensor::manage_pipe(){
             connected_ = false;
         }
     }
+    Logger::Instance()->Info("Shutting down camera {} / {}", name_.c_str(), serial_number->c_str());
+    pipeline->stop();
+    Logger::Instance()->Info("Shut down camera {} / {}", name_.c_str(), serial_number->c_str());
+
+    // Signal that this camera should no longer block graceful exit
+    exit_counter_dec();
 }
 
 rs2::frameset DepthSensor::get_latest_frame(){
