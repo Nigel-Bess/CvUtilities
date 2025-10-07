@@ -65,9 +65,21 @@ DepthSensor::DepthSensor(const std::string &serial)
     fulfil::utils::Logger::Instance()->Trace("WARM UP starting for camera {}.", serial);
     print_framestats(); 
     auto start = CurrentTime();
-    while((good_frames < 30) || (ms_elapsed(start) < 1500)) {
+    auto time_to_wait_ms = 1500; // 1500ms
+    auto camera_warmup_failure_threshold_ms = 10000;
+    int i = 0;
+    while((good_frames < 30) || (ms_elapsed(start) < time_to_wait_ms)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        fulfil::utils::Logger::Instance()->Error("WARM UP ongoing for camera {}. Started {}ms ago", serial, ms_elapsed(start));
+        i++;
+        // only log every so often to reduce spam
+        if (i % 100 == 0) {
+            fulfil::utils::Logger::Instance()->Error("WARM UP ongoing for camera {}. Started {}ms ago", serial, ms_elapsed(start));
+        }
+        // send bad camera frame status back to FC after failure to warm up
+        // if the camera eventually warms up, the connection status will later be sent elsewhere
+        if(ms_elapsed(start) > camera_warmup_failure_threshold_ms) {
+            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
+        }
     }
     print_framestats();
     fulfil::utils::Logger::Instance()->Trace("WARM UP complete for camera {}. Total warm up duration: {}ms", serial, ms_elapsed(start));

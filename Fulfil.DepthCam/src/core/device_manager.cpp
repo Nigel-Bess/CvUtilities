@@ -40,11 +40,12 @@ std::string unwrap_rs_serial(const rs2::device& _dev) {
     return _dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
 }
 
-void DeviceManager::reset_context_list() {
+void DeviceManager::reset_context_list() { 
     auto num_devices = this->context.query_devices().size();
     auto num_managed_devices = managed_devices.size();
     fulfil::utils::Logger::Instance()->Info("Managing {} realsense depth cameras out of {} devices connected.",
       num_managed_devices, num_devices);
+    // TODO: if num_devices connected is less than there should be, send back bad camera connection 
 
     auto hub = rs2::device_hub{this->context} ;
     context.set_devices_changed_callback( [num_devices, num_managed_devices](rs2::event_information info)
