@@ -169,26 +169,32 @@ void VmbManager::HandleRequest(std::shared_ptr<DepthCameras::DcRequest> request,
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
                 active_cams++;
-                auto image = cam->GetImageBlocking();
-                active_cams--;
-                cv::Mat cam_image = *image;
                 std::string directory_path = "/home/fulfil/data/" + std::string(*pkid) + "/";
-                if (!std::filesystem::exists(directory_path)) {
-                    if (std::filesystem::create_directories(directory_path)) {
-                        log_->Info("Directory created : {}", directory_path);
-                        std::string image_path = directory_path + "color_image";
-                        bool saved_image_successfully = SaveImages(cam_image, image_path);
-                        if (!saved_image_successfully) {
+                std::shared_ptr<cv::Mat> image;
+                try {
+                    image = cam->GetImageBlocking();
+                    cv::Mat cam_image = *image;
+                    if (!std::filesystem::exists(directory_path)) {
+                        if (std::filesystem::create_directories(directory_path)) {
+                            log_->Info("Directory created : {}", directory_path);
+                            std::string image_path = directory_path + "color_image";
+                            bool saved_image_successfully = SaveImages(cam_image, image_path);
+                            if (!saved_image_successfully) {
+                                repack_percep.success_code = RepackErrorCodes::UnspecifiedError;
+                                repack_percep.error_description = "Failed to save image successfully, likely the image was empty!";
+                            }
+                        }
+                        else {
+                            log_->Error("Failed to create Directory : {}", directory_path);
                             repack_percep.success_code = RepackErrorCodes::UnspecifiedError;
-                            repack_percep.error_description = "Failed to save image successfully, likely the image was empty!";
+                            repack_percep.error_description = "Failed to create Directory : " + directory_path;
                         }
                     }
-                    else {
-                        log_->Error("Failed to create Directory : {}", directory_path);
-                        repack_percep.success_code = RepackErrorCodes::UnspecifiedError;
-                        repack_percep.error_description = "Failed to create Directory : " + directory_path;
-                    }
+                } catch (...) {
+                    repack_percep.success_code = cam->camera_error_code;
+                    repack_percep.error_description = get_error_name_from_code((RepackErrorCodes)repack_percep.success_code) + " -> " +  cam->camera_error_description;
                 }
+                active_cams--;
                 
                 try {
                     // don't run the algorithm if the setup encountered issues

@@ -12,7 +12,7 @@ using namespace std::chrono_literals;
 static std::mutex _streamingCamLock;
 
 /// Max snapshot retries till GetBlockingImage gives up taking a valid frame
-const int MAX_SNAPSHOT_RETRIES = 20;
+const int MAX_SNAPSHOT_RETRIES = 3;
 /// Number of frames to take in multi acquire mode, larger values make GetBlockingImage slower
 /// but increase the odds of getting a Complete frame, leave low since there's a parent
 /// retry loop set by MAX_SNAPSHOT_RETRIES anyway
@@ -218,7 +218,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
             auto startTime = std::chrono::steady_clock::now();
             log_->Info("AquiredMultiple start {}", name_);
-            err = camera_->AcquireMultipleImages(frame_ptrs_, 20000);
+            err = camera_->AcquireMultipleImages(frame_ptrs_, 5000);
             auto stopTime = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
             log_->Info("AquiredMultiple took {}ms on {}", duration, name_);
