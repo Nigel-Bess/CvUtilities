@@ -24,6 +24,70 @@ services:
       - dispense_test
       - fed_test
 
+  dispense_hotrun:
+    build:
+      dockerfile: Dispense.amd.Dockerfile
+    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1)) && printf \"\n\nYoure in a Dispense container with source linked to your host machine, use make or ./app/main\" && bash'"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    device_cgroup_rules:
+      - "c 81:* rmw"
+      - "c 189:* rmw"
+    ports:
+      - 9500:9500
+      - 9501:9501
+      - 9502:9502
+      - 9503:9503
+      - 9504:9504
+      - 9505:9505
+    volumes:
+      - "./data:/home/fulfil/data"
+      - "./Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
+      - "./Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
+      - "./Fulfil.Dispense/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/app"
+      - "./Fulfil.Dispense/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src"
+      - "./Fulfil.Dispense/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include"
+      - "./Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
+      - "./Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
+      - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
+      - "./Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
+    privileged: true
+    network_mode: host
+    env_file:
+      - path: .env
+        required: false
+
+  dispense_hotreload:
+    build:
+      dockerfile: Dispense.amd.Dockerfile
+    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && while true; do cmake --build . -j$(($(nproc)-1)); sleep 1; done'"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    device_cgroup_rules:
+      - "c 81:* rmw"
+      - "c 189:* rmw"
+    ports:
+      - 9500:9500
+      - 9501:9501
+      - 9502:9502
+      - 9503:9503
+      - 9504:9504
+      - 9505:9505
+    volumes:
+      - "./data:/home/fulfil/data"
+      - "./Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
+      - "./Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
+      - "./Fulfil.Dispense/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/app"
+      - "./Fulfil.Dispense/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src"
+      - "./Fulfil.Dispense/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include"
+      - "./Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
+      - "./Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
+      - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
+      - "./Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
+    privileged: true
+    network_mode: host
+    env_file:
+      - path: .env
+        required: false
+
   # TCS commands
   tcs_unit_test:
     build:
@@ -58,6 +122,26 @@ services:
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+    environment:
+      - "FACILITY_IDENTIFIER=local"
+      - "CAMERAS=0:0000000000001"
+      - "VIMBA_CAMERAS=fake:ClipOpener"
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - tcs
+
+  tcs_hotrun:
+    build:
+      dockerfile: TCS.Dockerfile
+    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS && make && printf \"\n\nYoure in a TCS container with source linked to your host machine, use make or ./build/tcs\" && bash'"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    volumes:
+      - "./Fulfil.TCS/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/data"
+      - "./Fulfil.TCS/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/src"
+      - "./Fulfil.TCS/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/include"
+      - "./Fulfil.TCS/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.TCS/test"
     environment:
       - "FACILITY_IDENTIFIER=local"
       - "CAMERAS=0:0000000000001"

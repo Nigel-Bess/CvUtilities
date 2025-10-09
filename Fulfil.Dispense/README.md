@@ -2,6 +2,18 @@
 
 The only information guaranteed to be  up-to-date is the **Starting the Mars API** section. Any information that precedes the **Depreciation Warning** section of the readme is valid. Other up-to-date information can be found on the [CV Command Guide](https://docs.google.com/document/d/14k9Jj3RgEqf9b27t3sbYC5RS6eEuN8hgaCXUnPTA268/edit?pli=1#heading=h.5wo37tlgfgcn).
 
+## Dev tips
+
+Dispense has a hotrun and hotreload Docker Compose service wrapper that will link your local src code with a running container's and allows you to quick trigger "native" make builds that run much faster than a raw Docker Build since it can better leverage the container's local CMake cache.  Use hotrun to wind up bashed into the container for quick `make` or run calls, or use hotreload to trigger permanent fast `make` build in the container within a loop, so as soon as your break src on your host machine, you'll see the compile error pop up in terminal.
+
+Beware that this can produce weird binary artifacts in shared src folders that are easy to commit by accident, so git commit selectively!
+
+Run any of these from CV root dir:
+
+`docker compose run --remove-orphans --build dispense_hotrun`
+
+`docker compose run --remove-orphans --build dispense_hotreload`
+
 ## Deploying
 
 Because building giant ARM64 images in Github Actions is nearly impossible, we instead use a dedicated CI build box in Whisman that can
