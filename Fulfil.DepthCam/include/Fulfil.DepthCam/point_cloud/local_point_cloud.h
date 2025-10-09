@@ -40,6 +40,10 @@ class LocalPointCloud : virtual public PointCloud
    * should use values that are in the local coordinate system.
    */
   virtual void apply_filter(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter) = 0;
+
+  virtual void apply_filter_side_dispense(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter) = 0;
+
+  virtual void apply_filter_side_dispense_point_cloud_outside_cavity(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter) = 0;
   /**
    * Creates a new point cloud in the local coordinate system but with the given set of
    * points in the local coordinate system.

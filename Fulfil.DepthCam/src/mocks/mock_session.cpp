@@ -200,6 +200,23 @@ std::shared_ptr<rs2_extrinsics> MockSession::get_depth_to_color_extrinsics()
   return this->depth_to_color_extrinsics;
 }
 
+std::shared_ptr<Eigen::Matrix3Xd> MockSession::get_camera_point_cloud(bool include_invalid_depth_data) {
+    std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud = std::make_shared<Eigen::Matrix3Xd>();
+    if (this->point_cloud == nullptr)
+    {
+        Logger::Instance()->Error("Point cloud not available in mock session!");
+        throw(16);
+    }
+
+    if (!include_invalid_depth_data)
+    {
+        shared_ptr<CustomMatrix3dPredicate> predicate = make_shared<CustomMatrix3dPredicate>([](const Matrix3dPoint& point) { return point(2) != 0; });
+        shared_ptr<CameraPointCloud> camera_cloud = this->point_cloud->as_camera_cloud();
+        camera_cloud->apply_filter(make_shared<Matrix3XdFilter>(predicate));
+        camera_point_cloud = camera_cloud->get_data();
+    }
+    return camera_point_cloud;
+}
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MockSession::get_point_cloud(
     bool include_invalid_depth_data, const char* caller)

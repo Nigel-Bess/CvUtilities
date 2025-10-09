@@ -11,3 +11,8 @@ bool CustomMatrix3dPredicate::evaluate(const fulfil::utils::eigen::Matrix3dPoint
 {
   return this->predicate(point);
 }
+
+bool CustomMatrix3dPredicate::evaluate_side_dispense(const fulfil::utils::eigen::Matrix3dPoint& point)
+{
+	return this->predicate(point);
+}

@@ -3,6 +3,7 @@
 #include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.Dispense/drop/side_drop_result.h>
+#include <json.hpp>
 
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::dispense::drop::SideDropResult;
@@ -11,13 +12,16 @@ using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::Point3D;
 using fulfil::utils::Logger;
 
+
 // constructor that does sets container to nullptr
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
                                std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+                               std::shared_ptr<nlohmann::json> occupancy_data,
                                int error_code,
                                const std::string &error_description) {
     this->request_id = request_id;
     this->occupancy_map = occupancy_map;
+    this->occupancy_data = occupancy_data;
     this->container = nullptr;
     this->success_code = error_code;
     this->error_description = error_description;
@@ -25,6 +29,7 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
 
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
                                std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+                               std::shared_ptr<nlohmann::json> occupancy_data,
                                std::shared_ptr<MarkerDetectorContainer> container,
                                float square_width,
                                float square_height,
@@ -32,6 +37,7 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
                                const std::string &error_description) {
     this->request_id = request_id;
     this->occupancy_map = occupancy_map;
+    this->occupancy_data = occupancy_data;
     this->container = container;
     this->square_width = square_width;
     this->square_height = square_height;

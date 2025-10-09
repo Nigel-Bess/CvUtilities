@@ -37,15 +37,16 @@ class MarkerDetectorContainer : public Container
   int aruco_retries;
   void setup_cached_container();
   std::shared_ptr<std::vector<Marker::Coordinate>> corners;
-  std::shared_ptr<Eigen::Matrix3Xd> mm_marker_coordinates;
 
   int num_markers;
   float marker_depth;
   float marker_depth_tolerance;
   int min_marker_count_for_validation;
 
-  std::shared_ptr<Eigen::Affine3d> get_transform_to_bag_coordinates(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers);
+  
  public:
+  
+  std::shared_ptr<Eigen::Matrix3Xd> mm_marker_coordinates;
   cv::Mat grab_color_frame() override;
 
   int region_min_x;
@@ -53,6 +54,8 @@ class MarkerDetectorContainer : public Container
   int region_min_y;
   int region_max_y;
   bool is_side_dispense;
+
+  std::shared_ptr<Eigen::Affine3d> get_transform_to_bag_coordinates(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers);
 
   std::shared_ptr<MarkerDetector> marker_detector;
    /**
@@ -123,6 +126,11 @@ class MarkerDetectorContainer : public Container
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       bool include_invalid_depth_data, const char* caller) override;
+  
+  std::shared_ptr<fulfil::utils::Point3D> convert_color_pixel_to_depth_point(float x, float y, std::shared_ptr<Session> session);
+
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud_outside_cavity(
+      bool include_invalid_depth_data, const char* caller) ;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       std::shared_ptr<Eigen::Matrix3Xd> rotation,

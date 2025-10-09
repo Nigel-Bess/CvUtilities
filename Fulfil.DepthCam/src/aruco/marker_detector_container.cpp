@@ -73,7 +73,7 @@ MarkerDetectorContainer::MarkerDetectorContainer(std::shared_ptr<MarkerDetector>
 /**
  * Converts the given color stream pixel to a depth stream point.
  */
-std::shared_ptr<fulfil::utils::Point3D> convert_color_pixel_to_depth_point(float x, float y, std::shared_ptr<Session> session)
+std::shared_ptr<fulfil::utils::Point3D> MarkerDetectorContainer::convert_color_pixel_to_depth_point(float x, float y, std::shared_ptr<Session> session)
 {
   //Converting color pixel to color point
   float color_point[3];
@@ -486,7 +486,27 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContaine
   {
     this->setup_cached_container();
   }
+  if (this->is_side_dispense) {
+      Logger::Instance()->Debug("Getting side dispense point cloud from MarkerDetectorContainer!!");
+      return this->cached_container->get_point_cloud_side_dispense(include_invalid_depth_data, caller);
+  }
+  Logger::Instance()->Debug("Getting point cloud from MarkerDetectorContainer!!");
   return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
+}
+
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud_outside_cavity(
+    bool include_invalid_depth_data, const char* caller)
+{
+    if (!this->cached_container)
+    {
+        this->setup_cached_container();
+    }
+    if (this->is_side_dispense) {
+        Logger::Instance()->Debug("Getting side dispense point cloud from MarkerDetectorContainer!!");
+        return this->cached_container->get_point_cloud_side_dispense_outside_cavity(include_invalid_depth_data, caller);
+    }
+    Logger::Instance()->Debug("Getting point cloud from MarkerDetectorContainer!!");
+    return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud(

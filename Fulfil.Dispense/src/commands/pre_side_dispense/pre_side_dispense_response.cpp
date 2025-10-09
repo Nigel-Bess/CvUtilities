@@ -32,9 +32,10 @@ void PreSideDispenseResponse::encode_payload() {
         }
         result_json["Occupancy_Map"] = converted_map;
     }
-
+    std::string display_json_string = result_json.dump();
+    Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", display_json_string);
+    result_json["Occupancy_Visualization"] = *this->occupancy_data;
     std::string json_string = result_json.dump();
-    Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", json_string);
     int json_length = json_string.size();
     const char *json_text = json_string.c_str();
     char *response = new char[json_length + 1];
@@ -47,12 +48,14 @@ void PreSideDispenseResponse::encode_payload() {
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,
                                                  std::shared_ptr<std::string> primary_key_id,
                                                  std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+                                                 std::shared_ptr<nlohmann::json> occupancy_data,
                                                  float square_width,
                                                  float square_height,
                                                  DcApiErrorCode success_code,
                                                  std::string error_description) : request_id(request_id),
     primary_key_id(primary_key_id),
     occupancy_map(occupancy_map),
+    occupancy_data(occupancy_data),
     square_width(square_width),
     square_height(square_height),
     success_code(success_code),

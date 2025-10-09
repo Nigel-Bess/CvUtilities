@@ -289,7 +289,7 @@ std::shared_ptr<cv::Mat> DepthSession::get_color_mat()
     Logger::Instance()->Error("Raw_Color_Frame is nullptr in get_color_mat method. Exiting Program");
     exit(1);
   }
-
+  Logger::Instance()->Error("Extracting color frame from Depth Session!");
   // This does NOT create a deep copy. The data is not copied.
   return std::make_shared<cv::Mat>(
           cv::Size(this->sensor->frame_width, this->sensor->frame_height),

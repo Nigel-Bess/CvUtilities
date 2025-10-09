@@ -35,6 +35,10 @@ class Matrix3XdFilter
    * @return a pointer to a new matrix with just data where the predicate returned true.
    */
   std::shared_ptr<Eigen::Matrix3Xd> filter(std::shared_ptr<Eigen::Matrix3Xd> matrix);
+
+  std::shared_ptr<Eigen::Matrix3Xd> filter_side_dispense(std::shared_ptr<Eigen::Matrix3Xd> matrix);
+  
+  std::shared_ptr<Eigen::Matrix3Xd> filter_side_dispense_point_cloud_outside_cavity(std::shared_ptr<Eigen::Matrix3Xd> matrix);
 };
 } // namespace eigen
 } // namespace utils

@@ -7,6 +7,7 @@
 
 #include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
+#include <json.hpp>
 
 using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 
@@ -27,6 +28,7 @@ namespace fulfil::dispense::commands {
         explicit PreSideDispenseResponse(std::shared_ptr<std::string> request_id, 
                                          std::shared_ptr<std::string> primary_key_id,
                                          std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+                                         std::shared_ptr<nlohmann::json> occupancy_data,
                                          float square_width,
                                          float square_height,
                                          DcApiErrorCode success_code, 
@@ -37,6 +39,7 @@ namespace fulfil::dispense::commands {
         std::shared_ptr<std::string> dispense_payload() override;
         std::shared_ptr<std::string> primary_key_id;
         std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
+        std::shared_ptr<nlohmann::json> occupancy_data;
         float square_width;
         float square_height;
         DcApiErrorCode success_code{DcApiErrorCode::Success};

@@ -67,6 +67,8 @@ class MockSession : public Session
 
   std::shared_ptr<std::string> get_serial_number() override;
 
+  std::shared_ptr<Eigen::Matrix3Xd> get_camera_point_cloud(bool include_invalid_depth_data);
+
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       bool include_invalid_depth_data, const char* caller) override;
 

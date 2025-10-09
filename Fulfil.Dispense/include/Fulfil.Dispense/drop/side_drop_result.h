@@ -10,6 +10,7 @@
 #include <fstream>
 #include <Fulfil.CPPUtils/point_3d.h>
 #include <Fulfil.DepthCam/aruco/marker_detector_container.h>
+#include <json.hpp>
 
 namespace fulfil::dispense::drop
 {
@@ -30,11 +31,13 @@ class SideDropResult
    */
    explicit SideDropResult(std::shared_ptr<std::string> request_id,
     std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+    std::shared_ptr<nlohmann::json> occupancy_data,
     int error_code,
     const std::string &error_description);
 
-  SideDropResult(std::shared_ptr<std::string> request_id,
+   SideDropResult(std::shared_ptr<std::string> request_id,
    std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
+   std::shared_ptr<nlohmann::json> occupancy_data,
    std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container,
    float square_width,
    float square_height,
@@ -49,6 +52,8 @@ class SideDropResult
   std::shared_ptr<std::string> request_id;
 
   std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
+
+  std::shared_ptr<nlohmann::json> occupancy_data;
 
   std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container;
 

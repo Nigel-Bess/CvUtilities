@@ -12,6 +12,7 @@
 #include <Fulfil.CPPUtils/eigen/matrix3xd_filter.h>
 #include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
 #include <Fulfil.DepthCam/point_cloud.h>
+#include <Fulfil.CPPUtils/logging.h>
 
 using fulfil::depthcam::aruco::FixedTransformContainer;
 using std::shared_ptr;
@@ -19,6 +20,7 @@ using std::make_shared;
 using fulfil::utils::eigen::Matrix3dPredicate;
 using fulfil::depthcam::aruco::ContainerMatrix3xdPredicate;
 using fulfil::utils::eigen::Matrix3XdFilter;
+using fulfil::utils::Logger;
 
 FixedTransformContainer::FixedTransformContainer(shared_ptr<Session> session, shared_ptr<Eigen::Affine3d> transform,
                                                  bool should_filter_points_outside_of_container, float width,
@@ -55,6 +57,42 @@ void FixedTransformContainer::set_service(std::shared_ptr<GrpcService> serv){
     this->session->set_service(serv);
 }
 
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud_side_dispense(
+    bool include_invalid_depth_data, const char* caller)
+{
+    std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = this->session->get_point_cloud(
+        this->transform, include_invalid_depth_data, caller)->as_local_cloud();
+
+    if (!this->should_filter_points_outside_of_container) { return local_point_cloud; }
+
+    //adjusting the center of the bag to have accurate container mapping
+    this->center_x = 0.00;
+    std::shared_ptr<Matrix3dPredicate> predicate =
+        std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
+    std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
+    Logger::Instance()->Debug("Aplying side dispense point cloud filter in FixedTransformContainer!!");
+    local_point_cloud->apply_filter_side_dispense(filter);
+    return local_point_cloud;
+}
+
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud_side_dispense_outside_cavity(
+    bool include_invalid_depth_data, const char* caller)
+{
+    std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud_outside_cavity = this->session->get_point_cloud(
+        this->transform, include_invalid_depth_data, caller)->as_local_cloud();
+
+    if (!this->should_filter_points_outside_of_container) { return local_point_cloud_outside_cavity; }
+
+    //adjusting the center of the bag to have accurate container mapping
+    this->center_x = 0.00;
+    std::shared_ptr<Matrix3dPredicate> predicate =
+        std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
+    std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
+    Logger::Instance()->Debug("Aplying side dispense outside bag cavity point cloud filter in FixedTransformContainer!!");
+    local_point_cloud_outside_cavity->apply_filter_side_dispense_point_cloud_outside_cavity(filter);
+    return local_point_cloud_outside_cavity;
+}
+
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud(
     bool include_invalid_depth_data, const char* caller)
 {
@@ -69,6 +107,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
     std::shared_ptr<Matrix3dPredicate> predicate =
         std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
     std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
+    Logger::Instance()->Debug("Aplying point cloud filter in FixedTransformContainer!!");
     local_point_cloud->apply_filter(filter);
     return local_point_cloud;
 }

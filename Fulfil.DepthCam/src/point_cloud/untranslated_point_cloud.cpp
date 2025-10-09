@@ -63,6 +63,16 @@ void UntranslatedPointCloud::apply_filter(std::shared_ptr<fulfil::utils::eigen::
   this->inner_point_cloud = filter->filter(this->inner_point_cloud);
 }
 
+void UntranslatedPointCloud::apply_filter_side_dispense(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter)
+{
+    this->inner_point_cloud = filter->filter_side_dispense(inner_point_cloud);
+}
+
+void UntranslatedPointCloud::apply_filter_side_dispense_point_cloud_outside_cavity(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter)
+{
+    std::shared_ptr<Eigen::Matrix3Xd> outer_point_cloud = filter->filter_side_dispense_point_cloud_outside_cavity(inner_point_cloud);
+}
+
 void UntranslatedPointCloud::encode_to_directory(std::shared_ptr<std::string> filepath)
 {
 

@@ -98,6 +98,12 @@ class FixedTransformContainer : public Container
 
   std::shared_ptr<std::string> get_serial_number() override;
 
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud_side_dispense(
+      bool include_invalid_depth_data, const char* caller);
+  
+  std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud_side_dispense_outside_cavity(
+      bool include_invalid_depth_data, const char* caller);
+
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> get_point_cloud(
       bool include_invalid_depth_data, const char* caller) override;
 

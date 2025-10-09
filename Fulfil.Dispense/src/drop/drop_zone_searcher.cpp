@@ -1,5 +1,6 @@
 #include <climits>
 #include <filesystem>
+#include <json.hpp>
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -19,11 +20,13 @@
 #include <Fulfil.Dispense/visualization/live_viewer.h>
 
 using fulfil::depthcam::aruco::MarkerDetector;
+using fulfil::depthcam::aruco::Marker;
 using fulfil::depthcam::aruco::Container;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::depthcam::image_comparison::get_MSSIM;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::pointcloud::PixelPointCloud;
+using fulfil::depthcam::pointcloud::CameraPointCloud;
 using fulfil::depthcam::pointcloud::PointCloud;
 using fulfil::depthcam::Session;
 using fulfil::depthcam::visualization::SessionVisualizer;
@@ -37,6 +40,7 @@ using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::convert_map_to_millimeters;
+using fulfil::utils::to_millimeters;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 
@@ -2179,6 +2183,149 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
     return grid;
 }
 
+Eigen::Vector3d find_plane_normal(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d p3) {
+    Eigen::Vector3d v1 = p2 - p1;
+    Eigen::Vector3d v2 = p3 - p1;
+    Eigen::Vector3d normal = v1.cross(v2);
+    Eigen::Vector3d unit_normal = normal.normalized();
+    if (unit_normal.x() == 0 && unit_normal.y() == 0 && unit_normal.z() == 0) {
+        unit_normal.z() = -1; //set normal to default (0, 0, -1) if depth is missing at the center of the bag cavity opening plane
+    }
+    return unit_normal;
+}
+
+double wrap_radians_to_pi(double theta) {
+    if (!std::isfinite(theta)) {
+        //return null if the given theta equals infinity
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    double wrapped_theta = std::remainder(theta, 2.0 * M_PI);
+    if (wrapped_theta == 0.0) wrapped_theta = 0.0;
+    if (wrapped_theta <= -M_PI) wrapped_theta += 2.0 * M_PI;
+    return wrapped_theta;
+}
+
+int DropZoneSearcher::add_data_to_occupancy_json(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud_outside_cavity, 
+    std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<nlohmann::json> occupancy_json, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<Eigen::Vector3d> actual_aruco_center_coordinates, Eigen::Vector3d actual_center_coordinates, Eigen::Affine3d inverse_transform) {
+    try {
+        //get the point cloud container points to save as a json for visualization
+        std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data = camera_point_cloud->get_data();
+        std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data_outside_cavity = camera_point_cloud_outside_cavity->get_data();
+        //read the expected marker locations from lfb_vision_config
+        std::vector<float> marker_coord_x = lfb_vision_config->marker_coordinates_x;
+        std::vector<float> marker_coord_y = lfb_vision_config->marker_coordinates_y;
+        std::vector<float> marker_coord_z = lfb_vision_config->marker_coordinates_z;
+        std::vector<cv::Point3f> marker_coordinates_expected;
+        //store the expected aruco locations based on number of markers detected
+        Eigen::Vector3d aruco_expected_vec1 = Eigen::Vector3d::Zero();
+        Eigen::Vector3d aruco_expected_vec2 = Eigen::Vector3d::Zero();
+        Eigen::Vector3d expected_aruco_location = Eigen::Vector3d::Zero();
+        //read bag cavity dimensions from the request json
+        float bag_cavity_length = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("XLengthMm", 367);
+        float bag_cavity_width = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("YLengthMm", 260);
+        float bag_cavity_depth = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("ZLengthMm", 430);
+
+        Logger::Instance()->Debug("Define json parameters to be used for the output json!!");
+        nlohmann::json camera_point_cloud_points = nlohmann::json::array();
+        nlohmann::json camera_point_cloud_points_outside_cavity = nlohmann::json::array();
+        nlohmann::json marker_coordinates_measured_location = nlohmann::json::array();
+        nlohmann::json marker_coordinates_expected_location = nlohmann::json::array();
+        nlohmann::json bagCavityDimensionsMm = nlohmann::json::array();
+        nlohmann::json normal_vector_measured;
+        nlohmann::json normal_vector_expected;
+        nlohmann::json center_coordinates_measured;
+        nlohmann::json center_coordinates_expected;
+        
+        for (int i = 0; i < camera_point_cloud_data_outside_cavity->cols(); ++i) {
+            Eigen::Vector3d point_cloud_point = camera_point_cloud_data_outside_cavity->col(i);
+            camera_point_cloud_points_outside_cavity.push_back({ to_millimeters(-point_cloud_point(0)), to_millimeters(-point_cloud_point(1)), to_millimeters(-point_cloud_point(2))});
+        }
+
+        for (int i = 0; i < camera_point_cloud_data->cols(); ++i) {
+            Eigen::Vector3d point_cloud_point = camera_point_cloud_data->col(i);
+            camera_point_cloud_points.push_back({ to_millimeters(-point_cloud_point(0)), to_millimeters(-point_cloud_point(1)), to_millimeters(-point_cloud_point(2))});
+        }
+       
+        for (int i = 0; i < actual_aruco_center_coordinates.size(); ++i) {
+            Eigen::Vector3d marker_coord = actual_aruco_center_coordinates[i];
+            marker_coordinates_measured_location.push_back({ to_millimeters(-marker_coord(0)), to_millimeters(-marker_coord(1)), to_millimeters(-marker_coord(2)) });
+        }
+        for (int i = 0; i < marker_coord_x.size(); i++) {
+            marker_coordinates_expected.push_back({ marker_coord_x[i], marker_coord_y[i], marker_coord_z[i] });
+        }
+        
+        for (int j = 0; j < marker_coordinates_expected.size(); j++) {
+            Eigen::Vector3d aruco_center_point(marker_coordinates_expected[j].x, marker_coordinates_expected[j].y, marker_coordinates_expected[j].z);
+            Eigen::Vector3d reverse_transformed_aruco = inverse_transform * aruco_center_point;
+            if (j == 0) aruco_expected_vec1 = reverse_transformed_aruco;
+            if (j == 1) aruco_expected_vec2 = reverse_transformed_aruco;
+            marker_coordinates_expected_location.push_back({ to_millimeters(-reverse_transformed_aruco.x()), to_millimeters(-reverse_transformed_aruco.y()) , to_millimeters(-reverse_transformed_aruco.z()) });
+        }
+        
+        Eigen::Vector3d aruco_measured_vec(actual_aruco_center_coordinates[0].x(), actual_aruco_center_coordinates[0].y(), actual_aruco_center_coordinates[0].z());
+        if (actual_aruco_center_coordinates.size() == 3) {
+            expected_aruco_location = aruco_expected_vec2;
+        }
+        else {
+            expected_aruco_location = aruco_expected_vec1;
+        }
+
+        Logger::Instance()->Debug("Calculate the expected & measured center coordinates!");
+        if (actual_center_coordinates.z() > 0.500 || actual_center_coordinates.z() < 0.100) {
+            actual_center_coordinates.z() = 0.470;
+        }
+        actual_center_coordinates = -actual_center_coordinates;
+        center_coordinates_measured = { to_millimeters(actual_center_coordinates.x()), to_millimeters(actual_center_coordinates.y()), to_millimeters(actual_center_coordinates.z()) }; //subtracting the bag cavity depth from the z coordinate of the center to get the exact depth value at the center
+        Eigen::Vector3d center_expected(0, 0, -470);
+        center_coordinates_expected = { center_expected.x(), center_expected.y(), center_expected.z()}; //values measured manually
+
+        Eigen::Vector3d distance_between_actual_and_expected_bag_cavity_center = { abs(actual_center_coordinates.x() - 0.000), abs(actual_center_coordinates.y() - 0.000), abs(actual_center_coordinates.z() - 0.470)};
+        float error_x = to_millimeters(distance_between_actual_and_expected_bag_cavity_center.x()); //traverse component of the distance
+        float error_y = to_millimeters(distance_between_actual_and_expected_bag_cavity_center.y()); //lift component of the distance
+        float error_z = to_millimeters(distance_between_actual_and_expected_bag_cavity_center.z()); //extend component of the distance
+
+        Eigen::Vector3d normal_measured = find_plane_normal(actual_aruco_center_coordinates[0], actual_aruco_center_coordinates[1], actual_aruco_center_coordinates[2]);
+        Eigen::Vector3d normal_expected = { 0, 0, -1 };
+       
+        double theta1 = std::atan2(to_millimeters(expected_aruco_location.y()), to_millimeters(expected_aruco_location.z()));
+        double theta2 = std::atan2(to_millimeters(aruco_measured_vec.y()), to_millimeters(aruco_measured_vec.z()));
+        double angle = wrap_radians_to_pi(theta2 - theta1);
+        double twistDegrees = angle * 180.0 / M_PI;
+        Logger::Instance()->Debug("Value of the bag cavity twist (angle in degrees) expected v/s actual: {}", twistDegrees);
+        normal_vector_measured = { normal_measured.x(), normal_measured.y(), normal_measured.z() };
+        normal_vector_expected = { normal_expected.x(), normal_expected.y(), normal_expected.z() };
+       
+        Logger::Instance()->Debug("Populate the occupancy data json for saving to the disk!!");
+        (*occupancy_json)["bagCavityopening"]["expected"]["center"] = center_coordinates_expected;
+        (*occupancy_json)["bagCavityopening"]["expected"]["normal"] = normal_vector_expected;
+        (*occupancy_json)["bagCavityopening"]["expected"]["twistDegrees"] = 0;
+        (*occupancy_json)["bagCavityopening"]["actual"]["center"] = center_coordinates_measured;
+        (*occupancy_json)["bagCavityopening"]["actual"]["normal"] = normal_vector_measured;
+        (*occupancy_json)["bagCavityopening"]["actual"]["twistDegrees"] = twistDegrees;
+        (*occupancy_json)["bagCavityDimensionsMm"]["xLengthMm"] = bag_cavity_length;
+        (*occupancy_json)["bagCavityDimensionsMm"]["yLengthMm"] = bag_cavity_width;
+        (*occupancy_json)["bagCavityDimensionsMm"]["zLengthMm"] = bag_cavity_depth;
+        (*occupancy_json)["pointCloud"]["insideBagCavity"] = camera_point_cloud_points;
+        (*occupancy_json)["pointCloud"]["outsideBagCavity"] = camera_point_cloud_points_outside_cavity;
+        (*occupancy_json)["arucoTags"]["expected"] = marker_coordinates_expected_location;
+        (*occupancy_json)["arucoTags"]["actual"] = marker_coordinates_measured_location;
+
+        //set the tolerance for the x & y components of the distance vector representing the lift, traverse & extend
+        //TO-DO: convert the tolerance value to a recipe
+        //error_lift = 10mm
+        //error_traverse = 20 mm
+        if (error_x > 20.0 || error_y > 10.0) {
+            //return UnexpectedBagPosition if the thresholds are high
+            Logger::Instance()->Debug("The error between actual and expected centers exceeds the threshold. Traverse Error Value: {}, Lift Error Value: {}", error_x, error_y);
+            return DcApiErrorCode::UnexpectedBagPosition;
+        }
+        return DcApiErrorCode::Success;
+    }
+    catch (...) {
+        Logger::Instance()->Error("Unspecified failure from add_data_to_occupancy_json during handling pre side dispense in catch(...) block");
+        return DcApiErrorCode::UnspecifiedError;
+    }
+}
 
 std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
     std::shared_ptr<MarkerDetectorContainer> container,
@@ -2191,10 +2338,13 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
         // visualize the color image
         std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
+        std::shared_ptr<nlohmann::json> occupancy_json = std::make_shared<nlohmann::json>();
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
-
+        int success_code = DcApiErrorCode::Success;
         // this "LFB_filter" image is the plain depth map visualized
         std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
+        std::shared_ptr<CameraPointCloud> camera_point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_camera_cloud();
+        std::shared_ptr<CameraPointCloud> point_cloud_outside_cavity = container->get_point_cloud_outside_cavity(false, __FUNCTION__)->as_camera_cloud();
         cv::Mat depth_visualization;
         cv::Mat depth_mat = *this->session->get_depth_mat();
         Logger::Instance()->Trace("Retrieved depth mat");
@@ -2206,7 +2356,6 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, *primary_key_id);
 
         Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
-
 
         // detect Aruco markers in RGB stream     
         std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
@@ -2227,6 +2376,48 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud);
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
         if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
+        
+        //use a default value in case marker id=0 is not detected
+        std::shared_ptr<cv::Point2f> top_left_aruco = std::make_shared<cv::Point2f>(468, 603);
+        std::vector<std::shared_ptr<cv::Point2f>> aruco_centers;
+
+        for (int i = 0; i < markers->size(); i++) {
+            int id = markers->at(i)->get_id();
+            std::shared_ptr<cv::Point2f> aruco_center = markers->at(i)->get_coordinate(Marker::Coordinate::center);
+            Logger::Instance()->Debug("aruco center pixels for marker:{}, x:{}, y:{}", id, aruco_center->x, aruco_center->y);
+            aruco_centers.push_back(aruco_center);
+
+            //ToDo - Map the expected & actual aruco wrt their ids
+            if (id == 0) {
+                top_left_aruco = markers->at(i)->get_coordinate(Marker::Coordinate::topLeft);
+                Logger::Instance()->Debug("TopLeft pixel coordinates of Marker with id:{}, coordinate x: {}, coordinate y: {} ", id, top_left_aruco->x, top_left_aruco->y);
+            }
+
+        }
+       
+        std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers = markers;
+        std::shared_ptr<Eigen::Affine3d> transform = container->get_transform_to_bag_coordinates(detected_markers);
+        std::shared_ptr<Eigen::Affine3d> inverse_transform = std::make_shared<Eigen::Affine3d>(transform->inverse());
+
+        Logger::Instance()->Debug("Fetching the center coordinates of all the detected aruco tags!!");
+        std::vector<Eigen::Vector3d> actual_aruco_center_coordinates;
+        //calculate the aruco coordinate centers in mm
+        for (int i = 0; i < aruco_centers.size(); i++) {
+            auto aruco_center_point = container->convert_color_pixel_to_depth_point(aruco_centers[i]->x, aruco_centers[i]->y, this->session);
+            auto center_point = std::make_shared<Eigen::Vector3d>(aruco_center_point->x, aruco_center_point->y, aruco_center_point->z);
+            actual_aruco_center_coordinates.push_back(*center_point);
+        }
+
+        //calculate the center for the actual bot image
+        auto actual_bag_cavity_center = std::make_shared<cv::Point2f>(top_left_aruco->x + (float)235, top_left_aruco->y - (float)235);
+        std::shared_ptr<fulfil::utils::Point3D> actual_center_3d = container->convert_color_pixel_to_depth_point(actual_bag_cavity_center->x, actual_bag_cavity_center->y, this->session);
+        auto actual_bag_cavity_center_camera_coord = std::make_shared<Eigen::Vector3d>(actual_center_3d->x, actual_center_3d->y, actual_center_3d->z);
+        Logger::Instance()->Debug("Center calculation complete for the mesured bag cavity!!");
+
+        //add occupancy data to json
+        success_code = add_data_to_occupancy_json(container, camera_point_cloud, point_cloud_outside_cavity, request_json, occupancy_json,
+            lfb_vision_config, actual_aruco_center_coordinates, *actual_bag_cavity_center_camera_coord, *inverse_transform);
+        Logger::Instance()->Debug("Occupancy Data population complete! Returned success_code: {}", success_code);
 
         // transform depth cloud into the OccupancyMap
         int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
@@ -2245,12 +2436,15 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
 
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
                                   occupancy_map_width, occupancy_map_height, square_width, square_height);
+        std::shared_ptr<std::string> occupancy_json_data = std::make_shared<std::string>(occupancy_json->dump());
+        //Logger::Instance()->Debug("Occupancy json data dump: {}", *occupancy_json_data);
         return std::make_shared<SideDropResult>(request_id,
                                                 occupancy_map,
+                                                occupancy_json,
                                                 container,
                                                 square_width,
                                                 square_height,
-                                                DcApiErrorCode::Success,
+                                                success_code,
                                                 std::string(""));
     }
     catch (const rs2::unrecoverable_error& e)
@@ -2259,7 +2453,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -2267,13 +2461,13 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
     catch (DcApiError& e)
     {
@@ -2281,16 +2475,16 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, error_id, e.get_description());
     }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }
 
@@ -2355,9 +2549,10 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                                   occupancy_map_width, occupancy_map_height, square_width, square_height);
         return std::make_shared<SideDropResult>(request_id,
                                                 occupancy_map,
+                                                nullptr,
                                                 container,
                                                 square_width,
-                                                square_height,
+                                                square_height, 
                                                 DcApiErrorCode::Success,
                                                 std::string(""));
     }
@@ -2367,7 +2562,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                              std::string("`\nIn function: `") + e.get_failed_function() +
                              std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Fatal(error_descrip);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnrecoverableRealSenseError, error_descrip);
     }
     catch (const rs2::recoverable_error& e)
     {
@@ -2375,13 +2570,13 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
                          std::string("`\nIn function: `") + e.get_failed_function() +
                          std::string("`\nWith args: `") + e.get_failed_args() + std::string("`");
         Logger::Instance()->Error(error_msg);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::RecoverableRealSenseError, error_msg);
     }
     catch (const std::invalid_argument& e)
     {
         std::string error_description = std::string("Invalid Argument Exception: ") + e.what();
         Logger::Instance()->Error(error_description);
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::NoMarkersDetected, error_description);
     }
     catch (DcApiError& e)
     {
@@ -2389,15 +2584,15 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
         Logger::Instance()->Info("DropManager failed handling drop request: {}", e.what());
 
         // TODO: should the occupancy map be written here?
-        return std::make_shared<SideDropResult>(request_id, nullptr, error_id, e.get_description());
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, error_id, e.get_description());
     }
     catch (const std::exception &e) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request with error:\n{}",
                                   e.what());
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnspecifiedError, e.what());
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from DropManager handling drop request in catch(...) block");
-        return std::make_shared<SideDropResult>(request_id, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
+        return std::make_shared<SideDropResult>(request_id, nullptr, nullptr, DcApiErrorCode::UnspecifiedError, "In catch(...) block");
     }
 }

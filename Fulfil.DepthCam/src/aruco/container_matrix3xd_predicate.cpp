@@ -35,3 +35,13 @@ bool ContainerMatrix3xdPredicate::evaluate(const fulfil::utils::eigen::Matrix3dP
       && point(2) <= max_depth
       && point(2) >= min_depth;
 }
+
+bool ContainerMatrix3xdPredicate::evaluate_side_dispense(const fulfil::utils::eigen::Matrix3dPoint& point)
+{
+    return point(0) >= center_x - this->width / 2
+        && point(0) <= center_x + this->width / 2
+        && point(1) >= center_y - this->length / 2
+        && point(1) <= center_y + this->length / 2
+        && point(2) <= max_depth
+        && point(2) >= min_depth;
+}

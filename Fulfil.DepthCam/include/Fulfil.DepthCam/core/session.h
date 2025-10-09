@@ -45,6 +45,8 @@ class Session
     * @return a pointer to the serial number string.
     */
   virtual std::shared_ptr<std::string> get_serial_number() = 0;
+
+  std::shared_ptr<Eigen::Matrix3Xd> get_camera_point_cloud(bool include_invalid_depth_data);
    /**
     * Returns a point cloud of the data from the session
     * @param include_invalid_depth_data the session have depth values of zero when the

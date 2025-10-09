@@ -1270,6 +1270,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
         return std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id,
                                                          primary_key_id,
                                                          nullptr,
+                                                         nullptr,
                                                          -1, -1,
                                                          DcApiErrorCode::UnrecoverableRealSenseError,
                                                          std::string("No LFB Session. Check all cameras registering and serial numbers match!"));
@@ -1293,6 +1294,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
             request_id,
             primary_key_id,
             nullptr,
+            nullptr,
             -1.0f, -1.0f,
             e.get_status_code(),
             e.get_description()
@@ -1313,7 +1315,7 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     std::shared_ptr<SideDropResult> side_drop_result = this->drop_manager->handle_pre_side_dispense_request(request_id, primary_key_id, request_json, base_directory, time_stamp_string, true);
 
     std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
-        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->square_width, side_drop_result->square_height, DcApiErrorCode::Success);
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(request_id, primary_key_id, side_drop_result->occupancy_map, side_drop_result->occupancy_data, side_drop_result->square_width, side_drop_result->square_height, DcApiErrorCode::Success);
 
     // if algorithm failed, upload available visualizations immediately
     if (pre_side_dispense_response->success_code != DcApiErrorCode::Success)
@@ -1404,7 +1406,7 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     std::shared_ptr<fulfil::dispense::commands::PostSideDispenseResponse> post_side_dispense_response =
         std::make_shared<fulfil::dispense::commands::PostSideDispenseResponse>(request_id, 
             primary_key_id, 
-            side_drop_result->occupancy_map, 
+            side_drop_result->occupancy_map,
             side_drop_result->square_width, 
             side_drop_result->square_height, 
             DcApiErrorCode::Success, 

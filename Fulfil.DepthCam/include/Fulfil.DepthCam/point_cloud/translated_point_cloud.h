@@ -91,6 +91,10 @@ class TranslatedPointCloud :
 
   void apply_filter(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter) override;
 
+  void apply_filter_side_dispense(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter);
+  
+  void apply_filter_side_dispense_point_cloud_outside_cavity(std::shared_ptr<fulfil::utils::eigen::Matrix3XdFilter> filter);
+
   void encode_to_directory(std::shared_ptr<std::string> filepath) override;
 
   std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> add_transformation(

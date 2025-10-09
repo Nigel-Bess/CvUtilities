@@ -76,6 +76,13 @@ class DropManager
                                      const std::shared_ptr<std::string> &time_stamp,
                                      std::shared_ptr<nlohmann::json> request_json,
                                      std::shared_ptr<nlohmann::json> bag_state_json);
+
+  void generate_occupancy_handling_data(bool generate_data,
+      std_filesystem::path base_directory,
+      const std::shared_ptr<std::string>& time_stamp,
+      std::shared_ptr<nlohmann::json> request_json,
+      std::shared_ptr<nlohmann::json> occupancy_json);
+
   /**
    * Generates the data resulting from the drop target handling
    * @param generate_data determines whether to generate the data or not

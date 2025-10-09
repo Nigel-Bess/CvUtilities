@@ -317,7 +317,7 @@ public:
   Max_Z_Points adjust_depth_detections(std::shared_ptr<cv::Mat>, std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> input_cloud,
                                   float item_mass, float minimum_max_depth, bool should_search_right_to_left, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, bool visualize_flag = true,
                                   bool live_viewer_flag = false, bool should_check_empty = false, bool force_adjustment = false);
-
+  
   std::shared_ptr<SideDropResult> handle_pre_side_dispense(
     std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container,
     std::shared_ptr<std::string> request_id,
@@ -332,6 +332,8 @@ public:
     std::shared_ptr<nlohmann::json> request_json,
     std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
+  int add_data_to_occupancy_json(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud_outside_cavity, 
+      std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<nlohmann::json> occupancy_json, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<Eigen::Vector3d> actual_aruco_center_coordinates, Eigen::Vector3d actual_center_local_coordinates,  Eigen::Affine3d inverse_transform);
 };
 } // namespace fulfil
 

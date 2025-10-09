@@ -27,6 +27,8 @@ class Matrix3dPredicate
    * @return true if it passes the predicate, false otherwise.
    */
   virtual bool evaluate(const Matrix3dPoint& point)=0;
+
+  virtual bool evaluate_side_dispense(const Matrix3dPoint& point) = 0;
 };
 } // namespace eigen
 } // namespace utils

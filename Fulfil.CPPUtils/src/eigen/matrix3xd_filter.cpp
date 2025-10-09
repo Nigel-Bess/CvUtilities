@@ -27,3 +27,29 @@ std::shared_ptr<Eigen::Matrix3Xd> Matrix3XdFilter::filter(std::shared_ptr<Eigen:
   }
   return builder->get_matrix();
 }
+
+std::shared_ptr<Eigen::Matrix3Xd> Matrix3XdFilter::filter_side_dispense(std::shared_ptr<Eigen::Matrix3Xd> matrix)
+{
+    shared_ptr<Matrix3XdBuilder> builder = make_shared<Matrix3XdBuilder>();
+    for (int i = 0; i < matrix->cols(); i++)
+    {
+        if (this->predicate->evaluate_side_dispense(matrix->col(i)))
+        {
+            builder->add_row((*matrix)(0, i), (*matrix)(1, i), (*matrix)(2, i));
+        }
+    }
+    return builder->get_matrix();
+}
+
+std::shared_ptr<Eigen::Matrix3Xd> Matrix3XdFilter::filter_side_dispense_point_cloud_outside_cavity(std::shared_ptr<Eigen::Matrix3Xd> matrix)
+{
+    shared_ptr<Matrix3XdBuilder> builder_point_cloud_outside_cavity = make_shared<Matrix3XdBuilder>();
+    for (int i = 0; i < matrix->cols(); i++)
+    {
+        if (!this->predicate->evaluate_side_dispense(matrix->col(i)))
+        {
+            builder_point_cloud_outside_cavity->add_row((*matrix)(0, i), (*matrix)(1, i), (*matrix)(2, i));
+        }
+    }
+    return builder_point_cloud_outside_cavity->get_matrix();
+}

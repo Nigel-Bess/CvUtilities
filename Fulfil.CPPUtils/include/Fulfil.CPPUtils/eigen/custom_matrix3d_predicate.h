@@ -30,6 +30,8 @@ class CustomMatrix3dPredicate : public Matrix3dPredicate
   explicit CustomMatrix3dPredicate(std::function<bool (const fulfil::utils::eigen::Matrix3dPoint&)> predicate);
 
   bool evaluate(const Matrix3dPoint &point) override;
+
+  bool evaluate_side_dispense(const Matrix3dPoint& point) override;
 };
 } // namespace eigen
 } // namespace utils

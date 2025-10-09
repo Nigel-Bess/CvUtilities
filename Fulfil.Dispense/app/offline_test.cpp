@@ -167,7 +167,7 @@ void test_pre_side_drop_routine_json(std::shared_ptr<std::string> directory_path
 	std::shared_ptr<fulfil::depthcam::mocks::MockSession> mock_session_pre;
 	start_mock_session(directory_path, mock_session_pre, mock_serial);
 	std::shared_ptr<MarkerDetectorContainer> container = manager->searcher->get_container(lfb_vision_config, mock_session_pre, lfb_vision_config->extend_depth_analysis_over_markers);
-
+	
     auto result = manager->searcher->handle_pre_side_dispense(container, 
 															command_id, 
 															primary_key_id,
@@ -198,8 +198,6 @@ void test_pre_side_drop_routine_drop_manager_json(std::shared_ptr<std::string> d
     manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
 
 	std::shared_ptr<nlohmann::json> request_json = read_in_json(*directory_path, "json_request.json");
-	
-
 
 	auto result = manager->handle_pre_side_dispense_request(command_id, 
 													 std::make_shared<std::string>((*request_json)["Primary_Key_ID"].get<std::string>()),
@@ -625,10 +623,17 @@ int main(int argc, char **argv) {
 				{
 					std::cout << std::endl;
 					std::cout << std::endl;
-					test_data_path = make_media::paths::join_as_path(test_data_path, "Side_Dispense_Target");
+					
+					test_data_path = make_media::paths::join_as_path(test_data_path, "Pre_Side_Dispense");
 
-					test_logger->Info("Offline Pre-Side-Drop Test Using Saved .json requests in path {}", test_data_path);
-					test_pre_side_drop_routine_json(std::make_shared<std::string>(test_data_path), reader);
+					test_logger->Info("Offline Pre-Drop Test Using Saved .json requests");
+
+					std::shared_ptr<std::vector<std::shared_ptr<std::string>>> timestamp_dirs = FileSystemUtil::get_subdirs_in_directory(
+						test_data_path);
+					for (auto td : *timestamp_dirs) {
+						test_logger->Info("Starting Simulation of directory: {}", *td);
+						test_pre_side_drop_routine_drop_manager_json(td, reader);
+					}
 				} else if (test_type == 6) {
 					std::cout << std::endl;
 					std::cout << std::endl;

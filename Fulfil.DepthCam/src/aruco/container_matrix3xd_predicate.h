@@ -67,6 +67,8 @@ namespace aruco
    * @return true if point is in bounds, false otherwise.
    */
   bool evaluate(const fulfil::utils::eigen::Matrix3dPoint& point) override;
+
+  bool evaluate_side_dispense(const fulfil::utils::eigen::Matrix3dPoint& point) override;
 };
 } // namespace fulfil
 } // namespace depthcam
