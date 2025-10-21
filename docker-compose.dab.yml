@@ -1,8 +1,6 @@
 services:
     traycount:
         container_name: traycount
-        logging:
-          driver: syslog
         image: "gcr.io/fulfil-web/cv-traycount-arm/master:latest"
         # Swap "image" for this to use local builds
         #build:
@@ -28,8 +26,6 @@ services:
 
     bgredisworker:
         container_name: bgredisworker
-        logging:
-          driver: syslog
         image: "gcr.io/fulfil-web/cv-traycount-arm/master:latest"
         # Swap "image" for this to use local builds
         #build:
@@ -73,8 +69,6 @@ services:
           - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depthcam:
         container_name: depthcam
-        logging:
-          driver: syslog
         image: "gcr.io/fulfil-web/cv-dispense/main:$LOCATION"
         # Swap "image" for this to use local builds
         #build:
