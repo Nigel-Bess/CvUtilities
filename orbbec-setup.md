@@ -4,7 +4,7 @@ This document describes how to setup the Orbbec depth camera (335le).
 
 ## Initial configuration / connect laptop
 
-Unfortunately, client machines such as your laptop can only conenct to Orbbecs when on the same subnet mask (first 3 of 4 IP bytes must match the camera's), so you'll need to artifically set your laptop's IP address to be something like `196.168.168.250` by setting the IP according to your operating system.  The [official Orbbec website](https://www.orbbec.com/docs/gemini-335le-quick-start/) describes how you can do this.  With your IP staticlly configured, you can now download the Orbbec SDK v2 Viewer application by downloading the release for your machine and running it.  If all goes well, the Viewer will display the new camera as selectable and you can test anything Orbbec-specific.
+Unfortunately, client machines such as your laptop can only conenct to Orbbecs when on the same subnet mask (first 3 of 4 IP bytes must match the camera's), so you'll need to artifically set your laptop's IP address to be something like `192.168.1.11` by setting the IP according to your operating system.  The [official Orbbec website](https://www.orbbec.com/docs/gemini-335le-quick-start/) describes how you can do this.  With your IP staticlly configured, you can now download the Orbbec SDK v2 Viewer application by downloading the release for your machine and running it.  If all goes well, the Viewer will display the new camera as selectable and you can test anything Orbbec-specific.
 
 If plugging into a Unifi switch, ensure both the camera and laptop ports use the Default VLAN.
 
