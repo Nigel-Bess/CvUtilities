@@ -38,6 +38,12 @@ RUN rsync -r third-partyNew/ third-party/ --delete --exclude build --exclude "CM
 COPY Fulfil.MongoCpp ./Fulfil.MongoCppNew
 RUN rsync -r Fulfil.MongoCppNew/ Fulfil.MongoCpp/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.MongoCppNew
 
+# Build MongoCpp
+COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
+COPY third-party ./Fulfil.MongoCpp/third-party/
+RUN cd Fulfil.MongoCpp && mkdir -p build
+RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
+
 COPY Fulfil.CPPUtils ./Fulfil.CPPUtilsNew
 RUN rsync -r Fulfil.CPPUtilsNew/ Fulfil.CPPUtils/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.CPPUtilsNew
 
@@ -46,13 +52,6 @@ RUN rsync -r Fulfil.DepthCamNew/ Fulfil.DepthCam/ --delete --exclude build --exc
 
 COPY Fulfil.Dispense ./Fulfil.DispenseNew
 RUN rsync -r Fulfil.DispenseNew/ Fulfil.Dispense/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DispenseNew
-
-# Build MongoCpp
-COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
-
-COPY third-party ./Fulfil.MongoCpp/third-party/
-RUN cd Fulfil.MongoCpp && mkdir -p build
-RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
 
 # Build CPPUtils + OrbbecUtils
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/

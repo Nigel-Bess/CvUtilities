@@ -5,8 +5,11 @@
 
 using fulfil::utils::Logger;
 using fulfil::depthcam::sigterm::SigTermHandler;
-using fulfil::depthcam::sigterm::_exit_countdown;
-using fulfil::depthcam::sigterm::_app_running;
+
+static SigTermHandler* _instance = nullptr;
+// Static sig handler state should only be accessed by sigterm.cpp
+static std::atomic<bool>* _app_running = new std::atomic<bool>(true);
+static std::atomic<int>* _exit_countdown = new std::atomic<int>(0);
 
 static void sig_handler(int sig_no){
     Logger::Instance()->Info("Graceful shutdown requested (code={})", sig_no);
@@ -23,12 +26,38 @@ static void sig_handler(int sig_no){
         last_reported = _exit_countdown->load();
     } while (_exit_countdown->load() > 0);
     Logger::Instance()->Info("Shut down");
+    // 1 last sleep to ensure above log makes it thru
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     exit(0);
 }
 
-void SigTermHandler::register_sigterm_handlers() {
+static void register_sigterm_handlers() {
     // Apply the perfect ctrl+C teardown logic to the K8s-friendly SIGTERM signal as well so the entirety of this service will be Kubernetes friendly for the whole lifecycle
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
     signal(SIGSEGV, sig_handler);
+}
+
+SigTermHandler::SigTermHandler() {
+    if (_instance == nullptr)
+    {
+        _instance = this;
+        register_sigterm_handlers();
+    }
+}
+
+bool SigTermHandler::app_running()
+{
+    return _app_running->load();
+}
+
+void SigTermHandler::exit_counter_inc(std::string owner)
+{
+    Logger::Instance()->Info("Graceful exit will wait for {}", owner);
+    _exit_countdown->fetch_add(1);
+}
+
+void SigTermHandler::exit_counter_dec()
+{
+    _exit_countdown->fetch_sub(1);
 }

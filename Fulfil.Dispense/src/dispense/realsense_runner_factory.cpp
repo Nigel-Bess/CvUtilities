@@ -80,7 +80,7 @@ fulfil::dispense::RealsenseRunnerFactory::RealsenseRunnerFactory(
 }
 
 std::shared_ptr<fulfil::dispense::bays::BayRunner> fulfil::dispense::RealsenseRunnerFactory::create(int bay_num,
-    std::shared_ptr<fulfil::depthcam::Session> LFB_session, std::shared_ptr<fulfil::depthcam::Session> tray_session)
+    std::shared_ptr<fulfil::depthcam::DepthSession> LFB_session, std::shared_ptr<fulfil::depthcam::DepthSession> tray_session)
 {
   fulfil::configuration::tray::TrayDimensions tray_builder =
       fulfil::configuration::tray::set_bay_wide_tray_dimensions(this->tray_config_reader,

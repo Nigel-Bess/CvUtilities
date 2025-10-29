@@ -7,6 +7,10 @@
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_SENSOR_MANAGER_H_
 #include <memory>
 #include <vector>
+#include <Fulfil.DepthCam/core/depth_sensor.h>
+#include <Fulfil.DepthCam/core/depth_session.h>
+
+using fulfil::depthcam::DepthSession;
 
 namespace fulfil
 {
@@ -19,7 +23,6 @@ namespace bays
  * know about the specifics of the sensor.
  * @tparam Sensor
  */
-template <class Sensor>
 class SensorManager
 {
  public:
@@ -27,7 +30,7 @@ class SensorManager
    * Returns a vector of connected sensor.
    * @return pointer to vector of connected sensors.
    */
-  virtual std::shared_ptr<std::vector<Sensor>> get_connected_sensors() =0;
+  virtual std::shared_ptr<std::vector<std::shared_ptr<DepthSession>>> get_connected_sensors() =0;
 };
 
 } // namespace bays

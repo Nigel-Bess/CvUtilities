@@ -12,13 +12,15 @@
 #include <FulfilMongoCpp/mongo_connection.h>
 
 
+using fulfil::depthcam::DepthSession;
+
 namespace fulfil::dispense {
 /**
  * The purpose of this class is to implement the BayRunnerFactory
  * abstract class to produce bay runners that use sessions from the
  * depth cam library.
  */
-class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory<std::shared_ptr<fulfil::depthcam::Session>>
+class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory
 {
  private:
   /**
@@ -43,8 +45,8 @@ class RealsenseRunnerFactory : public fulfil::dispense::bays::BayRunnerFactory<s
    * @return a runner that contains necessary aspects of the session
    * and will be owned by the bay.
    */
-  std::shared_ptr<fulfil::dispense::bays::BayRunner> create(int bay_num, std::shared_ptr<fulfil::depthcam::Session> LFB_session,
-                                                            std::shared_ptr<fulfil::depthcam::Session> tray_session) override;
+  std::shared_ptr<fulfil::dispense::bays::BayRunner> create(int bay_num, std::shared_ptr<fulfil::depthcam::DepthSession> LFB_session,
+                                                            std::shared_ptr<fulfil::depthcam::DepthSession> tray_session) override;
   /**
    * Given the bay identifier, creates a bay runner without any information from the
    * session.

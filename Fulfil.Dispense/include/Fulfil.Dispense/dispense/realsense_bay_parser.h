@@ -14,19 +14,19 @@ namespace fulfil
 {
     namespace dispense {
         struct DispenseBayData {
-            std::shared_ptr<fulfil::depthcam::Session> lfb_session{ nullptr};
-            std::shared_ptr<fulfil::depthcam::Session> tray_session{ nullptr};
+            std::shared_ptr<fulfil::depthcam::DepthSession> lfb_session{ nullptr};
+            std::shared_ptr<fulfil::depthcam::DepthSession> tray_session{ nullptr};
             std::string bay_id{"0"};
             bool both_required{true};
             DispenseBayData() = default;
-            DispenseBayData(std::vector<std::shared_ptr<fulfil::depthcam::Session>> sessions,  std::string bay_id, bool both_required=false);
+            DispenseBayData(std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> sessions,  std::string bay_id, bool both_required=false);
             bool can_init();
             int num_valid_session();
 
 
         };
 
-        class RealsenseBayParser : public fulfil::dispense::bays::BayParser<std::shared_ptr<fulfil::depthcam::Session>>
+        class RealsenseBayParser : public fulfil::dispense::bays::BayParser
         {
         private:
             /**
@@ -49,7 +49,7 @@ namespace fulfil
              */
             std::vector<std::string> get_camera_ids();
 
-            std::vector<std::shared_ptr<fulfil::depthcam::Session>> get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::Session>>> sessions,
+            std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>>> sessions,
               const std::string &config_id);
 
             std::vector<std::string> get_bay_ids () override;

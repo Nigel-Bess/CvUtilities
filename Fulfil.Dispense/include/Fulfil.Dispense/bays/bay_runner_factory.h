@@ -6,7 +6,11 @@
 #ifndef FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_BAY_RUNNER_FACTORY_H_
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_BAY_RUNNER_FACTORY_H_
 #include <memory>
-#include <Fulfil.Dispense/bays//bay_runner.h>
+#include <Fulfil.Dispense/bays/bay_runner.h>
+#include <Fulfil.DepthCam/core.h>
+
+using fulfil::depthcam::DepthSensor;
+using fulfil::depthcam::DepthSession;
 
 namespace fulfil
 {
@@ -19,7 +23,6 @@ namespace bays
  * having a required constructor for the BayRunner
  * @tparam Sensor class representing a sensor.
  */
-template <class Sensor>
 class BayRunnerFactory
 {
  public:
@@ -31,7 +34,7 @@ class BayRunnerFactory
    * @return the bay runner based on the provided bay identifier and
    * the given sensor.
    */
-  virtual std::shared_ptr<fulfil::dispense::bays::BayRunner> create(int bay_num, Sensor sensor1, Sensor sensor2) = 0;
+  virtual std::shared_ptr<fulfil::dispense::bays::BayRunner> create(int bay_num, std::shared_ptr<DepthSession> sensor1, std::shared_ptr<DepthSession> sensor2) = 0;
   /**
    * Creates a bay runner when there is no sensor available for the runner.
    * @param bay_num the number identifier of the bay this runner

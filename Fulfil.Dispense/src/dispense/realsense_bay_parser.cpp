@@ -35,20 +35,19 @@ std::vector<std::string> RealsenseBayParser::get_camera_ids() {
     return serials;
 }
 
-
-std::vector<std::shared_ptr<fulfil::depthcam::Session>> RealsenseBayParser::get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::Session>>> sessions,
+std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> RealsenseBayParser::get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>>> sessions,
   const std::string &config_id)
 {
     auto dispense_name = "dispense_" + config_id;
     auto grab_cam = [&sessions, &dispense_name, &conf=this->device_to_dispense_config]
       (auto cam_name) {
         auto serial_search = [serial=conf->Get(dispense_name, cam_name, "err")]
-        (std::shared_ptr<fulfil::depthcam::Session> s ) { return *(s->get_serial_number()) == serial; };
+        (std::shared_ptr<fulfil::depthcam::DepthSession> s ) { return *(s->get_serial_number()) == serial; };
         if (auto serial_match = std::find_if(sessions->begin(), sessions->end(), serial_search) ; serial_match!=sessions->end()){
             return *serial_match;
         }
         fulfil::utils::Logger::Instance()->Warn("Could not find sensor for camera {}::{} with expected id {}", dispense_name, cam_name, conf->Get(dispense_name, cam_name, "err"));
-        return std::shared_ptr<fulfil::depthcam::Session>(nullptr);
+        return std::shared_ptr<fulfil::depthcam::DepthSession>(nullptr);
     };
 
   //fulfil::utils::Logger::Instance()->Warn("Could not find sensor to match camera {}: {}", config_num, *this->bay_serials->at(config_num));
@@ -56,7 +55,7 @@ std::vector<std::shared_ptr<fulfil::depthcam::Session>> RealsenseBayParser::get_
 }
 std::vector<std::string> fulfil::dispense::RealsenseBayParser::get_bay_ids() { return bay_ids; }
 
-fulfil::dispense::DispenseBayData::DispenseBayData(std::vector<std::shared_ptr<fulfil::depthcam::Session>> sessions, std::string bay_id, bool both_required) :
+fulfil::dispense::DispenseBayData::DispenseBayData(std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> sessions, std::string bay_id, bool both_required) :
   bay_id(bay_id), both_required(both_required)
     {
         //TODO get rid of this wtf

@@ -22,7 +22,6 @@
 #include <Fulfil.Dispense/version.h>
 #include "Fulfil.Dispense/mongo/mongo_tray_calibration.h"
 
-
 using ff_mongo_cpp::MongoConnection;
 using ff_mongo_cpp::mongo_objects::MongoDocument;
 using fulfil::utils::Logger;
@@ -31,11 +30,10 @@ using fulfil::depthcam::DeviceManager;
 using fulfil::dispense::RealsenseRunnerFactory;
 using fulfil::dispense::RealsenseBayParser;
 using fulfil::dispense::bays::BayManager;
-using fulfil::depthcam::Session;
+using fulfil::dispense::bays::BayCameraStatusHandler;
+using fulfil::depthcam::DepthSession;
 using fulfil::mongo::MongoTrayCalibration;
-
-
-
+using fulfil::depthcam::sigterm::SigTermHandler;
 
 int main(int argc, char** argv)
 {
@@ -63,9 +61,6 @@ int main(int argc, char** argv)
   logger->Info("Fulfil.Dispense::main GIT info [{}]", git_info());
   logger->Info("Run Fulfil.Dispense::main\n********Dispense application starting********");
 
-  // Register a listener for graceful termination
-  fulfil::depthcam::sigterm::register_handler();
-
   // Manager parameters
 
   bool both_cameras_required = reader->GetBoolean(config_section, "both_cameras_required", true);
@@ -89,11 +84,17 @@ int main(int argc, char** argv)
             std::make_shared<DeviceManager>(cam_serial_nums, frozen));
     // pass in the connection here so that it can be used to retrieve configurations in dispense manager
     std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader, cam_serial_nums);
-    BayManager<std::shared_ptr<Session>> manager(sensor_manager, factory, parser, expected_number_bays,
+    BayManager manager(sensor_manager, factory, parser, expected_number_bays,
                                                  both_cameras_required, frozen);
 
     logger->Info("Start bay manager...");
     manager.start();
+
+    auto sig_handler = new SigTermHandler();
+    while (sig_handler->app_running()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    }
+    sig_handler->exit_counter_dec();
 
   } catch (const rs2::error & e) {
     logger->Fatal("Caught RealSense error in control loop, calling function {}({}):\n\t{}",

@@ -69,11 +69,11 @@ services:
           - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depthcam:
         container_name: depthcam
-        image: "gcr.io/fulfil-web/cv-dispense/main:$LOCATION"
+        #image: "gcr.io/fulfil-web/cv-dispense/main:$LOCATION"
         # Swap "image" for this to use local builds
-        #build:
-          #context: /home/fulfil/code/Fulfil.ComputerVision
-          #dockerfile: Dispense.arm.Dockerfile
+        build:
+          context: /home/fulfil/code/Fulfil.ComputerVision
+          dockerfile: Dispense.arm.Dockerfile
         network_mode: "host"
         command: "Fulfil.Dispense/app/main"
         working_dir: /home/fulfil/code/Fulfil.ComputerVision

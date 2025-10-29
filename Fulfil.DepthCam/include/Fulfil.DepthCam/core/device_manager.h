@@ -77,7 +77,7 @@ class DeviceManager
     * devices.
     * @return a vector of sessions.
     */
-  virtual std::shared_ptr<std::vector<std::shared_ptr<Session>>> get_connected_sessions();
+  virtual std::shared_ptr<std::vector<std::shared_ptr<DepthSession>>> get_connected_sessions();
 
 
   /**

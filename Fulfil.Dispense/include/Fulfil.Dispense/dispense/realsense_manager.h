@@ -16,7 +16,7 @@ namespace dispense {
  * manager from the depth cam library and use it to provide
  * the required functionality for the bays.
  */
-class RealsenseManager : public fulfil::dispense::bays::SensorManager<std::shared_ptr<fulfil::depthcam::Session>>
+class RealsenseManager : public fulfil::dispense::bays::SensorManager
 {
  private:
   /**
@@ -35,7 +35,7 @@ class RealsenseManager : public fulfil::dispense::bays::SensorManager<std::share
    * Returns a list of all of the connected sensors.
    * @return pointer to a vector of sessions from connected sesors.
    */
-  std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::Session>>> get_connected_sensors() override;
+  std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>>> get_connected_sensors() override;
 };
 } // namespace dispense
 } // namespace fulfil

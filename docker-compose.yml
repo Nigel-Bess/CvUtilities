@@ -80,7 +80,7 @@ services:
       - "./Fulfil.Dispense/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include"
       - "./Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
       - "./Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
-      - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
+       - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
       - "./Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
     privileged: true
     network_mode: host

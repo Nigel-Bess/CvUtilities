@@ -314,7 +314,7 @@ int main(int argc, char** argv)
   std::shared_ptr<SpyBayParser> bay_parser = std::make_shared<SpyBayParser>();
 
   // Creating a bay manager where sensors are ints to match the previously defined classes.
-  std::shared_ptr<fulfil::dispense::bays::BayManager<int>> manager = std::make_shared<fulfil::dispense::bays::BayManager<int>>(sensor_manager, runner_factory, bay_parser, 4);
+  std::shared_ptr<fulfil::dispense::bays::BayManager> manager = std::make_shared<fulfil::dispense::bays::BayManager>(sensor_manager, runner_factory, bay_parser, 4);
   manager->start();
   return 0;
 }
@@ -406,7 +406,7 @@ Creating the dispense manager is pretty straightforward, most of the heavy lifti
      // pass in the connection here so that it can be used to retrieve configurations in dispense manager
      std::shared_ptr<RealsenseRunnerFactory> factory = std::make_shared<RealsenseRunnerFactory>(reader, conn);
      std::shared_ptr<RealsenseBayParser> parser = std::make_shared<RealsenseBayParser>(reader);
-     BayManager<std::shared_ptr<Session>> manager(sensor_manager, factory, parser, expected_number_bays,
+     BayManager manager(sensor_manager, factory, parser, expected_number_bays,
                                                   both_cameras_required);
      logger->Info("Start bay manager...");
      manager.start();

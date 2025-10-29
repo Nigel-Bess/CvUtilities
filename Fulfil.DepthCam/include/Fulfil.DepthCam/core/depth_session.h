@@ -20,6 +20,7 @@ namespace fulfil
 {
     namespace depthcam
     {
+        
         class DepthSession : public Session
         {
         private:
@@ -28,10 +29,6 @@ namespace fulfil
              */
             static constexpr int FROZEN_CAMERA_TIMEOUT_SECONDS = 120;
             
-            /**
-             * The underlying sensor of the session.
-             */
-            std::shared_ptr<DepthSensor> sensor;
             /**
              * The three different frames that can be accessed for processing
              */
@@ -148,6 +145,11 @@ namespace fulfil
             std::shared_ptr<cv::Mat> get_depth_mat(bool aligned_frames = true) override;
 
             float depth_at_pixel(int x, int y) override;
+
+            /**
+             * The underlying sensor of the session.
+             */
+            std::shared_ptr<DepthSensor> sensor;
         };
     } // namespace core
 } // namespace fulfil

@@ -16,6 +16,12 @@
 #include<librealsense2/rs.hpp>
 
 namespace fulfil::depthcam {
+
+class DepthSensorStatusObserver {
+    public:
+        virtual void handle_connection_change(std::string cam_name, DepthCameras::DcCameraStatusCodes current_status) = 0;
+};
+
 class DepthSensor
 {
     private:
@@ -42,8 +48,9 @@ class DepthSensor
 
     std::chrono::system_clock::time_point last_frame_time;
     std::chrono::system_clock::time_point print_time;
+    std::vector<DepthSensorStatusObserver*>* status_observers;
     void manage_pipe();
-    void create_camera_status_msg(DepthCameras::DcCameraStatusCodes code);
+    void emit_camera_status(DepthCameras::DcCameraStatusCodes code);
 
     std::string getTimestamp() {
 
@@ -75,6 +82,7 @@ class DepthSensor
 
 
     public:
+    DepthCameras::DcCameraStatusCodes last_status_code;
     /**
     * Initializes the depth sensor with the given serial number.
     * Note:
@@ -119,6 +127,16 @@ class DepthSensor
      * Get frame rate in seconds (FPS) of the stream. The depth and color frames are the same rate.
      */
     int get_frame_rate_in_seconds();
+    
+    /**
+     * Use the baked-in GRPC service to broadcast camera status to FC
+     */
+    void create_camera_status_msg();
+
+    /**
+     * Register an observer that's called whenever camera connection status changes
+     */
+    void add_connected_callback(DepthSensorStatusObserver* observer);
 
         /**
      * Realsense profile object which is used in the process of setting up the pipeline.
@@ -175,5 +193,6 @@ class DepthSensor
     bool connected_ = false;
     std::shared_ptr<GrpcService> service_ = nullptr;
 };
+
 } // namespace fulfil
 #endif

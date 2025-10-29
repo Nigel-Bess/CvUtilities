@@ -7,6 +7,9 @@
 #define FULFIL_DISPENSE_INCLUDE_FULFIL_DISPENSE_BAYS_BAY_PARSER_H_
 
 #include <Fulfil.DepthCam/core.h>
+#include <Fulfil.DepthCam/core/depth_session.h>
+
+using fulfil::depthcam::DepthSession;
 
 namespace fulfil
 {
@@ -19,7 +22,6 @@ namespace bays
  * sensor.
  * @tparam Sensor class to represent a sensor.
  */
-template <class Sensor>
 class BayParser
 {
  public:
@@ -30,7 +32,7 @@ class BayParser
    * @return the identifier of the bay the
    * sensor should go to.
    */
-  virtual std::vector<Sensor> get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::Session>>> sessions,
+  virtual std::vector<std::shared_ptr<DepthSession>> get_bay(std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>>> sessions,
      const std::string &config_id) = 0;
 
   virtual std::vector<std::string> get_bay_ids ()= 0;

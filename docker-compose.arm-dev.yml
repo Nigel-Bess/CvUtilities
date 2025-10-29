@@ -1,0 +1,33 @@
+services:
+  dispense_hotrun:
+    build:
+      dockerfile: Dispense.arm.Dockerfile
+    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1)) && printf \"\n\nYoure in a Dispense container with source linked to your host machine, use make or ./app/main\" && bash'"
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision
+    device_cgroup_rules:
+      - "c 81:* rmw"
+      - "c 189:* rmw"
+    ports:
+      - 9500:9500
+      - 9501:9501
+      - 9502:9502
+      - 9503:9503
+      - 9504:9504
+      - 9505:9505
+    volumes:
+      - "/home/fulfil/data:/home/fulfil/data"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/app"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
+      - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
+    privileged: true
+    network_mode: host
+    env_file:
+      - path: .env
+        required: false
+

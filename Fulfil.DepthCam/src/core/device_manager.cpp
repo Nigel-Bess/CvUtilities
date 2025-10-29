@@ -159,10 +159,10 @@ std::string DeviceManager::get_preset_by_camera_type(std::string_view camera_nam
 }
 
 
-std::shared_ptr<std::vector<std::shared_ptr<Session>>> DeviceManager::get_connected_sessions()
+std::shared_ptr<std::vector<std::shared_ptr<DepthSession>>> DeviceManager::get_connected_sessions()
 {
-    std::shared_ptr<std::vector<std::shared_ptr<Session>>> result =
-            std::make_shared<std::vector<std::shared_ptr<Session>>>();
+    std::shared_ptr<std::vector<std::shared_ptr<DepthSession>>> result =
+            std::make_shared<std::vector<std::shared_ptr<DepthSession>>>();
 
     for(rs2::device const device : this->managed_devices)
     {

@@ -18,46 +18,15 @@ namespace fulfil
             class SigTermHandler
             {
             public:
-                SigTermHandler() {};
+                SigTermHandler();
                 /**
                  * Start listening for sigterm events
                  */
-                void register_sigterm_handlers();
+                //void register_sigterm_handlers();
+                bool app_running();
+                void exit_counter_inc(std::string owner);
+                void exit_counter_dec();
             };
-
-            // Static sig handler state should only be accessed by sigterm.cpp
-            static std::atomic<bool>* _app_running = new std::atomic<bool>(true);
-            static std::atomic<int>* _exit_countdown = new std::atomic<int>(0);
-            static SigTermHandler* _instance = nullptr;
-
-            // Call this to kick off sigterm handling logic, poll
-            // app_running() to see if the app is intended to be in
-            // a running or graceful shutdown state
-            static SigTermHandler* register_handler()
-            {
-                if (_instance == nullptr)
-                {
-                    _instance = new SigTermHandler();
-                    _instance->register_sigterm_handlers();
-                }
-                return _instance;
-            }
-
-            static bool app_running()
-            {
-                return _app_running->load();
-            }
-
-            static void exit_counter_inc(std::string owner)
-            {
-                Logger::Instance()->Info("Graceful exit will wait for {}", owner);
-                _exit_countdown->fetch_add(1);
-            }
-
-            static void exit_counter_dec()
-            {
-                _exit_countdown->fetch_sub(1);
-            }
 
         }
     }

@@ -14,14 +14,14 @@
 
 using fulfil::depthcam::DepthSensor;
 using fulfil::utils::Logger;
-using fulfil::depthcam::sigterm::app_running;
-using fulfil::depthcam::sigterm::exit_counter_dec;
-using fulfil::depthcam::sigterm::exit_counter_inc;
+using fulfil::depthcam::sigterm::SigTermHandler;
 
 // TODO need to make frame size, rate, decimation factor configurable!!!
 DepthSensor::DepthSensor(const std::string &serial)
 {
     this->frame_rate_per_second = 15;
+    this->last_status_code = DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION;
+    this->status_observers = new std::vector<DepthSensorStatusObserver*>();
     //Add desired streams to configuration
     rs2::config cfg;
     cfg.enable_device(serial.c_str());
@@ -78,7 +78,7 @@ DepthSensor::DepthSensor(const std::string &serial)
         // send bad camera frame status back to FC after failure to warm up
         // if the camera eventually warms up, the connection status will later be sent elsewhere
         if(ms_elapsed(start) > camera_warmup_failure_threshold_ms) {
-            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
+            emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
         }
     }
     print_framestats();
@@ -152,18 +152,32 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
     }
 }
 
-void DepthSensor::create_camera_status_msg(DepthCameras::DcCameraStatusCodes code){
+void DepthSensor::emit_camera_status(DepthCameras::DcCameraStatusCodes code){
+    if (code == last_status_code) {
+        return;
+    }
+    last_status_code = code;
+    for (const auto& observer : (*status_observers)) {
+        observer->handle_connection_change(name_, code);
+    }
+}
+
+void DepthSensor::create_camera_status_msg() {
     if(service_ == nullptr)return;
-    Logger::Instance()->Info("{} Sending status code to FC [{}]", name_,  DcCameraStatusCodes_Name(code));
+    Logger::Instance()->Info("{} Sending status code to FC [{}]", name_,  DcCameraStatusCodes_Name(last_status_code));
     DepthCameras::CameraStatusUpdate msg;
     std::string tostr;
-    msg.set_command_id(code == 0 ? "cafebabecafebabecafebabe" : "deadbeefdeadbeefdeadbeef"); 
+    msg.set_command_id(last_status_code == 0 ? "cafebabecafebabecafebabe" : "deadbeefdeadbeefdeadbeef"); 
     msg.set_msg_type(DepthCameras::MESSAGE_TYPE_CAMERA_STATUS);
     msg.set_camera_name(name_);
     msg.set_camera_serial(*serial_number.get());
-    msg.set_status_code(code);
+    msg.set_status_code(last_status_code);
     msg.SerializeToString(&tostr);
     service_->AddStatusUpdate(msg.msg_type(), tostr, msg.command_id());
+}
+
+void DepthSensor::add_connected_callback(DepthSensorStatusObserver* observer) {
+    status_observers->push_back(observer);
 }
 
 void DepthSensor::manage_pipe(){
@@ -171,9 +185,10 @@ void DepthSensor::manage_pipe(){
     static auto start_time = CurrentTime();
 
     // Register this running camera as a count to block graceful exits
+    auto sig_handler = new SigTermHandler();
     std::string dc_prefix = "DC-";
-    exit_counter_inc(dc_prefix + serial_number->c_str());
-    while(app_running()){
+    sig_handler->exit_counter_inc(dc_prefix + serial_number->c_str());
+    while(sig_handler->app_running()){
         auto timer = CurrentTime();
         auto success = false;
         try{
@@ -195,9 +210,9 @@ void DepthSensor::manage_pipe(){
             last_frame_time = CurrentTime();
             good_frames++;
             success = true;
-            if(app_running() && !connected_ && name_.compare("D")){//wait for name to be assigned
+            if(sig_handler->app_running() && !connected_ && name_.compare("D")){//wait for name to be assigned
                 connected_ = true;
-                create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
+                emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
                 auto cf = frame_set->get_color_frame();
                 cv::Mat pic(cv::Size(cf.get_width(), cf.get_height()), CV_8UC3, (void*) cf.get_data());
                 std::string file(name_);
@@ -209,23 +224,23 @@ void DepthSensor::manage_pipe(){
             Logger::Instance()->Fatal("{} [{}]: Unrecoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             unrecoverable_exc++;
-            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
+            emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NOT_RECOVERABLE_EXCEPTION);
         }
         catch (const rs2::recoverable_error& e){
             Logger::Instance()->Error("{} [{}]: Recoverable:\nRealsense Exception {}\nIn function {}\nWith args {}",
                 name_.c_str(), serial_number->c_str(), e.what(), e.get_failed_function(), e.get_failed_args());
             recoverable_exc++;
-            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
+            emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
         }
         catch (const std::exception & e){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe exception {}", name_.c_str(), serial_number->c_str(), e.what());
             std_exceptions++;
-            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
+            emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         catch(...){
             Logger::Instance()->Error("{} [{}]: DepthSensor::manage_pipe unknown error!", name_.c_str(), serial_number->c_str());
             std_exceptions++;
-            create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
+            emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_STD_EXCEPTION);
         }
         auto elapsed = ms_elapsed(timer);
         average_frame_time = average_frame_time * 0.90 + elapsed * 0.10;
@@ -240,10 +255,11 @@ void DepthSensor::manage_pipe(){
     }
     Logger::Instance()->Info("Shutting down camera {} / {}", name_.c_str(), serial_number->c_str());
     pipeline->stop();
+    emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
     Logger::Instance()->Info("Shut down camera {} / {}", name_.c_str(), serial_number->c_str());
 
     // Signal that this camera should no longer block graceful exit
-    exit_counter_dec();
+    sig_handler->exit_counter_dec();
 }
 
 rs2::frameset DepthSensor::get_latest_frame(){
@@ -259,7 +275,7 @@ rs2::frameset DepthSensor::get_latest_frame(){
     }
 
     connected_ = false;
-    create_camera_status_msg(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NO_FRAME);
+    emit_camera_status(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_NO_FRAME);
     Logger::Instance()->Error(error);
     throw (error);
 }
