@@ -61,14 +61,19 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                 // Listen for underlying LFB / Tray camera sessions and only signal cams ready
                 // after the entire Bay is ready to go
                 auto cam_status_handler = new BayCameraStatusHandler(bay_data);
-                // Trigger handledr immediately in case both cams already connected, but also listen for later
+                // Listen for future cam status changes
                 if (bay_data->lfb_session != nullptr) {
-                    cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
                     bay_data->lfb_session->sensor->add_connected_callback(cam_status_handler);
                 }
                 if (bay_data->tray_session != nullptr) {
-                    cam_status_handler->handle_connection_change(bay_data->tray_session->sensor->name_, bay_data->tray_session->sensor->last_status_code);
                     bay_data->tray_session->sensor->add_connected_callback(cam_status_handler);
+                }
+                // Trigger handledr immediately in case both cams already connected, but also listen for later
+                if (bay_data->lfb_session != nullptr) {
+                    cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
+                }
+                if (bay_data->tray_session != nullptr) {
+                    cam_status_handler->handle_connection_change(bay_data->tray_session->sensor->name_, bay_data->tray_session->sensor->last_status_code);
                 }
 
                 fulfil::utils::Logger::Instance()->Debug("Initialized thread for bay {}", bay_data->bay_id);
