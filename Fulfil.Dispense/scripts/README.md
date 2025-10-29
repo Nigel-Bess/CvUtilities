@@ -10,7 +10,7 @@ After presumably merging a PR to main, you can build and push it as the latest i
 
 ### Pulling (deploying) latest of branch on some AGX
 
-From some AGX, you can update to latest by running: `bash scripts/dab-pull-latest.sh`.  You can pick an arbitrary branch to deploy when prompted.
+From some AGX/NX, you can update to latest by running: `bash scripts/dab-pull-latest.sh`.  You can pick an arbitrary branch to deploy when prompted.
 
 ## Downloading test data
 
