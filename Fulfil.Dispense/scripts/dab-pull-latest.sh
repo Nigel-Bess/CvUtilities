@@ -8,7 +8,7 @@ echo -n "Warning! This script deploys builds and will restart CV at the end!"
 
 echo -n "Enter Branch Name (or blank for main): " 
 read BRANCH
-TAG=${BRANCH:-main}
+BRANCH=${BRANCH:-main}
 
 echo -n "Enter Facility Name (or blank for $LOCATION): " 
 read TAG
