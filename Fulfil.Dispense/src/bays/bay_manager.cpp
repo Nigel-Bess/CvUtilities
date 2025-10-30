@@ -125,7 +125,7 @@ void BayCameraStatusHandler::handle_connection_change(std::string cam_name, Dept
         return;
     }
     // Only signal fully connected to FC when both cameras are ready
-    if (bay_data->both_required) {
+    if (bay_data->lfb_session != nullptr && bay_data->tray_session != nullptr) {
         if (bay_data->lfb_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED &&
             bay_data->tray_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
             bay_data->tray_session->sensor->create_camera_status_msg();
