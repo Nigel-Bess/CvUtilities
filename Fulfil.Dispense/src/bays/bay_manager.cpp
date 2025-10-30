@@ -8,6 +8,26 @@
 #include <iostream>
 #include <unistd.h>
 
+using fulfil::dispense::bays::BayCameraStatusHandler;
+
+void listen_for_camera_events(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
+    auto cam_status_handler = new BayCameraStatusHandler(bay_data);
+    // Listen for future cam status changes
+    if (bay_data->lfb_session != nullptr) {
+        bay_data->lfb_session->sensor->add_connected_callback(cam_status_handler);
+    }
+    if (bay_data->tray_session != nullptr) {
+        bay_data->tray_session->sensor->add_connected_callback(cam_status_handler);
+    }
+    // Trigger handledr immediately in case both cams already connected, but also listen for later
+    if (bay_data->lfb_session != nullptr) {
+        cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
+    }
+    if (bay_data->tray_session != nullptr) {
+        cam_status_handler->handle_connection_change(bay_data->tray_session->sensor->name_, bay_data->tray_session->sensor->last_status_code);
+    }
+}
+
 fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense::bays::SensorManager> sensor_manager,
                                                std::shared_ptr<fulfil::dispense::bays::BayRunnerFactory> runner_factory,
                                                std::shared_ptr<fulfil::dispense::bays::BayParser> sensor_parser,
@@ -60,21 +80,7 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
 
                 // Listen for underlying LFB / Tray camera sessions and only signal cams ready
                 // after the entire Bay is ready to go
-                auto cam_status_handler = new BayCameraStatusHandler(bay_data);
-                // Listen for future cam status changes
-                if (bay_data->lfb_session != nullptr) {
-                    bay_data->lfb_session->sensor->add_connected_callback(cam_status_handler);
-                }
-                if (bay_data->tray_session != nullptr) {
-                    bay_data->tray_session->sensor->add_connected_callback(cam_status_handler);
-                }
-                // Trigger handledr immediately in case both cams already connected, but also listen for later
-                if (bay_data->lfb_session != nullptr) {
-                    cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
-                }
-                if (bay_data->tray_session != nullptr) {
-                    cam_status_handler->handle_connection_change(bay_data->tray_session->sensor->name_, bay_data->tray_session->sensor->last_status_code);
-                }
+                listen_for_camera_events(bay_data);
 
                 fulfil::utils::Logger::Instance()->Debug("Initialized thread for bay {}", bay_data->bay_id);
             }
@@ -100,18 +106,20 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
     this->threads = std::make_shared<std::vector<std::shared_ptr<std::thread>>>(bays->size()); // TODO: reduce number of threads here?
 }
 
-fulfil::dispense::bays::BayCameraStatusHandler::BayCameraStatusHandler(std::shared_ptr<DispenseBayData> bay_data) {
+BayCameraStatusHandler::BayCameraStatusHandler(std::shared_ptr<DispenseBayData> bay_data) {
     this->bay_data = bay_data;
 }
 
-void fulfil::dispense::bays::BayCameraStatusHandler::handle_connection_change(std::string cam_name, DepthCameras::DcCameraStatusCodes current_status)
+void BayCameraStatusHandler::handle_connection_change(std::string cam_name, DepthCameras::DcCameraStatusCodes current_status)
 {
     // If camera doesn't even know it's name yet, just bail
     if (cam_name.length() < 3) {
+        fulfil::utils::Logger::Instance()->Info("cam_name not ready yet");
         return;
     }
     // Mirror all non-connected statuses to FC
     if (current_status != DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
+        fulfil::utils::Logger::Instance()->Info("Mirror {} to {}", current_status, cam_name);
         auto session = bay_data->lfb_session != nullptr && cam_name == bay_data->lfb_session->sensor->name_ ? bay_data->lfb_session : bay_data->tray_session;
         session->sensor->create_camera_status_msg();
         return;
@@ -126,9 +134,11 @@ void fulfil::dispense::bays::BayCameraStatusHandler::handle_connection_change(st
     }
     // Signal to FC if only 1 cam is required and ready
     else if (bay_data->lfb_session != nullptr && bay_data->lfb_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
+        fulfil::utils::Logger::Instance()->Info("Mirror LFB connected status for {}", cam_name);
         bay_data->lfb_session->sensor->create_camera_status_msg();
     }
     else if (bay_data->tray_session != nullptr && bay_data->tray_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
+        fulfil::utils::Logger::Instance()->Info("Mirror Tray connected status for {}", cam_name);
         bay_data->tray_session->sensor->create_camera_status_msg();
     }
 }

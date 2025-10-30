@@ -153,6 +153,7 @@ std::shared_ptr<Eigen::Matrix3Xd> DepthSensor::get_point_cloud(std::shared_ptr<r
 }
 
 void DepthSensor::emit_camera_status(DepthCameras::DcCameraStatusCodes code){
+    std::lock_guard<std::mutex> lock(_event_lock);
     if (code == last_status_code) {
         return;
     }
