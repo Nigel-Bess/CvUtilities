@@ -2,32 +2,8 @@
 # suddenly broke horribly, so we instead base this hack Dockerfile on the last known good image that has
 # a valid Realsense driver pre-installed, the original file represents when we last built from scratch, and ideally
 # we end up back on it but for now this hack Dockerfile built on top of the "magic" realsense image works...
-FROM gcr.io/fulfil-web/cv-dispense/realsense-arm:latest AS base
-ENV DEBIAN_FRONTEND=noninteractive
+FROM gcr.io/fulfil-web/realsense-orbbec-cv-arm:latest AS base
 
-RUN apt-get install -y rsync libgl1-mesa-dev libjson-c-dev udev protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev curl make wget unzip git protobuf-compiler libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
-
-# Install Orbbec SDK
-ENV ORBBEC_SDK_VERSION=v2.4.11
-WORKDIR /home/fulfil/code/Fulfil.ComputerVision/
-RUN mkdir orbbec
-
-RUN cd orbbec && \
-    git clone https://github.com/Orbbec/OrbbecSDK_v2.git && \
-    cd OrbbecSDK_v2 && mkdir build && cd build && \
-    cmake .. && cmake --build . --config Release -j$(($(nproc)-1))
-
-RUN /lib/systemd/systemd-udevd --daemon && udevadm trigger && cd orbbec/OrbbecSDK_v2/scripts && chmod -R +x ./env_setup && ./env_setup/install_udev_rules.sh && ./env_setup/setup.sh
-ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/lib:$LD_LIBRARY_PATH
-ENV LD_LIBRARY_PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/lib:$LD_LIBRARY_PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/bin:$PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/bin:$PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_arm64/bin:$PATH
-ENV PATH=/home/fulfil/code/Fulfil.ComputerVision/orbbec/OrbbecSDK_v2/build/linux_arm64/lib:$PATH
-# Reload linux libs
-RUN ldconfig
-
-# Fulfil.ComputerVision from here!
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 
 # Remove stale app layers baked into magic base image, but be smart about it and leave

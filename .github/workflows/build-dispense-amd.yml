@@ -5,6 +5,7 @@ on:
     - Fulfil.Dispense/**
     - Fulfil.DepthCam/**
     - Fulfil.Fulfil.CPPUtils/**
+    - Fulfil.Fulfil.OrbbecUtils/**
     - Fulfil.Fulfil.MongoCpp/**
     - Dispens*.Dockerfile
     - .github/workflows/*-dispense.yml
