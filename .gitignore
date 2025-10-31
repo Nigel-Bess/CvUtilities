@@ -8,6 +8,8 @@
 cmake*
 .cmake*
 build
+Fulfil.Dispense/build
+Fulfil.Depthcam/build
 CMakeFiles
 CTestTestfile.cmake
 __pycache__
@@ -45,3 +47,4 @@ Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h
 # Local env file
 .env
 local.env
+.aider*

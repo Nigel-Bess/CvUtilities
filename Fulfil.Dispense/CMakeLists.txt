@@ -10,7 +10,7 @@ project(Fulfil.Dispense
         DESCRIPTION "Higher level API that allows clients to interface with depth cams via socket connection. Handles Drop camera nad Tray Camera Queries."
         LANGUAGES CXX)
 
-set(OrbbecSDK_DIR "../Fulfil.OrbbecUtils/lib/orbbecsdk/lib")
+set(OrbbecSDK_DIR "${PROJECT_SOURCE_DIR}/../Fulfil.OrbbecUtils/lib/orbbecsdk/lib")
 find_package(OrbbecSDK REQUIRED)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
@@ -23,6 +23,11 @@ endif()
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 find_package(Threads REQUIRED)
+
+# Set up Ninja build system
+if(NOT CMAKE_GENERATOR MATCHES "Ninja")
+    message(FATAL_ERROR "Please run cmake with -GNinja option.")
+endif()
 
 include(GNUInstallDirs)
 message("Using C compiler ${CMAKE_C_COMPILER} and C++ compiler ${CMAKE_CXX_COMPILER}")
@@ -92,6 +97,16 @@ ENDIF()
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/third-party ${CMAKE_CURRENT_BINARY_DIR}/libs/third-party)
 add_subdirectory(${COMPUTER_VISION_MODULES_PARENT_PATH}/Fulfil.DepthCam ${CMAKE_CURRENT_BINARY_DIR}/libs/Fulfil.DepthCam)
 
+# Build src and app in their own build subfolders
+set(BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
+message("Building into directory: ${BINARY_DIR}")
+
 add_subdirectory(src)
 add_subdirectory(app)
+
+# Set binary output directories for all targets
+SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES 
+    RUNTIME_OUTPUT_DIRECTORY "${BINARY_DIR}"
+    ARCHIVE_OUTPUT_DIRECTORY "${BINARY_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${BINARY_DIR}")
 

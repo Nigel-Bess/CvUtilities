@@ -4,15 +4,17 @@ The only information guaranteed to be  up-to-date is the **Starting the Mars API
 
 ## Dev tips
 
-Dispense has a hotrun and hotreload Docker Compose service wrapper that will link your local src code with a running container's and allows you to quick trigger "native" make builds that run much faster than a raw Docker Build since it can better leverage the container's local CMake cache.  Use hotrun to wind up bashed into the container for quick `make` or run calls, or use hotreload to trigger permanent fast `make` build in the container within a loop, so as soon as your break src on your host machine, you'll see the compile error pop up in terminal.
+Dispense/Depthcam has a hotrun Docker Compose service wrapper that will link your local src code with a running container's and allows you to quick trigger "native" make builds that run much faster than a raw Docker Build since it can better leverage the container's local CMake cache.  Use hotrun to wind up bashed into the container for quick `make`, true runs, or a make loop to trigger permanent fast `make` builds in the container within a loop, so as soon as your save breaks src on your host machine, you'll see the compile error pop up in terminal much more quickly than raw docker builds.
 
-Beware that this can produce weird binary artifacts in shared src folders that are easy to commit by accident, so git commit selectively!
-
-Run any of these from CV root dir:
+Run from CV root dir (AMD + laptops):
 
 `docker compose run --remove-orphans --build dispense_hotrun`
 
-`docker compose run --remove-orphans --build dispense_hotreload`
+(For ARM / AGX / NX machines, use the ARM Dev docker compose file but otherwise the same: `docker compose -f docker-compose.arm-dev.yml run --remove-orphans dispense_hotrun`)
+
+If you get strange stale code-related issues but Docker builds otherwise work, try triggering a clean build:
+
+`docker compose build dispense_hotrun --no-cache`
 
 ## Deploying
 
@@ -42,7 +44,6 @@ To mass-deploy a facility-specific tagged image to an entire facility, run:
 
 For niche production deployments, run `bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-pull-latest.sh` on the target
 machine to deploy and restart services on. This script also lets you select custom GIT branches.
-
 
 ## Logging
 

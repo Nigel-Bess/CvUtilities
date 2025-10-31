@@ -75,7 +75,7 @@ services:
           #context: /home/fulfil/code/Fulfil.ComputerVision
           #dockerfile: Dispense.arm.Dockerfile
         network_mode: "host"
-        command: "Fulfil.Dispense/app/main"
+        command: "Fulfil.Dispense/build/app/main"
         working_dir: /home/fulfil/code/Fulfil.ComputerVision
         device_cgroup_rules:
           - "c 81:* rmw"

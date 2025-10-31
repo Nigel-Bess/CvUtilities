@@ -4,6 +4,9 @@
 # we end up back on it but for now this hack Dockerfile built on top of the "magic" realsense image works...
 FROM gcr.io/fulfil-web/realsense-orbbec-cv-arm:latest AS base
 
+# Install Ninja build system
+RUN apt-get update && apt-get install -y ninja-build
+
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 
 # Remove stale app layers baked into magic base image, but be smart about it and leave
@@ -66,12 +69,12 @@ RUN cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
 RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && cmake --build . -j$(($(nproc)-1)) || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/CMakeFiles/CMakeOutput.log && exit 1)
 
-# Build Dispense
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/CMakeFiles/CMakeError.log && exit 1)
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1))
+# Build Dispense using Ninja
+RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -GNinja -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build
+RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && cmake --build . -j$(($(nproc)-1))
 
 # Harmless test run setup stuff
 RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs
 RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/csvs
 
-CMD ["./Fulfil.Dispense/app/main"]
+CMD ["./Fulfil.Dispense/build/app/main"]

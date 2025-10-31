@@ -11,7 +11,7 @@ services:
   dispense_eval:
     build:
       dockerfile: Dispense.amd.Dockerfile
-    command: "Fulfil.Dispense/app/eval fed all"
+    command: "Fulfil.Dispense/build/app/eval fed all"
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     volumes:
       - "./data:/home/fulfil/data"
@@ -27,7 +27,10 @@ services:
   dispense_hotrun:
     build:
       dockerfile: Dispense.amd.Dockerfile
-    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && cmake --build . -j$(($(nproc)-1)) && printf \"\n\nYoure in a Dispense container with source linked to your host machine, use make or ./app/main\" && bash'"
+    command: >
+      bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && 
+      printf "\n\nYoure in a Dispense container with source linked to your host machine, run any of the following: \n\n" &&
+      printf "Build Once: \n\tmake -j$(($(nproc)-1))\nBuild till broken: \n\twhile true; do make -j$(($(nproc)-1)) || break; sleep 1; done\nBuild forever: \n\twhile true; do make -j$(($(nproc)-1)); sleep 1; done\nRun Dispense: \n\t./build/app/main\n\n" && bash'
     working_dir: /home/fulfil/code/Fulfil.ComputerVision
     device_cgroup_rules:
       - "c 81:* rmw"
@@ -49,38 +52,6 @@ services:
       - "./Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
       - "./Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
       - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
-      - "./Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
-    privileged: true
-    network_mode: host
-    env_file:
-      - path: .env
-        required: false
-
-  dispense_hotreload:
-    build:
-      dockerfile: Dispense.amd.Dockerfile
-    command: "bash -c 'cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && while true; do cmake --build . -j$(($(nproc)-1)); sleep 1; done'"
-    working_dir: /home/fulfil/code/Fulfil.ComputerVision
-    device_cgroup_rules:
-      - "c 81:* rmw"
-      - "c 189:* rmw"
-    ports:
-      - 9500:9500
-      - 9501:9501
-      - 9502:9502
-      - 9503:9503
-      - 9504:9504
-      - 9505:9505
-    volumes:
-      - "./data:/home/fulfil/data"
-      - "./Fulfil.Dispense/data:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/data"
-      - "./Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
-      - "./Fulfil.Dispense/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/app"
-      - "./Fulfil.Dispense/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/src"
-      - "./Fulfil.Dispense/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/include"
-      - "./Fulfil.Dispense/test:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/test"
-      - "./Fulfil.DepthCam/app:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/app"
-       - "./Fulfil.DepthCam/src:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/src"
       - "./Fulfil.DepthCam/include:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/include"
     privileged: true
     network_mode: host

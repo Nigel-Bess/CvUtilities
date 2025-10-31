@@ -4,6 +4,9 @@ Fulfil.Dispense/data
 Fulfil.TCS/data
 Fulfil.Dispense/configs
 *.Dockerfile
+CMakeFiles
+**/CMakeFiles
+*.cmake
 
 # Ignore local dockerfile config
 .env
