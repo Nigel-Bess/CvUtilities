@@ -40,7 +40,12 @@ loki.source.docker "docker_logs" {
 loki.process "keep_newish" {
   stage.drop {
     older_than = "160h" // Drop log entries older than a week
+  }
+  stage.drop {
     longer_than = "2MB"
+  }
+  stage.drop {
+    expression = "[\x00-\x1f\x7f]" // Ignore buggy lines with bad chars
   }
   forward_to = [loki.write.loki.receiver]
 }
@@ -51,4 +56,3 @@ loki.write "loki" {
     url = sys.env("LOKI_URL")
   }
 }
-
