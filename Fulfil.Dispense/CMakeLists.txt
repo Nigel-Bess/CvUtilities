@@ -24,11 +24,6 @@ endif()
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 find_package(Threads REQUIRED)
 
-# Set up Ninja build system
-if(NOT CMAKE_GENERATOR MATCHES "Ninja")
-    message(FATAL_ERROR "Please run cmake with -GNinja option.")
-endif()
-
 include(GNUInstallDirs)
 message("Using C compiler ${CMAKE_C_COMPILER} and C++ compiler ${CMAKE_CXX_COMPILER}")
 
