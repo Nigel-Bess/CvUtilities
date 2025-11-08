@@ -12,26 +12,22 @@ WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 # Remove stale app layers baked into magic base image, but be smart about it and leave
 # Cmake cache and build files around to warm up CMake builds
 COPY third-party third-partyNew
-RUN rsync -r third-partyNew/ third-party/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf third-partyNew
-
 COPY Fulfil.MongoCpp ./Fulfil.MongoCppNew
-RUN rsync -r Fulfil.MongoCppNew/ Fulfil.MongoCpp/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.MongoCppNew
+RUN rsync -r third-partyNew/ third-party/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf third-partyNew && \
+    rsync -r Fulfil.MongoCppNew/ Fulfil.MongoCpp/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.MongoCppNew
 
 # Build MongoCpp
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY third-party ./Fulfil.MongoCpp/third-party/
-RUN cd Fulfil.MongoCpp && mkdir -p build
-RUN rm "Fulfil.MongoCpp/CMakeCache.txt"
-RUN cd Fulfil.MongoCpp && cmake . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
+RUN cd Fulfil.MongoCpp && mkdir -p build && rm "CMakeCache.txt" && cmake -GNinja . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
+# TODO: restore ninja
 
 COPY Fulfil.CPPUtils ./Fulfil.CPPUtilsNew
-RUN rsync -r Fulfil.CPPUtilsNew/ Fulfil.CPPUtils/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.CPPUtilsNew
-
 COPY Fulfil.DepthCam ./Fulfil.DepthCamNew
-RUN rsync -r Fulfil.DepthCamNew/ Fulfil.DepthCam/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DepthCamNew
-
 COPY Fulfil.Dispense ./Fulfil.DispenseNew
-RUN rsync -r Fulfil.DispenseNew/ Fulfil.Dispense/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DispenseNew
+RUN rsync -r Fulfil.CPPUtilsNew/ Fulfil.CPPUtils/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.CPPUtilsNew && \
+    rsync -r Fulfil.DepthCamNew/ Fulfil.DepthCam/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DepthCamNew && \
+    rsync -r Fulfil.DispenseNew/ Fulfil.Dispense/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DispenseNew
 
 # Build CPPUtils + OrbbecUtils
 COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
@@ -46,8 +42,8 @@ RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
 
 #RUN ls orbbec/OrbbecSDK_v2/build/linux_arm64 && exit 1 # bin and lib
 RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && \
-    mkdir -p Fulfil.CPPUtils/lib
-RUN mkdir -p Fulfil.OrbbecUtils/lib && \
+    mkdir -p Fulfil.CPPUtils/lib && \
+    mkdir -p Fulfil.OrbbecUtils/lib && \
     mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk && \
     mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
     mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/bin && \
@@ -65,22 +61,20 @@ RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && cmake --build . -j$(($(nproc)-1))
 
 # Build DepthCam lib
-RUN cp -r third-party Fulfil.DepthCam/third-party && mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense
-RUN cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt
+RUN cp -r third-party Fulfil.DepthCam/third-party && mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && \
+    cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt && \
+    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
 # TODO: restore ninja
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -GNinja -DIS_CONTAINERIZED=1 .
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && cmake --build . -j$(($(nproc)-1)) || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/CMakeFiles/CMakeOutput.log && exit 1)
 
 # Build Dispense using Ninja
+RUN rm -rf "Fulfil.Dispense/build/CMakeCache.txt"
 # TODO: restore ninja
-#RUN rm -rf "Fulfil.Dispense/build/CMakeCache.txt"
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -GNinja -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && cmake --build . -j$(($(nproc)-1))
+RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && \
+    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && cmake --build . -j$(($(nproc)-1))
 
 # Harmless test run setup stuff
-RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs
-RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/csvs
+RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs && \
+    mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/csvs
 
 CMD ["./Fulfil.Dispense/build/app/main"]
