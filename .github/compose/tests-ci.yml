@@ -1,0 +1,8 @@
+services:
+  tests:
+    image: ${TEST_IMAGE}  # set from the build-dispense-amd.yml workflow
+    working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/test
+    command: >
+      bash -lc 'set -euo pipefail;
+                ctest --test-dir . --output-on-failure --no-tests=error ${CTEST_ARGS:-}'
+    

@@ -332,6 +332,15 @@ public:
     std::shared_ptr<nlohmann::json> request_json,
     std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config);
 
+  static std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map(
+    std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> point_cloud,
+    int num_cols,
+    int num_rows,
+    float bag_width,
+    float bag_length,
+    bool is_empty
+  );
+
   int add_data_to_occupancy_json(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud_outside_cavity, 
       std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<nlohmann::json> occupancy_json, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<Eigen::Vector3d> actual_aruco_center_coordinates, Eigen::Vector3d actual_center_local_coordinates,  Eigen::Affine3d inverse_transform);
 };

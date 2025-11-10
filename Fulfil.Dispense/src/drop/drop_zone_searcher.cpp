@@ -2110,7 +2110,14 @@ std::string grid_map_to_str(std::vector<std::shared_ptr<std::vector<int>>> map) 
 // occupancy map width = num_cols 
 // occupancy map height = num rows
 // TODO optimize
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map(std::shared_ptr<LocalPointCloud> point_cloud, int num_cols, int num_rows, float bag_width, float bag_length, bool is_empty) {
+std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> DropZoneSearcher::generate_occupancy_map(
+  std::shared_ptr<LocalPointCloud> point_cloud,
+  int num_cols,
+  int num_rows,
+  float bag_width,
+  float bag_length,
+  bool is_empty
+) {
     // initialize occupancy map with default -99999m
     std::vector<std::shared_ptr<std::vector<float>>> depth_map_so_far;
     for (int r = 0; r < num_rows; r++) {

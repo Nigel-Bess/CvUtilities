@@ -441,3 +441,8 @@ To run the firmware for dispense with the depth cam, you need to run the executa
 
 ### Live Testing Dispense
 In addition to the unit tests in this library, it will likely be useful to actually test sending commands and receiving responses from the firmware to ensure that things are working as they are supposed to. The way to do this is to use the executable named `dispense_test_client`. The first command line argument to that executable should be the json payload that is being sent. It can technically be any payload you want and it will be encoded and sent. If the firmware can't handle it, it will send an error response.
+
+## Unit Testing
+Unit tests have been set up in the tests sub-directory which aim to test the different Fulfil.Dispense components. These unit tests will run automatically through the Github Actions workflow but to run them manually you can simply run:
+
+`docker compose -f docker-compose.dab.yml up tests`

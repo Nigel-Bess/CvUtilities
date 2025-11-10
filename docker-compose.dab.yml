@@ -97,4 +97,20 @@ services:
           required: true
         restart: unless-stopped
         privileged: true
+
+    tests:
+        container_name: tests
+        logging:
+          driver: syslog
+        image: "gcr.io/fulfil-web/cv-dispense/main:$LOCATION"
+        # Swap "image" for this to use local builds
+        #build:
+        #  context: /home/fulfil/code/Fulfil.ComputerVision
+        #  dockerfile: Dispense.arm.Dockerfile
+        working_dir: /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build/test
+        command: >
+          bash -lc 'ctest --test-dir . --output-on-failure ${CTEST_ARGS:-}'
+        volumes:
+          - "/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs:/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs"
+        privileged: true
  

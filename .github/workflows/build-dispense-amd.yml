@@ -8,7 +8,8 @@ on:
     - Fulfil.Fulfil.OrbbecUtils/**
     - Fulfil.Fulfil.MongoCpp/**
     - Dispens*.Dockerfile
-    - .github/workflows/*-dispense.yml
+    - .github/workflows/*-dispense*.yml
+    - .github/compose/*.yml
 
 env:
   ACTIONS_STEP_DEBUG: true
@@ -34,6 +35,20 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
+      - name: Free disk space (safe removals)
+        run: |
+          docker system prune -af || true
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /opt/google/chrome || true
+          sudo apt-get clean
+          df -h
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Login to GCP Registry (Production)
@@ -43,15 +58,31 @@ jobs:
           service_key: ${{ secrets.CLOUD_PROD_SA }}
 
       - uses: docker/build-push-action@v5
-        name: Build + Push
+        name: Build image (load locally)
         with:
-          build-args: |
-            "NPM_GITHUB_TOKEN=${{ secrets.NPM_GITHUB_TOKEN }}"
           context: .
           file: Dispense.amd.Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:latest,${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:${{github.sha}}
+          load: true
+          tags: local/app:ci
           cache-from: type=gha,ref=${{ env.BRANCH_NAME }}:latest,ref=main:latest
           cache-to: type=gha,mode=max
-          # See: https://github.com/docker/buildx/issues/1533
-          provenance: false
+          build-args: |
+            NPM_GITHUB_TOKEN=${{ env.NPM_GITHUB_TOKEN }}
+
+      - name: Run tests with docker compose
+        run: |
+          TEST_IMAGE=local/app:ci docker compose -f .github/compose/tests-ci.yml up \
+            --abort-on-container-exit \
+            --exit-code-from tests \
+            tests
+
+      - name: Tag and Push pre-built image to Registry
+        if: success()
+        run: |
+          FINAL_TAG1=${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:latest
+          FINAL_TAG2=${{ env.IMAGE_NAME }}/${{ env.BRANCH_NAME }}:${{ github.sha }}
+          docker tag local/app:ci "$FINAL_TAG1"
+          docker tag local/app:ci "$FINAL_TAG2"
+          docker push "$FINAL_TAG1"
+          docker push "$FINAL_TAG2"
+

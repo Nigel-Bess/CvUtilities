@@ -41,8 +41,7 @@ std::string extractSerialNumberFromFile(const std::string& filename)
 
 TEST(TrayCalibrationFilenameTest, CheckINIFileContainsCorrectSerialNumber)
 {
-    // This test assumes that you have the Fulfil.Dispense/configs directory which contains the INI files
-    const std::string configDirectory = (std::filesystem::current_path() / "../configs").string();
+    const std::string configDirectory = std::string(TEST_DATA_DIR "/tray_calibration");
 
     std::vector<std::string> extractedFilenames = extractFilesWithSerialNumbers(configDirectory);
 
@@ -89,4 +88,13 @@ TEST(TrayCalibrationFilenameTest, CheckINIFileContainsCorrectSerialNumber)
         std::vector<float> tray_coordinates_depth = reader->GetFloatVector(configSection, "depth");
         EXPECT_EQ(tray_coordinates_depth.size(), 16);
     }
+}
+
+
+
+// main to run the tests above
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
