@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 using fulfil::dispense::bays::BayCameraStatusHandler;
+using fulfil::utils::Logger;
 
 void listen_for_camera_events(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
     auto cam_status_handler = new BayCameraStatusHandler(bay_data);
@@ -45,7 +46,7 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
 
         if (num_sensors == 0)
         {
-            fulfil::utils::Logger::Instance()->Error("No Cameras Found;");
+            Logger::Instance()->Error("No Cameras Found;");
             // TODO informative throw
             exit(4); // Exit program is no cameras are found to be connected
         }
@@ -58,7 +59,7 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
             // int sensor_num_1 = parser->get_bay(sensors, 1);
             if (bay_data->can_init()) // if one of the first bay's sensors was found
             {
-                fulfil::utils::Logger::Instance()->Info(
+                Logger::Instance()->Info(
                     "Initializing Bay {} because start condition was met!", bay_data->bay_id);
 
                 // This will check for valid frame data
@@ -66,9 +67,9 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                 auto log_refresh = [&iters = frame_check_iterations](auto session, auto tag)
                 {
                     if (session) {
-                        fulfil::utils::Logger::Instance()->Info("Initializing {} cameras frame check with {} iterations ", tag, iters);
+                        Logger::Instance()->Info("Initializing {} cameras frame check with {} iterations ", tag, iters);
                         for (int i = 0; i < iters; i++) {
-                            if (i % 2 == 0) { fulfil::utils::Logger::Instance()->Info("Currently at {} iteration: {}", tag, i);}
+                            if (i % 2 == 0) { Logger::Instance()->Info("Currently at {} iteration: {}", tag, i);}
                             //session->refresh();
                 }} };
                 log_refresh(bay_data->lfb_session, "LFB");
@@ -82,11 +83,11 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                 // after the entire Bay is ready to go
                 listen_for_camera_events(bay_data);
 
-                fulfil::utils::Logger::Instance()->Debug("Initialized thread for bay {}", bay_data->bay_id);
+                Logger::Instance()->Debug("Initialized thread for bay {}", bay_data->bay_id);
             }
             else
             {
-                fulfil::utils::Logger::Instance()->Error(
+                Logger::Instance()->Error(
                     "Starting condition not met for bay!; Found {} sensors required by bay {}!",
                     bay_data->num_valid_session(),
                     bay_data->bay_id);
@@ -95,12 +96,12 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
     }
     catch (const std::exception &e)
     {
-        fulfil::utils::Logger::Instance()->Error("Issue building Sensors, Bays or Runners; Vars: error = {}", e.what());
+        Logger::Instance()->Error("Issue building Sensors, Bays or Runners; Vars: error = {}", e.what());
         exit(6);
     }
     if (this->bays->empty())
     {
-        fulfil::utils::Logger::Instance()->Error("Failed to initialize any bays out of the {} requested!", expected_bays.size());
+        Logger::Instance()->Error("Failed to initialize any bays out of the {} requested!", expected_bays.size());
         exit(6);
     }
     this->threads = std::make_shared<std::vector<std::shared_ptr<std::thread>>>(bays->size()); // TODO: reduce number of threads here?
@@ -114,12 +115,12 @@ void BayCameraStatusHandler::handle_connection_change(std::string cam_name, Dept
 {
     // If camera doesn't even know it's name yet, just bail
     if (cam_name.length() < 3) {
-        fulfil::utils::Logger::Instance()->Info("cam_name not ready yet");
+        Logger::Instance()->Info("CamStatus: cam_name not ready yet");
         return;
     }
     // Mirror all non-connected statuses to FC
     if (current_status != DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
-        fulfil::utils::Logger::Instance()->Info("Mirror {} to {}", current_status, cam_name);
+        Logger::Instance()->Info("CamStatus: Mirror {} to {}", current_status, cam_name);
         auto session = bay_data->lfb_session != nullptr && cam_name == bay_data->lfb_session->sensor->name_ ? bay_data->lfb_session : bay_data->tray_session;
         session->sensor->create_camera_status_msg();
         return;
@@ -128,18 +129,25 @@ void BayCameraStatusHandler::handle_connection_change(std::string cam_name, Dept
     if (bay_data->lfb_session != nullptr && bay_data->tray_session != nullptr) {
         if (bay_data->lfb_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED &&
             bay_data->tray_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
+            Logger::Instance()->Info("CamStatus: Tray and LFB ready {} {}", current_status, cam_name);
             bay_data->tray_session->sensor->create_camera_status_msg();
             bay_data->lfb_session->sensor->create_camera_status_msg();
         }
     }
     // Signal to FC if only 1 cam is required and ready
     else if (bay_data->lfb_session != nullptr && bay_data->lfb_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
-        fulfil::utils::Logger::Instance()->Info("Mirror LFB connected status for {}", cam_name);
+        Logger::Instance()->Info("CamStatus: Mirror LFB connected status for {}", cam_name);
         bay_data->lfb_session->sensor->create_camera_status_msg();
     }
     else if (bay_data->tray_session != nullptr && bay_data->tray_session->sensor->last_status_code == DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED) {
-        fulfil::utils::Logger::Instance()->Info("Mirror Tray connected status for {}", cam_name);
+        Logger::Instance()->Info("CamStatus: Mirror Tray connected status for {}", cam_name);
         bay_data->tray_session->sensor->create_camera_status_msg();
+    } else {
+        Logger::Instance()->Info("CamStatus: Still not ready: lfb_session_null: {} tray_session_null: {} lfb_status: {} tray_status: {}", 
+        bay_data->lfb_session == nullptr, 
+        bay_data->tray_session == nullptr, 
+        bay_data->lfb_session->sensor->last_status_code, 
+        bay_data->tray_session->sensor->last_status_code);
     }
 }
 
