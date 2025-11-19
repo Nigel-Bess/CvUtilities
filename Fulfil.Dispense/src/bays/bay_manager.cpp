@@ -11,7 +11,7 @@
 using fulfil::dispense::bays::BayCameraStatusHandler;
 using fulfil::utils::Logger;
 
-void listen_for_camera_events(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
+void listen_for_cameras_connected(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
     auto cam_status_handler = new BayCameraStatusHandler(bay_data);
     // Listen for future cam status changes
     if (bay_data->lfb_session != nullptr) {
@@ -20,7 +20,7 @@ void listen_for_camera_events(std::shared_ptr<fulfil::dispense::DispenseBayData>
     if (bay_data->tray_session != nullptr) {
         bay_data->tray_session->sensor->add_connected_callback(cam_status_handler);
     }
-    // Trigger handledr immediately in case both cams already connected, but also listen for later
+    // Trigger handler immediately in case both cams already connected, but also listen for later
     if (bay_data->lfb_session != nullptr) {
         cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
     }
@@ -55,7 +55,7 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
         {
             std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> bay_sensors =
                 parser->get_bay(sensors, config_bay_id);
-            auto bay_data = std::make_shared<DispenseBayData>(bay_sensors, config_bay_id, both_cameras_required);
+            this->bay_data = std::make_shared<DispenseBayData>(bay_sensors, config_bay_id, both_cameras_required);
             // int sensor_num_1 = parser->get_bay(sensors, 1);
             if (bay_data->can_init()) // if one of the first bay's sensors was found
             {
@@ -78,10 +78,6 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                     std::stoi(bay_data->bay_id), bay_data->lfb_session, bay_data->tray_session);
                 bays->push_back(runner->get_shared_ptr());
                 runner->bind_delegates();
-
-                // Listen for underlying LFB / Tray camera sessions and only signal cams ready
-                // after the entire Bay is ready to go
-                listen_for_camera_events(bay_data);
 
                 Logger::Instance()->Debug("Initialized thread for bay {}", bay_data->bay_id);
             }
@@ -160,6 +156,11 @@ void fulfil::dispense::bays::BayManager::start() {
         threads->at(i) = std::make_shared<std::thread>([this, i]()
                                                        { this->bays->at(i)->start(); });
     }
+
+    // Listen for underlying LFB / Tray camera sessions and only signal cams ready
+    // after the entire Bay is ready to go
+    listen_for_cameras_connected(bay_data);
+
     for (int i = 0; i < this->threads->size(); i++)
     {
         if (this->bays->at(i) == nullptr)

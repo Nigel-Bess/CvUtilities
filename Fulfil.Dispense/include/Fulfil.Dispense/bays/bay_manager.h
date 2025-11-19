@@ -79,6 +79,7 @@ class BayCameraStatusHandler : public fulfil::depthcam::DepthSensorStatusObserve
                  * The parser that determines which sensor goes to which factory.
                  */
                 std::shared_ptr<fulfil::dispense::bays::BayParser> parser;
+                std::shared_ptr<DispenseBayData> bay_data = nullptr;
             public:
                 /**
                  * BayManager constructor
