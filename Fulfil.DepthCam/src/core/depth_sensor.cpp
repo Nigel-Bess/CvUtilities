@@ -20,7 +20,6 @@ using fulfil::depthcam::sigterm::SigTermHandler;
 DepthSensor::DepthSensor(const std::string &serial)
 {
     this->frame_rate_per_second = 15;
-    this->last_status_code = DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION;
     this->status_observers = new std::vector<DepthSensorStatusObserver*>();
     //Add desired streams to configuration
     rs2::config cfg;
@@ -175,6 +174,12 @@ void DepthSensor::create_camera_status_msg() {
     msg.set_status_code(last_status_code);
     msg.SerializeToString(&tostr);
     service_->AddStatusUpdate(msg.msg_type(), tostr, msg.command_id());
+
+    // This is not ideal, but a stop-gap, FC can receive messages in a random order,
+    // so pause this thread after sending for a for ms to bootleggedly ensure proper
+    // event ordering. Ideally this'd be solved by switching from Grpc to pubsub or
+    // a sliding window in FC.
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 }
 
 void DepthSensor::add_connected_callback(DepthSensorStatusObserver* observer) {

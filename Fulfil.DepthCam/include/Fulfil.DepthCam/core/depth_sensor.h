@@ -83,7 +83,7 @@ class DepthSensor
 
 
     public:
-    volatile DepthCameras::DcCameraStatusCodes last_status_code;
+    volatile DepthCameras::DcCameraStatusCodes last_status_code = DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION;
     /**
     * Initializes the depth sensor with the given serial number.
     * Note:
