@@ -36,9 +36,6 @@ class BayCameraStatusHandler : public fulfil::depthcam::DepthSensorStatusObserve
 
     virtual void handle_connection_change(std::string cam_name, DepthCameras::DcCameraStatusCodes current_status) override;
 
-    private:
-    std::shared_ptr<DispenseBayData> bay_data;
-
 };
 
 /**

@@ -55,7 +55,7 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
         {
             std::vector<std::shared_ptr<fulfil::depthcam::DepthSession>> bay_sensors =
                 parser->get_bay(sensors, config_bay_id);
-            this->bay_data = std::make_shared<DispenseBayData>(bay_sensors, config_bay_id, both_cameras_required);
+            auto bay_data = std::make_shared<DispenseBayData>(bay_sensors, config_bay_id, both_cameras_required);
             // int sensor_num_1 = parser->get_bay(sensors, 1);
             if (bay_data->can_init()) // if one of the first bay's sensors was found
             {
@@ -88,6 +88,9 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                     bay_data->num_valid_session(),
                     bay_data->bay_id);
             }
+            // Listen for underlying LFB / Tray camera sessions and only signal cams ready
+            // after the entire Bay is ready to go
+            listen_for_cameras_connected(bay_data);
         }
     }
     catch (const std::exception &e)
@@ -156,10 +159,6 @@ void fulfil::dispense::bays::BayManager::start() {
         threads->at(i) = std::make_shared<std::thread>([this, i]()
                                                        { this->bays->at(i)->start(); });
     }
-
-    // Listen for underlying LFB / Tray camera sessions and only signal cams ready
-    // after the entire Bay is ready to go
-    listen_for_cameras_connected(bay_data);
 
     for (int i = 0; i < this->threads->size(); i++)
     {
