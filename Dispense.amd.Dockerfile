@@ -4,6 +4,43 @@
 # we end up back on it but for now this hack Dockerfile built on top of the "magic" realsense image works...
 FROM gcr.io/fulfil-web/realsense-orbbec-cv-amd:latest AS base
 
+ARG WITH_GUI=0
+
+RUN apt-get install -y \
+    rsync libgl1-mesa-dev libjson-c-dev \
+    udev protobuf-compiler libprotobuf-dev \
+    libcurl4-openssl-dev libspdlog-dev libeigen3-dev \
+    g++ gcc libssl-dev curl make wget unzip git protobuf-compiler \
+    libprotobuf-dev libcurl4-openssl-dev libspdlog-dev libeigen3-dev g++ gcc libssl-dev
+
+RUN if [ "$WITH_GUI" = "1" ]; then \
+    set -e; \
+    apt-get update && apt-get install -y \
+        build-essential cmake pkg-config \
+        libgtk-3-dev libgtk-3-0 libgl1 libxext6 libxrender1 libglib2.0-0 \
+        libjpeg-dev libpng-dev libtiff-dev libavcodec-dev libavformat-dev libswscale-dev \
+        curl unzip && \
+    mkdir -p /tmp/opencv-gtk && cd /tmp/opencv-gtk && \
+    OPENCV_VERSION=4.6.0; \
+    curl -L -o opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
+    curl -L -o opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip && \
+    unzip -q opencv.zip && unzip -q opencv_contrib.zip && \
+    mkdir build && cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release \
+          -D CMAKE_INSTALL_PREFIX=/opt/opencv-gtk \
+          -D OPENCV_GENERATE_PKGCONFIG=ON \
+          -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv-gtk/opencv_contrib-${OPENCV_VERSION}/modules \
+          -D BUILD_LIST=core,imgcodecs,highgui,videoio,calib3d,features2d,aruco,video \
+          -D WITH_GTK=ON \
+          -D WITH_QT=OFF \
+          -D BUILD_JPEG=ON \
+          -D WITH_JPEG=ON \
+          -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_EXAMPLES=OFF \
+          ../opencv-${OPENCV_VERSION} && \
+    cmake --build . -j"$(nproc)" && cmake --install . && ldconfig && \
+    rm -rf /tmp/opencv-gtk; \
+fi
+
 # Install Ninja build system
 RUN apt-get update && apt-get install -y ninja-build
 
@@ -63,18 +100,22 @@ RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
 # Build DepthCam lib
 RUN cp -r third-party Fulfil.DepthCam/third-party && mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && \
     cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt && \
-    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
+    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 $( [ "$WITH_GUI" = "1" ] && echo -DOpenCV_DIR=/opt/opencv-gtk/lib/cmake/opencv4 ) .
 # TODO: restore ninja
 
 # Build Dispense using Ninja
 RUN rm -rf "Fulfil.Dispense/build/CMakeCache.txt"
 # TODO: restore ninja
 #RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -GNinja -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && \
+RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -DBUILD_TESTS=ON $( [ "$WITH_GUI" = "1" ] && echo -DOpenCV_DIR=/opt/opencv-gtk/lib/cmake/opencv4 ) -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && \
     cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && cmake --build . -j$(($(nproc)-1))
 
 # Harmless test run setup stuff
 RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs && \
     mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/csvs
+
+RUN if [ "$WITH_GUI" = "1" ]; then \
+    echo "/opt/opencv-gtk/lib" > /etc/ld.so.conf.d/opencv-gtk.conf && ldconfig; \
+fi
 
 CMD ["./Fulfil.Dispense/build/app/main"]

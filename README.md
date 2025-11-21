@@ -57,6 +57,18 @@ Stopping:
 `cd /home/fulfil/code/Fulfil.ComputerVision && docker compose -f docker-compose.dab.yml down`
 
 
+### Offline Test with Visualization
+
+To run the offline test with visualization enabled you will need to:
+* build the Dispense.amd.Dockerfile and pass the build argument `--build-arg WITH_GUI=1`
+* The build command will look like:
+  * `docker build --build-arg WITH_GUI=1 . -f Dispense.amd.Dockerfile`
+* Install and run VcXsrv (XLaunch) [Windows]
+  * Multiple Windows -> Display 0 -> Start no client -> Disable access control -> Finish
+* Run the container through docker run while also passing the following arguments:
+  * -e DISPLAY=host.docker.internal:0.0 -e QT_X11_NO_MITSHM=1 
+
+
 ### Deploying
 
 Because building giant ARM64 images in Github Actions is nearly impossible, we instead use a dedicated CI build box in Whisman that can
