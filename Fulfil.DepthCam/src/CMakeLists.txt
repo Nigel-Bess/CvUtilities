@@ -1,15 +1,33 @@
+# Fulfil.DepthCam/src/CMakeLists.txt
 
-include_directories(include/Fulfil.DepthCam/aruco)
-include_directories(include/Fulfil.DepthCam/coders)
-include_directories(include/Fulfil.DepthCam/core)
-include_directories(include/Fulfil.DepthCam/data)
-include_directories(include/Fulfil.DepthCam/frame)
-include_directories(include/Fulfil.DepthCam/mocks)
-include_directories(include/Fulfil.DepthCam/point_cloud)
+# Public include root for DepthCam
+set(FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
-file(GLOB_RECURSE SOURCES "*.cpp")
+# Subdirectory includes for DepthCam
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/aruco")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/coders")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/core")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/data")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/frame")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/mocks")
+include_directories("${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}/Fulfil.DepthCam/point_cloud")
 
-add_library(Fulfil.DepthCam STATIC ${SOURCES})
+file(GLOB_RECURSE FULFIL_DEPTHCAM_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+)
+
+add_library(Fulfil.DepthCam STATIC ${FULFIL_DEPTHCAM_SOURCES})
+
+set(_fulfil_depthcam_lib_dir "${CMAKE_BINARY_DIR}/lib")
+set(_fulfil_depthcam_bin_dir "${CMAKE_BINARY_DIR}/bin")
+
+set_target_properties(Fulfil.DepthCam PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${_fulfil_depthcam_lib_dir}"
+    LIBRARY_OUTPUT_DIRECTORY "${_fulfil_depthcam_lib_dir}"
+    RUNTIME_OUTPUT_DIRECTORY "${_fulfil_depthcam_bin_dir}"
+    OUTPUT_NAME "Fulfil.DepthCam"
+)
 
 #Adding opencv
 find_package(OpenCV 4.5.5 REQUIRED)
@@ -22,8 +40,21 @@ message("****** ${PROJECT_SOURCE_DIR}/include *****")
 
 target_link_libraries(Fulfil.DepthCam LINK_PUBLIC json)
 
-target_include_directories(Fulfil.DepthCam PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(Fulfil.DepthCam SYSTEM PUBLIC ${OpenCV_INCLUDE_DIRS})
+# Public include dirs for users of DepthCam
+target_include_directories(Fulfil.DepthCam
+    PUBLIC
+        "${FULFIL_DEPTHCAM_PUBLIC_INCLUDE_DIR}"
+    SYSTEM PUBLIC
+        ${OpenCV_INCLUDE_DIRS}
+    PRIVATE
+        "${PROJECT_SOURCE_DIR}/third-party/json/include"
+)
 
-#Linking opencv and realsense to the depth cam library
-target_link_libraries(Fulfil.DepthCam PRIVATE ${realsense2_LIBRARY} ${OpenCV_LIBS} Fulfil.CPPUtils)
+# Link OpenCV, RealSense, and the prebuilt Fulfil.CPPUtils + Fulfil.OrbbecUtils
+target_link_libraries(Fulfil.DepthCam
+    PUBLIC
+        ${realsense2_LIBRARY}
+        ${OpenCV_LIBS}
+        Fulfil.CPPUtils
+        Fulfil.OrbbecUtils
+)

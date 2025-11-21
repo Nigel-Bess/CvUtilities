@@ -5,7 +5,9 @@
 FROM gcr.io/fulfil-web/realsense-orbbec-cv-arm:latest AS base
 
 # Install Ninja build system
-RUN apt-get update && apt-get install -y ninja-build
+RUN apt-get update && apt-get install -y ninja-build ccache && rm -rf /var/lib/apt/lists/*
+
+ENV CCACHE_DIR=/ccache \ CCACHE_MAXSIZE=10G
 
 WORKDIR /home/fulfil/code/Fulfil.ComputerVision
 
@@ -19,19 +21,24 @@ RUN rsync -r third-partyNew/ third-party/ --delete --exclude build --exclude "CM
 # Build MongoCpp
 COPY Fulfil.MongoCpp/ ./Fulfil.MongoCpp/
 COPY third-party ./Fulfil.MongoCpp/third-party/
-RUN cd Fulfil.MongoCpp && mkdir -p build && rm "CMakeCache.txt" && cmake -GNinja . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && cmake --build . -j$(($(nproc)-1)) && cmake --install .
-# TODO: restore ninja
+RUN cd Fulfil.MongoCpp && \
+    mkdir -p build && \
+    rm -f "CMakeCache.txt" && \
+    rm -f build/CMakeCache.txt && \
+    cd build && \
+    cmake \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        .. \
+    || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp/CMakeFiles/CMakeError.log && exit 1) && \
+    cmake --build . -j$(($(nproc)-1))
 
+# CPPUtils sync
 COPY Fulfil.CPPUtils ./Fulfil.CPPUtilsNew
-COPY Fulfil.DepthCam ./Fulfil.DepthCamNew
-COPY Fulfil.Dispense ./Fulfil.DispenseNew
-RUN rsync -r Fulfil.CPPUtilsNew/ Fulfil.CPPUtils/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.CPPUtilsNew && \
-    rsync -r Fulfil.DepthCamNew/ Fulfil.DepthCam/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DepthCamNew && \
-    rsync -r Fulfil.DispenseNew/ Fulfil.Dispense/ --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && rm -rf ./Fulfil.DispenseNew
+RUN rsync -r Fulfil.CPPUtilsNew/ Fulfil.CPPUtils/ \
+      --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && \
+    rm -rf ./Fulfil.CPPUtilsNew
 
-# Build CPPUtils + OrbbecUtils
-COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
-COPY Fulfil.OrbbecUtils/ ./Fulfil.OrbbecUtils/
 RUN cp Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h.template Fulfil.CPPUtils/include/Fulfil.CPPUtils/build.h
 COPY scripts/build_date.sh ./scripts/build_date.sh
 RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
@@ -40,38 +47,94 @@ RUN cd scripts && sed -i 's/\r//' ./build_date.sh && bash build_date.sh
 # will become aware of it's git branch again
 #COPY .git .git
 
+#Build CPPUtils
+COPY Fulfil.CPPUtils/ ./Fulfil.CPPUtils/
+RUN cd Fulfil.CPPUtils && \
+    mkdir -p build && \
+    rm -f "CMakeCache.txt" && \
+    rm -f build/CMakeCache.txt && \
+    cd build && \
+    cmake \
+        -DFULFIL_LOG_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs \
+        -DFULFIL_INI_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        .. \
+    || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/CMakeFiles/CMakeError.log && exit 1) && \
+    cmake --build . -j$(($(nproc)-1))
+
+COPY Fulfil.OrbbecUtils ./Fulfil.OrbbecUtilsNew
+RUN rsync -r Fulfil.OrbbecUtilsNew/ Fulfil.OrbbecUtils/ \
+      --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && \
+    rm -rf ./Fulfil.OrbbecUtilsNew
+
 #RUN ls orbbec/OrbbecSDK_v2/build/linux_arm64 && exit 1 # bin and lib
-RUN cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.MongoCpp ./Fulfil.CPPUtils/Fulfil.MongoCpp && \
-    mkdir -p Fulfil.CPPUtils/lib && \
-    mkdir -p Fulfil.OrbbecUtils/lib && \
-    mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk && \
-    mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
+RUN mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
     mkdir -p Fulfil.OrbbecUtils/lib/orbbecsdk/bin && \
-    cp -r orbbec/OrbbecSDK_v2/* Fulfil.OrbbecUtils/lib/orbbecsdk && \
-    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/lib/* Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
-    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/bin/* Fulfil.OrbbecUtils/lib/orbbecsdk/bin/ && \
-    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.OrbbecUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* Fulfil.OrbbecUtils/lib/orbbecsdk/lib
+    cp -r orbbec/OrbbecSDK_v2/* \
+          Fulfil.OrbbecUtils/lib/orbbecsdk && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/lib/* \
+          Fulfil.OrbbecUtils/lib/orbbecsdk/lib && \
+    cp -r orbbec/OrbbecSDK_v2/build/linux_arm64/bin/* \
+          Fulfil.OrbbecUtils/lib/orbbecsdk/bin && \
+    cp -r /home/fulfil/code/Fulfil.ComputerVision/Fulfil.OrbbecUtils/lib/orbbecsdk/build/src/CMakeFiles/Export/lib/* \
+          Fulfil.OrbbecUtils/lib/orbbecsdk/lib
+
+
+# Build OrbbecUtils
+COPY Fulfil.OrbbecUtils ./Fulfil.OrbbecUtils
+RUN cd Fulfil.OrbbecUtils && \
+    mkdir -p build && \
+    rm -f "CMakeCache.txt" && \
+    rm -f build/CMakeCache.txt && \
+    cd build && \
+    cmake \
+        -DFULFIL_LOG_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs \
+        -DFULFIL_INI_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        .. \
+    || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.OrbbecUtils/CMakeFiles/CMakeError.log && exit 1) && \
+    cmake --build . -j$(($(nproc)-1))
 
 # Remove broken old tests for now
 RUN rm -rf /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/test
-# For now don't bother building since Depthcam can't just add_project and avoid rebuilding without a lot of refactoring,
-# so leave it to the DepthCam lib build to also build CPPUtils :-(
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && mkdir -p build/ && cmake -GNinja . || (cat /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils/CMakeFiles/CMakeError.log && exit 1)
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && make
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.CPPUtils && cmake --build . -j$(($(nproc)-1))
+
+# DepthCam sync
+COPY Fulfil.DepthCam ./Fulfil.DepthCamNew
+RUN rsync -r Fulfil.DepthCamNew/ Fulfil.DepthCam/ \
+      --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && \
+    rm -rf ./Fulfil.DepthCamNew
 
 # Build DepthCam lib
-RUN cp -r third-party Fulfil.DepthCam/third-party && mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && \
+RUN --mount=type=cache,target=/ccache \
+    cp -r third-party Fulfil.DepthCam/third-party && \
+    mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && \
+    cp -r /usr/src/librealsense/build/* /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense && \
     cp /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/cmake_install.cmake /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam/libs/librealsense/CMakeLists.txt && \
-    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && mkdir -p build && cmake -DIS_CONTAINERIZED=1 .
-# TODO: restore ninja
+    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.DepthCam && \
+    cmake -S . -B build \
+        -DIS_CONTAINERIZED=1 \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
+    cmake --build build -j$(($(nproc)-1))
 
-# Build Dispense using Ninja
-RUN rm -rf "Fulfil.Dispense/build/CMakeCache.txt"
-# TODO: restore ninja
-#RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -GNinja -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build
-RUN cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && mkdir -p build && cd build && cmake -DBUILD_TESTS=ON -H/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense -B/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && \
-    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/build && cmake --build . -j$(($(nproc)-1))
+# Dispense sync
+COPY Fulfil.Dispense ./Fulfil.DispenseNew
+RUN rsync -r Fulfil.DispenseNew/ Fulfil.Dispense/ \
+      --delete --exclude build --exclude "CMakeC*" --exclude "CMakeF*" && \
+    rm -rf ./Fulfil.DispenseNew
+
+# Build Dispense app
+RUN --mount=type=cache,target=/ccache \
+    cd /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense && \
+    cmake -S . -B build \
+        -DBUILD_TESTS=ON \
+        -DFULFIL_LOG_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs \
+        -DFULFIL_INI_DIR=/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/configs \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
+    cmake --build build -j$(($(nproc)-1))
 
 # Harmless test run setup stuff
 RUN mkdir -p /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/logs/tray_test_logs && \

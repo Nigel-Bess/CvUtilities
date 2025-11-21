@@ -173,4 +173,15 @@ else ()
    set(FULFIL_INI_DIR "${CMAKE_SOURCE_DIR}/configs")
    message("-- Using default config directory ${FULFIL_INI_DIR}")
 endif()
+
+# Using prebuilt FulfilMongoCpp static library built in its own step
+add_library(FulfilMongoCpp STATIC IMPORTED)
+set_target_properties(FulfilMongoCpp PROPERTIES
+    IMPORTED_LOCATION
+        "${PROJECT_SOURCE_DIR}/../Fulfil.MongoCpp/build/lib/libFulfilMongoCpp.a"
+    INTERFACE_INCLUDE_DIRECTORIES
+        "${PROJECT_SOURCE_DIR}/../Fulfil.MongoCpp/include"
+)
+
+
 add_subdirectory(src)

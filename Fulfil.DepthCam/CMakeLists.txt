@@ -17,10 +17,26 @@ set(INCLUDE_INSTALL_DIR include/ )
 set(LIB_INSTALL_DIR lib/ )
 set(SYSCONFIG_INSTALL_DIR lib/Fulfil.Dispense/ )
 
-add_subdirectory("../Fulfil.CPPUtils" build)
-add_subdirectory("../Fulfil.OrbbecUtils" build/orbbec)
-#set(Fulfil.CPPUtils_DIR ../Fulfil.CPPUtils)
-#find_package("Fulfil.CPPUtils" REQUIRED)
+# Root of the CV repo (Fulfil.ComputerVision)
+set(CV_ROOT "${PROJECT_SOURCE_DIR}/..")
+
+# Using prebuilt Fulfil.CPPUtils static library
+add_library(Fulfil.CPPUtils STATIC IMPORTED)
+set_target_properties(Fulfil.CPPUtils PROPERTIES
+    IMPORTED_LOCATION
+        "${CV_ROOT}/Fulfil.CPPUtils/build/lib/libFulfil.CPPUtils.a"
+    INTERFACE_INCLUDE_DIRECTORIES
+        "${CV_ROOT}/Fulfil.CPPUtils/include"
+)
+
+# Using prebuilt Fulfil.OrbbecUtils static library
+add_library(Fulfil.OrbbecUtils STATIC IMPORTED)
+set_target_properties(Fulfil.OrbbecUtils PROPERTIES
+    IMPORTED_LOCATION
+        "${CV_ROOT}/Fulfil.OrbbecUtils/build/lib/libFulfil.OrbbecUtils.a"
+    INTERFACE_INCLUDE_DIRECTORIES
+        "${CV_ROOT}/Fulfil.OrbbecUtils/include"
+)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(CMakeLists.txt.in
