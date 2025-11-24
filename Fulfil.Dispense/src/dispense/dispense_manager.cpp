@@ -461,7 +461,8 @@ std::shared_ptr<FloorViewResponse> DispenseManager::handle_floor_view(std::share
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("LFB Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("LFB Session Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            *PrimaryKeyID,
             this->machine_name,
             *this->LFB_session->get_serial_number(),
             e.what()
@@ -688,7 +689,8 @@ std::shared_ptr<fulfil::dispense::commands::CodeResponse> DispenseManager::handl
         }
         catch (const DcApiError& e)
         {
-            Logger::Instance()->Error("LFB Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+            Logger::Instance()->Error("LFB Session Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+                *PrimaryKeyID,
                 this->machine_name,
                 *this->LFB_session->get_serial_number(),
                 e.what()
@@ -883,7 +885,8 @@ std::shared_ptr<TrayViewResponse> DispenseManager::handle_tray_view(std::shared_
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Tray Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Tray Session Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            *PrimaryKeyID,
             this->machine_name,
             *this->tray_session->get_serial_number(),
             e.what()
@@ -1015,7 +1018,8 @@ DispenseManager::handle_item_edge_distance(std::shared_ptr<std::string> command_
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Tray Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Tray Session Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            single_lane_val_req.get_primary_key_id(),
             this->machine_name,
             *this->tray_session->get_serial_number(),
             e.what()
@@ -1110,7 +1114,8 @@ DispenseManager::handle_tray_validation(std::shared_ptr<std::string> command_id,
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Handling Tray Validation Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Handling Tray Validation Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            tray_validation_request.get_primary_key_id(),
             this->machine_name,
             *this->tray_session->get_serial_number(),
             e.what()
@@ -1239,7 +1244,8 @@ fulfil::dispense::DispenseManager::handle_side_dispense_target(std::shared_ptr<s
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Side Dispense Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Side Dispense Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            (*request_json)["Primary_Key_ID"].get<std::string>(),
             this->machine_name,
             *this->LFB_session->get_serial_number(),
             e.what()
@@ -1284,7 +1290,8 @@ fulfil::dispense::DispenseManager::handle_pre_side_dispense(std::shared_ptr<std:
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Pre Side Dispense Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Pre Side Dispense Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            pkid,
             this->machine_name,
             *this->LFB_session->get_serial_number(),
             e.what()
@@ -1367,7 +1374,8 @@ fulfil::dispense::DispenseManager::handle_post_side_dispense(std::shared_ptr<std
     }
     catch (const DcApiError& e)
     {
-        Logger::Instance()->Error("Post Side Dispense Session Refresh Failed for machine {}, and camera serial {} with message: {}",
+        Logger::Instance()->Error("Post Side Dispense Session Refresh Failed for PKID {}, machine {}, and camera serial {} with message: {}",
+            *primary_key_id,
             this->machine_name,
             *this->LFB_session->get_serial_number(),
             e.what()
