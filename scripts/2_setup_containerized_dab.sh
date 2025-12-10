@@ -76,6 +76,8 @@ echo "Setting up stale file TTL cronjobs"
 (crontab -l ; echo "0 9 * * * find /home/fulfil/data/saved_images_* -mtime +60 -type f -exec rm {} \; && find /home/fulfil/data/saved_images_* -empty -type d -delete")| crontab -
 (crontab -l ; echo "0 9 * * * find /home/fulfil/data/saved_videos -mtime +60 -type f -exec rm {} \; && find /home/fulfil/data/saved_videos -empty -type d -delete")| crontab -
 (crontab -l ; echo "0 9 * * * find /home/fulfil/Videos -mtime +30 -type f -exec rm {} \; && find /home/fulfil/Videos -empty -type d -delete")| crontab -
+# Purge potentially corrupted docker logs on wake so Alloy doesn't trip up
+(crontab -l ; echo "@reboot find /home/fulfil/data/docker/containers -maxdepth 2 -name \"*log\" | xargs rm")| crontab -
 
 echo "Everything is nearly setup, lets reboot to make sure there's no disk shenanigans later, enter anything to reboot (and don't forget to run scripts/3_start_services.sh on restart!)"
 read ignore
