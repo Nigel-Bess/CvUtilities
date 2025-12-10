@@ -8,6 +8,7 @@
 #include <Fulfil.CPPUtils/commands/dc_api_error_codes.h>
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <json.hpp>
+#include <Fulfil.CPPUtils/eigen.h>
 
 using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 
@@ -29,6 +30,7 @@ namespace fulfil::dispense::commands {
                                          std::shared_ptr<std::string> primary_key_id,
                                          std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                          std::shared_ptr<nlohmann::json> occupancy_data,
+                                         std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_inside_cavity,
                                          float square_width,
                                          float square_height,
                                          DcApiErrorCode success_code, 
@@ -40,6 +42,7 @@ namespace fulfil::dispense::commands {
         std::shared_ptr<std::string> primary_key_id;
         std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map;
         std::shared_ptr<nlohmann::json> occupancy_data;
+        std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_inside_cavity;
         float square_width;
         float square_height;
         DcApiErrorCode success_code{DcApiErrorCode::Success};

@@ -4,6 +4,7 @@
 #include <Fulfil.CPPUtils/logging.h>
 #include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <json.hpp>
+#include <Fulfil.CPPUtils/eigen.h>
 
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::dispense::drop::SideDropResult;
@@ -17,11 +18,13 @@ using fulfil::utils::Logger;
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
                                std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                std::shared_ptr<nlohmann::json> occupancy_data,
+                               std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_inside_cavity,
                                int error_code,
                                const std::string &error_description) {
     this->request_id = request_id;
     this->occupancy_map = occupancy_map;
     this->occupancy_data = occupancy_data;
+    this->local_point_cloud_inside_cavity = local_point_cloud_inside_cavity;
     this->container = nullptr;
     this->success_code = error_code;
     this->error_description = error_description;
@@ -30,6 +33,7 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
 SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
                                std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                std::shared_ptr<nlohmann::json> occupancy_data,
+                               std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_inside_cavity,
                                std::shared_ptr<MarkerDetectorContainer> container,
                                float square_width,
                                float square_height,
@@ -38,6 +42,7 @@ SideDropResult::SideDropResult(std::shared_ptr<std::string> request_id,
     this->request_id = request_id;
     this->occupancy_map = occupancy_map;
     this->occupancy_data = occupancy_data;
+    this->local_point_cloud_inside_cavity = local_point_cloud_inside_cavity;
     this->container = container;
     this->square_width = square_width;
     this->square_height = square_height;

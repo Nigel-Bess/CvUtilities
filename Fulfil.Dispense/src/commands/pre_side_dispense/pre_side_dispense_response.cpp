@@ -5,6 +5,7 @@
 #include "Fulfil.Dispense/commands/pre_side_dispense/pre_side_dispense_response.h"
 #include <Fulfil.CPPUtils/conversions.h>
 #include <Fulfil.CPPUtils/logging.h>
+#include <Fulfil.CPPUtils/eigen.h>
 
 #include <json.hpp>
 #include <iostream>
@@ -13,6 +14,7 @@
 
 using fulfil::dispense::commands::PreSideDispenseResponse;
 using fulfil::utils::convert_map_to_millimeters;
+using fulfil::utils::convert_map_to_millimeters1;
 using fulfil::utils::Logger;
 using fulfil::utils::to_millimeters;
 
@@ -24,8 +26,9 @@ void PreSideDispenseResponse::encode_payload() {
     result_json["Grid_Square_Width_Mm"] = to_millimeters(this->square_width);
     result_json["Grid_Square_Height_Mm"] = to_millimeters(this->square_height);
     // if there were obstacles that couldn't be overcome making the map, don't return any
+    Logger::Instance()->Debug("Loading occupancy map data to json!!");
     if (this->occupancy_map != nullptr) {
-        auto map = convert_map_to_millimeters(this->occupancy_map);
+        auto map = convert_map_to_millimeters1(this->occupancy_map);
         std::vector<std::vector<int>> converted_map;
         for (int i = 0; i < map->size(); i++) {
             converted_map.push_back(*(map->at(i)));
@@ -34,7 +37,15 @@ void PreSideDispenseResponse::encode_payload() {
     }
     std::string display_json_string = result_json.dump();
     Logger::Instance()->Info("Encoding PreSideDispenseResponse as: {}", display_json_string);
-    result_json["Occupancy_Visualization"] = *this->occupancy_data;
+    if (this->occupancy_data != nullptr) {
+        result_json["Occupancy_Visualization"] = *this->occupancy_data;
+    }
+    //result_json["Occupancy_Visualization"] = nullptr;
+    nlohmann::json point_cloud_inside_cavity = nlohmann::json::array();
+    for (auto& point : *this->local_point_cloud_inside_cavity) {
+        point_cloud_inside_cavity.push_back({ point.x(), point.y(), point.z() });
+    }
+    result_json["Point_Cloud_Inside_Cavity"] = point_cloud_inside_cavity;
     std::string json_string = result_json.dump();
     int json_length = json_string.size();
     const char *json_text = json_string.c_str();
@@ -49,6 +60,7 @@ PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> re
                                                  std::shared_ptr<std::string> primary_key_id,
                                                  std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map,
                                                  std::shared_ptr<nlohmann::json> occupancy_data,
+                                                 std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_inside_cavity,
                                                  float square_width,
                                                  float square_height,
                                                  DcApiErrorCode success_code,
@@ -56,6 +68,7 @@ PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> re
     primary_key_id(primary_key_id),
     occupancy_map(occupancy_map),
     occupancy_data(occupancy_data),
+    local_point_cloud_inside_cavity(local_point_cloud_inside_cavity),
     square_width(square_width),
     square_height(square_height),
     success_code(success_code),

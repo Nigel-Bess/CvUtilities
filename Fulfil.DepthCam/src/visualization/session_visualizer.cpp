@@ -242,6 +242,7 @@ std::shared_ptr<cv::Mat> SessionVisualizer::display_points_with_local_depth_colo
 
   std::shared_ptr<LocalPointCloud> local_point_cloud = point_cloud->as_pixel_cloud()->new_point_cloud(depth_pixels)->as_local_cloud();
   auto local_depth_data = local_point_cloud->get_data();
+
   //std::cout << (*local_depth_data)(2,0) << "LOOK HERE" << std::endl;
   //std::cout << *local_depth_data << "LOOK HERE" << std::endl;
 

@@ -313,6 +313,463 @@ TEST_F(SideDispenseTest, PostSideDispenseOccupancyMapGeneration)
     }
 }
 
+TEST_F(SideDispenseTest, SideDispenseKabschTransformation)
+{
+    std::vector<Eigen::Vector3d> aruco_locations_at_identity_transform = {
+        Eigen::Vector3d( -153, 176.5, 1 ),
+        Eigen::Vector3d( -75.5, 176.5, 1 ),
+        Eigen::Vector3d( 197.5, 22, 2 )
+    };
+    std::vector<Eigen::Vector3d> measured_aruco_locations = {
+        Eigen::Vector3d( -173, 176.5, 1 ),
+        Eigen::Vector3d( -95.5, 176.5, 1 ),
+        Eigen::Vector3d( 177.5, 22, 2 )
+    };
+    std::vector<int> inlier_indices = { 0, 1, 2 };
+
+    DropZoneSearcher::RigidTransformation transform;
+    Eigen::Matrix3d ground_truth_rotation_matrix = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d ground_truth_translation_vector(-20, 0, 0);
+  
+    transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(aruco_locations_at_identity_transform, measured_aruco_locations, inlier_indices);
+    
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(ground_truth_rotation_matrix));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(ground_truth_translation_vector));
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschTransformationWithCenter)
+{
+
+    std::vector<Eigen::Vector3d> aruco_locations_at_identity_transform = {
+         Eigen::Vector3d(-150, 170, 1),
+        Eigen::Vector3d(-75, 170, 1),
+        Eigen::Vector3d(190, 20, 2),
+    };
+    std::vector<Eigen::Vector3d> measured_aruco_locations = {
+         Eigen::Vector3d(-170, 185, 1),
+         Eigen::Vector3d(-95, 185, 1),
+         Eigen::Vector3d(170, 35, 2),
+    };
+    std::vector<int> inlier_indices = { 0, 1, 2 };
+
+    DropZoneSearcher::RigidTransformation transform;
+    Eigen::Matrix3d ground_truth_rotation_matrix = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d ground_truth_translation_vector(-20, 15, 0);
+    
+    transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(aruco_locations_at_identity_transform, measured_aruco_locations, inlier_indices);
+   
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(ground_truth_rotation_matrix));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(ground_truth_translation_vector));
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschTransformationWithTranslationAlongALL3Axis)
+{
+
+    std::vector<Eigen::Vector3d> aruco_locations_at_identity_transform = {
+         Eigen::Vector3d(-150, 170, 1),
+        Eigen::Vector3d(-75, 170, 1),
+        Eigen::Vector3d(190, 20, 2),
+    };
+    std::vector<Eigen::Vector3d> measured_aruco_locations = {
+         Eigen::Vector3d(-170, 185, 6),
+         Eigen::Vector3d(-95, 185, 6),
+         Eigen::Vector3d(170, 35, 7),
+    };
+    std::vector<int> inlier_indices = { 0, 1, 2 };
+
+    DropZoneSearcher::RigidTransformation transform;
+    Eigen::Matrix3d ground_truth_rotation_matrix = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d ground_truth_translation_vector(-20, 15, 5);
+   
+    transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(aruco_locations_at_identity_transform, measured_aruco_locations, inlier_indices);
+   
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(ground_truth_rotation_matrix));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(ground_truth_translation_vector));
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschIdentityTransform) {
+    std::vector<Eigen::Vector3d> expected = { 
+        {0, 0, 0}, 
+        {1, 0, 0}, 
+        {0, 1, 0}, 
+        {0, 0, 1} 
+    };
+    std::vector<Eigen::Vector3d> actual = expected;
+    auto indices = { 0, 1, 2, 3 };
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(Eigen::Matrix3d::Identity(), 1e-9));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(Eigen::Vector3d::Zero(), 1e-9));
+    EXPECT_NEAR(std::abs(transform.squared_error), 0.0, 1e-9);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschPureRotation) {
+    std::vector<Eigen::Vector3d> expected = { 
+        {1, 0, 0}, 
+        {0, 1, 0}, 
+        {0, 0, 1}, 
+        {1, 1, 1} 
+    }; //canonical unit axis points, one diagonal point
+    std::vector<Eigen::Vector3d> actual;
+    Eigen::AngleAxisd angle(M_PI/4.0, Eigen::Vector3d::UnitZ()); //rotate 45 degrees along z axis
+    Eigen::Matrix3d rotation = angle.toRotationMatrix();
+    Eigen::Vector3d translation = Eigen::Vector3d::Zero();
+    
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+    for (auto& i : actual) {
+        Logger::Instance()->Debug("Actual point: [{}, {}, {}]", i.x(), i.y(), i.z());
+    }
+    
+    auto indices = { 0, 1, 2, 3 };
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector  = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(rotation, 1e-9));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(Eigen::Vector3d::Zero(), 1e-9));
+    EXPECT_NEAR(transform.squared_error, 0.0, 1e-12);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschPureRotationAlongX)
+{
+    std::vector<Eigen::Vector3d> expected = { 
+        {1, 0, 0}, 
+        {0, 1, 0}, 
+        {0, 0, 1}, 
+        {1, 1, 1} 
+    }; //canonical unit axis points, one diagonal point
+    std::vector<Eigen::Vector3d> actual;
+    Eigen::AngleAxisd angle(M_PI/4.0, Eigen::Vector3d::UnitX()); //rotate 45 degrees along x axis
+    Eigen::Matrix3d rotation = angle.toRotationMatrix();
+    Eigen::Vector3d translation = Eigen::Vector3d::Zero();
+
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        if (std::abs(vec.y()) < 1e-12) {
+            vec.y() = 0.0;
+        }
+        if (std::abs(vec.z()) < 1e-12) {
+            vec.z() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+
+    EXPECT_EQ(actual[0], Eigen::Vector3d(1, 0, 0));
+    EXPECT_TRUE(actual[1].isApprox(Eigen::Vector3d(0, std::sqrt(2)/2, std::sqrt(2)/2), 1e-9));
+    EXPECT_TRUE(actual[2].isApprox(Eigen::Vector3d(0, -std::sqrt(2)/2, std::sqrt(2)/2), 1e-9));
+    EXPECT_TRUE(actual[3].isApprox(Eigen::Vector3d(1, 0, std::sqrt(2)), 1e-9));
+
+    auto indices = { 0, 1, 2, 3 };
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector  = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(rotation, 1e-9));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(Eigen::Vector3d::Zero(), 1e-9));
+    EXPECT_NEAR(transform.squared_error, 0.0, 1e-12);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschPureRotationAlongY)
+{
+    std::vector<Eigen::Vector3d> expected = { 
+        {1, 0, 0}, 
+        {0, 1, 0}, 
+        {0, 0, 1}, 
+        {1, 1, 1} 
+    }; //canonical unit axis points, one diagonal point
+    std::vector<Eigen::Vector3d> actual;
+    Eigen::AngleAxisd angle(M_PI/4.0, Eigen::Vector3d::UnitY()); //rotate 45 degrees along y axis
+    Eigen::Matrix3d rotation = angle.toRotationMatrix();
+    Eigen::Vector3d translation = Eigen::Vector3d::Zero();
+
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        if (std::abs(vec.y()) < 1e-12) {
+            vec.y() = 0.0;
+        }
+        if (std::abs(vec.z()) < 1e-12) {
+            vec.z() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+
+    EXPECT_TRUE(actual[0].isApprox(Eigen::Vector3d(std::sqrt(2)/2, 0, -std::sqrt(2)/2), 1e-9));
+    EXPECT_EQ(actual[1], Eigen::Vector3d(0, 1, 0));
+    EXPECT_TRUE(actual[2].isApprox(Eigen::Vector3d(std::sqrt(2)/2, 0, std::sqrt(2)/2), 1e-9));
+    EXPECT_TRUE(actual[3].isApprox(Eigen::Vector3d(std::sqrt(2), 1, 0), 1e-9));
+
+    auto indices = { 0, 1, 2, 3 };
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector  = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(rotation, 1e-9));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(Eigen::Vector3d::Zero(), 1e-9));
+    EXPECT_NEAR(transform.squared_error, 0.0, 1e-12);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschRotationAlongXthenY)
+{
+    std::vector<Eigen::Vector3d> expected =
+    {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1},
+        {1, 1, 1}
+    }; //canonical unit axis points, one diagonal point
+
+    std::vector<Eigen::Vector3d> actual;
+
+    // angles in radians
+    const double deg2rad = M_PI / 180.0;
+    double angle_x = -35.0 * deg2rad;   // -35 degrees about X
+    double angle_y =  45.0 * deg2rad;   //  45 degrees about Y
+
+    // first rotate about X, then about Y:
+    Eigen::AngleAxisd rot_x(angle_x, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd rot_y(angle_y, Eigen::Vector3d::UnitY());
+
+    // Combined rotation: R = Ry * Rx  (Rx applied first, then Ry)
+    Eigen::Matrix3d rotation = (rot_y * rot_x).toRotationMatrix();
+
+    Eigen::Vector3d translation = Eigen::Vector3d::Zero();
+
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        if (std::abs(vec.y()) < 1e-12) {
+            vec.y() = 0.0;
+        }
+        if (std::abs(vec.z()) < 1e-12) {
+            vec.z() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+
+    for (auto& i : actual) {
+        Logger::Instance()->Debug("Actual point: [{}, {}, {}]", i.x(), i.y(), i.z());
+    }
+
+    EXPECT_TRUE(actual[0].isApprox(Eigen::Vector3d(0.707107, 0, -0.707107), 1e-6));
+    EXPECT_TRUE(actual[1].isApprox(Eigen::Vector3d(-0.405580, 0.819152, -0.405580), 1e-6));
+    EXPECT_TRUE(actual[2].isApprox(Eigen::Vector3d(0.579228, 0.573576, 0.579228), 1e-6));
+    EXPECT_TRUE(actual[3].isApprox(Eigen::Vector3d(0.880755, 1.392728, -0.533459), 1e-6));
+
+    auto indices = { 0, 1, 2, 3 };
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    Eigen::Vector3d rounded_translation_vector  = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(rotation, 1e-9));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(Eigen::Vector3d::Zero(), 1e-9));
+    EXPECT_NEAR(transform.squared_error, 0.0, 1e-12);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+
+}
+
+Eigen::Vector3d calculate_centroid(std::vector<Eigen::Vector3d> points, std::vector<int> indices) {
+    Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
+    for (int i : indices){
+        centroid += points[i];
+    }
+    centroid = centroid / static_cast<double>(indices.size());
+    return centroid;
+}
+
+Eigen::Matrix3d compute_cross_covariance(const std::vector<Eigen::Vector3d>& expected, const std::vector<Eigen::Vector3d>& actual, const std::vector<int>& indices) {
+    Eigen::Vector3d centroid_a = calculate_centroid(expected, indices);
+    Eigen::Vector3d centroid_b = calculate_centroid(actual, indices);
+    Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
+
+    for (int i : indices) {
+        const Eigen::Vector3d centroid_expected = expected[i] - centroid_a;
+        const Eigen::Vector3d centroid_actual = actual[i] - centroid_b;
+        covariance += centroid_expected * centroid_actual.transpose();
+    }
+
+    return covariance;
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschRotationAndTranslation) 
+{
+    std::vector<Eigen::Vector3d> expected = { 
+        {1, 2, 3}, 
+        {0, 1, 0}, 
+        {4, 5, 6}, 
+        {-1, -2, 0} 
+    };
+
+    std::vector<Eigen::Vector3d> actual;
+    auto indices = { 0, 1, 2, 3 };
+    Eigen::AngleAxisd angle(M_PI / 6.0, Eigen::Vector3d(1, 1, 1).normalized());
+    Eigen::Matrix3d rotation = angle.toRotationMatrix();
+    Eigen::Vector3d translation(3, -2, 5);
+    
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+
+    for (auto& i : actual) {
+        std::cout << i.x() << i.y() << i.z() << std::endl;
+    }
+
+    Eigen::Vector3d centroid_expected = calculate_centroid(expected, indices);
+    Eigen::Vector3d centroid_actual = calculate_centroid(actual, indices);
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+    
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(rotation, 1e-8));
+    EXPECT_TRUE(rounded_translation_vector.isApprox(translation, 1e-8));
+    EXPECT_NEAR(transform.squared_error, 0.0, 1e-10);
+    EXPECT_NEAR(transform.rotation_matrix.determinant(), 1.0, 1e-9);
+    EXPECT_TRUE(rounded_translation_vector.isApprox(centroid_actual - rounded_rotation_matrix * centroid_expected, 1e-8));
+
+}
+
+TEST_F(SideDispenseTest, SideDispenseKabschCrossCovarianceSVD) 
+{
+    std::vector<Eigen::Vector3d> expected = { 
+        {-1, 0, 0}, 
+        {0, 2, 0}, 
+        {0, 0, 3}, 
+        {1, 1, 1} 
+    };
+
+    std::vector<Eigen::Vector3d> actual;
+    Eigen::AngleAxisd angle(M_PI / 7.0, Eigen::Vector3d::UnitX());
+    Eigen::Matrix3d rotation = angle.toRotationMatrix();
+    Eigen::Vector3d translation(0.5, -0.25, 0.75);
+    auto indices = { 0, 1, 2, 3 };
+
+    for (auto& i : expected) {
+        Eigen::Vector3d vec = rotation * i + translation;
+        if (std::abs(vec.x()) < 1e-12) {
+            vec.x() = 0.0;
+        }
+        actual.push_back(vec);
+    }
+    for (auto& i : actual) {
+        std::cout << i.x() << i.y() << i.z() << std::endl;
+    }
+    
+    Eigen::Matrix3d cross_covar = compute_cross_covariance(expected, actual, indices);
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(cross_covar, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix3d U = svd.matrixU();
+    Eigen::Matrix3d V = svd.matrixV();
+    Eigen::Matrix3d svd_rotation = V * U.transpose();
+
+    Eigen::Matrix3d H = U * svd.singularValues().asDiagonal() * V.transpose();
+    EXPECT_TRUE(cross_covar.isApprox(H, 1e-10));
+
+    DropZoneSearcher::RigidTransformation transform = *DropZoneSearcher::implement_kabsch_rotation_n_translation(expected, actual, indices);
+    
+    Eigen::Matrix3d rounded_rotation_matrix = transform.rotation_matrix.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+    Eigen::Vector3d rounded_translation_vector = transform.translation_vector.unaryExpr([](double x) {
+        return (std::abs(x) < 1e-12) ? 0.0 : x;
+    });
+    
+    EXPECT_TRUE(rounded_rotation_matrix.isApprox(svd_rotation, 1e-8));
+    auto s = svd.singularValues();
+    EXPECT_GE(s(0), 0.0);
+    EXPECT_GE(s(1), 0.0);
+    EXPECT_GE(s(2), 0.0);
+    EXPECT_GE(s(0), s(1));
+    EXPECT_GE(s(1), s(2));
+
+}
+
 
 
 // main to run the tests above

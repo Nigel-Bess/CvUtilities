@@ -488,10 +488,42 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContaine
   }
   if (this->is_side_dispense) {
       Logger::Instance()->Debug("Getting side dispense point cloud from MarkerDetectorContainer!!");
-      return this->cached_container->get_point_cloud_side_dispense(include_invalid_depth_data, caller);
+      return this->cached_container->get_point_cloud_side_dispense_camera(include_invalid_depth_data, caller);
   }
   Logger::Instance()->Debug("Getting point cloud from MarkerDetectorContainer!!");
   return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
+}
+
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud_post_dispense(
+    bool include_invalid_depth_data, const char* caller)
+{
+    Logger::Instance()->Info("MarkerDetectorContainer.get_point_cloud called by " + std::string(caller));
+    if (!this->cached_container)
+    {
+        this->setup_cached_container();
+    }
+    if (this->is_side_dispense) {
+        Logger::Instance()->Debug("Getting side dispense point cloud from MarkerDetectorContainer!!");
+        return this->cached_container->get_point_cloud_side_dispense(include_invalid_depth_data, caller);
+    }
+    Logger::Instance()->Debug("Getting point cloud from MarkerDetectorContainer!!");
+    return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
+}
+
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud(
+    bool include_invalid_depth_data, const char* caller, bool usekabschtransform)
+{
+    Logger::Instance()->Info("MarkerDetectorContainer.get_point_cloud called by " + std::string(caller));
+    if (!this->cached_container)
+    {
+        this->setup_cached_container();
+    }
+    if (this->is_side_dispense && usekabschtransform) {
+        Logger::Instance()->Debug("Getting side dispense point cloud from MarkerDetectorContainer!!");
+        return this->cached_container->get_point_cloud_side_dispense_camera(include_invalid_depth_data, caller);
+    }
+    Logger::Instance()->Debug("Getting point cloud from MarkerDetectorContainer!!");
+    return this->cached_container->get_point_cloud(include_invalid_depth_data, __FUNCTION__);
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> MarkerDetectorContainer::get_point_cloud_outside_cavity(

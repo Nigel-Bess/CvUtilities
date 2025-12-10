@@ -118,6 +118,8 @@ class DropZoneSearcher
 		FloorAnalysisResult() = default;
 	};
 
+    
+
   /**
    * Analyzes target region candidate and populates Target Region struct with results
    * @param shadow_length of the drop shadow of the item being dropped.
@@ -228,6 +230,14 @@ class DropZoneSearcher
 
 
 public:
+
+    struct RigidTransformation {
+        Eigen::Matrix3d rotation_matrix = Eigen::Matrix3d::Identity();
+        Eigen::Vector3d translation_vector = Eigen::Vector3d::Zero();
+        std::vector<int> inliers;
+        double squared_error = std::numeric_limits<double>::infinity();
+        RigidTransformation() = default;
+    };
   /**
    * Calculates the optimal drop zone for the provided length and width (taking into
    * consideration obstructions on left and right side of the bags) in the provided
@@ -341,8 +351,94 @@ public:
     bool is_empty
   );
 
-  int add_data_to_occupancy_json(std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud, std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud_outside_cavity, 
-      std::shared_ptr<nlohmann::json> request_json, std::shared_ptr<nlohmann::json> occupancy_json, std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, std::vector<Eigen::Vector3d> actual_aruco_center_coordinates, Eigen::Vector3d actual_center_local_coordinates,  Eigen::Affine3d inverse_transform);
+  /**
+  * Returns the success code and populates the json with occupancy map data
+  * @param bag_cavity_length the length of bag cavity in mm
+  * @param bag_cavity_width the width of bag cavity in mm
+  * @param bag_cavity_depth the depth of bag cavity in mm
+  * @param kabsch_transform_translation translation vector of the actual bag cavity calculated with kabsch
+  * @param kabsch_transform_rotation_matrix rotation matrix of the actual bag cavity calculated with kabsch
+  * @param expected_aruco_coordinates_local vector of expected aruco locations in local coordinate system
+  * @param actual_aruco_center_coordinates vector of actual aruco locations in camera coordinate system
+  * @param occupancy_json json that stores the transformation and point cloud information
+  * @return success code
+  */
+  int populate_json_data(
+      //std::vector<Eigen::Vector3d> marker_coordinates_measured_location,
+      float bag_cavity_length,
+      float bag_cavity_width,
+      float bag_cavity_depth,
+      Eigen::Vector3d kabsch_transform_translation,
+      Eigen::Matrix3d kabsch_transform_rotation_matrix,
+      std::vector<Eigen::Vector3d> expected_aruco_coordinates_local,
+      std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
+      std::shared_ptr<nlohmann::json> occupancy_json,
+      std::vector<Eigen::Vector3d> camera_point_cloud_inside_cavity,
+      std::vector<Eigen::Vector3d> camera_point_cloud_outside_cavity);
+  
+  /**
+  * Returns the success code and computes the transformations and related occupancy data for populating the json
+  * @param container MarkerDetectorContainer 
+  * @param camera_point_cloud unfiltered camera point cloud
+  * @param request_json pre side dispense request json
+  * @param occupancy_json json to populate the occupancy map and transformation data
+  * @param lfb_vision_config vision config recipes json
+  * @param actual_aruco_center_coordinates vector of actual aruco locations in camera coordinate system
+  * @param local_point_cloud_data vector to store point cloud data in local coordinate system
+  * @param camera_point_cloud_data vector to store point cloud data in camera coordinate system
+  * @param local_point_cloud_inside_cavity 
+  * @return success code
+  */
+  int compute_data_for_occupancy_json(
+      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, 
+      std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
+      std::shared_ptr<nlohmann::json> request_json, 
+      std::shared_ptr<nlohmann::json> occupancy_json, 
+      std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, 
+      std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
+      std::shared_ptr<Eigen::Matrix3Xd> local_point_cloud_data, 
+      std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data, 
+      std::vector<Eigen::Vector3d> local_point_cloud_inside_cavity);
+
+  /**
+  * Returns the RigidTransformation to the bag cavity, implements the core kabsch logic
+  * @param expected_aruco_locations expected aruco coordinate locations in local coordinate system
+  * @param measured_aruco_locations measure aruco coordinate locations in camera coordinate system
+  * @param inlier_indices inliers indices, should always be >=3 in size
+  * @return RigidTransformation representing the bag cavity transform
+  */
+  static std::shared_ptr<RigidTransformation> implement_kabsch_rotation_n_translation(
+      const std::vector<Eigen::Vector3d>& expected_aruco_locations, 
+      const std::vector<Eigen::Vector3d>& measured_aruco_locations, 
+      const std::vector<int>& inlier_indices);
+
+  /**
+   * Returns the RigidTransformation to the bag cavity, implements the ransac random sampling loop to eliminate outliers
+   * @param expected_aruco_locations expected aruco coordinate locations in local coordinate system
+   * @param measured_aruco_locations measure aruco coordinate locations in camera coordinate system
+   * @param max_iterations represents the maximum iterations for the random sampling loop
+   * @param inlier_threshold threshold in mm to filter the outliers 
+   * @param min_inliers minimum inliers count (i.e, 3 since atleast 3 needed to calculate the transform)
+   * @param rng_seed random number generator initialization
+   * @return RigidTransformation representing the bag cavity transform
+   */
+  RigidTransformation ransac_kabsch(const std::vector<Eigen::Vector3d>& expected_aruco_locations,
+      const std::vector<Eigen::Vector3d>& measured_aruco_locations,
+      int max_iterations,
+      double inlier_threshold,
+      int min_inliers,
+      uint32_t rng_seed);
+
+  /**
+  * Returns the points inverse transformed from camera coordinate system to local coordinate system
+  * @param kabsch_transform the tranform to the bag cavity from local to camera coordinate system
+  * @param point_cloud_point 3d vector representing the point cloud point
+  * @return 3d vector of transformed points
+  */
+  Eigen::Vector3d convert_camera_point_cloud_to_local_coordinates(
+      DropZoneSearcher::RigidTransformation kabsch_transform, 
+      Eigen::Vector3d point_cloud_point);
+
 };
 } // namespace fulfil
 

@@ -70,8 +70,17 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
     std::shared_ptr<Matrix3dPredicate> predicate =
         std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
     std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
-    Logger::Instance()->Debug("Aplying side dispense point cloud filter in FixedTransformContainer!!");
+    Logger::Instance()->Debug("Applying side dispense point cloud filter in FixedTransformContainer!!");
     local_point_cloud->apply_filter_side_dispense(filter);
+    return local_point_cloud;
+}
+
+std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud_side_dispense_camera(
+    bool include_invalid_depth_data, const char* caller)
+{
+    std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = this->session->get_point_cloud(
+        this->transform, include_invalid_depth_data, caller)->as_local_cloud();
+
     return local_point_cloud;
 }
 
@@ -88,7 +97,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
     std::shared_ptr<Matrix3dPredicate> predicate =
         std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
     std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
-    Logger::Instance()->Debug("Aplying side dispense outside bag cavity point cloud filter in FixedTransformContainer!!");
+    Logger::Instance()->Debug("Applying side dispense outside bag cavity point cloud filter in FixedTransformContainer!!");
     local_point_cloud_outside_cavity->apply_filter_side_dispense_point_cloud_outside_cavity(filter);
     return local_point_cloud_outside_cavity;
 }
@@ -107,7 +116,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
     std::shared_ptr<Matrix3dPredicate> predicate =
         std::make_shared<ContainerMatrix3xdPredicate>(this->width, this->length, this->center_x, this->center_y, this->min_depth, this->max_depth);
     std::shared_ptr<Matrix3XdFilter> filter = std::make_shared<Matrix3XdFilter>(predicate);
-    Logger::Instance()->Debug("Aplying point cloud filter in FixedTransformContainer!!");
+    Logger::Instance()->Debug("Applying point cloud filter in FixedTransformContainer!!");
     local_point_cloud->apply_filter(filter);
     return local_point_cloud;
 }
