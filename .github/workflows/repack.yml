@@ -1,0 +1,25 @@
+name: Repack
+on:
+  pull_request:
+
+jobs:
+  check_for_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.f.outputs.repack }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            repack:
+              - 'Fulfil.AlliedVision/**'
+              - 'AlliedVision.Dockerfile'
+              - '.github/workflows/*-repack.yml'
+
+  conditionally_build_and_test:
+    needs: check_for_changes
+    if: needs.check_for_changes.outputs.should_run == 'true'
+    uses: ./.github/workflows/build-repack.yml
+    secrets: inherit

@@ -1,10 +1,6 @@
 name: Build AlliedVision
 on:
-  push:
-    paths:
-    - Fulfil.AlliedVision/**
-    - AlliedVision.Dockerfile
-    - .github/workflows/*-repack.yml
+  workflow_call:
   workflow_dispatch:
 
 env:

@@ -1,15 +1,6 @@
-name: Build Dispense
+name: Build and Test Dispense
 on:
-  push:
-    paths:
-    - Fulfil.Dispense/**
-    - Fulfil.DepthCam/**
-    - Fulfil.Fulfil.CPPUtils/**
-    - Fulfil.Fulfil.OrbbecUtils/**
-    - Fulfil.Fulfil.MongoCpp/**
-    - Dispens*.Dockerfile
-    - .github/workflows/*-dispense*.yml
-    - .github/compose/*.yml
+  workflow_call: 
 
 env:
   ACTIONS_STEP_DEBUG: true
@@ -18,8 +9,8 @@ env:
   NPM_GITHUB_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
 
 jobs:
-  build:
-    name: Build Prod
+  build_and_test:
+    name: Build And Test Dispense
     runs-on: ubuntu-latest
     steps:
       - name: Tweak ENV
@@ -32,7 +23,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Free disk space (safe removals)

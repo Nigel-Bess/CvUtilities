@@ -1,0 +1,31 @@
+name: Dispense
+on:
+  pull_request:
+
+jobs:
+  check_for_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.f.outputs.dispense }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dispense:
+              - 'Fulfil.Dispense/**'
+              - 'Fulfil.DepthCam/**'
+              - 'Fulfil.Fulfil.CPPUtils/**'
+              - 'Fulfil.Fulfil.OrbbecUtils/**'
+              - 'Fulfil.Fulfil.MongoCpp/**'
+              - 'Dispens*.Dockerfile'
+              - '.github/workflows/*'
+              - 'dispense*.yml'
+              - '.github/compose/*.yml'
+
+  conditionally_build_and_test:
+    needs: check_for_changes
+    if: needs.check_for_changes.outputs.should_run == 'true'
+    uses: ./.github/workflows/build-dispense-amd.yml
+    secrets: inherit
