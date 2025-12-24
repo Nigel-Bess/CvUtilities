@@ -3,17 +3,21 @@
 #include <Fulfil.DepthCam/aruco/marker_detector_container.h>
 #include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
+#include <Fulfil.Dispense/drop/drop_manager.h>
 #include <Fulfil.CPPUtils/inih/INIReader.h>
 #include <Fulfil.CPPUtils/conversions.h>
 #include <Fulfil.Dispense/visualization/make_media.h>
 #include <FulfilMongoCpp/mongo_connection.h>
 #include <Fulfil.Dispense/recipes/lfb_vision_configuration.h>
+#include <Fulfil.CPPUtils/file_system_util.h>
 
 using fulfil::depthcam::mocks::MockSession;
 using fulfil::depthcam::aruco::MarkerDetectorContainer;
 using fulfil::dispense::drop::DropZoneSearcher;
 using ff_mongo_cpp::MongoConnection;
 using fulfil::configuration::lfb::LfbVisionConfiguration;
+using fulfil::utils::FileSystemUtil;
+
 
 class SideDispenseTest : public ::testing::Test
 {
@@ -35,8 +39,12 @@ protected:
     std::shared_ptr<nlohmann::json> pre_bag_state_json;
     std::shared_ptr<nlohmann::json> post_bag_state_json;
 
+    std::shared_ptr<nlohmann::json> pre_json_request;
+
     std::shared_ptr<LfbVisionConfiguration> pre_lfb_vision_config;
     std::shared_ptr<LfbVisionConfiguration> post_lfb_vision_config;
+
+    std::shared_ptr<INIReader> dispense_man_config;
 
 
     void SetUp() override
@@ -57,6 +65,10 @@ protected:
 
         post_mock_session = std::make_shared<MockSession>(post_test_data_directory, "MOCK_CAMERA_002");
         post_marker_detector_container = createMarkerDetectorContainer(post_mock_session, post_lfb_vision_config);
+
+        pre_json_request = read_in_json(*pre_test_data_directory + std::string("/2025_09_24_H21_M35_S33"), "json_request.json");
+
+        dispense_man_config = std::make_shared<INIReader>(*pre_test_data_directory + std::string("/main_config.ini"), false, true);
 
     }
 
@@ -129,6 +141,8 @@ TEST_F(SideDispenseTest, VariableCreation)
 
     ASSERT_NE(pre_lfb_vision_config, nullptr);
     ASSERT_NE(post_lfb_vision_config, nullptr);
+
+    ASSERT_NE(pre_json_request, nullptr);
 
 }
 
@@ -311,6 +325,157 @@ TEST_F(SideDispenseTest, PostSideDispenseOccupancyMapGeneration)
             EXPECT_EQ((*(*occupancy_map)[i])[j], ground_truth_occ_map[i][j]);
         }
     }
+}
+
+TEST_F(SideDispenseTest, PreSideDispenseResponseSerialization)
+{
+
+    std::shared_ptr<std::string> command_id = std::make_shared<std::string>("000000000012");
+
+    std::shared_ptr<fulfil::dispense::drop::DropManager> manager = std::make_shared<fulfil::dispense::drop::DropManager>(
+        pre_mock_session,
+        dispense_man_config,
+        nullptr
+    );
+
+    auto cvbag = fulfil::mongo::CvBagState(*pre_bag_state_json);
+    manager->mongo_bag_state->parse_in_values((std::make_shared<fulfil::mongo::CvBagState>(cvbag)));
+
+    auto result = manager->handle_pre_side_dispense_request(
+        command_id,
+        std::make_shared<std::string>((*pre_json_request)["Primary_Key_ID"].get<std::string>()),
+        pre_json_request,
+        pre_test_data_directory,
+        FileSystemUtil::create_datetime_string(), 
+        false
+    );
+
+    ASSERT_NE(result, nullptr);
+
+    std::shared_ptr<fulfil::dispense::commands::PreSideDispenseResponse> pre_side_dispense_response =
+        std::make_shared<fulfil::dispense::commands::PreSideDispenseResponse>(
+            command_id,
+            std::make_shared<std::string>((*pre_json_request)["Primary_Key_ID"].get<std::string>()),
+            result->occupancy_map,
+            result->occupancy_data,
+            result->local_point_cloud_inside_cavity,
+            result->square_width,
+            result->square_height,
+            DcApiErrorCode::Success
+        );
+
+    ASSERT_NE(pre_side_dispense_response, nullptr);
+
+    nlohmann::json payload_json = nlohmann::json::parse(*pre_side_dispense_response->dispense_payload());
+
+    EXPECT_EQ(payload_json["Primary_Key_ID"], (*pre_json_request)["Primary_Key_ID"].get<std::string>());
+    EXPECT_EQ(payload_json["Error"], 0);
+    EXPECT_EQ(payload_json["Error_Description"], "");
+    EXPECT_EQ(payload_json["Grid_Square_Width_Mm"], fulfil::utils::to_millimeters(result->square_width));
+    EXPECT_EQ(payload_json["Grid_Square_Height_Mm"], fulfil::utils::to_millimeters(result->square_height));
+    
+    const std::string occ_map_ground_truth = R"(
+        [
+            [407,407,391,402,390,389,388,389,390,386,391,388,386,387,387,388,388,388,387,388,389,389,390,391,389,389,403,404,391,391],
+            [396,397,391,381,387,376,381,381,384,386,384,381,385,385,387,387,367,368,383,384,369,372,355,380,380,377,385,398,389,389],
+            [391,392,300,248,300,0,331,331,88,127,309,159,162,152,146,145,156,250,252,264,295,298,302,297,299,242,398,397,381,391],
+            [90,0,42,36,36,0,0,0,85,89,0,0,0,0,77,141,147,0,0,121,151,-24,71,153,66,-24,-18,-17,387,390],
+            [90,-25,34,35,35,0,0,0,0,0,0,0,0,0,0,77,63,-24,-24,-26,0,80,0,0,-28,-24,-22,-20,374,373],
+            [0,0,0,0,0,0,0,140,140,0,0,0,0,0,0,-25,-24,-24,-24,-26,-26,-23,-26,-26,0,0,0,0,387,389],
+            [-25,-25,-23,-23,0,0,149,145,145,153,153,148,153,0,0,-24,-25,-25,-25,-24,-21,-20,-24,-29,-30,-25,-24,-23,379,389],
+            [-31,-26,-23,-23,0,0,149,153,148,152,154,154,156,0,0,-23,-24,-22,-22,-23,-23,-22,-21,-19,-24,-26,-23,-23,387,390],
+            [-27,-26,-24,-22,0,0,146,148,147,153,153,156,157,0,0,0,0,0,0,0,-20,-20,-20,-20,-21,0,0,0,381,391],
+            [-23,-23,-22,-23,0,0,146,146,147,153,154,155,158,0,0,-24,-21,-19,-20,-21,0,0,0,0,297,297,0,0,386,391],
+            [0,0,-22,-23,0,0,146,147,148,152,154,155,158,0,0,-25,-22,-19,-21,-21,-19,276,282,291,296,296,293,0,376,387],
+            [-21,-22,-22,0,0,0,146,149,150,150,154,156,159,159,0,44,-9,-18,-15,-24,-25,-24,275,281,292,292,290,0,272,275],
+            [-23,-23,-22,0,0,0,146,150,151,151,154,156,157,157,75,0,0,0,0,0,0,0,270,279,288,289,286,0,369,272],
+            [-26,-27,-26,0,0,0,149,150,151,155,199,253,271,275,273,266,261,257,251,247,241,239,284,288,290,291,290,0,266,284],
+            [-30,-30,-25,0,0,0,149,150,152,195,201,234,263,274,273,266,261,257,250,247,241,237,264,295,296,299,296,275,272,299],
+            [-27,-24,-22,0,0,0,148,152,153,0,227,236,269,274,273,267,262,259,252,248,241,237,264,300,303,301,297,287,279,295],
+            [0,0,0,0,0,0,147,152,153,200,206,238,272,276,276,268,262,259,253,249,241,238,280,299,301,296,298,291,286,285],
+            [-23,-22,-22,0,262,262,278,296,154,202,207,334,271,282,277,269,263,260,251,249,242,239,279,286,297,299,298,290,285,389],
+            [181,184,0,245,250,279,285,304,320,331,339,351,349,335,331,268,263,260,253,250,242,243,296,305,309,307,301,292,286,389],
+            [182,183,0,249,254,279,288,308,329,347,356,353,350,339,334,269,263,260,254,250,242,241,298,307,311,313,308,297,288,389],
+            [182,182,184,0,260,281,290,315,330,349,356,355,349,339,335,269,264,261,254,250,243,240,299,307,313,313,308,303,286,389],
+            [182,184,182,255,258,284,301,318,333,346,355,355,350,340,335,279,264,261,255,252,243,241,299,307,313,313,309,302,289,389],
+            [181,183,178,255,258,283,297,320,333,344,353,355,350,340,337,268,265,261,255,252,243,242,300,308,312,314,309,301,291,293],
+            [183,185,0,256,259,270,302,312,331,342,344,355,351,346,334,284,267,262,255,253,245,242,300,310,314,313,307,301,294,389],
+            [185,185,0,0,261,283,288,307,329,332,343,354,351,345,335,270,267,263,259,252,244,242,300,307,314,314,309,303,294,389],
+            [185,184,0,0,257,265,287,303,310,332,343,353,349,344,334,270,268,263,259,253,245,251,300,307,313,315,310,305,296,390],
+            [184,183,185,236,250,265,288,300,311,333,350,353,351,342,332,270,267,263,256,252,247,249,300,308,309,310,305,294,294,295],
+            [186,185,186,234,247,258,283,301,315,332,350,351,349,341,328,270,268,263,259,252,248,243,290,308,309,310,304,297,293,294],
+            [186,185,319,250,256,264,287,309,317,334,351,359,351,340,330,335,269,262,259,253,248,243,297,309,310,312,310,301,296,390],
+            [399,412,409,407,392,392,393,392,391,394,396,396,396,395,393,392,392,394,393,398,391,396,399,397,410,393,411,414,392,415]
+        ]
+    )";
+
+    nlohmann::json trimmed_ground_truth_json = nlohmann::json::parse(occ_map_ground_truth);
+
+    EXPECT_EQ(payload_json["Occupancy_Map"].dump(), trimmed_ground_truth_json.dump());
+
+
+    auto occ_vis_json = payload_json["Occupancy_Visualization"];
+
+    auto actual_aruco_tags = occ_vis_json["arucoTags"]["actual"].get<std::vector<std::vector<float>>>();
+    EXPECT_EQ(actual_aruco_tags[0][0], -69);
+    EXPECT_EQ(actual_aruco_tags[0][1], -179);
+    EXPECT_EQ(actual_aruco_tags[0][2], -450);
+
+    EXPECT_EQ(actual_aruco_tags[1][0], 5);
+    EXPECT_EQ(actual_aruco_tags[1][1], -181);
+    EXPECT_EQ(actual_aruco_tags[1][2], -449);
+
+    EXPECT_EQ(actual_aruco_tags[2][0], 284);
+    EXPECT_EQ(actual_aruco_tags[2][1], 31);
+    EXPECT_EQ(actual_aruco_tags[2][2], -447);
+
+    EXPECT_EQ(actual_aruco_tags[3][0], 282);
+    EXPECT_EQ(actual_aruco_tags[3][1], -43);
+    EXPECT_EQ(actual_aruco_tags[3][2], -446);
+
+
+    auto expected_aruco_tags = occ_vis_json["arucoTags"]["expected"].get<std::vector<std::vector<float>>>();
+    ASSERT_EQ(expected_aruco_tags.size(), 4);
+    EXPECT_EQ(expected_aruco_tags[0][0], -153);
+    EXPECT_EQ(expected_aruco_tags[0][1], -177);
+    EXPECT_EQ(expected_aruco_tags[0][2], -471);
+
+    EXPECT_EQ(expected_aruco_tags[1][0], -76);
+    EXPECT_EQ(expected_aruco_tags[1][1], -177);
+    EXPECT_EQ(expected_aruco_tags[1][2], -471);
+
+    EXPECT_EQ(expected_aruco_tags[2][0], 198);
+    EXPECT_EQ(expected_aruco_tags[2][1], 47);
+    EXPECT_EQ(expected_aruco_tags[2][2], -472);
+
+    EXPECT_EQ(expected_aruco_tags[3][0], 198);
+    EXPECT_EQ(expected_aruco_tags[3][1], -22);
+    EXPECT_EQ(expected_aruco_tags[3][2], -472);
+
+
+    EXPECT_EQ(occ_vis_json["bagCavityDimensionsMm"]["xLengthMm"], 367.0);
+    EXPECT_EQ(occ_vis_json["bagCavityDimensionsMm"]["yLengthMm"], 260.0);
+    EXPECT_EQ(occ_vis_json["bagCavityDimensionsMm"]["zLengthMm"], 430.0);
+
+    auto point_cloud_inside = occ_vis_json["pointCloud"]["insideBagCavity"].get<std::vector<std::vector<int>>>();
+
+    EXPECT_EQ(point_cloud_inside.size(), 2251);
+
+    EXPECT_EQ(point_cloud_inside[0][0], -82);
+    EXPECT_EQ(point_cloud_inside[0][1], 125);
+    EXPECT_EQ(point_cloud_inside[0][2], -443);
+
+    EXPECT_EQ(point_cloud_inside[1][0], -77);
+    EXPECT_EQ(point_cloud_inside[1][1], 125);
+    EXPECT_EQ(point_cloud_inside[1][2], -443);
+
+    EXPECT_EQ(point_cloud_inside[2][0], -71);
+    EXPECT_EQ(point_cloud_inside[2][1], 125);
+    EXPECT_EQ(point_cloud_inside[2][2], -443);
+
+    EXPECT_EQ(point_cloud_inside[3][0], -50);
+    EXPECT_EQ(point_cloud_inside[3][1], 126);
+    EXPECT_EQ(point_cloud_inside[3][2], -448);
 }
 
 TEST_F(SideDispenseTest, SideDispenseKabschTransformation)
