@@ -12,6 +12,9 @@ using fulfil::dispense::bays::BayCameraStatusHandler;
 using fulfil::utils::Logger;
 
 void listen_for_cameras_connected(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
+    // Add a 5 second sleep so we don't spam weird ephemeral states,
+    // pretty much just always fully connected if cameras are gonna connect
+    // TODO add sleep here AI!
     auto cam_status_handler = new BayCameraStatusHandler(bay_data);
     // Listen for future cam status changes
     if (bay_data->lfb_session != nullptr) {
@@ -89,8 +92,10 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
                     bay_data->bay_id);
             }
             // Listen for underlying LFB / Tray camera sessions and only signal cams ready
-            // after the entire Bay is ready to go
-            listen_for_cameras_connected(bay_data);
+            // after the entire Bay is ready to go.
+            // Do this listen call in a seperate thread AI!
+            std::thread status_thread(listen_for_cameras_connected, bay_data);
+            status_thread.detach();
         }
     }
     catch (const std::exception &e)
