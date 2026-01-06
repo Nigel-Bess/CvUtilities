@@ -12,9 +12,11 @@ using fulfil::dispense::bays::BayCameraStatusHandler;
 using fulfil::utils::Logger;
 
 void listen_for_cameras_connected(std::shared_ptr<fulfil::dispense::DispenseBayData> bay_data) {
-    // Add a 5 second sleep so we don't spam weird ephemeral states,
-    // pretty much just always fully connected if cameras are gonna connect
-    // TODO add sleep here AI!
+    // Add a 5 second sleep so we don't spam weird ephemeral states and give extra "just in case" time,
+    // pretty much just always fully connected if cameras are gonna connect.
+    // Hopefully this can be removed one day once camera naming lifecycle wonkiness is gone
+    sleep(5);
+
     auto cam_status_handler = new BayCameraStatusHandler(bay_data);
     // Listen for future cam status changes
     if (bay_data->lfb_session != nullptr) {
@@ -23,11 +25,20 @@ void listen_for_cameras_connected(std::shared_ptr<fulfil::dispense::DispenseBayD
     if (bay_data->tray_session != nullptr) {
         bay_data->tray_session->sensor->add_connected_callback(cam_status_handler);
     }
-    // Trigger handler immediately in case both cams already connected, but also listen for later
+
+    // Artificially Trigger handler immediately in case both cams already connected
     if (bay_data->lfb_session != nullptr) {
+        // While session's sensor name is < 3 chars long, loop forever!
+        while (bay_data->lfb_session && bay_data->lfb_session->sensor->name_.length() < 3) {
+            usleep(100000); // Sleep for 100ms to avoid busy waiting
+        }
         cam_status_handler->handle_connection_change(bay_data->lfb_session->sensor->name_, bay_data->lfb_session->sensor->last_status_code);
     }
     if (bay_data->tray_session != nullptr) {
+        // While session's sensor name is < 3 chars long, loop forever!
+        while (bay_data->tray_session && bay_data->tray_session->sensor->name_.length() < 3) {
+            usleep(100000); // Sleep for 100ms to avoid busy waiting
+        }
         cam_status_handler->handle_connection_change(bay_data->tray_session->sensor->name_, bay_data->tray_session->sensor->last_status_code);
     }
 }
@@ -93,7 +104,6 @@ fulfil::dispense::bays::BayManager::BayManager(std::shared_ptr<fulfil::dispense:
             }
             // Listen for underlying LFB / Tray camera sessions and only signal cams ready
             // after the entire Bay is ready to go.
-            // Do this listen call in a seperate thread AI!
             std::thread status_thread(listen_for_cameras_connected, bay_data);
             status_thread.detach();
         }
