@@ -1,5 +1,11 @@
-﻿namespace CvBuilder.Ui.Terminal;
+﻿
+using CvBuilder.Ui.Wpf;
 
-internal class TerminalViewModel
+namespace CvBuilder.Ui.Terminal;
+
+internal class TerminalViewModel : Notifier
 {
+    public string TerminalOutput { get => field; set { field = value; NotifyPropertyChanged(); } }
+    public string TerminalInput { get; set; }
+    public Command EnterCommand { get; }
 }
