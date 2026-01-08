@@ -15,6 +15,9 @@
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/visualization/session_visualizer.h>
 #include "colored_depth_display.h"
+#include <Fulfil.DepthCam/aruco/pixel_mapped_point.h>
+#include <Fulfil.CPPUtils/vector/vector_utils.h>
+
 
 using std::shared_ptr;
 using std::string;
@@ -22,6 +25,10 @@ using std::make_shared;
 using fulfil::depthcam::aruco::Marker;
 using fulfil::depthcam::pointcloud::LocalPointCloud;
 using fulfil::depthcam::visualization::SessionVisualizer;
+using vector_util::min_value;
+using vector_util::max_value;
+using vector_util::map;
+using std::vector;
 
 void SessionVisualizer::display_pixels(std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels,
                                        int red,
@@ -222,6 +229,31 @@ std::shared_ptr<cv::Mat> SessionVisualizer::display_points_with_depth_coloring(s
         //}
     }
 
+    return make_shared<cv::Mat>(outImage);
+}
+
+shared_ptr<cv::Mat> SessionVisualizer::display_points_with_depth_coloring(shared_ptr<vector<PixelMappedPoint>> point_cloud)
+{
+    shared_ptr<cv::Mat> image = this->session->get_color_mat();
+
+    cv::Mat outImage;
+    image->copyTo(outImage);  //added to prevent persistance across visualizations
+
+    // Display in a GUI
+    vector<float> depths = map(*point_cloud, [](const PixelMappedPoint& point){ return (float)point.Point.z(); });
+    float max_dist = max_value(depths);
+    float min_dist = min_value(depths);
+
+    shared_ptr<ColoredDepthDisplay> calc = make_shared<ColoredDepthDisplay>(min_dist, max_dist);
+    for(int i = 0; i < point_cloud->size(); i++) {
+        // color the max Z points in bright green
+//        if ((int)(min_dist * 1000) == (int) (depth_pixels->at(i)->second * 1000)) {
+//            cv::circle(outImage, *depth_pixels->at(i)->first, 1, cv::Scalar(0, 255, 0), 3);
+//        } else {
+            cv::circle(outImage, point_cloud->at(i).Pixel, 1,
+                       calc->color_at_depth(depths[i]), 3);
+        //}
+    }
     return make_shared<cv::Mat>(outImage);
 }
 

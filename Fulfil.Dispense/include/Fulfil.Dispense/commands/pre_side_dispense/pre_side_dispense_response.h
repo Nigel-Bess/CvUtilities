@@ -25,6 +25,8 @@ namespace fulfil::dispense::commands {
         // methods
         void encode_payload();
 
+        nlohmann::json encode_as_json();
+
     public:
         explicit PreSideDispenseResponse(std::shared_ptr<std::string> request_id, 
                                          std::shared_ptr<std::string> primary_key_id,

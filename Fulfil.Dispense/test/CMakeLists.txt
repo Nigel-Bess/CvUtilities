@@ -4,6 +4,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
    add_subdirectory(tray_calibration)
    add_subdirectory(side_dispense)
+   add_subdirectory(pre_drop_image_side_dispense_request)
+   add_subdirectory(drop_zone_searcher)
       
    # test_main is a .cpp file that contains standard google test main function for running all tests
    # This will create an executable named 'test_main' when built through docker build

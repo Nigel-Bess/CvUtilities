@@ -6,12 +6,16 @@
 #define FULFIL_DEPTHCAM_SESSIONVISUALIZER_H
 
 #include <memory>
+#include <vector>
 #include <string>
 
 #include <opencv2/aruco/dictionary.hpp>
 #include <Fulfil.DepthCam/core/session.h>
 #include <Fulfil.CPPUtils/point_3d.h>
 #include <Fulfil.DepthCam/aruco.h>
+
+using std::vector;
+using std::shared_ptr;
 
 namespace fulfil
 {
@@ -141,6 +145,8 @@ class SessionVisualizer
   std::shared_ptr<cv::Mat> display_points_with_local_depth_coloring(
       std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> point_cloud,
       std::shared_ptr<cv::Mat> image = nullptr);
+
+    shared_ptr<cv::Mat> display_points_with_depth_coloring(shared_ptr<vector<PixelMappedPoint>> point_cloud);
 
 
   /**

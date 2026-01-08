@@ -149,7 +149,7 @@ void DropManager::generate_occupancy_handling_data(bool generate_data,
 {
     if (generate_data)
     {
-        if (occupancy_json->is_null())
+        if (occupancy_json == nullptr)
         {
             Logger::Instance()->Debug("No occupany map data JSON is available, json file will not be saved along with data generation");
         }

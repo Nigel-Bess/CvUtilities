@@ -18,6 +18,15 @@
 #include <Fulfil.Dispense/drop/drop_zone_searcher.h>
 #include <Fulfil.Dispense/drop/side_drop_result.h>
 #include <Fulfil.Dispense/visualization/live_viewer.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/pre_drop_image_side_dispense_request.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/aruco_tag_match.h>
+#include <limits>
+#include <Fulfil.CPPUtils/math/math_utils.h>
+#include <Fulfil.CPPUtils/vector/vector_utils.h>
+#include <Fulfil.Dispense/drop/point_cloud_split_result.h>
+#include <Fulfil.Dispense/drop/side_dispense_occupancy_result.h>
+#include <Fulfil.Dispense/drop/occupancy_debug_data.h>
+#include <Fulfil.DepthCam/aruco/pixel_mapped_point.h>
 
 using fulfil::depthcam::aruco::MarkerDetector;
 using fulfil::depthcam::aruco::Marker;
@@ -39,13 +48,18 @@ using fulfil::dispense::visualization::LiveViewer;
 using fulfil::dispense::visualization::ViewerImageType;
 using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::commands::dc_api_error_codes::DcApiError;
-using fulfil::utils::convert_map_to_millimeters;
-using fulfil::utils::convert_map_to_millimeters1;
-using fulfil::utils::to_millimeters;
-using fulfil::utils::to_millimeters_float;
+using fulfil::utils::meter_to_mm;
 using fulfil::utils::to_meters;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
+using Eigen::Vector3d;
+using Eigen::Matrix3d;
+using Eigen::Matrix3Xd;
+using std::vector;
+using std::shared_ptr;
+using vector_util::map;
+using vector_util::zip;
+using math_util::mean;
 
 
 DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
@@ -2120,167 +2134,89 @@ std::string grid_map_to_str_3(std::vector<std::shared_ptr<std::vector<float>>> m
     return output;
 }
 
-// TODO add helper for cleanliness
-// float get_max_depth_in_square(point_cloud, )
+shared_ptr<vector<shared_ptr<vector<float>>>> compute_occupancy_map(const vector<Vector3d>& points_in_bag_cavity_coordinates, int num_cols, int num_rows, const Vector3d& bag_cavity_dimensions){
+  
+  if (num_rows <= 0 || num_cols <= 0) throw std::runtime_error("Invalid occupancy map dimensions " + std::to_string(num_rows) +" x " + std::to_string(num_cols));
 
+  const auto bin_count = size_t(num_rows) * size_t(num_cols);
+  Logger::Instance()->Debug("Bin Count: {}", bin_count);
+  const auto average_bin_size = points_in_bag_cavity_coordinates.size() / bin_count;
+  Logger::Instance()->Debug("Average average_bin_size: {}", average_bin_size);
 
-// occupancy map width = num_cols 
-// occupancy map height = num rows
-// TODO optimize
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> DropZoneSearcher::generate_occupancy_map(
-  std::shared_ptr<LocalPointCloud> point_cloud,
-  int num_cols,
-  int num_rows,
-  float bag_width,
-  float bag_length,
-  bool is_empty
-) {
-    // initialize occupancy map with default -99999m
-    std::vector<std::shared_ptr<std::vector<float>>> depth_map_so_far;
-    for (int r = 0; r < num_rows; r++) {
-        depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
-    }
-    if (is_empty) {
-        auto empty_map = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
-        Logger::Instance()->Debug("Bag was empty, occupancy map generated is: \n{}", grid_map_to_str(*convert_map_to_millimeters(empty_map)));
-        return empty_map;
-    }
+  vector<vector<vector<float>>> binned_points(num_rows, vector<vector<float>>(num_cols));
+  for (auto& r : binned_points) for (auto& c : r) c.reserve(average_bin_size);
 
-    std::vector num_points_in_each(num_rows, std::vector<int>(num_cols, 0));
-
-    std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
-    std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
+  const Vector3d bin_scaler = Vector3d(num_cols, num_rows, 1.0);
+  for(const Vector3d& p: points_in_bag_cavity_coordinates)
+  {
+    const Vector3d floating_point_bin_designation = p.cwiseQuotient(bag_cavity_dimensions).cwiseProduct(bin_scaler);
+    Logger::Instance()->Debug("floating_point_bin_designation values: x:{}, y:{}, z:{} for point ({}, {}, {})", floating_point_bin_designation.x(), floating_point_bin_designation.y(), floating_point_bin_designation.z(), p.x(), p.y(), p.z());
+    int row_bin = (int)std::floor(floating_point_bin_designation.y()); 
+    if(row_bin < 0 || row_bin >=num_rows) continue;
+    int col_bin = (int)std::floor(floating_point_bin_designation.x());
+    if(col_bin < 0 || col_bin >=num_cols) continue;
     
-    float square_width = bag_width / num_cols;
-    float square_height = bag_length / num_rows;
-    //vector to store the z coordinate per cell
-    std::vector<float> z_coord_per_cell;
+    binned_points[row_bin][col_bin].push_back(p.z());
+    Logger::Instance()->Debug("binned_points[{}][{}]: {}", row_bin, col_bin, p.z());
+  }
 
-    // cycle through all points in bag and log the max depth points in each region
-    for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
-        cv::Point2f pixel = *pixels->at(current_pixel_index);
-        float local_x = (*local_cloud_data)(0, current_pixel_index);
-        float local_y = (*local_cloud_data)(1, current_pixel_index);
-        float local_z = (*local_cloud_data)(2, current_pixel_index);
-        int map_square_row = 0;
-        for (int map_square_col = 0; map_square_col < num_cols; ++map_square_col) {
-            float min_x_coord = map_square_col * square_width - bag_width/2;
-            float max_x_coord = (map_square_col + 1) * square_width - bag_width/2;
-            for (map_square_row = 0; map_square_row < num_rows; ++map_square_row) {
-                float min_y_coord = map_square_row * square_height - bag_length/2;
-                float max_y_coord = (map_square_row + 1) * square_height - bag_length/2;
-                if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
-                    // if first point in the cell
-                    if (num_points_in_each.at(map_square_row).at(map_square_col) < 1) {
-                      num_points_in_each.at(map_square_row).at(map_square_col) = 1;
-                      depth_map_so_far.at(map_square_row)->at(map_square_col) = local_z;
-                    } else {
-                      num_points_in_each.at(map_square_row).at(map_square_col)++;
-                      //storing z values for median calculation
-                      z_coord_per_cell.push_back(local_z);
-                      // This log will spam the output, keeping here for easy uncommenting for debugging offline
-                      // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
-                      //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
-                    }
-                }
-            }
-
-            int cell_size = z_coord_per_cell.size();
-            std::sort(z_coord_per_cell.begin(), z_coord_per_cell.end());
-            if (cell_size > 0) {
-                if (cell_size % 2 == 1) {
-                    depth_map_so_far.at(map_square_row-1)->at(map_square_col) = z_coord_per_cell[cell_size / 2];
-                }
-                else {
-                    depth_map_so_far.at(map_square_row-1)->at(map_square_row) = (z_coord_per_cell[cell_size / 2 - 1] + z_coord_per_cell[cell_size / 2]) / 2.0;
-                }
-            }
-            z_coord_per_cell.clear();
-        }
+  auto occupancy_map = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(num_rows);
+  for (auto& row : *occupancy_map) row = std::make_shared<std::vector<float>>(num_cols);
+  
+  for(int row = 0; row < num_rows; row++)
+  {
+    auto& out_row = *(*occupancy_map)[row];
+    for (int column = 0; column < num_cols; column++)
+    {
+        auto& bin = binned_points[row][column];
+        if (bin.empty()) { occupancy_map->at(row)->at(column) = 0.0f; continue; } // missing points get occupied depth = 0
+        std::sort(bin.begin(), bin.end());
+        const auto n = bin.size();
+        const auto mid = n / 2;
+        const auto med = (n & 1) ? bin[mid] : 0.5f * (bin[mid - 1] + bin[mid]);
+        out_row[column] = med + (float)bag_cavity_dimensions.z();
     }
-    
-    Logger::Instance()->Debug("Number of points per square: \n{}", grid_map_to_str_2(num_points_in_each));
-    auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
-    if (num_rows > 0) {
-        Logger::Instance()->Debug("Converted occupancy map so far: \n{}", grid_map_to_str(*convert_map_to_millimeters(grid)));
-    }
-    return grid;
+  }
+  if (num_rows > 0) {
+      Logger::Instance()->Debug("Converted occupancy map so far: \n{}", grid_map_to_str_3(*occupancy_map));
+  }
+  return occupancy_map;
 }
 
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occupancy_map1(int num_cols, int num_rows, float bag_width, float bag_length, bool is_empty,
-    std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels, std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data) {
-    // initialize occupancy map with default -99999m
-    std::vector<std::shared_ptr<std::vector<float>>> depth_map_so_far;
-    for (int r = 0; r < num_rows; r++) {
-        depth_map_so_far.push_back(std::make_shared<std::vector<float>>(num_cols, -99999));
+
+Eigen::Vector3d DropZoneSearcher::compute_centroid(std::vector<Eigen::Vector3d> points) {
+  int point_count = points.size();
+  if (point_count < 1) {
+    throw std::runtime_error("Cannot compute the centroid of 0 points!");
+  }
+  Eigen::Vector3d centroid = Eigen::Vector3d::Zero(); // initialize the centroid
+  for (const Eigen::Vector3d& point : points) {
+        centroid += point;
+  }
+  return centroid/point_count;
+}
+
+Eigen::Matrix3d DropZoneSearcher::compute_cross_covariance(std::vector<Eigen::Vector3d> source, std::vector<Eigen::Vector3d> target) {
+  Eigen::Vector3d centroid_source = compute_centroid(source); //source
+  Eigen::Vector3d centroid_target = compute_centroid(target); //target
+
+  int point_count = source.size();
+  if (target.size() != point_count) {
+    throw std::runtime_error("Attempting to compute the covariance of a mismatched number of points: "+ std::to_string(point_count) +" vs " + std::to_string(target.size()));
+  }
+  if (point_count < 1) {
+    throw std::runtime_error("Cannot compute the covariance of 0 points!");
+  }
+
+  //build the covariance matrix
+    Eigen::Matrix3d centroid_covariance = Eigen::Matrix3d::Zero();
+    for (int i = 0; i < point_count; i ++) {
+        const Eigen::Vector3d a = source[i] - centroid_source;
+        const Eigen::Vector3d b = target[i] - centroid_target;
+        centroid_covariance += a * b.transpose();
+        
     }
-    if (is_empty) {
-        auto empty_map = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
-        Logger::Instance()->Debug("Bag was empty, occupancy map generated is: \n{}", grid_map_to_str(*convert_map_to_millimeters(empty_map)));
-        return empty_map;
-    }
-
-    std::vector num_points_in_each(num_rows, std::vector<int>(num_cols, 0));
-
-    //std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = point_cloud->as_pixel_cloud()->get_data();
-    //std::shared_ptr<Eigen::Matrix3Xd> local_cloud_data = point_cloud->get_data();
-
-    float square_width = bag_width / num_cols;
-    float square_height = bag_length / num_rows;
-    //vector to store the z coordinate per cell
-    std::vector<float> z_coord_per_cell;
-
-    // cycle through all points in bag and log the max depth points in each region
-    for (int current_pixel_index = 0; current_pixel_index < pixels->size(); ++current_pixel_index) {
-        cv::Point2f pixel = *pixels->at(current_pixel_index);
-        float local_x = (*local_cloud_data)(0, current_pixel_index);
-        float local_y = (*local_cloud_data)(1, current_pixel_index);
-        float local_z = (*local_cloud_data)(2, current_pixel_index);
-        //local_z = local_z - 470;
-        int map_square_row = 0;
-        for (int map_square_col = 0; map_square_col < num_cols; ++map_square_col) {
-            float min_x_coord = map_square_col * square_width - bag_width / 2;
-            float max_x_coord = (map_square_col + 1) * square_width - bag_width / 2;
-            for (map_square_row = 0; map_square_row < num_rows; ++map_square_row) {
-                float min_y_coord = map_square_row * square_height - bag_length / 2;
-                float max_y_coord = (map_square_row + 1) * square_height - bag_length / 2;
-                if (local_x >= min_x_coord && local_x < max_x_coord && local_y >= min_y_coord && local_y < max_y_coord) {
-                    // if first point in the cell
-                    if (num_points_in_each.at(map_square_row).at(map_square_col) < 1) {
-                        num_points_in_each.at(map_square_row).at(map_square_col) = 1;
-                        depth_map_so_far.at(map_square_row)->at(map_square_col) = local_z;
-                    }
-                    else {
-                        num_points_in_each.at(map_square_row).at(map_square_col)++;
-                        //storing z values for median calculation
-                        z_coord_per_cell.push_back(local_z);
-                        // This log will spam the output, keeping here for easy uncommenting for debugging offline
-                        // Logger::Instance()->Trace("Occupancy map loop map_square_col = {}, map_square_row = {}, min_x_coord = {}, max_x_coord = {}, min_y_coord = {}, max_y_coord = {}, depth = {}",
-                        //     map_square_col, map_square_row, min_x_coord, max_x_coord, min_y_coord, max_y_coord, depth_map_so_far.at(map_square_row)->at(map_square_col));
-                    }
-                }
-            }
-
-            int cell_size = z_coord_per_cell.size();
-            std::sort(z_coord_per_cell.begin(), z_coord_per_cell.end());
-            if (cell_size > 0) {
-                if (cell_size % 2 == 1) {
-                    depth_map_so_far.at(map_square_row - 1)->at(map_square_col) = z_coord_per_cell[cell_size / 2];
-                }
-                else {
-                    depth_map_so_far.at(map_square_row - 1)->at(map_square_row) = (z_coord_per_cell[cell_size / 2 - 1] + z_coord_per_cell[cell_size / 2]) / 2.0;
-                }
-            }
-            z_coord_per_cell.clear();
-        }
-    }
-
-    Logger::Instance()->Debug("Number of points per square: \n{}", grid_map_to_str_2(num_points_in_each));
-    auto grid = std::make_shared<std::vector<std::shared_ptr<std::vector<float>>>>(depth_map_so_far);
-    if (num_rows > 0) {
-        Logger::Instance()->Debug("Converted occupancy map so far: \n{}", grid_map_to_str(*convert_map_to_millimeters1(grid)));
-    }
-    return grid;
+    return centroid_covariance;
 }
 
 /**
@@ -2293,463 +2229,292 @@ std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> generate_occup
  * @return Shared pointer to the computed rigid transformation mapping identity positions to measured ones,
  *         or nullptr if the transform cannot be estimated.
  */
-std::shared_ptr<DropZoneSearcher::RigidTransformation> DropZoneSearcher::implement_kabsch_rotation_n_translation(
-    const std::vector<Eigen::Vector3d>& aruco_locations_at_identity_transform,
-    const std::vector<Eigen::Vector3d>& measured_aruco_locations,
-    const std::vector<int>& inlier_indices) 
+shared_ptr<BotPoseEstimationResult> DropZoneSearcher::estimate_bot_pose(
+    const vector<ArucoTagMatch>& arucos) 
 {
-    if (inlier_indices.size() < 3) {
-        Logger::Instance()->Debug("Not enough inliers given for Kabsch transform calculation!!");
+    if (arucos.size() < 3) {
+        Logger::Instance()->Debug("Not enough inliers given for Kabsch transform calculation!! Only " + std::to_string(arucos.size()) + " were given.");
         return nullptr;
     }
-    //compute the centroids of source and target points 
-    Eigen::Vector3d centroid_a = Eigen::Vector3d::Zero(); //source
-    Eigen::Vector3d centroid_b = Eigen::Vector3d::Zero(); //target
-    for (int i : inlier_indices) {
-        centroid_a += aruco_locations_at_identity_transform[i];
-        centroid_b += measured_aruco_locations[i];
-    }
-    centroid_a /= static_cast<double>(inlier_indices.size());
-    centroid_b /= static_cast<double>(inlier_indices.size());
-    Logger::Instance()->Debug("centroid_a: x:{}, y:{}, z:{}", centroid_a.x(), centroid_a.y(), centroid_a.z());
-    Logger::Instance()->Debug("centroid_b: x:{}, y:{}, z:{}", centroid_b.x(), centroid_b.y(), centroid_b.z());
-    //build the covariance matrix
-    Eigen::Matrix3d centroid_covariance = Eigen::Matrix3d::Zero();
-    for (int i : inlier_indices) {
-        const Eigen::Vector3d a = aruco_locations_at_identity_transform[i] - centroid_a;
-        const Eigen::Vector3d b = measured_aruco_locations[i] - centroid_b;
-        Logger::Instance()->Debug("centered points a: i:{}, x:{}, y:{}, z:{}", i, a.x(), a.y(), a.z());
-        Logger::Instance()->Debug("centered points b: i:{}, x:{}, y:{}, z:{}", i, b.x(), b.y(), b.z());
-        centroid_covariance += a * b.transpose();
-    }
-    Eigen::Vector3d sum_a = Eigen::Vector3d::Zero();
-    Eigen::Vector3d sum_b = Eigen::Vector3d::Zero();
 
-    for (int i : inlier_indices) {
-        const Eigen::Vector3d a = aruco_locations_at_identity_transform[i] - centroid_a;
-        const Eigen::Vector3d b = measured_aruco_locations[i] - centroid_b;
-        Logger::Instance()->Debug("centered points a: i:{}, x:{}, y:{}, z:{}", i, a.x(), a.y(), a.z());
-        Logger::Instance()->Debug("centered points b: i:{}, x:{}, y:{}, z:{}", i, b.x(), b.y(), b.z());
-        sum_a = sum_a + a;
-        sum_b = sum_b + b;
-    }
-    Logger::Instance()->Debug("sum_a : x:{}, y:{}, z:{}", sum_a.x(), sum_a.y(), sum_a.z());
-    Logger::Instance()->Debug("sum_b : x:{}, y:{}, z:{}", sum_b.x(), sum_b.y(), sum_b.z());
-    
-    for (int i = 0; i < centroid_covariance.rows(); ++i) {
-        Eigen::Vector3d row = centroid_covariance.row(i);
-        Logger::Instance()->Debug("centroid_covariance row {} :, x:{}, y:{}, z:{}", i, row.x(), row.y(), row.z());
-    }
+    vector<Vector3d> identity_positions = map(arucos, [](const ArucoTagMatch& aruco) { return aruco.TagDefinitionAtIdenityTransform.Position; });
+    vector<Vector3d> measured_positions = map(arucos, [](const ArucoTagMatch& aruco) { return aruco.MeasuredPosition; });
+
+    Matrix3d cross_covariance = compute_cross_covariance(identity_positions, measured_positions);
     
     //compute the SVD of the covariance matrix
-    Eigen::JacobiSVD<Eigen::Matrix3d> svd(centroid_covariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    const Eigen::Matrix3d U = svd.matrixU();
-    const Eigen::Matrix3d V = svd.matrixV();
+    Eigen::JacobiSVD<Matrix3d> svd(cross_covariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    const Matrix3d U = svd.matrixU();
+    const Matrix3d V = svd.matrixV();
 
-    for (int i = 0; i < U.rows(); ++i) {
-        //nlohmann::json row = nlohmann::json::array();
-        Eigen::Vector3d row = U.row(i);
-        Logger::Instance()->Debug("U row {} :, x:{}, y:{}, z:{}", i, row.x(), row.y(), row.z());
-    }
-    for (int i = 0; i < V.rows(); ++i) {
-        //nlohmann::json row = nlohmann::json::array();
-        Eigen::Vector3d row = V.row(i);
-        Logger::Instance()->Debug("V row {} :, x:{}, y:{}, z:{}", i, row.x(), row.y(), row.z());
-    }
-    //compute rotation and translation
-    Eigen::Matrix3d rotation = V * U.transpose();
-    Eigen::Matrix3d S = Eigen::Matrix3d::Identity();
-    for (int i = 0; i < rotation.rows(); ++i) {
-        //nlohmann::json row = nlohmann::json::array();
-        Eigen::Vector3d row = rotation.row(i);
-        Logger::Instance()->Debug("Rotation before reflection row {} :, x:{}, y:{}, z:{}", i, row.x(), row.y(), row.z());
-    }
+
+    // compute rotation
+    Matrix3d rotation = V * U.transpose();
+    Matrix3d S = Eigen::Matrix3d::Identity();
+
     if (rotation.determinant() < 0.0) {
         Logger::Instance()->Debug("Improper rotation calculated, points colud be collinear or planar!! Determinant : {} ", rotation.determinant());
-        S(2, 2) = -1.0; //flip the last col to handle negative determinant
+        S(2, 2) = -1.0; // flip the last col to handle negative determinant
     }
     rotation = V * S * U.transpose();
-    Eigen::Vector3d translation = centroid_b - rotation * centroid_a;
-    Logger::Instance()->Debug("Rotation and Translation computation successful!!");
 
-    //calculate the root mean square error of the transform fit over the inliers
-    double square_error = 0.0;
-    for (int i : inlier_indices) {
-        const Eigen::Vector3d transform = rotation * aruco_locations_at_identity_transform[i] + translation;
-        square_error += (transform - measured_aruco_locations[i]).squaredNorm();
-    }
     
-    Eigen::Matrix3d rounded_rotation_matrix = rotation.unaryExpr([](double x) {
-        return (std::abs(x) < 1e-12) ? 0.0 : x;
-    });
 
-    Eigen::Vector3d rounded_translation_vector = translation.unaryExpr([](double x) {
-        return (std::abs(x) < 1e-12) ? 0.0 : x;
-    });
+    //compute the centroids of source and target points to get the rotation
+    Vector3d centroid_source = compute_centroid(identity_positions);
+    Vector3d centroid_target = compute_centroid(measured_positions);
 
-    Logger::Instance()->Debug("Squared Error : {}", std::sqrt(square_error / static_cast<double>(inlier_indices.size())));
+    Vector3d translation = centroid_target - rotation * centroid_source;
+    Logger::Instance()->Debug("Rotation and Translation computation successful!!");   
 
-    DropZoneSearcher::RigidTransformation transformation_result;
-    transformation_result.rotation_matrix = rounded_rotation_matrix;
-    transformation_result.translation_vector = rounded_translation_vector;
-    transformation_result.squared_error = std::sqrt(square_error / static_cast<double>(inlier_indices.size()));
-    transformation_result.inliers = inlier_indices;
-    Logger::Instance()->Debug("Return valid transformation from implement_kabsch_rotation_n_translation!!");
+    RigidTransformation transform{rotation, translation};
 
-
-    for (int i = 0; i < rotation.rows(); ++i) {
-        //nlohmann::json row = nlohmann::json::array();
-        Eigen::Vector3d row = rotation.row(i);
-        Logger::Instance()->Debug("Rotation matrix row {} :, x:{}, y:{}, z:{}", i, row.x(), row.y(), row.z());
-    }
-    Logger::Instance()->Debug("translation -> x:{}, y:{}, z:{}", translation.x(), translation.y(), translation.z());
-    return std::make_shared<DropZoneSearcher::RigidTransformation>(transformation_result);
+    vector<Vector3d> matched_positions = map(identity_positions, [transform](const Vector3d& pos) { return transform.Apply(pos); });
+    vector<float> square_residuals = map(zip(matched_positions, measured_positions), [](const std::pair<Vector3d, Vector3d> pair) { return (float)((pair.first - pair.second).squaredNorm()); });
+    const float mean_squared_error = mean(square_residuals);
+    Logger::Instance()->Debug("RigidTransformation population complete!!");
+    BotPoseEstimationResult result{
+      transform,
+      mean_squared_error
+    };
+    return std::make_shared<BotPoseEstimationResult>(result);
 }
 
 //find all the inlier correspondences for the candidate transform
-std::vector<int> find_inliers(const std::vector<Eigen::Vector3d>& expected_aruco_locations,
-    const std::vector<Eigen::Vector3d>& measured_aruco_locations,
-    const Eigen::Matrix3d rotation_matrix,
-    const Eigen::Vector3d translation_vector,
-    double inlier_threshold) {
-
+std::vector<int> find_inliers(const vector<ArucoTagMatch>& arucos, RigidTransformation transform, double inlier_threshold) {
     std::vector<int> inliers;
-    inliers.reserve(expected_aruco_locations.size());
+    auto n = arucos.size();
+    inliers.reserve(n); // worst case
 
-    //mark as inlier if the distance between the predicted and actual location is less than the threshold square
-    const double threshold_square = inlier_threshold;
-    Logger::Instance()->Debug("Choose inliers if the distance between predicted v/s actual points is less than threshold square!!");
-    for (int i = 0; i < static_cast<int>(expected_aruco_locations.size()); ++i) {
-        const Eigen::Vector3d predicted = rotation_matrix * expected_aruco_locations[i] + translation_vector;
-        if ((predicted - measured_aruco_locations[i]).squaredNorm() <= threshold_square) {
-            Logger::Instance()->Debug("Distance: {}", (predicted - measured_aruco_locations[i]).squaredNorm());
-            Logger::Instance()->Debug("threshold_square: {}", threshold_square);
-            inliers.push_back(i);
-        }
+    //mark as inlier if the distance between the predicted and actual location is less than the threshold
+    const double threshold_square = inlier_threshold * inlier_threshold;
+    for (int i = 0; i < n; i++) {
+        const ArucoTagMatch aruco = arucos[i];
+        const Eigen::Vector3d predicted = transform.Apply(aruco.TagDefinitionAtIdenityTransform.Position);
+        if ((predicted - aruco.MeasuredPosition).squaredNorm() >= threshold_square) continue;
+        inliers.push_back(i);
     }
-    Logger::Instance()->Debug("Computed inlier size: {}", inliers.size());
+    Logger::Instance()->Debug("Computed inliers. Size: {}", inliers.size());
     return inliers;
 }
 
-DropZoneSearcher::RigidTransformation DropZoneSearcher::ransac_kabsch(
-    const std::vector<Eigen::Vector3d>& expected_aruco_locations,
-    const std::vector<Eigen::Vector3d>& measured_aruco_locations,
-    int max_iterations = 4, //update the iteration count as the aruco sample size increases
-    double inlier_threshold = 13.0, //modify this mm threshold based on the data
-    int min_inliers = 3,
-    uint32_t rng_seed = 42)
-{
-    Logger::Instance()->Debug("measured_aruco_locations size : {}", measured_aruco_locations.size());
-    Logger::Instance()->Debug("expected_aruco_locations size : {}", expected_aruco_locations.size());
-    
-    if (measured_aruco_locations.size() != expected_aruco_locations.size() || measured_aruco_locations.size() < 3) {
-        Logger::Instance()->Debug("Input points sets must have same size >= 3");
-        throw std::runtime_error("Input points sets must have same size >= 3");
+RigidTransformation DropZoneSearcher::ransac_kabsch(
+    const vector<ArucoTagMatch>& arucos,
+    double inlier_threshold_mm,
+    int min_inliers)
+{    
+    auto n = arucos.size();
+    if (n < min_inliers) {
+        throw std::runtime_error("Only " + std::to_string(n) + " arucos were given. But min_inliers was given as" + std::to_string(min_inliers));
     }
     
-    int n = static_cast<int>(expected_aruco_locations.size());
-    DropZoneSearcher::RigidTransformation best_fit_transform;
+    BotPoseEstimationResult* best_result = nullptr;
+    vector<int> best_result_inlier_indices{};
 
     constexpr double kCollinearEps = 1e-8;
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            for (int k = j + 1; k < n; ++k) {
-                Eigen::Vector3d v1 = expected_aruco_locations[j] - expected_aruco_locations[i];
-                Eigen::Vector3d v2 = expected_aruco_locations[k] - expected_aruco_locations[i];
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            for (int k = j + 1; k < n; k++) {
+                std::vector<ArucoTagMatch> relevantArucos = {arucos[i], arucos[j], arucos[k]};
+                auto aruco_definitions_at_identity = map(relevantArucos, [](const ArucoTagMatch& aruco) {return aruco.TagDefinitionAtIdenityTransform.Position; });
+                Eigen::Vector3d v1 = aruco_definitions_at_identity[1] - aruco_definitions_at_identity[0];
+                Eigen::Vector3d v2 = aruco_definitions_at_identity[2] - aruco_definitions_at_identity[0];
                 if (v1.cross(v2).norm() < kCollinearEps) continue;
-                std::vector<int> minimal = { i, j, k };
             
-                //find the minimal transformation using Kabsch on the 3 sampled points
-                DropZoneSearcher::RigidTransformation fit_model_kabsch;
+                //find the transformation using Kabsch on the 3 sampled points
+                BotPoseEstimationResult current_result;
                 try {
-                    //Logger::Instance()->Debug("Compute the minimal transformation on the sample points!!");
-                    std::shared_ptr<DropZoneSearcher::RigidTransformation> kabsch_transform_val = implement_kabsch_rotation_n_translation(expected_aruco_locations, measured_aruco_locations, minimal);
-                    if (kabsch_transform_val == nullptr) {
+                    shared_ptr<BotPoseEstimationResult> kabsch_transform = estimate_bot_pose(relevantArucos);
+                    if (kabsch_transform == nullptr) {
                         throw std::runtime_error("Failed to get a valid Kabsch Transform!!");
                     }
-                    fit_model_kabsch = *kabsch_transform_val;
+                    current_result = *kabsch_transform;
                 }
                 catch (...) {
-                    continue;
+                    Logger::Instance()->Debug("In Catch, from ransac_kabsch!!");
+                    continue; // ummm... excuse me? TODO: handle exceptions properly
                 }
                 //count inliers with the minimal transformation
-                const auto inliers = find_inliers(expected_aruco_locations, measured_aruco_locations, fit_model_kabsch.rotation_matrix, fit_model_kabsch.translation_vector, inlier_threshold);
-                
-                if (static_cast<int>(inliers.size()) >= std::max(min_inliers, 3)) {
-                    //Logger::Instance()->Debug("Refit the transformation on the inliers!!");
-                    DropZoneSearcher::RigidTransformation refit_transform = *implement_kabsch_rotation_n_translation(expected_aruco_locations, measured_aruco_locations, inliers);
-                   
-                    //Logger::Instance()->Debug("Choose the best transformation so far!!");
-                    const bool more_inliers = inliers.size() > best_fit_transform.inliers.size();
-                    const bool inliers_with_better_rmse = inliers.size() == best_fit_transform.inliers.size() && refit_transform.squared_error < best_fit_transform.squared_error;
-            
-                    if (more_inliers || inliers_with_better_rmse) {
-                        Logger::Instance()->Debug("More inliers detected!!");
-                        best_fit_transform = refit_transform;
-                    }
+                const vector<int> inliers = find_inliers(arucos, current_result.Transform, inlier_threshold_mm);
+                const vector<ArucoTagMatch> inlier_arucos = map(inliers, [arucos](const int i){return arucos[i]; });
+                auto inlier_count = inliers.size();
+                Logger::Instance()->Debug("inlier_count: {}", inlier_count);
+                if (inlier_count < min_inliers) continue;
+
+                auto current_best_inlier_count = best_result_inlier_indices.size();
+                if (inlier_count < current_best_inlier_count) continue;
+                BotPoseEstimationResult refit_result = *estimate_bot_pose(inlier_arucos);
+
+                Logger::Instance()->Debug("current_best_inlier_count: {}", current_best_inlier_count);
+                Logger::Instance()->Debug("refit_result.Error: {}", refit_result.Error);
+                const bool more_inliers = inlier_count > current_best_inlier_count;
+        
+                Logger::Instance()->Debug("more_inliers: {}", more_inliers);
+                if (best_result == nullptr || inlier_count > current_best_inlier_count || refit_result.Error < best_result->Error) {
+                    best_result = &refit_result;
+                    best_result_inlier_indices = inliers;
                 }
+                
             }
         }
     }
 
     //if no inliers were selected during the RANSAC loop, run the fallback transformation on all the given points
-    if (best_fit_transform.inliers.empty()) {
-        Logger::Instance()->Debug("No inliers selected, execute the fallback transformation on all point!!");
-        std::vector<int> all_indices(expected_aruco_locations.size());
-        std::iota(all_indices.begin(), all_indices.end(), 0);
-        best_fit_transform = *implement_kabsch_rotation_n_translation(expected_aruco_locations, measured_aruco_locations, all_indices);
+    if (best_result == nullptr) {
+        throw std::runtime_error("Failed to find any solution with at least " +std::to_string(min_inliers) + " inliners");
     }
-    
-    return best_fit_transform;
+    Logger::Instance()->Debug("Found a valid transform!!");
+    return best_result->Transform;
 
 }
 
-Eigen::Vector3d DropZoneSearcher::convert_camera_point_cloud_to_local_coordinates(
-    DropZoneSearcher::RigidTransformation kabsch_transform, //transform that defines the position and orientation of the bag cavity relative to camera"
-    Eigen::Vector3d point_cloud_point) 
-{
-    Eigen::Vector3d point_cloud_point_local = Eigen::Vector3d::Zero();
-    Eigen::Matrix3d rotation = kabsch_transform.rotation_matrix.transpose();
-    Eigen::Vector3d translation = kabsch_transform.translation_vector;
-    point_cloud_point_local = rotation * (point_cloud_point - translation);
-    return point_cloud_point_local;
+std::string vec_to_String(const Vector3d& v){
+  return "[" + std::to_string(v.x()) + ", " + std::to_string(v.y()) + ", " + std::to_string(v.z()) + "]";
 }
 
-int DropZoneSearcher::populate_json_data(
-   float bag_cavity_length,
-   float bag_cavity_width,
-   float bag_cavity_depth,
-   Eigen::Vector3d kabsch_transform_translation,
-   Eigen::Matrix3d kabsch_transform_rotation_matrix,
-   std::vector<Eigen::Vector3d> expected_aruco_coordinates_local,
-   std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
-   std::shared_ptr<nlohmann::json> occupancy_json,
-   std::vector<Eigen::Vector3d> camera_point_cloud_inside_cavity,
-   std::vector<Eigen::Vector3d> camera_point_cloud_outside_cavity)
-{
+vector<ArucoTagMatch> DropZoneSearcher::match_aruco_tags(vector<ArucoTag> tagDefinitions, vector<ArucoTag> measuredTagLocations, RigidTransformation expectedPose, float allowableDistanceFromExpectedMm ){
 
-    Logger::Instance()->Debug("Define json parameters to be used for the output json!!");
-    nlohmann::json camera_point_cloud_points_local = nlohmann::json::array();
-    nlohmann::json camera_point_cloud_points_outside_cavity_local = nlohmann::json::array();
-    nlohmann::json marker_coordinates_measured_location = nlohmann::json::array();
-    nlohmann::json marker_coordinates_expected_location = nlohmann::json::array();
-    nlohmann::json marker_coordinates_matched_location = nlohmann::json::array();
-    nlohmann::json bagCavityDimensionsMm = nlohmann::json::array();
-    nlohmann::json kabsch_transform_translation_vector;
-    nlohmann::json expected_translation;
+    std::unordered_set<int> ids;
+    vector<ArucoTagMatch> matches{};
+    matches.reserve(tagDefinitions.size()); // upper bound
 
-    Logger::Instance()->Debug("Populate the occupancy data json for sending reponse to FC!!");
-    (*occupancy_json)["bagCavityDimensionsMm"]["xLengthMm"] = bag_cavity_length;
-    (*occupancy_json)["bagCavityDimensionsMm"]["yLengthMm"] = bag_cavity_width;
-    (*occupancy_json)["bagCavityDimensionsMm"]["zLengthMm"] = bag_cavity_depth;
-
-    for (int i = 0; i < actual_aruco_center_coordinates.size(); ++i) {
-        Eigen::Vector3d marker_coord = actual_aruco_center_coordinates[i];
-        marker_coordinates_measured_location.push_back({ (int)to_millimeters_float(marker_coord(0)), (int)to_millimeters_float(-marker_coord(1)), (int)to_millimeters_float(-marker_coord(2)) });
-    }
-    (*occupancy_json)["arucoTags"]["actual"] = marker_coordinates_measured_location;
-
-    Eigen::Vector3d translation_vector_expected(0, 0, 470);
-    Eigen::Matrix3d expected_rotation  = Eigen::Matrix3d::Identity();
-    expected_translation = { translation_vector_expected.x(), translation_vector_expected.y(), -translation_vector_expected.z() };
-    
-    //populate the json with expected bag cavity transform information 
-    for (int i = 0; i < expected_rotation .cols(); ++i) {
-        nlohmann::json col = nlohmann::json::array();
-        for (int j = 0; j < expected_rotation .rows(); ++j) {
-            col.push_back(expected_rotation (i, j));
-        }
-        (*occupancy_json)["bagCavityopening"]["expected"]["rotation_matrix"].push_back(col); //change this to be idenity rotation matrix directly instead of calculating
-    }
-    (*occupancy_json)["bagCavityopening"]["expected"]["translation_vector"] = expected_translation;
-
-    //populate the json with actual bag cavity transform information 
-    kabsch_transform_translation_vector = { kabsch_transform_translation.x(), kabsch_transform_translation.y(), -kabsch_transform_translation.z() };
-    for (int i = 0; i < kabsch_transform_rotation_matrix.cols(); ++i) {
-        nlohmann::json col = nlohmann::json::array();
-        for (int j = 0; j < kabsch_transform_rotation_matrix.rows(); ++j) {
-            col.push_back(kabsch_transform_rotation_matrix(i, j));
-        }
-        (*occupancy_json)["bagCavityopening"]["actual"]["rotation_matrix"].push_back(col);
-    }
-    (*occupancy_json)["bagCavityopening"]["actual"]["translation_vector"] = kabsch_transform_translation_vector;
-
-    //populate the json with tranformed(matched) expected aruco locations in camera coordinate system
-    for (int j = 0; j < expected_aruco_coordinates_local.size(); j++) {
-        Eigen::Vector3d aruco_center_point({ expected_aruco_coordinates_local[j].x(), expected_aruco_coordinates_local[j].y(), expected_aruco_coordinates_local[j].z() });
-        Eigen::Vector3d transformed_aruco = kabsch_transform_rotation_matrix * aruco_center_point + kabsch_transform_translation;
-        marker_coordinates_matched_location.push_back({ round(transformed_aruco.x()), round(-transformed_aruco.y()), round(-transformed_aruco.z()) });
-    }
-    (*occupancy_json)["arucoTags"]["matched"] = marker_coordinates_matched_location;
-
-    //populate the json with expected aruco locations transformed to the camera coordinate system
-    for (int j = 0; j < expected_aruco_coordinates_local.size(); j++) {
-        Eigen::Vector3d aruco_center_point({ expected_aruco_coordinates_local[j].x(), expected_aruco_coordinates_local[j].y(), expected_aruco_coordinates_local[j].z() });
-        Eigen::Vector3d reverse_transformed_aruco = expected_rotation  * aruco_center_point + translation_vector_expected;
-        marker_coordinates_expected_location.push_back({ round(reverse_transformed_aruco.x()), round(-reverse_transformed_aruco.y()), round(-reverse_transformed_aruco.z()) });
-    }
-    (*occupancy_json)["arucoTags"]["expected"] = marker_coordinates_expected_location;
-
-    
-    for (int i = 0; i < camera_point_cloud_inside_cavity.size(); i++) {
-        Eigen::Vector3d point_cloud_camera_point = camera_point_cloud_inside_cavity[i];
-        camera_point_cloud_points_local.push_back({ point_cloud_camera_point.x(), point_cloud_camera_point.y(), point_cloud_camera_point.z()});
+    for (const ArucoTag& tagDefinition : tagDefinitions) {
+        // make sure we only have one aruco tag definition per id
+        if (!ids.insert(tagDefinition.Id).second)
+            throw std::runtime_error("Duplicate ArucoTag definition. Id: " + std::to_string(tagDefinition.Id));
         
-    }
+        const ArucoTag* matchingMeasuredTag = nullptr;
+        float dist_to_match = std::numeric_limits<float>::max();
+        const Vector3d expectedLocation = expectedPose.Apply(tagDefinition.Position);
+        for (const auto& measured: measuredTagLocations) {
+            if (measured.Id != tagDefinition.Id) continue;
+            // compute the square distance between the tags            
+            const float distance = (expectedLocation - measured.Position).norm(); // doing a full distance calculation (as opposed to square distance) because we want to log the actual distance, and we only have a handful of arucos to run this on
+            Logger::Instance()->Debug("Tag {} was {}mm from expected location (max allowed: {}mm). Expected location {}. Measured location {}", tagDefinition.Id, distance, allowableDistanceFromExpectedMm, vec_to_String(expectedLocation), vec_to_String(measured.Position));
+            if(distance > allowableDistanceFromExpectedMm) {
+              Logger::Instance()->Debug("Tag {} will be ignored because it is too far away. Distance: {}mm (limit: {})", tagDefinition.Id, distance, allowableDistanceFromExpectedMm);
+              continue;
+            }
+            if(distance < dist_to_match){
+              matchingMeasuredTag = &measured;
+              dist_to_match = distance;
+              
+              Logger::Instance()->Debug("Tag distance less than dist_to_match!!");
+            }
+        }
 
-    for (int i = 0; i < camera_point_cloud_outside_cavity.size(); i++) {
-        Eigen::Vector3d point_cloud_camera_point = camera_point_cloud_outside_cavity[i];
-        camera_point_cloud_points_outside_cavity_local.push_back({ point_cloud_camera_point.x(), point_cloud_camera_point.y(), point_cloud_camera_point.z() });
+        if (matchingMeasuredTag == nullptr) continue;
+        ArucoTagMatch match{ tagDefinition, matchingMeasuredTag->Position};
+        matches.push_back(match);
+    }  
 
-    }
-        
-    //populate the json with inside/outside cavity point cloud in camera coordinate system
-    (*occupancy_json)["pointCloud"]["insideBagCavity"] = camera_point_cloud_points_local;
-    (*occupancy_json)["pointCloud"]["outsideBagCavity"] = camera_point_cloud_points_outside_cavity_local;
-    Logger::Instance()->Debug("camera_point_cloud_points_outside_cavity_local: {}", camera_point_cloud_points_outside_cavity_local.size());
-    Logger::Instance()->Debug("camera_point_cloud_points_local: {}", camera_point_cloud_points_local.size());
-    return 0;
+    return matches;
 }
 
-int DropZoneSearcher::compute_data_for_occupancy_json(
-    std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, 
+shared_ptr<vector<Vector3d>> break_into_points(const Matrix3Xd& point_cloud)
+{
+    auto points = std::make_shared<std::vector<Eigen::Vector3d>>();
+    points->reserve(point_cloud.cols());
+        for (Eigen::Index i = 0; i < point_cloud.cols(); ++i) {
+            Eigen::Vector3d point = point_cloud.col(i);
+            points->emplace_back(point);
+        }
+    return points;
+}
+
+PointCloudSplitResult split_local_point_cloud(const Matrix3Xd& local_point_cloud, const Vector3d& bagCavityDimensions) {
+  const auto n = local_point_cloud.cols();
+  vector<int> in_bag_indices{}; in_bag_indices.reserve(n);
+  vector<int> out_of_bag_indices{}; out_of_bag_indices.reserve(n);
+
+  for (int i = 0; i < n; ++i) {
+    const Vector3d point = local_point_cloud.col(i);
+    const auto x = point.x();
+    const auto y = point.y();
+    if(x<0 || x > bagCavityDimensions.x() || y<0 || y > bagCavityDimensions.y()) out_of_bag_indices.push_back(i);
+    else in_bag_indices.push_back(i);
+  }
+  return  PointCloudSplitResult{std::make_shared<vector<int>>(in_bag_indices),std::make_shared<vector<int>>(out_of_bag_indices)};
+}
+
+
+
+SideDispenseOccupancyResult DropZoneSearcher::compute_data_for_occupancy_json(
     std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
-    std::shared_ptr<nlohmann::json> request_json, 
-    std::shared_ptr<nlohmann::json> occupancy_json, 
-    std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, 
-    std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
-    std::shared_ptr<Eigen::Matrix3Xd> local_point_cloud_data, 
-    std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data_x, 
-    std::vector<Eigen::Vector3d> local_point_cloud_inside_cavity) 
+    std::shared_ptr<PreDropImageSideDispenseRequest> request,     
+    vector<ArucoTag> measured_aruco_tags)
 {
     try {
-        //get the point cloud container points to save as a json for visualization
-        std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data = camera_point_cloud->get_data();
-        
-        //read the expected marker locations from lfb_vision_config
-        std::vector<float> marker_coord_x = lfb_vision_config->marker_coordinates_x;
-        std::vector<float> marker_coord_y = lfb_vision_config->marker_coordinates_y;
-        std::vector<float> marker_coord_z = lfb_vision_config->marker_coordinates_z;
-        std::vector<Eigen::Vector3d> marker_coordinates_expected;
 
-        //store the expected aruco locations based on number of markers detected
-        Eigen::Vector3d expected_aruco_location = Eigen::Vector3d::Zero();
-        std::vector<Eigen::Vector3d> expected_aruco_coordinates;
-        std::vector<Eigen::Vector3d> expected_aruco_coordinates_local;
-        std::vector<Eigen::Vector3d> actual_aruco_coordinates;
-        std::vector<Eigen::Vector3d> camera_point_cloud_data_points;
-        std::vector<Eigen::Vector3d> camera_point_cloud_inside_cavity;
-        std::vector<Eigen::Vector3d> camera_point_cloud_outside_cavity;
-        
-        //read bag cavity dimensions from the request json
-        float bag_cavity_length = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("XLengthMm", 367);
-        float bag_cavity_width = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("YLengthMm", 260);
-        float bag_cavity_depth = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("ZLengthMm", 430);
+        const int min_arucos_tag_count = 3;
 
-        expected_aruco_coordinates_local.push_back({ -153, 176.5, 1 });
-        expected_aruco_coordinates_local.push_back({ -75.5, 176.5, 1 });
-        expected_aruco_coordinates_local.push_back({ 197.5, -47, 2 });
-        expected_aruco_coordinates_local.push_back({ 197.5, 22, 2 });
-
-        for (int i = 0; i < actual_aruco_center_coordinates.size(); ++i) {
-            Eigen::Vector3d actual_aruco((int)to_millimeters_float(actual_aruco_center_coordinates[i].x()), (int)to_millimeters_float(actual_aruco_center_coordinates[i].y()), (int)to_millimeters_float(actual_aruco_center_coordinates[i].z()));
-            Logger::Instance()->Debug("Actual aruco coords: x: {}, y: {}, z: {}", actual_aruco.x(), actual_aruco.y(), actual_aruco.z());
-            actual_aruco_coordinates.push_back(actual_aruco);
-        }
-        if (actual_aruco_center_coordinates.size() == 3) {
-            expected_aruco_coordinates.push_back({ -75.5, 176.5, 1 }); //id 1
-            expected_aruco_coordinates.push_back({ 197.5, -47, 2 }); //id 6
-            expected_aruco_coordinates.push_back({ 197.5, 22, 2 }); //id 7
-        }
-        else {
-            expected_aruco_coordinates.push_back({ -153, 176.5, 1 }); //id 0
-            expected_aruco_coordinates.push_back({ -75.5, 176.5, 1 }); //id 1
-            expected_aruco_coordinates.push_back({ 197.5, -47, 2 }); //id 6
-            expected_aruco_coordinates.push_back({ 197.5, 22, 2 }); //id 7
-        }
-
-        Eigen::Vector3d aruco_measured_vec(actual_aruco_center_coordinates[0].x(), actual_aruco_center_coordinates[0].y(), actual_aruco_center_coordinates[0].z());
-
-        Logger::Instance()->Debug("Expected vs Actual Aruco Coordinates:");
-        for (int i = 0; i < actual_aruco_coordinates.size(); ++i) {
-            Logger::Instance()->Debug("Actual Aruco {} -> x: {}, y: {}, z: {}", i, actual_aruco_coordinates[i].x(), actual_aruco_coordinates[i].y(), actual_aruco_coordinates[i].z());
-        }
-        for( int i = 0; i < expected_aruco_coordinates.size(); ++i) {
-            Logger::Instance()->Debug("Expected Aruco {} -> x: {}, y: {}, z: {}", i, expected_aruco_coordinates[i].x(), expected_aruco_coordinates[i].y(), expected_aruco_coordinates[i].z());
+        vector<ArucoTagMatch> arucos = match_aruco_tags(request->ArucoTags, measured_aruco_tags, request->ExpectedBotPose);
+        if(arucos.size() < min_arucos_tag_count)
+        {
+            Logger::Instance()->Debug("Only " + std::to_string(arucos.size()) + " valid arucos detected!!");
+            return  SideDispenseOccupancyResult{
+              DcApiErrorCode::NotEnoughMarkersDetected,
+              nullptr,
+              nullptr,
+              nullptr,
+            };
         }
         
-        DropZoneSearcher::RigidTransformation kabsch_transform = ransac_kabsch(expected_aruco_coordinates, actual_aruco_coordinates);
-        Eigen::Matrix3d kabsch_transform_rotation_matrix = kabsch_transform.rotation_matrix;
-        Eigen::Vector3d kabsch_transform_translation = kabsch_transform.translation_vector;
-        Eigen::Vector3d center_expected_coord(0, 0, 0);
-        Eigen::Vector3d actual_cavity_center = kabsch_transform_rotation_matrix * center_expected_coord + kabsch_transform_translation;
-        Logger::Instance()->Debug("Actual Bag Cavity Center -> x:{}, y:{}, z:{}", actual_cavity_center.x(), actual_cavity_center.y(), actual_cavity_center.z());
+        RigidTransformation bot_pose = ransac_kabsch(arucos);
+
+        // TODO (Nigel): Ensure that the pose is within tolerance and return a DcApiErrorCode if not.
+        shared_ptr<Eigen::Matrix3Xd> points_in_camera_coord = camera_point_cloud->get_data();
+        for (int i = 0; i < points_in_camera_coord->cols(); ++i) {
+            Eigen::Vector3d point_cloud_point = points_in_camera_coord->col(i);
+            Eigen::Vector3d point_cloud_camera_point(meter_to_mm(point_cloud_point(0)), meter_to_mm(point_cloud_point(1)), meter_to_mm(point_cloud_point(2)));
+            points_in_camera_coord->col(i) = point_cloud_camera_point;
+        }
+        Eigen::Matrix3Xd local_point_cloud = bot_pose.Inverse().Apply(*points_in_camera_coord);
         
-        Eigen::Vector3d distance_between_actual_and_expected_bag_cavity_center = { abs(actual_cavity_center.x() - 0.000), abs(actual_cavity_center.y() - 0.000), abs(actual_cavity_center.z() - 0.470) };
-        float error_x = round(distance_between_actual_and_expected_bag_cavity_center.x()); //traverse component of the distance
-        float error_y = round(distance_between_actual_and_expected_bag_cavity_center.y()); //lift component of the distance
-        float error_z = round(distance_between_actual_and_expected_bag_cavity_center.z()); //extend component of the distance
-
-        Eigen::Vector3d expected_local_cavity_center_inverse_transform = kabsch_transform_rotation_matrix.transpose() * (actual_cavity_center - kabsch_transform_translation);
-        Logger::Instance()->Debug("expected_local_cavity_center_inverse_transform -> x:{}, y:{}, z:{}", expected_local_cavity_center_inverse_transform.x(), expected_local_cavity_center_inverse_transform.y(), expected_local_cavity_center_inverse_transform.z());
-
+        Vector3d bagCavityDimensions = request->BagCavityDimensions;
+        PointCloudSplitResult split_result = split_local_point_cloud(local_point_cloud, bagCavityDimensions);
+        shared_ptr<vector<Vector3d>> bag_cavity_points_camera_coord =  break_into_points(split_result.sub_sample(*points_in_camera_coord, true));
+        shared_ptr<vector<Vector3d>> outside_cavity_points_camera_coord = break_into_points(split_result.sub_sample(*points_in_camera_coord, false));
+        shared_ptr<vector<Vector3d>> bag_cavity_points_bag_cavity_coord =  break_into_points(split_result.sub_sample(local_point_cloud, true));
+        shared_ptr<vector<shared_ptr<vector<float>>>> occupancy_map = compute_occupancy_map(*bag_cavity_points_bag_cavity_coord, request->OccupancyMapHeight, request->OccupancyMapWidth, bagCavityDimensions);
         
-        Logger::Instance()->Debug("Filtering the inside & outside cavity point cloud based on bag cavity dimensions!!");
 
-        for (int i = 0; i < camera_point_cloud_data->cols(); ++i) {
-            Eigen::Vector3d point_cloud_point = camera_point_cloud_data->col(i);
-            Eigen::Vector3d point_cloud_camera_point((int)to_millimeters_float(point_cloud_point(0)), (int)to_millimeters_float(point_cloud_point(1)), (int)to_millimeters_float(point_cloud_point(2)));
-            Eigen::Vector3d point_cloud_point_local = convert_camera_point_cloud_to_local_coordinates(kabsch_transform, point_cloud_camera_point);
-            
-            if ((round(point_cloud_point_local.x()) <= bag_cavity_length/2 && round(point_cloud_point_local.x()) >= -bag_cavity_length/2) && (round(point_cloud_point_local.y()) < bag_cavity_width/2 && round(point_cloud_point_local.y()) > -bag_cavity_width/2)) {
-                local_point_cloud_inside_cavity.push_back({ round(point_cloud_point_local(0)), round(point_cloud_point_local(1)), round(- point_cloud_point_local(2)) });
-                camera_point_cloud_data_points.push_back({ point_cloud_camera_point(0) - 55, point_cloud_camera_point(1), point_cloud_camera_point(2) });
-                camera_point_cloud_inside_cavity.push_back({ point_cloud_camera_point(0), - point_cloud_camera_point(1), - point_cloud_camera_point(2) });
-            }
-            else {
-                camera_point_cloud_outside_cavity.push_back({ point_cloud_camera_point(0), -point_cloud_camera_point(1), -point_cloud_camera_point(2) });
-            }
-        }
-        Logger::Instance()->Debug("local_point_cloud_inside_cavity: {}", local_point_cloud_inside_cavity.size());
-        std::shared_ptr<Eigen::Matrix3Xd> local_point_cloud = std::make_shared<Eigen::Matrix3Xd>(3, local_point_cloud_inside_cavity.size());
-        for (int i = 0; i < local_point_cloud_inside_cavity.size(); i++) {
-            Eigen::Vector3d point_cloud_point = local_point_cloud_inside_cavity[i];
-                (*local_point_cloud)(0, i) = point_cloud_point.x();
-                (*local_point_cloud)(1, i) = point_cloud_point.y();
-                (*local_point_cloud)(2, i) = point_cloud_point.z();
-        }
-        *local_point_cloud_data = *local_point_cloud;
+        // make the debug data
+        OccupancyDebugData debug_data;
+        debug_data.BagCavityOpening.Expected = request->ExpectedBotPose;
+        debug_data.BagCavityOpening.Actual = bot_pose;
 
-        std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data_test = std::make_shared<Eigen::Matrix3Xd>(3, camera_point_cloud_data_points.size());
-        for (int i = 0; i < camera_point_cloud_data_points.size(); i++) {
-            Eigen::Vector3d point_cloud_point = camera_point_cloud_data_points[i];
-            (*camera_point_cloud_data_test)(0, i) = point_cloud_point.x();
-            (*camera_point_cloud_data_test)(1, i) = point_cloud_point.y();
-            (*camera_point_cloud_data_test)(2, i) = point_cloud_point.z();
-        }
-        *camera_point_cloud_data_x = *camera_point_cloud_data_test;
-        Logger::Instance()->Debug("camera_point_cloud_data_points: {}", camera_point_cloud_data_points.size());
-        Logger::Instance()->Debug("Done with outside cavity points transformation!!");
+        debug_data.BagCavityDimensionsMm = bagCavityDimensions;
+        Logger::Instance()->Debug("bag_cavity_points_camera-coord size: {}", bag_cavity_points_camera_coord->size());
+        Logger::Instance()->Debug("outside_cavity_points_camera_coord size: {}", outside_cavity_points_camera_coord->size());
+        debug_data.PointCloud.InsideBagCavity = bag_cavity_points_camera_coord;
        
-        int success_code = populate_json_data(bag_cavity_length, bag_cavity_width, bag_cavity_depth, kabsch_transform_translation,
-            kabsch_transform_rotation_matrix, expected_aruco_coordinates, actual_aruco_center_coordinates, occupancy_json, camera_point_cloud_inside_cavity, camera_point_cloud_outside_cavity);
-        
-        //set the tolerance for the x & y components of the distance vector representing the lift, traverse & extend
-        //TO-DO: convert the tolerance value to a recipe
-        //error_lift = 10mm
-        //error_traverse = 20mm
-        if (error_x > 20.0 || error_y > 10.0) {
-            //return UnexpectedBagPosition if the thresholds is exceeded
-            Logger::Instance()->Debug("The error between actual and expected centers exceeds the threshold. Traverse Error Value: {}, Lift Error Value: {}", error_x, error_y);
-            return DcApiErrorCode::UnexpectedBagPosition;
-        }
-        return DcApiErrorCode::Success;
+        //To-Do : throw if bag cavity point cloud is empty
+        debug_data.PointCloud.OutsideBagCavity = outside_cavity_points_camera_coord;
+
+        debug_data.ArucoLocations.Expected = std::make_shared<vector<Vector3d>>(map(arucos,[request] (const ArucoTagMatch& aruco) {return request->ExpectedBotPose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
+        debug_data.ArucoLocations.Actual   = std::make_shared<vector<Vector3d>>(map(arucos,[] (const ArucoTagMatch& aruco) {return aruco.MeasuredPosition; }));
+        debug_data.ArucoLocations.Matched  = std::make_shared<vector<Vector3d>>(map(arucos,[bot_pose] (const ArucoTagMatch& aruco) {return bot_pose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
+
+        return SideDispenseOccupancyResult{
+          DcApiErrorCode::Success,
+          occupancy_map,
+          std::make_shared<PointCloudSplitResult>(split_result),
+          std::make_shared<OccupancyDebugData>(debug_data),
+        };
     }
     catch (...) {
         Logger::Instance()->Error("Unspecified failure from compute_data_for_occupancy_json during handling pre side dispense in catch(...) block");
-        return DcApiErrorCode::UnspecifiedError;
+        return  SideDispenseOccupancyResult{
+          DcApiErrorCode::UnspecifiedError,
+          nullptr,
+          nullptr,
+          nullptr,
+        };
     }
 }
+
+
 
 std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
     std::shared_ptr<MarkerDetectorContainer> container,
@@ -2762,7 +2527,6 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         Logger::Instance()->Trace("Get RGB image for use in algorithm and visualizations");
         // visualize the color image
         std::shared_ptr<cv::Mat> RGB_matrix = container->get_color_mat();
-        std::shared_ptr<nlohmann::json> occupancy_json = std::make_shared<nlohmann::json>();
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
         int success_code = DcApiErrorCode::Success;
         // this "LFB_filter" image is the plain depth map visualized
@@ -2795,86 +2559,63 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, *primary_key_id);
         if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
         
-        std::vector<std::shared_ptr<cv::Point2f>> aruco_centers;
+        vector<ArucoTag> arucoTagLocations{};
+        arucoTagLocations.reserve(markers->size());
 
         for (int i = 0; i < markers->size(); i++) {
             int id = markers->at(i)->get_id();
             std::shared_ptr<cv::Point2f> aruco_center = markers->at(i)->get_coordinate(Marker::Coordinate::center);
             Logger::Instance()->Debug("aruco center pixels for marker:{}, x:{}, y:{}", id, aruco_center->x, aruco_center->y);
-            aruco_centers.push_back(aruco_center);
-        }
+            auto aruco_center_point = container->convert_color_pixel_to_depth_point(aruco_center->x, aruco_center->y, this->session);
+            auto center_point = std::make_shared<Eigen::Vector3d>(meter_to_mm(aruco_center_point->x), meter_to_mm(aruco_center_point->y), meter_to_mm(aruco_center_point->z)); //convert points to mm
+            Logger::Instance()->Debug("aruco_center_point: x:{}, y:{}, z:{}", center_point->x(), center_point->y(), center_point->z()); 
+            arucoTagLocations.push_back(ArucoTag{*center_point,id});
+        }      
 
-        std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers = markers;
-        std::shared_ptr<Eigen::Affine3d> transform = container->get_transform_to_bag_coordinates(detected_markers);
-
-        Logger::Instance()->Debug("Fetching the center coordinates of all the detected aruco tags!!");
-        std::vector<Eigen::Vector3d> actual_aruco_center_coordinates;
-        //calculate the aruco coordinate centers in camera coordinate system in mm
-        for (int i = 0; i < aruco_centers.size(); i++) {
-            auto aruco_center_point = container->convert_color_pixel_to_depth_point(aruco_centers[i]->x, aruco_centers[i]->y, this->session);
-            auto center_point = std::make_shared<Eigen::Vector3d>(aruco_center_point->x, aruco_center_point->y, aruco_center_point->z);
-            actual_aruco_center_coordinates.push_back(*center_point);
-        }
-        
-        std::shared_ptr<Eigen::Matrix3Xd> local_point_cloud_data = std::make_shared<Eigen::Matrix3Xd>(3, 2000);
-        std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data = std::make_shared<Eigen::Matrix3Xd>(3, 2000);
-        std::shared_ptr<std::vector<Eigen::Vector3d>> local_point_cloud_data_inside_cavity = std::make_shared<std::vector<Eigen::Vector3d>>();
-        
         //compute and add occupancy data to json
-        success_code = compute_data_for_occupancy_json(container, camera_point_cloud, request_json, occupancy_json,
-            lfb_vision_config, actual_aruco_center_coordinates, local_point_cloud_data, camera_point_cloud_data, *local_point_cloud_data_inside_cavity);
-        Logger::Instance()->Debug("Occupancy Data population complete! Returned success_code: {}", success_code);
+        shared_ptr<PreDropImageSideDispenseRequest> request = std::make_shared<PreDropImageSideDispenseRequest>(request_json->get<PreDropImageSideDispenseRequest>());
+        SideDispenseOccupancyResult occupancy_result = compute_data_for_occupancy_json(camera_point_cloud, request, arucoTagLocations);
+        Logger::Instance()->Debug("Occupancy Data population complete! Returned success_code: {}", occupancy_result.error_code);
 
-        // transform depth cloud into the OccupancyMap
-        int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
-        int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
-        bool is_empty = request_json->value("Is_Empty_Bag", false);
+        if(occupancy_result.error_code == DcApiErrorCode::Success)
+        {
+          std::shared_ptr<vector<Vector3d>> camera_point_cloud_data = occupancy_result.debug_data->PointCloud.InsideBagCavity;
+          auto pixel_mapped_points = std::make_shared<vector<PixelMappedPoint>>(map(*camera_point_cloud_data, [container](const Vector3d& point){ return PixelMappedPoint{point,*container->map_point_to_pixel(point)}; }));
+          // depth cloud visualization
+          std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(pixel_mapped_points);
+          if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
+          if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
+        }
 
-        std::shared_ptr<std::vector<std::shared_ptr<cv::Point2f>>> pixels = container->get_point_cloud(true, __FUNCTION__)->
-            as_local_cloud()->new_point_cloud(local_point_cloud_data)->as_pixel_cloud()->get_data();
-        
-        std::shared_ptr<PointCloud> point_cloud_filtered = container->get_point_cloud(true, __FUNCTION__)->
-            as_camera_cloud()->new_point_cloud(camera_point_cloud_data);
-        
-        // depth cloud visualization
-        std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(point_cloud_filtered);
-        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
-        if (this->visualize == 1) { this->session_visualizer3->display_image(image3); }
 
-        //cv::imwrite("/home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/depth_img.jpeg", *image3);
-        
-            /*std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map1 = generate_occupancy_map(
-                point_cloud,
-                occupancy_map_width,
-                occupancy_map_height,
-                lfb_vision_config->LFB_bag_width,
-                lfb_vision_config->LFB_bag_length,
-                is_empty);*/
 
-        float cavity_width = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("XLengthMm", 367);
-        float cavity_height = (*request_json)["System_Properties"]["BagCavityRecipe"]["CavityDimensions"].value("YLengthMm", 260);
+        Vector3d bagCavityDimensions =  request->BagCavityDimensions;
+        float cavity_width = bagCavityDimensions.x();
+        float cavity_height = bagCavityDimensions.y();
 
-        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map = generate_occupancy_map1(
-            occupancy_map_width,
-            occupancy_map_height,
-            cavity_width,
-            cavity_height,
-            is_empty, pixels, local_point_cloud_data);
-
-        float square_width = to_meters(cavity_width) / occupancy_map_width;
-        float square_height = to_meters(cavity_height) / occupancy_map_height;
+        int occupancy_map_width = request->OccupancyMapWidth;
+        int occupancy_map_height = request->OccupancyMapHeight;
+        float square_width = cavity_width / occupancy_map_width;
+        float square_height = cavity_height / occupancy_map_height;
 
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ",
             occupancy_map_width, occupancy_map_height, square_width, square_height);
         
-        std::shared_ptr<std::string> occupancy_json_data = std::make_shared<std::string>(occupancy_json->dump());
-        Logger::Instance()->Debug("Occupancy json data dump: {}", *occupancy_json_data);
-        
+        auto occupancy_json = (request->RequestOccupancyVisualization && occupancy_result.debug_data != nullptr) ? std::make_shared<nlohmann::json>(to_json(*occupancy_result.debug_data)) : nullptr;
+        if (occupancy_json != nullptr) {
+            std::shared_ptr<std::string> occupancy_json_data = std::make_shared<std::string>(occupancy_json->dump());
+            Logger::Instance()->Debug("Occupancy json data dump: {}", *occupancy_json_data); 
+        }
+        else {
+            Logger::Instance()->Debug("Occupancy json returned nullptr!!");
+        }
+        auto point_cloud_inside_cavity = (occupancy_result.debug_data != nullptr) ? occupancy_result.debug_data->PointCloud.InsideBagCavity : nullptr;
         Logger::Instance()->Debug("Returning SideDropResult from pre side dispense");
+
         return std::make_shared<SideDropResult>(request_id,
-            occupancy_map,
+            occupancy_result.occupancy_map,
             occupancy_json,
-            local_point_cloud_data_inside_cavity,
+            point_cloud_inside_cavity,
             container,
             square_width,
             square_height,
@@ -2922,6 +2663,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
     }
 }
 
+
 std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
     std::shared_ptr<MarkerDetectorContainer> container,
     std::shared_ptr<std::string> request_id,
@@ -2966,28 +2708,15 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_post_side_dispense(
 
         Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
 
-        // transform depth cloud into the OccupancyMap
-        int occupancy_map_width = request_json->value("Occupancy_Map_Width", 5);
-        int occupancy_map_height = request_json->value("Occupancy_Map_Height", 5);
-        std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> occupancy_map = generate_occupancy_map(
-            point_cloud,
-            occupancy_map_width,
-            occupancy_map_height,
-            lfb_vision_config->LFB_bag_width,
-            lfb_vision_config->LFB_bag_length,
-            false);
 
-        float square_width = lfb_vision_config->LFB_bag_width / occupancy_map_width;
-        float square_height = lfb_vision_config->LFB_bag_length / occupancy_map_height;
-        Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ", 
-                                  occupancy_map_width, occupancy_map_height, square_width, square_height);
+
         return std::make_shared<SideDropResult>(request_id,
-                                                occupancy_map,
+                                                nullptr,
                                                 nullptr,
                                                 nullptr,
                                                 container,
-                                                square_width,
-                                                square_height, 
+                                                0,
+                                                0, 
                                                 DcApiErrorCode::Success,
                                                 std::string(""));
     }

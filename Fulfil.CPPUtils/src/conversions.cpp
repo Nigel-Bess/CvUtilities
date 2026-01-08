@@ -3,83 +3,40 @@
 
 using fulfil::utils::Logger;
 
-/* Converts the given meter measurement to a rounded int millimeter value */
-int fulfil::utils::to_millimeters(float meters) {
-	return (int)((meters) * 1000);
-}
-
-float fulfil::utils::to_millimeters_float(float meters) {
+float fulfil::utils::meter_to_mm(float meters) {
     return (float)((meters) * 1000);
 }
-
+float fulfil::utils::mm_to_meter(float millimeters) {
+    return (float)((millimeters) / 1000);
+}
 float fulfil::utils::to_meters(float millimeters) {
     return (float)((millimeters) / 1000);
 }
-/* Converts the given Z-coord depth measurement in meters to millimeters and moves the origin to be the back wall of the side dispense bag */
-int convert_to_bag_contents_depth(float z_depth) {
-    z_depth = fulfil::utils::to_millimeters(z_depth);
-    if (z_depth < -999) {
-        // TODO base on config //HACK
-        z_depth = -400;
-    }
-    // TODO base on config //HACK
-    return z_depth + 400;
+
+int fulfil::utils::round_to_nearest_int(float f){
+    return (int)std::lround(f);
 }
 
-float convert_to_bag_contents_depth1(float z_depth) {
-    //z_depth = fulfil::utils::to_millimeters(z_depth);
-    if (z_depth < -999) {
-        // TODO base on config //HACK
-        z_depth = -400;
-    }
-    // TODO base on config //HACK
-    return z_depth + 400;
-}
 
-std::shared_ptr<std::vector<int>> convert_row(std::shared_ptr<std::vector<float>> input) {
+std::shared_ptr<std::vector<int>> convert_map_row_to_integers(std::shared_ptr<std::vector<float>> input) {
     std::vector<int> row;
 
     for (int j = 0; j < input->size(); j++) {
-        row.push_back(convert_to_bag_contents_depth(input->at(j)));
+        row.push_back(fulfil::utils::round_to_nearest_int(input->at(j)));
     }
     return std::make_shared<std::vector<int>>(row);
 }
 
-std::shared_ptr<std::vector<int>> convert_row1(std::shared_ptr<std::vector<float>> input) {
-    std::vector<int> row;
 
-    for (int j = 0; j < input->size(); j++) {
-        row.push_back(convert_to_bag_contents_depth1(input->at(j)));
-    }
-    return std::make_shared<std::vector<int>>(row);
-}
-
-/* Generates a converted millimeter equivalent of the given grid map in meters */
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> fulfil::utils::convert_map_to_millimeters(std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> map) {
+std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> fulfil::utils::convert_map_to_integers(std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> map) {
     if (map == nullptr) {
-        Logger::Instance()->Debug("convert_map_to_millimeters: Given map was nullptr!");
+        Logger::Instance()->Debug("convert_map_to_integers: Given map was nullptr!");
         return nullptr;
     }
 
     std::vector<std::shared_ptr<std::vector<int>>> output;
     for (int i = 0; i < map->size(); i++) {
-      output.push_back(convert_row(map->at(i)));
-    }
-
-    // TODO add count
-    Logger::Instance()->Debug("Number of null squares in the occupancy map before converting them: IDK out of total sqaures: {}", map->size()*map->at(0)->size());
-    return std::make_shared<std::vector<std::shared_ptr<std::vector<int>>>>(output);
-}
-
-std::shared_ptr<std::vector<std::shared_ptr<std::vector<int>>>> fulfil::utils::convert_map_to_millimeters1(std::shared_ptr<std::vector<std::shared_ptr<std::vector<float>>>> map) {
-    if (map == nullptr) {
-        Logger::Instance()->Debug("convert_map_to_millimeters: Given map was nullptr!");
-        return nullptr;
-    }
-
-    std::vector<std::shared_ptr<std::vector<int>>> output;
-    for (int i = 0; i < map->size(); i++) {
-        output.push_back(convert_row1(map->at(i)));
+        output.push_back(convert_map_row_to_integers(map->at(i)));
     }
 
     // TODO add count

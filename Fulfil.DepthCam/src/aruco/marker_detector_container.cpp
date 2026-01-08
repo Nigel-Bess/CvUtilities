@@ -15,6 +15,7 @@
 #include <Fulfil.DepthCam/point_cloud.h>
 #include <Fulfil.DepthCam/point_cloud/local_point_cloud.h>
 #include "container_matrix3xd_predicate.h"
+#include <Fulfil.CPPUtils/conversions.h>
 
 using fulfil::depthcam::aruco::ContainerMatrix3xdPredicate;
 using fulfil::depthcam::aruco::Marker;
@@ -28,6 +29,7 @@ using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::eigen::Matrix3XdFilter;
 using fulfil::utils::eigen::Matrix3dPoint;
 using fulfil::utils::Logger;
+using fulfil::utils::mm_to_meter;
 
 MarkerDetectorContainer::MarkerDetectorContainer(std::shared_ptr<MarkerDetector> marker_detector,
                                                  std::shared_ptr<Session> session,
@@ -90,6 +92,18 @@ std::shared_ptr<fulfil::utils::Point3D> MarkerDetectorContainer::convert_color_p
 
 cv::Mat MarkerDetectorContainer::grab_color_frame() {
     return this->session->grab_color_frame();
+}
+
+shared_ptr<cv::Point2f> MarkerDetectorContainer::map_point_to_pixel(const Vector3d& point_in_camera_coordinates_mm){
+  float color_point[3];
+  float depth_point[3] = {mm_to_meter(point_in_camera_coordinates_mm.x()), mm_to_meter(point_in_camera_coordinates_mm.y()), mm_to_meter(point_in_camera_coordinates_mm.z())};
+  rs2_transform_point_to_point(color_point, get_depth_to_color_extrinsics().get(), depth_point);
+
+  //Converting from color point to color pixel
+  float pixel[2];
+  std::shared_ptr<rs2_intrinsics> intrinsics = get_color_stream_intrinsics();
+  rs2_project_point_to_pixel(pixel, intrinsics.get(), color_point);
+  return std::make_shared<cv::Point2f>(pixel[0], pixel[1]);
 }
 
 /**

@@ -1,0 +1,71 @@
+{
+  "Type": 34,
+  "Primary_Key_ID": "6944db5b845332765c2a5fa6",
+  "Occupancy_Map_Width": 20,
+  "Occupancy_Map_Height": 20,
+  "Is_Empty_Bag": false,
+  "Expected_Bag_Cavity_Transform": {
+    "Rotation": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1.0,
+        -8.742278E-08
+      ],
+      [
+        0.0,
+        8.742278E-08,
+        -1.0
+      ]
+    ],
+    "Translation": [
+      0.0,
+      0.0,
+      470.0
+    ]
+  },
+  "Bag_Cavity_Dimensions": [
+    365.125,
+    260.0,
+    430.0
+  ],
+  "Aruco_Tags": [
+    {
+      "Position": [
+        30.5,
+        306.5,
+        1.0
+      ],
+      "Id": 4
+    },
+    {
+      "Position": [
+        108.0,
+        306.5,
+        1.0
+      ],
+      "Id": 5
+    },
+    {
+      "Position": [
+        381.0,
+        83.0,
+        2.0
+      ],
+      "Id": 2
+    },
+    {
+      "Position": [
+        381.0,
+        152.0,
+        2.0
+      ],
+      "Id": 3
+    }
+  ],
+  "Request_Occupancy_Visualization": true
+}

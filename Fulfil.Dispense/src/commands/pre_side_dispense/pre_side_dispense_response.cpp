@@ -13,22 +13,34 @@
 #include <vector>
 
 using fulfil::dispense::commands::PreSideDispenseResponse;
-using fulfil::utils::convert_map_to_millimeters;
-using fulfil::utils::convert_map_to_millimeters1;
 using fulfil::utils::Logger;
-using fulfil::utils::to_millimeters;
+using fulfil::utils::convert_map_to_integers;
 
 void PreSideDispenseResponse::encode_payload() {
+    nlohmann::json result_json = encode_as_json();
+    std::string json_string = result_json.dump();
+    int json_length = json_string.size();
+    const char *json_text = json_string.c_str();
+    char *response = new char[json_length + 1];
+    memcpy(response, json_text, json_length);
+    response[json_length] = 0;
+    this->payload = std::make_shared<std::string>(response);
+    delete [] response;
+}
+
+nlohmann::json PreSideDispenseResponse::encode_as_json() {
     nlohmann::json result_json{};
     result_json["Primary_Key_ID"] = *this->primary_key_id;
     result_json["Error"] = (int) this->success_code;
     result_json["Error_Description"] = this->error_description;
-    result_json["Grid_Square_Width_Mm"] = to_millimeters(this->square_width);
-    result_json["Grid_Square_Height_Mm"] = to_millimeters(this->square_height);
+    result_json["Grid_Square_Width_Mm"] = this->square_width;
+    result_json["Grid_Square_Height_Mm"] = this->square_height;
+
+    if(this->success_code != DcApiErrorCode::Success) return result_json;
     // if there were obstacles that couldn't be overcome making the map, don't return any
     Logger::Instance()->Debug("Loading occupancy map data to json!!");
     if (this->occupancy_map != nullptr) {
-        auto map = convert_map_to_millimeters1(this->occupancy_map);
+        auto map = convert_map_to_integers(this->occupancy_map);
         std::vector<std::vector<int>> converted_map;
         for (int i = 0; i < map->size(); i++) {
             converted_map.push_back(*(map->at(i)));
@@ -40,20 +52,16 @@ void PreSideDispenseResponse::encode_payload() {
     if (this->occupancy_data != nullptr) {
         result_json["Occupancy_Visualization"] = *this->occupancy_data;
     }
-    //result_json["Occupancy_Visualization"] = nullptr;
+    Logger::Instance()->Info("Occupancy_Visualization encoding complete!!");
     nlohmann::json point_cloud_inside_cavity = nlohmann::json::array();
-    for (auto& point : *this->local_point_cloud_inside_cavity) {
-        point_cloud_inside_cavity.push_back({ point.x(), point.y(), point.z() });
+    if (this->local_point_cloud_inside_cavity != nullptr) {
+        for (auto& point : *this->local_point_cloud_inside_cavity) {
+            point_cloud_inside_cavity.push_back({ point.x(), point.y(), point.z() });
+        }
     }
     result_json["Point_Cloud_Inside_Cavity"] = point_cloud_inside_cavity;
-    std::string json_string = result_json.dump();
-    int json_length = json_string.size();
-    const char *json_text = json_string.c_str();
-    char *response = new char[json_length + 1];
-    memcpy(response, json_text, json_length);
-    response[json_length] = 0;
-    this->payload = std::make_shared<std::string>(response);
-    delete [] response;
+    Logger::Instance()->Info("Point_Cloud_Inside_Cavity encoding complete!!");
+    return result_json;
 }
 
 PreSideDispenseResponse::PreSideDispenseResponse(std::shared_ptr<std::string> request_id,

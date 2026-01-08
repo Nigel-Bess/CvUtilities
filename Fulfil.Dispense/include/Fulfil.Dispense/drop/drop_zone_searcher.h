@@ -17,6 +17,14 @@
 #include <Fulfil.Dispense/commands/dispense_response.h>
 #include <Fulfil.Dispense/mongo/mongo_bag_state.h>
 #include <Fulfil.Dispense/commands/post_drop/post_LFR_response.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/aruco_tag_match.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/aruco_tag.h>
+#include <Fulfil.CPPUtils/math/rigid_transformation.h>
+#include <Fulfil.Dispense/drop/bot_pose_estimation_result.h>
+#include <Fulfil.Dispense/drop/side_dispense_occupancy_result.h>
+#include <Fulfil.Dispense/commands/pre_side_dispense/pre_drop_image_side_dispense_request.h>
+
+using std::vector;
 
 
 
@@ -230,14 +238,6 @@ class DropZoneSearcher
 
 
 public:
-
-    struct RigidTransformation {
-        Eigen::Matrix3d rotation_matrix = Eigen::Matrix3d::Identity();
-        Eigen::Vector3d translation_vector = Eigen::Vector3d::Zero();
-        std::vector<int> inliers;
-        double squared_error = std::numeric_limits<double>::infinity();
-        RigidTransformation() = default;
-    };
   /**
    * Calculates the optimal drop zone for the provided length and width (taking into
    * consideration obstructions on left and right side of the bags) in the provided
@@ -350,94 +350,83 @@ public:
     float bag_length,
     bool is_empty
   );
-
-  /**
-  * Returns the success code and populates the json with occupancy map data
-  * @param bag_cavity_length the length of bag cavity in mm
-  * @param bag_cavity_width the width of bag cavity in mm
-  * @param bag_cavity_depth the depth of bag cavity in mm
-  * @param kabsch_transform_translation translation vector of the actual bag cavity calculated with kabsch
-  * @param kabsch_transform_rotation_matrix rotation matrix of the actual bag cavity calculated with kabsch
-  * @param expected_aruco_coordinates_local vector of expected aruco locations in local coordinate system
-  * @param actual_aruco_center_coordinates vector of actual aruco locations in camera coordinate system
-  * @param occupancy_json json that stores the transformation and point cloud information
-  * @return success code
-  */
-  int populate_json_data(
-      //std::vector<Eigen::Vector3d> marker_coordinates_measured_location,
-      float bag_cavity_length,
-      float bag_cavity_width,
-      float bag_cavity_depth,
-      Eigen::Vector3d kabsch_transform_translation,
-      Eigen::Matrix3d kabsch_transform_rotation_matrix,
-      std::vector<Eigen::Vector3d> expected_aruco_coordinates_local,
-      std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
-      std::shared_ptr<nlohmann::json> occupancy_json,
-      std::vector<Eigen::Vector3d> camera_point_cloud_inside_cavity,
-      std::vector<Eigen::Vector3d> camera_point_cloud_outside_cavity);
   
   /**
+   * matches real-world aruco tags to their location definitions
+   * @param tagDefinitions  aruco tag definitions, in bag cavity local coordinate system
+   * @param measuredTagLocations measured aruco tags. It is ok if this contains duplicates, or is missing some of the tags given in the tag definitions
+   * @param expectedPose The expected bot pose. If we apply this to the tag definitions, this should give us the expected locations of the aruco tags
+   * @param allowableDistanceFromExpectedMm Any measured tag more than this far from the expected tag location is considered invalid
+   * @return std::vector<ArucoTagMatch> 
+   */
+  static std::vector<ArucoTagMatch> match_aruco_tags(std::vector<ArucoTag> tagDefinitions, std::vector<ArucoTag> measuredTagLocations, RigidTransformation expectedPose, float allowableDistanceFromExpectedMm = 300);
+  /**
   * Returns the success code and computes the transformations and related occupancy data for populating the json
-  * @param container MarkerDetectorContainer 
   * @param camera_point_cloud unfiltered camera point cloud
   * @param request_json pre side dispense request json
-  * @param occupancy_json json to populate the occupancy map and transformation data
-  * @param lfb_vision_config vision config recipes json
-  * @param actual_aruco_center_coordinates vector of actual aruco locations in camera coordinate system
-  * @param local_point_cloud_data vector to store point cloud data in local coordinate system
-  * @param camera_point_cloud_data vector to store point cloud data in camera coordinate system
-  * @param local_point_cloud_inside_cavity 
-  * @return success code
+  * @param measured_aruco_tags measured locations of the aruco tags
+  * @return all information needed to send back to FC
   */
-  int compute_data_for_occupancy_json(
-      std::shared_ptr<fulfil::depthcam::aruco::MarkerDetectorContainer> container, 
-      std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
-      std::shared_ptr<nlohmann::json> request_json, 
-      std::shared_ptr<nlohmann::json> occupancy_json, 
-      std::shared_ptr<fulfil::configuration::lfb::LfbVisionConfiguration> lfb_vision_config, 
-      std::vector<Eigen::Vector3d> actual_aruco_center_coordinates,
-      std::shared_ptr<Eigen::Matrix3Xd> local_point_cloud_data, 
-      std::shared_ptr<Eigen::Matrix3Xd> camera_point_cloud_data, 
-      std::vector<Eigen::Vector3d> local_point_cloud_inside_cavity);
+  SideDispenseOccupancyResult compute_data_for_occupancy_json(
+    std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
+    std::shared_ptr<PreDropImageSideDispenseRequest> request_json,     
+    vector<ArucoTag> measured_aruco_tags);
+
+    /**
+   * @brief Compute the centroid (arithmetic mean) of a set of 3D points.
+   *
+   * This function calculates the centroid by summing all input vectors and
+   * dividing by the number of points. It is commonly used as a preprocessing
+   * step for point set alignment and rigid transformation estimation.
+   *
+   * @param points A non-empty vector of 3D points.
+   * @return Eigen::Vector3d The centroid of the input points.
+   *
+   * @throws std::runtime_error If the input vector is empty.
+   */
+  static Eigen::Vector3d compute_centroid(std::vector<Eigen::Vector3d> points);
 
   /**
-  * Returns the RigidTransformation to the bag cavity, implements the core kabsch logic
-  * @param expected_aruco_locations expected aruco coordinate locations in local coordinate system
-  * @param measured_aruco_locations measure aruco coordinate locations in camera coordinate system
-  * @param inlier_indices inliers indices, should always be >=3 in size
-  * @return RigidTransformation representing the bag cavity transform
+ * @brief Compute the cross-covariance matrix between two sets of 3D points.
+ *
+ * The cross-covariance matrix captures how two point sets vary relative to
+ * each other after subtracting their respective centroids. This matrix is a
+ * key component of the Kabsch algorithm and other rigid registration methods
+ * used to estimate the optimal rotation between two corresponding point sets.
+ *
+ * Both point sets must contain the same number of points, and each point in
+ * the source set must correspond to the point at the same index in the target
+ * set.
+ *
+ * @param source A vector of 3D source points.
+ * @param target A vector of 3D target points corresponding one-to-one with
+ *               the source points.
+ * @return Eigen::Matrix3d The 3×3 cross-covariance matrix.
+ *
+ * @throws std::runtime_error If the point sets have different sizes.
+ * @throws std::runtime_error If either point set is empty.
+ */
+  static Eigen::Matrix3d compute_cross_covariance(std::vector<Eigen::Vector3d> source, std::vector<Eigen::Vector3d> target);
+
+  /**
+  * Returns the RigidTransformation to the bag cavity
+  * @param arucos All the located aruco tags, and known information about those tags. arucos should always be >=3 in size.
+  * @return a RigidTransformation representing the bag cavity transform
   */
-  static std::shared_ptr<RigidTransformation> implement_kabsch_rotation_n_translation(
-      const std::vector<Eigen::Vector3d>& expected_aruco_locations, 
-      const std::vector<Eigen::Vector3d>& measured_aruco_locations, 
-      const std::vector<int>& inlier_indices);
+  static std::shared_ptr<BotPoseEstimationResult> estimate_bot_pose(const std::vector<ArucoTagMatch>& arucos);
 
   /**
    * Returns the RigidTransformation to the bag cavity, implements the ransac random sampling loop to eliminate outliers
-   * @param expected_aruco_locations expected aruco coordinate locations in local coordinate system
-   * @param measured_aruco_locations measure aruco coordinate locations in camera coordinate system
-   * @param max_iterations represents the maximum iterations for the random sampling loop
-   * @param inlier_threshold threshold in mm to filter the outliers 
+   * @param arucos all the arucos we detected
+   * @param inlier_threshold_mm threshold in mm to filter the outliers 
    * @param min_inliers minimum inliers count (i.e, 3 since atleast 3 needed to calculate the transform)
-   * @param rng_seed random number generator initialization
    * @return RigidTransformation representing the bag cavity transform
    */
-  RigidTransformation ransac_kabsch(const std::vector<Eigen::Vector3d>& expected_aruco_locations,
-      const std::vector<Eigen::Vector3d>& measured_aruco_locations,
-      int max_iterations,
-      double inlier_threshold,
-      int min_inliers,
-      uint32_t rng_seed);
+  RigidTransformation ransac_kabsch(    
+    const vector<ArucoTagMatch>& arucos,
+    double inlier_threshold_mm = 13.0,
+    int min_inliers = 3);
 
-  /**
-  * Returns the points inverse transformed from camera coordinate system to local coordinate system
-  * @param kabsch_transform the tranform to the bag cavity from local to camera coordinate system
-  * @param point_cloud_point 3d vector representing the point cloud point
-  * @return 3d vector of transformed points
-  */
-  Eigen::Vector3d convert_camera_point_cloud_to_local_coordinates(
-      DropZoneSearcher::RigidTransformation kabsch_transform, 
-      Eigen::Vector3d point_cloud_point);
 
 };
 } // namespace fulfil

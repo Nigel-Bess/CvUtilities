@@ -10,20 +10,19 @@
 #include <json.hpp>
 
 using fulfil::dispense::commands::PostSideDispenseResponse;
-using fulfil::utils::convert_map_to_millimeters;
 using fulfil::utils::Logger;
-using fulfil::utils::to_millimeters;
+using fulfil::utils::convert_map_to_integers;
 
 void PostSideDispenseResponse::encode_payload()
 {
     nlohmann::json result_json{};
     result_json["Error"] = (int) this->success_code;
     result_json["Error_Description"] = this->error_description;
-    result_json["Grid_Square_Width_Mm"] = to_millimeters(this->square_width);
-    result_json["Grid_Square_Height_Mm"] = to_millimeters(this->square_height);
+    result_json["Grid_Square_Width_Mm"] = this->square_width;
+    result_json["Grid_Square_Height_Mm"] = this->square_height;
     // if there were obstacles that couldn't be overcome making the map, don't return any
     if (this->occupancy_map != nullptr) {
-        auto map = convert_map_to_millimeters(this->occupancy_map);
+        auto map = convert_map_to_integers(this->occupancy_map);
         std::vector<std::vector<int>> converted_map;
         for (int i = 0; i < map->size(); i++) {
             converted_map.push_back(*(map->at(i)));

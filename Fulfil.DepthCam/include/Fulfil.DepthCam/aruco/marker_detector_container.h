@@ -17,6 +17,10 @@
 #include <Fulfil.DepthCam/point_cloud/point_cloud.h>
 #include <Fulfil.DepthCam/aruco.h>
 #include <eigen3/Eigen/Geometry>
+#include <Fulfil.DepthCam/aruco/pixel_mapped_point.h>
+
+using Eigen::Vector3d;
+using std::shared_ptr;
 
 namespace fulfil
 {
@@ -196,6 +200,19 @@ class MarkerDetectorContainer : public Container
   std::shared_ptr<std::vector<std::shared_ptr<Marker>>> validate_markers(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> markers, bool bot_in_nominal_orientation=true);
 
   std::shared_ptr<std::vector<std::shared_ptr<Marker>>> get_markers(bool bot_in_nominal_orientation=true);
+
+/**
+ * @brief Maps a 3D point expressed in camera coordinates to a 2D image point.
+ *
+ * Projects @p point_in_camera_coordinates onto the image plane using the current
+ * camera model (intrinsics and any distortion handling implemented by this class).
+ *
+ * @param point_in_camera_coordinates 3D point in the camera coordinate frame.
+ * @return 2D image coordinate in pixels.
+ *
+ * @note Behavior is undefined if the point is behind the camera (e.g. z <= 0).
+ */
+  shared_ptr<cv::Point2f> map_point_to_pixel(const Vector3d& point_in_camera_coordinates);
 
   /**
    * A static convenience variable that returns a vector that can be used to
