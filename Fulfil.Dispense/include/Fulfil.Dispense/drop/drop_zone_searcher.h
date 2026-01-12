@@ -25,7 +25,8 @@
 #include <Fulfil.Dispense/commands/pre_side_dispense/pre_drop_image_side_dispense_request.h>
 
 using std::vector;
-
+using std::shared_ptr;
+using Eigen::Matrix3Xd;
 
 
 namespace fulfil::dispense::drop
@@ -367,9 +368,9 @@ public:
   * @param measured_aruco_tags measured locations of the aruco tags
   * @return all information needed to send back to FC
   */
-  SideDispenseOccupancyResult compute_data_for_occupancy_json(
-    std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
-    std::shared_ptr<PreDropImageSideDispenseRequest> request_json,     
+  SideDispenseOccupancyResult compute_side_dispense_solution(
+    shared_ptr<Matrix3Xd> camera_point_cloud,
+    shared_ptr<PreDropImageSideDispenseRequest> request_json,     
     vector<ArucoTag> measured_aruco_tags);
 
     /**

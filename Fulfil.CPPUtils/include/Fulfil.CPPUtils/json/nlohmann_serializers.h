@@ -7,6 +7,20 @@ namespace nlohmann {
     static void from_json(const json& j, Eigen::Vector3d& v) { v = { j.at(0), j.at(1), j.at(2) }; }
   };
 
+    template <>
+  struct adl_serializer<Eigen::Vector3i> {
+    static void to_json(json& j, const Eigen::Vector3i& v) {
+      j = json::array({ v.x(), v.y(), v.z() });
+    }
+    static void from_json(const json& j, Eigen::Vector3i& v) {
+      v = Eigen::Vector3i{
+        j.at(0).get<int>(),
+        j.at(1).get<int>(),
+        j.at(2).get<int>()
+      };
+    }
+  };
+
   template <>
   struct adl_serializer<Eigen::Matrix3d> {
     static void to_json(json& j, const Eigen::Matrix3d& m) {

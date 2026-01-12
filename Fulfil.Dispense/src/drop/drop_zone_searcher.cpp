@@ -53,13 +53,16 @@ using fulfil::utils::to_meters;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 using Eigen::Vector3d;
+using Eigen::Vector3i;
 using Eigen::Matrix3d;
 using Eigen::Matrix3Xd;
 using std::vector;
 using std::shared_ptr;
+using std::make_shared;
 using vector_util::map;
 using vector_util::zip;
 using math_util::mean;
+
 
 
 DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
@@ -2439,8 +2442,8 @@ PointCloudSplitResult split_local_point_cloud(const Matrix3Xd& local_point_cloud
 
 
 
-SideDispenseOccupancyResult DropZoneSearcher::compute_data_for_occupancy_json(
-    std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud,
+SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
+    shared_ptr<Matrix3Xd> points_in_camera_coord,
     std::shared_ptr<PreDropImageSideDispenseRequest> request,     
     vector<ArucoTag> measured_aruco_tags)
 {
@@ -2463,7 +2466,6 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_data_for_occupancy_json(
         RigidTransformation bot_pose = ransac_kabsch(arucos);
 
         // TODO (Nigel): Ensure that the pose is within tolerance and return a DcApiErrorCode if not.
-        shared_ptr<Eigen::Matrix3Xd> points_in_camera_coord = camera_point_cloud->get_data();
         for (int i = 0; i < points_in_camera_coord->cols(); ++i) {
             Eigen::Vector3d point_cloud_point = points_in_camera_coord->col(i);
             Eigen::Vector3d point_cloud_camera_point(meter_to_mm(point_cloud_point(0)), meter_to_mm(point_cloud_point(1)), meter_to_mm(point_cloud_point(2)));
@@ -2473,11 +2475,20 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_data_for_occupancy_json(
         
         Vector3d bagCavityDimensions = request->BagCavityDimensions;
         PointCloudSplitResult split_result = split_local_point_cloud(local_point_cloud, bagCavityDimensions);
-        shared_ptr<vector<Vector3d>> bag_cavity_points_camera_coord =  break_into_points(split_result.sub_sample(*points_in_camera_coord, true));
-        shared_ptr<vector<Vector3d>> outside_cavity_points_camera_coord = break_into_points(split_result.sub_sample(*points_in_camera_coord, false));
-        shared_ptr<vector<Vector3d>> bag_cavity_points_bag_cavity_coord =  break_into_points(split_result.sub_sample(local_point_cloud, true));
+        shared_ptr<vector<Vector3d>> bag_cavity_points_camera_coord =  break_into_points(*split_result.sub_sample(*points_in_camera_coord, true));
+        shared_ptr<vector<Vector3d>> outside_cavity_points_camera_coord = break_into_points(*split_result.sub_sample(*points_in_camera_coord, false));
+        shared_ptr<vector<Vector3d>> bag_cavity_points_bag_cavity_coord =  break_into_points(*split_result.sub_sample(local_point_cloud, true));
         shared_ptr<vector<shared_ptr<vector<float>>>> occupancy_map = compute_occupancy_map(*bag_cavity_points_bag_cavity_coord, request->OccupancyMapHeight, request->OccupancyMapWidth, bagCavityDimensions);
         
+        if(!request->RequestOccupancyVisualization)
+        {
+          return SideDispenseOccupancyResult{
+            DcApiErrorCode::Success,
+            occupancy_map,
+            std::make_shared<PointCloudSplitResult>(split_result),
+            nullptr,
+          };
+        }
 
         // make the debug data
         OccupancyDebugData debug_data;
@@ -2487,24 +2498,25 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_data_for_occupancy_json(
         debug_data.BagCavityDimensionsMm = bagCavityDimensions;
         Logger::Instance()->Debug("bag_cavity_points_camera-coord size: {}", bag_cavity_points_camera_coord->size());
         Logger::Instance()->Debug("outside_cavity_points_camera_coord size: {}", outside_cavity_points_camera_coord->size());
-        debug_data.PointCloud.InsideBagCavity = bag_cavity_points_camera_coord;
+        const auto to_vec3i = [](const Vector3d& p) -> Vector3i {return p.array().round().cast<int>().matrix().eval(); };
+        debug_data.PointCloud.InsideBagCavity =  make_shared<vector<Vector3i>>(map(*bag_cavity_points_camera_coord,to_vec3i));
        
         //To-Do : throw if bag cavity point cloud is empty
-        debug_data.PointCloud.OutsideBagCavity = outside_cavity_points_camera_coord;
+        debug_data.PointCloud.OutsideBagCavity = std::make_shared<vector<Vector3i>>(map(*outside_cavity_points_camera_coord,to_vec3i));
 
-        debug_data.ArucoLocations.Expected = std::make_shared<vector<Vector3d>>(map(arucos,[request] (const ArucoTagMatch& aruco) {return request->ExpectedBotPose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
-        debug_data.ArucoLocations.Actual   = std::make_shared<vector<Vector3d>>(map(arucos,[] (const ArucoTagMatch& aruco) {return aruco.MeasuredPosition; }));
-        debug_data.ArucoLocations.Matched  = std::make_shared<vector<Vector3d>>(map(arucos,[bot_pose] (const ArucoTagMatch& aruco) {return bot_pose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
+        debug_data.ArucoLocations.Expected = make_shared<vector<Vector3d>>(map(arucos,[request] (const ArucoTagMatch& aruco) {return request->ExpectedBotPose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
+        debug_data.ArucoLocations.Actual   = make_shared<vector<Vector3d>>(map(arucos,[] (const ArucoTagMatch& aruco) {return aruco.MeasuredPosition; }));
+        debug_data.ArucoLocations.Matched  = make_shared<vector<Vector3d>>(map(arucos,[bot_pose] (const ArucoTagMatch& aruco) {return bot_pose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
 
         return SideDispenseOccupancyResult{
           DcApiErrorCode::Success,
           occupancy_map,
-          std::make_shared<PointCloudSplitResult>(split_result),
-          std::make_shared<OccupancyDebugData>(debug_data),
+          make_shared<PointCloudSplitResult>(split_result),
+          make_shared<OccupancyDebugData>(debug_data),
         };
     }
     catch (...) {
-        Logger::Instance()->Error("Unspecified failure from compute_data_for_occupancy_json during handling pre side dispense in catch(...) block");
+        Logger::Instance()->Error("Unspecified failure from compute_side_dispense_solution during handling pre side dispense in catch(...) block");
         return  SideDispenseOccupancyResult{
           DcApiErrorCode::UnspecifiedError,
           nullptr,
@@ -2530,8 +2542,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->visualize == 1) { this->session_visualizer1->display_rgb_image(RGB_matrix); }
         int success_code = DcApiErrorCode::Success;
         // this "LFB_filter" image is the plain depth map visualized
-        std::shared_ptr<LocalPointCloud> point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_local_cloud();
-        std::shared_ptr<CameraPointCloud> camera_point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_camera_cloud();
+        shared_ptr<Matrix3Xd> camera_point_cloud = container->get_point_cloud(false, __FUNCTION__)->as_camera_cloud()->get_data();
         cv::Mat depth_visualization;
         cv::Mat depth_mat = *this->session->get_depth_mat();
         Logger::Instance()->Trace("Retrieved depth mat");
@@ -2542,7 +2553,7 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         if (this->visualize == 1) session_visualizer7->display_image(std::make_shared<cv::Mat>(depth_visualization));
         if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(std::make_shared<cv::Mat>(depth_visualization), ViewerImageType::LFB_Filter, *primary_key_id);
 
-        Logger::Instance()->Debug("Number of point cloud points: {}", point_cloud->get_data()->cols());
+        Logger::Instance()->Debug("Number of point cloud points: {}", camera_point_cloud->cols());
 
         // detect Aruco markers in RGB stream     
         std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
@@ -2574,13 +2585,13 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
 
         //compute and add occupancy data to json
         shared_ptr<PreDropImageSideDispenseRequest> request = std::make_shared<PreDropImageSideDispenseRequest>(request_json->get<PreDropImageSideDispenseRequest>());
-        SideDispenseOccupancyResult occupancy_result = compute_data_for_occupancy_json(camera_point_cloud, request, arucoTagLocations);
+        SideDispenseOccupancyResult occupancy_result = compute_side_dispense_solution(camera_point_cloud, request, arucoTagLocations);
         Logger::Instance()->Debug("Occupancy Data population complete! Returned success_code: {}", occupancy_result.error_code);
 
         if(occupancy_result.error_code == DcApiErrorCode::Success)
         {
-          std::shared_ptr<vector<Vector3d>> camera_point_cloud_data = occupancy_result.debug_data->PointCloud.InsideBagCavity;
-          auto pixel_mapped_points = std::make_shared<vector<PixelMappedPoint>>(map(*camera_point_cloud_data, [container](const Vector3d& point){ return PixelMappedPoint{point,*container->map_point_to_pixel(point)}; }));
+          auto inside_bag_cavity_points_camera_coord = break_into_points(*occupancy_result.split->sub_sample(*camera_point_cloud,true));
+          auto pixel_mapped_points = std::make_shared<vector<PixelMappedPoint>>(map(*inside_bag_cavity_points_camera_coord, [container](const Vector3d& point){ return PixelMappedPoint{point,*container->map_point_to_pixel(point)}; }));
           // depth cloud visualization
           std::shared_ptr<cv::Mat> image3 = this->session_visualizer3->display_points_with_depth_coloring(pixel_mapped_points);
           if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(image3, ViewerImageType::LFB_Depth, *primary_key_id);
@@ -2601,21 +2612,18 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         Logger::Instance()->Debug("Occupancy map created with width: {} and height: {} where each square has width {} and height {} ",
             occupancy_map_width, occupancy_map_height, square_width, square_height);
         
-        auto occupancy_json = (request->RequestOccupancyVisualization && occupancy_result.debug_data != nullptr) ? std::make_shared<nlohmann::json>(to_json(*occupancy_result.debug_data)) : nullptr;
-        if (occupancy_json != nullptr) {
-            std::shared_ptr<std::string> occupancy_json_data = std::make_shared<std::string>(occupancy_json->dump());
-            Logger::Instance()->Debug("Occupancy json data dump: {}", *occupancy_json_data); 
+        shared_ptr<nlohmann::json> debug_data_json = nullptr;
+        if (request->RequestOccupancyVisualization && occupancy_result.debug_data != nullptr) {
+            debug_data_json = std::make_shared<nlohmann::json>(to_json(*occupancy_result.debug_data));
+            std::shared_ptr<std::string> occupancy_json_data = std::make_shared<std::string>(debug_data_json->dump());
+            Logger::Instance()->Debug("Occupancy Debug json data dump: {}", *occupancy_json_data); 
         }
-        else {
-            Logger::Instance()->Debug("Occupancy json returned nullptr!!");
-        }
-        auto point_cloud_inside_cavity = (occupancy_result.debug_data != nullptr) ? occupancy_result.debug_data->PointCloud.InsideBagCavity : nullptr;
         Logger::Instance()->Debug("Returning SideDropResult from pre side dispense");
 
         return std::make_shared<SideDropResult>(request_id,
             occupancy_result.occupancy_map,
-            occupancy_json,
-            point_cloud_inside_cavity,
+            debug_data_json,
+            nullptr,
             container,
             square_width,
             square_height,

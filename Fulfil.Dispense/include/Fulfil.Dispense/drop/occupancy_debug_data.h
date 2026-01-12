@@ -6,6 +6,7 @@
 using std::shared_ptr;
 using std::vector;
 using Eigen::Vector3d;
+using Eigen::Vector3i;
 
 struct OccupancyDebugData {
     struct BagCavityOpening
@@ -16,8 +17,8 @@ struct OccupancyDebugData {
     Vector3d BagCavityDimensionsMm;
     struct CompletePointCloud
     {
-        shared_ptr<vector<Vector3d>> InsideBagCavity;
-        shared_ptr<vector<Vector3d>> OutsideBagCavity;
+        shared_ptr<vector<Vector3i>> InsideBagCavity; // integers to reduce data bloat in json (decimal precision not needed)
+        shared_ptr<vector<Vector3i>> OutsideBagCavity; // integers to reduce data bloat in json (decimal precision not needed)
     } PointCloud;
     struct ArucoLocations
     {
