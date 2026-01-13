@@ -187,86 +187,95 @@ void VmbCamera::SaveLastImage(std::string path){
 
 std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
     std::lock_guard<std::recursive_mutex> lock(_lifecycleLock); {
-        VmbUint32_t height;
-        VmbUint32_t width;
-
-        auto startTime = std::chrono::steady_clock::now();
         auto empty = std::make_shared<cv::Mat>();
-        for (int i = 0; i < MAX_SNAPSHOT_RETRIES && !connected_; i++){
-            log_->Warn("GetImageBlocking stalling for camera reconnection, {} is disconnected, retry attempt #{}", name_, i);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
-        if (!connected_) {
-            log_->Error("GetImageBlocking returning empty because {} is disconnected", name_);
-            return empty;
-        }
-        auto err = VmbErrorCustom;
+        try {
+            VmbUint32_t height;
+            VmbUint32_t width;
 
-        VmbFrameStatusType frameStatus;
-        log_->Info("reset frame {}", name_);
-
-        // Pre-populate empty frames
-        auto frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT);
-        for (int f = 0; f < MULTIFRAME_COUNT; f++) {
-            frame_ptrs_[f].reset(new Frame(payloadSize_));
-        }
-
-        log_->Info("Streaming for first complete frame {}", name_);
-
-        // Look through all images taken for hopefully a frame that's complete
-        bool frameFound = false;
-        for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
             auto startTime = std::chrono::steady_clock::now();
-            log_->Info("AquiredMultiple start {}", name_);
-            err = camera_->AcquireMultipleImages(frame_ptrs_, 5000);
-            auto stopTime = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-            log_->Info("AquiredMultiple took {}ms on {}", duration, name_);
-
-            if (err != VmbErrorSuccess) {
-                camera_error_code = RepackErrorCodes::VimbaCameraError;
-                camera_error_description = std::string(name_) + std::string(" could not get frame with code ") + GetVimbaCode(err);
-                log_->Error(camera_error_description);
+            for (int i = 0; i < MAX_SNAPSHOT_RETRIES && !connected_; i++){
+                log_->Warn("GetImageBlocking stalling for camera reconnection, {} is disconnected, retry attempt #{}", name_, i);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
-            // Better to get the LAST good frame since it's more likely to have more accurate interlacing
-            int firstGood = 999999;
-            int lastGood = -1;
-            for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
-                frame_ptrs_[f]->GetReceiveStatus(frameStatus);
-                if (frameStatus == 0) {
-                    frameFound = true;
-                    firstGood = f < firstGood ? f : firstGood;
-                    lastGood = f > lastGood ? f : lastGood;
-                } else if (f == 0) {
-                    log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
+            if (!connected_) {
+                log_->Error("GetImageBlocking returning empty because {} is disconnected", name_);
+                return empty;
+            }
+            auto err = VmbErrorCustom;
+
+            VmbFrameStatusType frameStatus;
+            log_->Info("reset frame {}", name_);
+
+            // Pre-populate empty frames
+            auto frame_ptrs_ = VmbCPP::FramePtrVector(MULTIFRAME_COUNT);
+            for (int f = 0; f < MULTIFRAME_COUNT; f++) {
+                frame_ptrs_[f].reset(new Frame(payloadSize_));
+            }
+
+            log_->Info("Streaming for first complete frame {}", name_);
+
+            // Look through all images taken for hopefully a frame that's complete
+            bool frameFound = false;
+            for (int aquireCount=0; aquireCount < MAX_SNAPSHOT_RETRIES && !frameFound; aquireCount++) {
+                auto startTime = std::chrono::steady_clock::now();
+                log_->Info("AquiredMultiple start {}", name_);
+                err = camera_->AcquireMultipleImages(frame_ptrs_, 5000);
+                auto stopTime = std::chrono::steady_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+                log_->Info("AquiredMultiple took {}ms on {}", duration, name_);
+
+                if (err != VmbErrorSuccess) {
+                    camera_error_code = RepackErrorCodes::VimbaCameraError;
+                    camera_error_description = std::string(name_) + std::string(" could not get frame with code ") + GetVimbaCode(err);
+                    log_->Error(camera_error_description);
+                }
+                // Better to get the LAST good frame since it's more likely to have more accurate interlacing
+                int firstGood = 999999;
+                int lastGood = -1;
+                for (int f = MULTIFRAME_COUNT-1; f >= 0; f--) {
+                    frame_ptrs_[f]->GetReceiveStatus(frameStatus);
+                    if (frameStatus == 0) {
+                        frameFound = true;
+                        firstGood = f < firstGood ? f : firstGood;
+                        lastGood = f > lastGood ? f : lastGood;
+                    } else if (f == 0) {
+                        log_->Info("No good frames in {} tries (cam {}), resetting aquire mode again...", (aquireCount+1)*MULTIFRAME_COUNT, name_);
+                    }
+                }
+                if (frameFound) {
+                    log_->Info("First good frame at {}, using last good frame at {} on {}", 
+                        aquireCount*MULTIFRAME_COUNT + firstGood,
+                        aquireCount*MULTIFRAME_COUNT + lastGood,
+                        name_);   
+                    frame_ptr_ = frame_ptrs_[lastGood];
+                    break;
                 }
             }
-            if (frameFound) {
-                log_->Info("First good frame at {}, using last good frame at {} on {}", 
-                    aquireCount*MULTIFRAME_COUNT + firstGood,
-                    aquireCount*MULTIFRAME_COUNT + lastGood,
-                    name_);   
-                frame_ptr_ = frame_ptrs_[lastGood];
-                break;
+            if(!frameFound){
+                // This log is used by the Repack dashboard
+                log_->Error("No complete frame found for {}", name_);
+                return empty;
             }
+
+            auto stopTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+            log_->Info("GetImageBlocking took {}ms on {}", duration, name_);
+            this->LogPingSuccess();
+
+            auto val = frame_ptr_->GetImage(img_buffer_);
+            frame_ptr_->GetHeight(height);
+            frame_ptr_->GetWidth(width);
+            last_image_ = std::make_shared<cv::Mat>(height, width, CV_8UC3, img_buffer_);
+            log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
+
+            return last_image_;
         }
-        if(!frameFound){
+        catch (...) {
+            // This log is used by the Repack dashboard
             log_->Error("No complete frame found for {}", name_);
+            log_->Error("Vimba SDK threw a crappy undocumented runtime exception for {}, not recoverable", name_);
             return empty;
         }
-
-        auto stopTime = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-        log_->Info("GetImageBlocking took {}ms on {}", duration, name_);
-        this->LogPingSuccess();
-
-        auto val = frame_ptr_->GetImage(img_buffer_);
-        frame_ptr_->GetHeight(height);
-        frame_ptr_->GetWidth(width);
-        last_image_ = std::make_shared<cv::Mat>(height, width, CV_8UC3, img_buffer_);
-        log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
-
-        return last_image_;
     }
 }
 
