@@ -74,8 +74,8 @@ void VmbCamera::LogPingSuccess() {
     log_->Info("Pinged {}", name_);
 }
 
-void VmbCamera::RunSetup(bool isInitSetup){
-    log_->Info("VmbCamera RunSetup on {}", name_);
+void VmbCamera::reconnect(bool isInitConnection){
+    log_->Info("VmbCamera reconnect on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
     auto first = true;
     while(code != VmbErrorSuccess){
@@ -91,7 +91,7 @@ void VmbCamera::RunSetup(bool isInitSetup){
     camera_->GetName(name);
     log_->Info("{} [{}] open with FWv: {}]", name_, name, GetFeatureString("DeviceFirmwareID")); 
 
-    if (isInitSetup) {
+    if (isInitConnection) {
         // Max of 5Mb upload per second to allow other cams' to have plenty of bandwidth, this should be calculated
         // based on the network switch on neighboring camera count
         VmbInt64_t maxBandwidthBytes = 42000000;
@@ -110,15 +110,27 @@ void VmbCamera::RunSetup(bool isInitSetup){
         // Record image size for future frame allocation
         camera_->GetPayloadSize( payloadSize_ );
     }
-    connected_ = true;
-    AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
-    this->LogPingSuccess();
-    // For now, do not take an init debug snapshot since it stirs the network
-    // too much when connecting to all cameras at once
-    /*if (isInitSetup) {
-        GetImageBlocking();
-        SaveLastImage(name_);
-    }*/
+    try {
+        // Optimistically assume snapshots probably work unless this is a reconnection,
+        // this way we don't spam getting snapshots across all cameras when the service
+        // restarts, but it WILL ensure snapshots are healthy if any 1 cam goes to disconnected state
+        // or fails to fetch snapshot.
+        if (isInitConnection) {
+            connected_ = true;
+        } else {
+            auto rgb = GetImageBlocking();
+            if (!rgb->empty()) {
+                connected_ = true;
+            }
+        }
+        if (connected_) {
+            AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_CONNECTED);
+            this->LogPingSuccess();
+            SaveLastImage(name_);
+        }
+    } catch (...) {
+        log_->Error("Error taking successful reconnect snapshot for {}", name_);
+    }
 }
 //sudo ifconfig enp65s0f0 mtu 9000
 //sudo ifconfig enp65s0f1 mtu 9000
@@ -127,7 +139,7 @@ void VmbCamera::RunCamera(){
     while(run_){
         if(!connected_) {
             std::lock_guard<std::recursive_mutex> lock(_lifecycleLock);{
-                RunSetup(isInitConnection);
+                reconnect(isInitConnection);
                 isInitConnection = false;
             }
         }
@@ -142,6 +154,7 @@ void VmbCamera::RunCamera(){
                 if(camera_ != nullptr)
                     camera_->Close();
                 connected_ = false;
+                AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
             } else {
                 this->LogPingSuccess();
             }
@@ -273,6 +286,9 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         catch (...) {
             // This log is used by the Repack dashboard
             log_->Error("No complete frame found for {}", name_);
+            // Assume camera must be busted if snapshot failed, run loop will try to reconnect
+            connected_ = false;
+            AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
             log_->Error("Vimba SDK threw a crappy undocumented runtime exception for {}, not recoverable", name_);
             return empty;
         }

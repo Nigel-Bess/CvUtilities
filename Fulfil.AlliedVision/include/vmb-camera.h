@@ -46,7 +46,7 @@ class VmbCamera{
         void SetExposureSettings();
         void AdjustPacketSize();
         void AddCameraStatus(DepthCameras::DcCameraStatusCodes code);
-        void RunSetup(bool isInitSetup);
+        void reconnect(bool isInitConnection);
         std::string GetMacAddress();
         volatile bool run_ = true;
         volatile bool connected_ = false;
