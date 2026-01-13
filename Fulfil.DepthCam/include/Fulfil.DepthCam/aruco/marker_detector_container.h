@@ -186,12 +186,6 @@ class MarkerDetectorContainer : public Container
   */
   std::vector<std::shared_ptr<Marker>> marker_selection(std::vector<std::shared_ptr<Marker>> parallel_markers);
 
-  /** validates that detected markers were within acceptable search region and at expected depth for the side dispense bot type
-   * @param markers is the vector of markers detected in the complete RGB image
-   * @return vector of markers with valid coordinates
-   */
-  std::shared_ptr<std::vector<std::shared_ptr<Marker>>> validate_markers_side_dispense(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> markers);
-
   /** validates that detected markers were within acceptable search region and at expected depth for the drop-down dispense bot type
    *
    * @param markers is the vector of markers detected in the complete RGB image

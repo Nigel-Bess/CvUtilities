@@ -295,97 +295,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::v
   return std::make_shared<std::vector<std::shared_ptr<Marker>>>(final_markers);
 }
 
-std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::validate_markers_side_dispense(std::shared_ptr<std::vector<std::shared_ptr<Marker>>> markers)
-{
-  Logger::Instance()->Debug("Validating marker detections now");
-
-  auto get_record = [](std::vector<std::shared_ptr<Marker>> &mrkrs, std::string_view const rem)
-  {
-      std::stringstream logstr ;
-      for (auto a : mrkrs)
-          logstr << "(id: " << a->get_id()
-                 << ", x: " << a->get_coordinate(Marker::Coordinate::center)->x
-                 << ", y: " << a->get_coordinate(Marker::Coordinate::center)->y << ") ";
-      Logger::Instance()->Info("Markers->\n    {} :: {}",logstr.str(), rem);
-  };
-
-  //check that markers are within search zone and at expected depth
-  auto is_on_bot_left = [](int detected_marker) {
-    return (detected_marker == 6 or detected_marker == 2 or detected_marker == 1 or detected_marker == 3);
-  };
-
-  auto is_on_bot_top = [](int detected_marker) {
-    return (detected_marker == 0 or detected_marker == 7 or detected_marker == 6); // TODO add the mysterious marker
-  };
-
-  /*
-  1. if marker is on left or on top:
-        make sure it is in the expected range if the bot is centered on image
-        TODO: how to prevent bots in the background 
-  2. else: reject
-  */
-
-  get_record(*markers, "Before marker sort and depth filter");
-
-  for(int i = 0; i < markers->size(); i++)
-  {
-    bool erase = false;
-    std::shared_ptr<Marker> marker = markers->at(i);
-
-    int id = markers->at(i)->get_id();
-    float marker_x = marker->get_coordinate(this->corners->at(id))->x;
-    float marker_y = marker->get_coordinate(this->corners->at(id))->y;
-
-    if (!is_on_bot_left(id) && !is_on_bot_top(id)) { 
-      Logger::Instance()->Warn("Marker ID {} at ({},{}) : Not on bot left or bot top, and was removed",
-                               marker->get_id(), marker_x, marker_y);
-      erase = true;
-    }
-    //validate marker is at expected depth from camera
-    float detected_depth = this->camera_depth_at_pixel(round(marker_x), round(marker_y)); //This rounding matches how the code creates the transform to bag coordinates in marker_detector_container.cpp
-    if(abs(detected_depth - this->marker_depth) > this->marker_depth_tolerance)
-    {
-      Logger::Instance()->Warn("Marker ID {} at ({},{})  had detected depth outside of acceptable range and was removed. Detected: {}, expected: {}, tolerance: {}",
-                               marker->get_id(), marker_x, marker_y, detected_depth, this->marker_depth, this->marker_depth_tolerance);
-      erase = true;
-    }
-    if (erase) {
-      markers->erase(markers->begin() + i);
-      i--;
-    }
-  }
-  Logger::Instance()->Debug("Number of valid markers after first round of checks: {}", markers->size());
-
-  std::sort(markers->begin(), markers->end(), [&is_on_bot_left, &is_on_bot_top](auto a, auto b) {
-      // if a's ID is less than b's ID
-      if (a->get_id() < b->get_id()) { return true; }
-      // if a & b are same ID, on bot left and a is farther left than b
-      if (a->get_id() == b->get_id() && is_on_bot_left(a->get_id()) &&
-          a->get_coordinate(Marker::Coordinate::center)->x <
-            b->get_coordinate(Marker::Coordinate::center)->x) { return true; }
-      // if a & b are same ID, on bot top, and a is higher than b
-      if (a->get_id() == b->get_id() && is_on_bot_top(a->get_id()) &&
-          a->get_coordinate(Marker::Coordinate::center)->y <
-            b->get_coordinate(Marker::Coordinate::center)->y) { return true; }
-      return false;
-  });
-  get_record(*markers, "AFTER marker sort and depth filter");
-  /**
-   *  Remove duplicates
-   */
-
-  // copy over non-duplicate markers to final_markers vector
-  std::vector<std::shared_ptr<Marker>> final_markers;
-  std::unique_copy(markers->begin(), markers->end(), std::back_inserter(final_markers),
-    [](auto a, auto b) { return a->get_id() == b->get_id(); });
-  get_record(final_markers, "After removing overlapping markers");
-
-  Logger::Instance()->Debug("Number of valid markers after second round of checks: {}", final_markers.size());
-  if (final_markers.size() > num_markers)  Logger::Instance()->Error("Too many valid markers! Something went wrong");
-  Logger::Instance()->Trace("returning valid markers");
-  return std::make_shared<std::vector<std::shared_ptr<Marker>>>(final_markers);
-}
-
 /**
  * Returns a list of all of the detected markers with nullptr where no markers were detected. The id of the detected
  * marker determines where in the array it is placed.
@@ -404,7 +313,7 @@ std::shared_ptr<std::vector<std::shared_ptr<Marker>>> MarkerDetectorContainer::g
     std::shared_ptr<Session> session = this->session;
     std::shared_ptr<std::vector<std::shared_ptr<Marker>>> detected_markers = marker_detector->detect_markers(session->get_color_mat());
     std::shared_ptr<std::vector<std::shared_ptr<Marker>>> valid_markers = (this->is_side_dispense) ? 
-                                                                          validate_markers_side_dispense(detected_markers) : 
+                                                                          detected_markers : 
                                                                           validate_markers(detected_markers, bot_in_nominal_orientation); //validates depth and within search region
 
     this->cached_markers = valid_markers; //cache the markers for use in visualizations, etc. without needing to re-detect

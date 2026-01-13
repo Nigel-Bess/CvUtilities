@@ -978,7 +978,7 @@ std::shared_ptr<MarkerDetectorContainer> DropZoneSearcher::get_container(std::sh
 
 //  bool extend_region_over_markers = lfb_vision_config->extend_depth_analysis_over_markers; // TODO remove from constructor?
 
-  std::shared_ptr<Eigen::Matrix3Xd> marker_coordinates = std::make_shared<Eigen::Matrix3Xd>(3,8);
+  std::shared_ptr<Eigen::Matrix3Xd> marker_coordinates = std::make_shared<Eigen::Matrix3Xd>(3, num_markers);
   // num_calib_coordinates x height x width x depth
   for (int i = 0; i < lfb_vision_config->num_markers; i++) (*marker_coordinates)(0, i) = lfb_vision_config->marker_coordinates_x[i];
   for (int i = 0; i < lfb_vision_config->num_markers; i++) (*marker_coordinates)(1, i) = lfb_vision_config->marker_coordinates_y[i];
@@ -2402,7 +2402,7 @@ vector<ArucoTagMatch> DropZoneSearcher::match_aruco_tags(vector<ArucoTag> tagDef
               matchingMeasuredTag = &measured;
               dist_to_match = distance;
               
-              Logger::Instance()->Debug("Tag distance less than dist_to_match!!");
+              Logger::Instance()->Debug("Tag {} distance less than dist_to_match!!", tagDefinition.Id);
             }
         }
 
@@ -2557,18 +2557,6 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
 
         // detect Aruco markers in RGB stream     
         std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> markers = container->get_markers();
-        // Visualization for detected valid markers
-        std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(
-            container->marker_detector->dictionary,
-            markers,
-            container->region_max_x,
-            container->region_min_x,
-            container->region_max_y,
-            container->region_min_y);
-
-        // visualize the markers
-        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, *primary_key_id);
-        if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
         
         vector<ArucoTag> arucoTagLocations{};
         arucoTagLocations.reserve(markers->size());
@@ -2587,6 +2575,51 @@ std::shared_ptr<SideDropResult> DropZoneSearcher::handle_pre_side_dispense(
         shared_ptr<PreDropImageSideDispenseRequest> request = std::make_shared<PreDropImageSideDispenseRequest>(request_json->get<PreDropImageSideDispenseRequest>());
         SideDispenseOccupancyResult occupancy_result = compute_side_dispense_solution(camera_point_cloud, request, arucoTagLocations);
         Logger::Instance()->Debug("Occupancy Data population complete! Returned success_code: {}", occupancy_result.error_code);
+
+        std::shared_ptr<std::vector<std::shared_ptr<fulfil::depthcam::aruco::Marker>>> valid_markers = std::make_shared<std::vector<std::shared_ptr<Marker>>>();
+
+        //find matching aruco ids between all detected markers and the matched markers during occupancy calculation
+        if (occupancy_result.debug_data != nullptr) {
+            auto aruco_locations = *(*occupancy_result.debug_data).ArucoLocations.Actual;
+            Logger::Instance()->Debug("Number of matched arucos captured from occupancy calculation : {}", aruco_locations.size());
+            vector<int> valid_aruco_ids;
+            for (const auto& aruco : arucoTagLocations) {
+                for (int i = 0; i < aruco_locations.size(); i++) {
+                    if (aruco.Position == aruco_locations[i]) {
+                        valid_aruco_ids.push_back(aruco.Id);
+                        break;
+                    }
+                }
+            }
+
+            //choose valid markers to display based on the matched ids
+            Logger::Instance()->Debug("Found {} valid aruco ids after aruco matching", valid_aruco_ids.size());
+            for (int i = 0; i < valid_aruco_ids.size(); i++) {
+                for (int j = 0; j < markers->size(); j++) {
+                    int id = markers->at(j)->get_id();
+                    if (id == valid_aruco_ids[i]) {
+                        valid_markers->push_back(markers->at(j));
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            valid_markers = markers;
+        }
+
+        // Visualization for detected valid markers
+        std::shared_ptr<cv::Mat> marker_visualization = session_visualizer2->draw_detected_markers(
+            container->marker_detector->dictionary,
+            valid_markers,
+            container->region_max_x,
+            container->region_min_x,
+            container->region_max_y,
+            container->region_min_y);
+
+        // visualize the markers
+        if (this->drop_live_viewer != nullptr) this->drop_live_viewer->update_image(marker_visualization, ViewerImageType::LFB_Markers, *primary_key_id);
+        if (this->visualize == 1) session_visualizer2->display_rgb_image(marker_visualization);
 
         if(occupancy_result.error_code == DcApiErrorCode::Success)
         {
