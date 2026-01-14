@@ -74,6 +74,13 @@ void VmbCamera::LogPingSuccess() {
     log_->Info("Pinged {}", name_);
 }
 
+void VmbCamera::TriggerDisconnect() {
+    if (connected_) {
+        connected_ = false;
+        AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
+    }
+}
+
 void VmbCamera::reconnect(bool isInitConnection){
     log_->Info("VmbCamera reconnect on {}", name_);
     auto code = camera_->Open(VmbAccessModeFull);
@@ -153,8 +160,7 @@ void VmbCamera::RunCamera(){
                 log_->Error("{} returned {} when trying to poll camera, reconnecting", name_, GetVimbaCode(code));
                 if(camera_ != nullptr)
                     camera_->Close();
-                connected_ = false;
-                AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
+                TriggerDisconnect();
             } else {
                 this->LogPingSuccess();
             }
@@ -211,8 +217,8 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
             if (!connected_) {
-                log_->Error("GetImageBlocking returning empty because {} is disconnected", name_);
-                return empty;
+                log_->Error("GetImageBlocking returning empty because {} is disconnected", name_);            
+                throw new std::runtime_error("GetImageBlocking returning empty because disconnected");
             }
             auto err = VmbErrorCustom;
 
@@ -267,7 +273,7 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
             if(!frameFound){
                 // This log is used by the Repack dashboard
                 log_->Error("No complete frame found for {}", name_);
-                return empty;
+                throw new std::runtime_error("No complete frame found");
             }
 
             auto stopTime = std::chrono::steady_clock::now();
@@ -279,6 +285,10 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
             frame_ptr_->GetHeight(height);
             frame_ptr_->GetWidth(width);
             last_image_ = std::make_shared<cv::Mat>(height, width, CV_8UC3, img_buffer_);
+            if (last_image_->empty()) {
+                log_->Error("Image from {} was empty???", name_);
+                throw new std::runtime_error("Vimba SDK returned empty image");
+            }
             log_->Debug("Got mat from image with height {} and width {}", (int)height, (int)width);
 
             return last_image_;
@@ -286,10 +296,8 @@ std::shared_ptr<cv::Mat> VmbCamera::GetImageBlocking(){
         catch (...) {
             // This log is used by the Repack dashboard
             log_->Error("No complete frame found for {}", name_);
-            // Assume camera must be busted if snapshot failed, run loop will try to reconnect
-            connected_ = false;
-            AddCameraStatus(DepthCameras::DcCameraStatusCodes::CAMERA_STATUS_RECOVERABLE_EXCEPTION);
             log_->Error("Vimba SDK threw a crappy undocumented runtime exception for {}, not recoverable", name_);
+            TriggerDisconnect();
             return empty;
         }
     }
