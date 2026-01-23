@@ -66,6 +66,8 @@ namespace fulfil::utils::commands::dc_api_error_codes {
         MissingBagStateOrLfbConfig = 26,
         /* Camera stream is frozen */
         FrozenCameraStream = 27,
+         /* Unable to form an occupancy map containing valid data*/
+        InvalidOccupancyMap = 28,
         /* UnrecoverableRealSenseError */
         UnrecoverableRealSenseError = 255,
         /* CommandDelegateExpired */

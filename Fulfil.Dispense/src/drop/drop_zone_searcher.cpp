@@ -2475,6 +2475,7 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
         
         Vector3d bagCavityDimensions = request->BagCavityDimensions;
         PointCloudSplitResult split_result = split_local_point_cloud(local_point_cloud, bagCavityDimensions);
+        auto response_code = split_result.in_bag_point_indices->size() <= 0 ? DcApiErrorCode::InvalidOccupancyMap : DcApiErrorCode::Success;
         shared_ptr<vector<Vector3d>> bag_cavity_points_camera_coord =  break_into_points(*split_result.sub_sample(*points_in_camera_coord, true));
         shared_ptr<vector<Vector3d>> outside_cavity_points_camera_coord = break_into_points(*split_result.sub_sample(*points_in_camera_coord, false));
         shared_ptr<vector<Vector3d>> bag_cavity_points_bag_cavity_coord =  break_into_points(*split_result.sub_sample(local_point_cloud, true));
@@ -2483,7 +2484,7 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
         if(!request->RequestOccupancyVisualization)
         {
           return SideDispenseOccupancyResult{
-            DcApiErrorCode::Success,
+            response_code,
             occupancy_map,
             std::make_shared<PointCloudSplitResult>(split_result),
             nullptr,
@@ -2509,7 +2510,7 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
         debug_data.ArucoLocations.Matched  = make_shared<vector<Vector3d>>(map(arucos,[bot_pose] (const ArucoTagMatch& aruco) {return bot_pose.Apply(aruco.TagDefinitionAtIdenityTransform.Position); }));
 
         return SideDispenseOccupancyResult{
-          DcApiErrorCode::Success,
+          response_code,
           occupancy_map,
           make_shared<PointCloudSplitResult>(split_result),
           make_shared<OccupancyDebugData>(debug_data),
