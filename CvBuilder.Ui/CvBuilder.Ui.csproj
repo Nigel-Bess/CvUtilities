@@ -12,4 +12,8 @@
     <Folder Include="Wpf\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CvBuilder\CvBuilder.csproj" />
+  </ItemGroup>
+
 </Project>

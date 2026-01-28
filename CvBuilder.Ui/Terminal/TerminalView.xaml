@@ -19,7 +19,9 @@
             <RowDefinition Height="25"/>            
         </Grid.RowDefinitions>
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <TextBox IsEnabled="False" IsReadOnly="True" Text="{Binding TerminalOutput}"/>
+            <TextBox IsReadOnly="True"
+             Text="{Binding TerminalOutput}"
+             TextWrapping="NoWrap"/>
         </ScrollViewer>        
         <TextBox Grid.Row="1" Text="{Binding TerminalInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" >
             <TextBox.InputBindings>
