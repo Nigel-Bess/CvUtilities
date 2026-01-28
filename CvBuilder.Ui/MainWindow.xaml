@@ -6,8 +6,9 @@
         xmlns:local="clr-namespace:CvBuilder.Ui"
         xmlns:t="clr-namespace:CvBuilder.Ui.Terminal"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}">
     <Grid>
-        <t:TerminalView></t:TerminalView>
+        <t:TerminalView DataContext="{Binding TerminalVm}"></t:TerminalView>
     </Grid>
 </Window>

@@ -21,9 +21,10 @@
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
             <TextBox IsEnabled="False" IsReadOnly="True" Text="{Binding TerminalOutput}"/>
         </ScrollViewer>        
-        <TextBox Grid.Row="1" Text="{Binding TerminalOutput}">
+        <TextBox Grid.Row="1" Text="{Binding TerminalInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" >
             <TextBox.InputBindings>
-                <KeyBinding Command="{Binding EnterCommand}" Key="Enter" />
+                <KeyBinding Command="{Binding EnterCommand}" Key="Enter"/>
+                <KeyBinding Command="{Binding EnterCommand}" Key="Return"/>
             </TextBox.InputBindings>
         </TextBox>
     </Grid>

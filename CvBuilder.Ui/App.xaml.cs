@@ -1,6 +1,4 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
 
 namespace CvBuilder.Ui
 {
@@ -9,6 +7,10 @@ namespace CvBuilder.Ui
     /// </summary>
     public partial class App : Application
     {
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            Program.Start();
+        }
     }
 
 }
