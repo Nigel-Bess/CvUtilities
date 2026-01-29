@@ -1,6 +1,9 @@
-﻿namespace CvBuilder.Ui
+﻿using CvBuilder.Ui.Terminal;
+
+namespace CvBuilder.Ui;
+
+public interface IScript
 {
-    interface IScript
-    {
-    }
+    public Task RunAsync(TerminalViewModel terminal);
+    public string Name { get; }
 }

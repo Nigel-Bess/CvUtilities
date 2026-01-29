@@ -15,7 +15,7 @@ public class TerminalViewModel : Notifier
     public ICommand EnterCommand { get; }
     public TerminalViewModel()
     {
-        EnterCommand = new AsyncRelayCommand(Enter);
+        EnterCommand = new AsyncRelayCommand(() => Enter());
         _ui = SynchronizationContext.Current ?? new();
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
@@ -25,15 +25,16 @@ public class TerminalViewModel : Notifier
         OnGotText?.Invoke();
     }
     private void Return() => AddText("\n");
-    private async Task Enter()
+    public async Task<(bool Success, string ErrorMessage)> Enter(string? line = null)
     {
-        var line = TerminalInput;
+        line ??= TerminalInput;
         var directory = CurrentDirectoryStr;
         AddLine(line);
         TerminalInput = "";
-        var (errorDode, stdOut, stdErr, newDirectory) = await RunCmd.ExecuteAsync(line, directory);
+        var (errorCode, stdOut, stdErr, newDirectory) = await RunCmd.ExecuteAsync(line, directory);
         AddText(stdOut);
         CurrentDirectoryStr = newDirectory;
         Return();
+        return (errorCode == 0, stdErr);
     }
 }
