@@ -12,7 +12,12 @@ public static class SettingsHelpers
         try
         {
             var builds = JsonHelpers.DeserializeFromJson<List<DeployableBuild>>(jsonText);
-            if (builds is null) throw new InvalidOperationException($"{nameof(builds)} was null after deserialization");
+            if (builds is null)
+            {
+                // don't log a warning - this is nominal behavior when no builds are saved
+                SaveDeployableBuilds([]);
+                return [];
+            }
             var uniqueBuilds = builds.ToHashSet();
             if (uniqueBuilds.Count != builds.Count)
             {
