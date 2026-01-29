@@ -7,6 +7,7 @@ namespace CvBuilder;
 
 public sealed class ConPtyCmdHost : ICmdHost, IDisposable
 {
+    public int BufferSize { get; } = 8192;
     public Action<string> OnTextOutput { get; set; } = _ => { };
 
     readonly Stream _in;
@@ -79,7 +80,7 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
 
     async Task PumpOutputAsync(CancellationToken ct)
     {
-        var buf = new byte[8192];
+        var buf = new byte[BufferSize];
         while (!ct.IsCancellationRequested)
         {
             int n;

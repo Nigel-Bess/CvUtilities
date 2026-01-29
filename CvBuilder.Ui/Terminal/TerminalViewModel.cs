@@ -44,15 +44,15 @@ public class TerminalViewModel : Notifier
         _host.SendCommand(line);
     }
 
-    public async Task<bool> AwaitText(string text, int timeoutMs = 1000)
+    public async Task<bool> AwaitText(string text, int timeoutMs = 10000)
     {
-        if (string.IsNullOrEmpty(text) || TerminalOutput.Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.IsNullOrEmpty(text) || TerminalOutput.EndsWith(text, StringComparison.OrdinalIgnoreCase)) return true;
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var tail = new StringBuilder();
 
-        var bufferMultiplier = 4;
-        var cap = text.Length * bufferMultiplier;
+        var bufferMultiplier = 2;
+        var cap = _host.BufferSize * bufferMultiplier;
 
         var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
         CancellationTokenRegistration reg = default;
@@ -66,9 +66,10 @@ public class TerminalViewModel : Notifier
 
         void Handler(string s)
         {
-            tail.Append(s);
-            if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
 
+            tail.Append(s);
+
+            if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
             if (!tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase)) return;
 
             Cleanup();
