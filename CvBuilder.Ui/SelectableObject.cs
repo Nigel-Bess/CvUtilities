@@ -7,6 +7,7 @@ public class SelectableObject<T>
     public T Item { get; }
     public SelectableObject(T underlying, Func<T, string>? toString = null)
     {
+        Item = underlying;
         toString ??= t => t?.ToString() ?? "NULL";
         DisplayString = toString(underlying);
     }
