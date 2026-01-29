@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:CvBuilder.Ui.Deploy"
+             xmlns:local="clr-namespace:CvBuilder.Ui.DeployDispense"
               xmlns:t="clr-namespace:CvBuilder.Ui.Terminal"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
@@ -11,6 +11,7 @@
     <UserControl.Resources>
         <Style TargetType="Button">
             <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="5"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style TargetType="Label">
@@ -36,22 +37,22 @@
                 <RowDefinition/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <StackPanel Orientation="Horizontal">
-                <StackPanel Orientation="Vertical">
-                    <StackPanel Orientation="Horizontal">
-                        <Label Content="Branch Name:"/>
-                        <TextBox Text="{Binding BuildBranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label Content="Facility:"/>
-                        <ComboBox SelectedItem="{Binding SelectedFacility}" ItemsSource="{Binding FacilityOptions}" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="Branch Name:"/>
+                    <TextBox Text="{Binding BuildBranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
-               
-                <Button Content="Start Build" HorizontalAlignment="Left" Command="{Binding StartBuildCommand}"/>
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="Facility:"/>
+                    <ComboBox SelectedItem="{Binding SelectedFacility}" ItemsSource="{Binding FacilityOptions}" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                </StackPanel>
+                <UniformGrid Rows="1">
+                    <Button Content="Deploy Without Building" Command="{Binding DeployWithoutBuildingCommand}"/>
+                    <Button Content="Start Build" Command="{Binding StartBuildCommand}"/>
+                </UniformGrid>
             </StackPanel>
 
-            <GroupBox Header="Builds" Grid.Row="1">
+            <GroupBox Header="Completed Builds" Grid.Row="1">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding DeployableBuilds}">
                         <ItemsControl.ItemTemplate>

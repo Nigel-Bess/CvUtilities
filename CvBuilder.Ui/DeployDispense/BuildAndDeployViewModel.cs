@@ -12,6 +12,7 @@ public class BuildAndDeployViewModel
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
+    public ICommand DeployWithoutBuildingCommand { get; }
     public ObservableCollection<DeployViewModel> DeployableBuilds { get; }
 
     public string BuildBranchText
@@ -37,6 +38,7 @@ public class BuildAndDeployViewModel
     {
         ScriptRunner = scriptRunner;
         StartBuildCommand = new Command(StartBuild, CanStartBuild);
+        DeployWithoutBuildingCommand = new Command(DeployWithoutBuilding, ScriptRunner.IsIdle);
         FacilityOptions = Enum.GetValues<Facility>().Where(e => e != Facility.None).ToList();
         DeployableBuilds = new(SettingsHelpers.GetDeployableBuilds().Select(NewDeployViewModel));
     }
@@ -47,6 +49,13 @@ public class BuildAndDeployViewModel
         if (string.IsNullOrWhiteSpace(BuildBranchText)) return false;
         if (SelectedFacility == Facility.None) return false;
         return true;
+    }
+
+    public void DeployWithoutBuilding()
+    {
+        var build = new DeployableBuild(BranchName: BuildBranchText, Facility: SelectedFacility);
+        var vm = new DeployViewModel(build, ScriptRunner);
+        vm.Deploy();
     }
 
 
