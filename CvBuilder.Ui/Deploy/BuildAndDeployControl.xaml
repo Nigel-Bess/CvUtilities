@@ -7,11 +7,38 @@
               xmlns:t="clr-namespace:CvBuilder.Ui.Terminal"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Width" Value="125"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+    </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
+        <StackPanel Margin="5">
+            <StackPanel Orientation="Horizontal">
+                <Label Content="Branch Name:"/>
+                <TextBox/>
+                <Button Content="Start Build" HorizontalAlignment="Left"/>
+            </StackPanel>
+            
+            <GroupBox Header="Builds">
+                
+            </GroupBox>
+        </StackPanel>
         <t:TerminalView Grid.Column="1" DataContext="{Binding TerminalVm}"/>
+       
     </Grid>
 </UserControl>
