@@ -4,6 +4,7 @@ namespace CvBuilder.Ui.Scripts;
 
 internal class GenericScript : IScript
 {
+    public Action<double> ReportProgress { get; set; }
     public delegate Task<ScriptCompletionInfo> ScriptAction(TerminalViewModel terminal);
     public string Name { get; }
     private readonly ScriptAction _action;

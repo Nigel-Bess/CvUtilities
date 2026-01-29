@@ -1,4 +1,5 @@
 ﻿using CvBuilder.Ui.Hardcoded;
+using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Util;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
@@ -55,7 +56,8 @@ public class DeployViewModel
 
     private void DeploySingle(Dispense dispenes)
     {
-        UserInfo.LogError($"Single-deploy not yet implemented");
+        var script = new MockScript();
+        _ = _runner.Run(script);
     }
 
     private void DeployMultiple(IEnumerable<Dispense> dispenes)

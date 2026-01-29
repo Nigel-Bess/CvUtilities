@@ -5,12 +5,14 @@ namespace CvBuilder.Ui.Scripts;
 
 public class GitLogin : IScript
 {
+    public Action<double> ReportProgress { get; set; }
     public string Name { get; } = "Log in to git";
 
     public async Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
     {
         UserInfo.LogInfo("Performing git auth...");
         if (!await terminal.AwaitText("Username for 'https://github.com'")) return ScriptCompletionInfo.Success; // github never asked for a username -> we are already logged in
+        ReportProgress?.Invoke(.33);
         var username = UserSettings.Default.GithubUsername;
         var githubPat = UserSettings.Default.GithubPat;
         if (new[] { username, githubPat }.Any(string.IsNullOrWhiteSpace))
@@ -21,6 +23,7 @@ public class GitLogin : IScript
         }
         terminal.Enter(username);
         if (!(await terminal.AwaitText("Password for"))) return ScriptCompletionInfo.Failure("GH never asked for a password. Something must have gone wrong");
+        ReportProgress?.Invoke(.66);
         terminal.Enter(githubPat);
         var failed = await terminal.AwaitText("Invalid username or token", timeoutMs: 1000); // If we see this then login failed
         if (failed)

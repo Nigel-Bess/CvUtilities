@@ -8,13 +8,14 @@ using System.Windows.Input;
 
 namespace CvBuilder.Ui.DeployDispense;
 
-public class BuildAndDeployViewModel
+public class BuildAndDeployViewModel : Notifier
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
     public ICommand DeployWithoutBuildingCommand { get; }
     public ObservableCollection<DeployViewModel> DeployableBuilds { get; }
-
+    public double Progress { get => field; set { field = value; NotifyPropertyChanged(); } } = 0;
+    public bool ShowProgress { get => field; set { field = value; NotifyPropertyChanged(); } } = false;
     public string BuildBranchText
     {
         get => UserSettings.Default.DispenseBuildBranch;

@@ -6,6 +6,7 @@ namespace CvBuilder.Ui.Scripts;
 
 internal class Ssh : IScript
 {
+    public Action<double> ReportProgress { get; set; }
     public string Name { get; }
     private readonly SshLogin _sshLogin;
     public Ssh(SshLogin sshLogin)
@@ -19,11 +20,12 @@ internal class Ssh : IScript
         var host = _sshLogin.HostName;
         UserInfo.LogInfo($"SSHing into {host}");
         terminal.Enter($"ssh {host}");
+        ReportProgress(0.1);
         if (!await terminal.AwaitText("password:"))
         {
             return ScriptCompletionInfo.Failure($"{host} never asked for a password.");
         }
-
+        ReportProgress(0.5);
         terminal.Enter(_sshLogin.PassWord);
         if (!await terminal.AwaitText("Welcome"))
         {
