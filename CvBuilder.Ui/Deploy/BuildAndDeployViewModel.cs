@@ -8,17 +8,26 @@ public class BuildAndDeployViewModel
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
-    public string BuildTargetText { get; set; } = "";
+    public string BuildBranchText { get; set; } = "";
+    public string BuildFacilityText { get; set; } = "";
     public BuildAndDeployViewModel(ScriptRunner scriptRunner)
     {
         ScriptRunner = scriptRunner;
-        StartBuildCommand = new Command(StartBuild, () => ScriptRunner.IsIdle() && !string.IsNullOrWhiteSpace(BuildTargetText));
+        StartBuildCommand = new Command(StartBuild, CanStartBuild);
+    }
+
+    private bool CanStartBuild()
+    {
+        if (!ScriptRunner.IsIdle()) return false;
+        if (string.IsNullOrWhiteSpace(BuildBranchText)) return false;
+        if (string.IsNullOrWhiteSpace(BuildFacilityText)) return false;
+        return true;
     }
 
 
     public void StartBuild()
     {
-        var build = new BuildDispense(BuildTargetText);
+        var build = new BuildDispense(branchName: BuildBranchText, facilityName: BuildFacilityText);
         _ = ScriptRunner.Run(build);
     }
 }

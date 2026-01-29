@@ -14,6 +14,7 @@ public class TerminalViewModel : Notifier
     public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
     public ICommand EnterCommand { get; }
     private ICmdHost _host;
+    private StringBuilder _textSinceLastCommand { get; } = new();
     public TerminalViewModel()
     {
         EnterCommand = new Command(() => Enter());
@@ -23,6 +24,7 @@ public class TerminalViewModel : Notifier
     private void OnOutputFromCmd(string s)
     {
         AddText(s);
+        _textSinceLastCommand.Append(s);
     }
     public void Reset(string message = "")
     {
@@ -48,12 +50,15 @@ public class TerminalViewModel : Notifier
         TerminalInput = "";
         AddLine(line);
         Return();
+        _textSinceLastCommand.Clear();
         _host.SendCommand(line);
     }
 
-    public async Task<bool> AwaitText(string text, int timeoutMs = 10000)
+    public async Task<bool> AwaitText(string text, int timeoutMs = 10000, int existingTailSize = 100)
     {
         if (string.IsNullOrEmpty(text)) return true;
+        var textSinceLastCommand = _textSinceLastCommand.ToString();
+        if (textSinceLastCommand.Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
 
         var cap = _host.BufferSize * 2;
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
