@@ -1,6 +1,5 @@
 ﻿using CvBuilder.Ui.Terminal;
 using Fulfil.Visualization.ErrorLogging;
-using System.Windows;
 
 namespace CvBuilder.Ui.Scripts;
 
@@ -36,7 +35,7 @@ public class GitLogin : IScript
     {
         var vm = new LoginFormViewModel();
         var form = new LoginForm() { DataContext = vm };
-        var window = new Window() { Content = form, Width = 300, Height = 200 };
+        var window = new OkCancelDialog("Log in to Github", "Login", form) { Width = 300, Height = 200 };
         if (window.ShowDialog() == false) return (false, "", "");
         var username = vm.Username;
         var githubPat = vm.Password;
