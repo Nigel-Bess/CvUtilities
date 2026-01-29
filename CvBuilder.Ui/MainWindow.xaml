@@ -4,11 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CvBuilder.Ui"
-        xmlns:t="clr-namespace:CvBuilder.Ui.Terminal"
+       
+        xmlns:deploy="clr-namespace:CvBuilder.Ui.Deploy"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="CV Utilities" Height="450" Width="800"
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}">
     <Grid>
-        <t:TerminalView DataContext="{Binding TerminalVm}"></t:TerminalView>
+        <TabControl>
+            <TabItem Header="Build and Deploy">
+                <deploy:BuildAndDeployControl/>
+             </TabItem>
+        </TabControl>
     </Grid>
 </Window>

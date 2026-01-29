@@ -1,8 +1,8 @@
-﻿using CvBuilder.Ui.Terminal;
+﻿using CvBuilder.Ui.Deploy;
 
 namespace CvBuilder.Ui;
 
 public class MainWindowViewModel
 {
-    public TerminalViewModel TerminalVm { get; } = new();
+    public required BuildAndDeployViewModel BuildAndDeployVm { get; init; }
 }

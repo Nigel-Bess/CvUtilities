@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="CvBuilder.Ui.Deploy.BuildAndDeployControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:CvBuilder.Ui.Deploy"
+              xmlns:t="clr-namespace:CvBuilder.Ui.Terminal"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <t:TerminalView Grid.Column="1" DataContext="{Binding TerminalVm}"/>
+    </Grid>
+</UserControl>
