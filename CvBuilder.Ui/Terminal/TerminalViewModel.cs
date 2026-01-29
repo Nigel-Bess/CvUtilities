@@ -55,6 +55,15 @@ public class TerminalViewModel : Notifier
         _textSinceLastCommand.Clear();
         _host.Send(line);
     }
+    public async Task<bool> AwaitSequentially(IEnumerable<string> toFind, int timeoutMs = 10000)
+    {
+        var tasks = new List<Task<bool>>();
+        foreach (var (idx, str) in toFind.Index())
+        {
+            if (!await AwaitText(str, timeoutMs: timeoutMs, inclueTextSinceLastCommand: idx == 0)) return false;
+        }
+        return true;
+    }
 
     public async Task<bool> AwaitAll(IEnumerable<string> toFind, int timeoutMs = 10000)
     {
@@ -82,11 +91,14 @@ public class TerminalViewModel : Notifier
         return (success, success ? tasks[first] : null);
     }
 
-    public async Task<bool> AwaitText(string text, int timeoutMs = 10000)
+    public async Task<bool> AwaitText(string text, int timeoutMs = 10000, bool inclueTextSinceLastCommand = true)
     {
         if (string.IsNullOrEmpty(text)) return true;
-        var textSinceLastCommand = _textSinceLastCommand.ToString();
-        if (textSinceLastCommand.Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
+        if (inclueTextSinceLastCommand)
+        {
+            var textSinceLastCommand = _textSinceLastCommand.ToString();
+            if (textSinceLastCommand.Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
+        }
 
         var cap = _host.BufferSize * 2;
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

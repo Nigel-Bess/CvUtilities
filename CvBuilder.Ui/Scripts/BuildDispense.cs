@@ -39,8 +39,8 @@ internal class BuildDispense : CombinedScript
     private async Task<ScriptCompletionInfo> WaitForBuildToFinish(TerminalViewModel terminal)
     {
         var maxTimeMs = (int)TimeSpan.FromMinutes(20).TotalMilliseconds;
-        var buildSuccess = terminal.AwaitAll(["Pushing [==================================================>]", "code/Fulfil.ComputerVision"], maxTimeMs);
-        var alreadyExisted = terminal.AwaitAll(["Layer already exists", "code/Fulfil.ComputerVision"], maxTimeMs);
+        var buildSuccess = terminal.AwaitSequentially(["Pushing [==================================================>]", "code/Fulfil.ComputerVision"], maxTimeMs);
+        var alreadyExisted = terminal.AwaitSequentially(["Layer already exists", "code/Fulfil.ComputerVision"], maxTimeMs);
         var buildFailure = terminal.AwaitText("did not complete successfully", maxTimeMs);
         var firstToComplete = await Task.WhenAny([buildFailure, buildSuccess, alreadyExisted]);
         if (!await firstToComplete) return ScriptCompletionInfo.Failure("Build timed out");
