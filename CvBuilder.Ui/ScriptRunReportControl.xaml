@@ -16,7 +16,11 @@
             <TextBlock Text="{Binding ScriptName}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             <ProgressBar Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Progress}"/>
         </Grid>
-        <Label Content="Done" Visibility="{Binding CompleteVisibility}"/>
+        <StackPanel Orientation="Horizontal"  Visibility="{Binding CompleteVisibility}">
+            <Label Content="{Binding ScriptName}"/>
+            <Label Content="{Binding CompleteText}"/>
+        </StackPanel>
+        
     </Grid>
 
 </UserControl>

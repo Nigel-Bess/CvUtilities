@@ -3,6 +3,7 @@ using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Util;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
+using System.Windows;
 using System.Windows.Input;
 
 namespace CvBuilder.Ui.DeployDispense;
@@ -48,23 +49,31 @@ public class DeployViewModel
             return;
         }
         DeployMultiple(dabs);
-
-        //var deployScript = new DeployDispenseScript(_build);
-        //var result = await _runner.Run(deployScript);
-        //if (!result.Succeeded) UserInfo.LogError(result.FailureReason!);
     }
 
     private void DeploySingle(Dispense dispense)
     {
-        var script = new MockScript($"Deploy to {dispense}");
-        _ = _runner.Run(script);
+        _ = _runner.Run(GenerateDeployScript(dispense));
     }
 
     private void DeployMultiple(IEnumerable<Dispense> dispenes)
     {
-        UserInfo.LogError($"Multi-deploy not yet implemented");
+        var runners = dispenes.Select(GenerateDeployScript).Select(s =>
+        {
+            var runner = new ScriptRunner(new());
+            _ = runner.Run(s);
+            return runner;
+        });
+        var vm = new MultiDeployViewModel(runners.ToList());
+        var form = new MultiDeploy() { DataContext = vm };
+        var window = new Window() { Content = form, Width = 400, Height = 400 };
+        window.Show();
     }
 
+    private IScript GenerateDeployScript(Dispense dispense)
+    {
+        return new MockScript($"Deploy to {dispense}");
+    }
     public void Remove()
     {
         SettingsHelpers.RemoveDeployableBuild(_build);

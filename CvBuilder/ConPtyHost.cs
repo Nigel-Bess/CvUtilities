@@ -26,7 +26,7 @@ public sealed class ConPtyCmdHost : ICmdHost
 
     public ConPtyCmdHost(string commandLine = "cmd.exe", short cols = 120, short rows = 30)
     {
-        var sa = new SECURITY_ATTRIBUTES { nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(), bInheritHandle = true };
+        var sa = new SECURITY_ATTRIBUTES { nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(), bInheritHandle = false };
 
         CreatePipe(out var inRead, out var inWrite, ref sa, 0);
         CreatePipe(out var outRead, out var outWrite, ref sa, 0);
