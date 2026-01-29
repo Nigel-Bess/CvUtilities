@@ -2137,6 +2137,28 @@ std::string grid_map_to_str_3(std::vector<std::shared_ptr<std::vector<float>>> m
     return output;
 }
 
+static inline std::string matrix3Xd_to_str(const Eigen::Matrix3Xd& mat,
+    int precision = 3,
+    int col_width = 0) {
+    std::ostringstream oss;
+    oss.setf(std::ios::fixed);
+    oss << std::setprecision(precision);
+
+    int w = col_width;
+    if (w <= 0) {
+        w = precision + 6;
+    }
+
+    for (Eigen::Index r = 0; r < mat.rows(); ++r) {
+        oss << "| ";
+        for (Eigen::Index c = 0; c < mat.cols(); ++c) {
+            oss << std::setw(w) << mat(r, c) << "  | ";
+        }
+        oss << '\n';
+    }
+    return oss.str();
+}
+
 shared_ptr<vector<shared_ptr<vector<float>>>> compute_occupancy_map(const vector<Vector3d>& points_in_bag_cavity_coordinates, int num_cols, int num_rows, const Vector3d& bag_cavity_dimensions){
   
   if (num_rows <= 0 || num_cols <= 0) throw std::runtime_error("Invalid occupancy map dimensions " + std::to_string(num_rows) +" x " + std::to_string(num_cols));
@@ -2449,9 +2471,17 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
 {
     try {
 
+        for (int i = 0; i < 10; i++) {
+            Eigen::Vector3d coord = points_in_camera_coord->col(i);
+            Logger::Instance()->Debug("Camera coord point : x: {}, y: {}, z: {}", coord.x(), coord.y(), coord.z());
+        }
+
         const int min_arucos_tag_count = 3;
 
         vector<ArucoTagMatch> arucos = match_aruco_tags(request->ArucoTags, measured_aruco_tags, request->ExpectedBotPose);
+        for (const auto& aruco : arucos) {
+            Logger::Instance()->Debug("Aruco Id: {}, Pos x: {}, y: {}, z: {}", aruco.MeasuredPosition.x(), aruco.MeasuredPosition.y(), aruco.MeasuredPosition.z(), aruco.TagDefinitionAtIdenityTransform.Id);
+        }
         if(arucos.size() < min_arucos_tag_count)
         {
             Logger::Instance()->Debug("Only " + std::to_string(arucos.size()) + " valid arucos detected!!");
@@ -2464,17 +2494,25 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
         }
         
         RigidTransformation bot_pose = ransac_kabsch(arucos);
-
-        // TODO (Nigel): Ensure that the pose is within tolerance and return a DcApiErrorCode if not.
         for (int i = 0; i < points_in_camera_coord->cols(); ++i) {
             Eigen::Vector3d point_cloud_point = points_in_camera_coord->col(i);
             Eigen::Vector3d point_cloud_camera_point(meter_to_mm(point_cloud_point(0)), meter_to_mm(point_cloud_point(1)), meter_to_mm(point_cloud_point(2)));
             points_in_camera_coord->col(i) = point_cloud_camera_point;
         }
-        Eigen::Matrix3Xd local_point_cloud = bot_pose.Inverse().Apply(*points_in_camera_coord);
+
+        for (int i = 0; i < 10; i++) {
+            Eigen::Vector3d coord = points_in_camera_coord->col(i);
+            Logger::Instance()->Debug("Millimeters converted camera coord point : x: {}, y: {}, z: {}", coord.x(), coord.y(), coord.z());
+        }
+        auto inverse_bot_pose = bot_pose.Inverse();
+		Logger::Instance()->Debug("Computed inverse bot pose: {}", inverse_bot_pose.to_string());
+        Eigen::Matrix3Xd local_point_cloud = inverse_bot_pose.Apply(*points_in_camera_coord);
         
         Vector3d bagCavityDimensions = request->BagCavityDimensions;
+		Logger::Instance()->Debug("Bag Cavity Dimensions: x:{} mm, y:{} mm, z:{} mm", bagCavityDimensions.x(), bagCavityDimensions.y(), bagCavityDimensions.z());
         PointCloudSplitResult split_result = split_local_point_cloud(local_point_cloud, bagCavityDimensions);
+        Logger::Instance()->Debug("Points in in_bag_point_indices:{}", split_result.in_bag_point_indices->size());
+        Logger::Instance()->Debug("Points in out_of_bag_point_indices:{}", split_result.out_of_bag_point_indices->size());
         auto response_code = split_result.in_bag_point_indices->size() <= 0 ? DcApiErrorCode::InvalidOccupancyMap : DcApiErrorCode::Success;
         shared_ptr<vector<Vector3d>> bag_cavity_points_camera_coord =  break_into_points(*split_result.sub_sample(*points_in_camera_coord, true));
         shared_ptr<vector<Vector3d>> outside_cavity_points_camera_coord = break_into_points(*split_result.sub_sample(*points_in_camera_coord, false));
