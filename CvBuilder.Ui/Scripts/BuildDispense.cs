@@ -1,4 +1,5 @@
-﻿using CvBuilder.Ui.Terminal;
+﻿using CvBuilder.Ui.Hardcoded;
+using CvBuilder.Ui.Terminal;
 
 namespace CvBuilder.Ui.Scripts;
 

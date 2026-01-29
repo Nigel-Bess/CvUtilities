@@ -43,8 +43,8 @@
                         <TextBox Text="{Binding BuildBranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Label Content="Facility Name:"/>
-                        <TextBox Text="{Binding BuildFacilityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Label Content="Facility:"/>
+                        <ComboBox SelectedItem="{Binding SelectedFacility}" ItemsSource="{Binding FacilityOptions}" Width="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
                

@@ -1,4 +1,5 @@
-﻿using CvBuilder.Ui.Terminal;
+﻿using CvBuilder.Ui.Hardcoded;
+using CvBuilder.Ui.Terminal;
 using Fulfil.Visualization.ErrorLogging;
 
 namespace CvBuilder.Ui.Scripts;

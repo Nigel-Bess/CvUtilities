@@ -46,5 +46,29 @@ namespace CvBuilder.Ui {
                 this["GithubPat"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int DispenseBuildFacility {
+            get {
+                return ((int)(this["DispenseBuildFacility"]));
+            }
+            set {
+                this["DispenseBuildFacility"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string DispenseBuildBranch {
+            get {
+                return ((string)(this["DispenseBuildBranch"]));
+            }
+            set {
+                this["DispenseBuildBranch"] = value;
+            }
+        }
     }
 }
