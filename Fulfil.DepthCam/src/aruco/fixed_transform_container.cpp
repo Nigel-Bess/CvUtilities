@@ -78,10 +78,8 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud_side_dispense_camera(
     bool include_invalid_depth_data, const char* caller)
 {
-    std::shared_ptr<fulfil::depthcam::pointcloud::LocalPointCloud> local_point_cloud = this->session->get_point_cloud(
-        this->transform, include_invalid_depth_data, caller)->as_local_cloud();
-
-    return local_point_cloud;
+    std::shared_ptr<fulfil::depthcam::pointcloud::CameraPointCloud> camera_point_cloud = this->session->get_point_cloud(include_invalid_depth_data, caller)->as_camera_cloud();
+    return camera_point_cloud;
 }
 
 std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContainer::get_point_cloud_side_dispense_outside_cavity(
@@ -91,7 +89,7 @@ std::shared_ptr<fulfil::depthcam::pointcloud::PointCloud> FixedTransformContaine
         this->transform, include_invalid_depth_data, caller)->as_local_cloud();
 
     if (!this->should_filter_points_outside_of_container) { return local_point_cloud_outside_cavity; }
-
+    
     //adjusting the center of the bag to have accurate container mapping
     this->center_x = 0.00;
     std::shared_ptr<Matrix3dPredicate> predicate =
