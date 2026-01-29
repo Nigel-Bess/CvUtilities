@@ -44,16 +44,6 @@ struct RigidTransformation {
     inline Eigen::Matrix3Xd Apply(const Eigen::Matrix3Xd& points) const {
         return (Rotation * points).colwise() + Translation;
     }
-
-    inline std::string to_string() const {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(4)
-            << "R=[" << Rotation(0,0) << "," << Rotation(0,1) << "," << Rotation(0,2) << ";"
-                    << Rotation(1,0) << "," << Rotation(1,1) << "," << Rotation(1,2) << ";"
-                    << Rotation(2,0) << "," << Rotation(2,1) << "," << Rotation(2,2) << "] "
-            << "t=[" << Translation.x() << "," << Translation.y() << "," << Translation.z() << "]";
-        return oss.str();
-    }
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RigidTransformation, Rotation, Translation)

@@ -17,20 +17,6 @@ int fulfil::utils::round_to_nearest_int(float f){
     return (int)std::lround(f);
 }
 
-namespace {
-constexpr float pi = 3.14159265358979323846f;
-}
-
-float fulfil::utils::deg_to_rad(float deg)
-{
-    return deg * pi / 180.0f;
-}
-
-float fulfil::utils::rad_to_deg(float rad)
-{
-    return rad * 180.0f / pi;
-}
-
 
 std::shared_ptr<std::vector<int>> convert_map_row_to_integers(std::shared_ptr<std::vector<float>> input) {
     std::vector<int> row;

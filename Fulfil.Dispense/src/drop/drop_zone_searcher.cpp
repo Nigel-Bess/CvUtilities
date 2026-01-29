@@ -50,7 +50,6 @@ using fulfil::utils::commands::dc_api_error_codes::DcApiErrorCode;
 using fulfil::utils::commands::dc_api_error_codes::DcApiError;
 using fulfil::utils::meter_to_mm;
 using fulfil::utils::to_meters;
-using fulfil::utils::rad_to_deg;
 using fulfil::utils::Logger;
 using fulfil::utils::Point3D;
 using Eigen::Vector3d;
@@ -2441,50 +2440,6 @@ PointCloudSplitResult split_local_point_cloud(const Matrix3Xd& local_point_cloud
   return  PointCloudSplitResult{std::make_shared<vector<int>>(in_bag_indices),std::make_shared<vector<int>>(out_of_bag_indices)};
 }
 
-bool is_pose_valid(RigidTransformation& computed_bot_pose,
-                   RigidTransformation& expected_bot_pose,
-                   float traverse_tolerance_mm = 200,
-                   float lift_tolerance_mm = 80,
-                   float extend_tolerance_mm = 80,
-                   float angle_tolerance_degrees = 10)
-{
-    const auto translation_error_mm =
-        (computed_bot_pose.Translation - expected_bot_pose.Translation).cwiseAbs();
-
-    const auto rotation_diff =
-        computed_bot_pose.Rotation * expected_bot_pose.Rotation.transpose();
-    const Eigen::AngleAxisd angle_axis(rotation_diff);
-    const auto rotation_error_degrees = std::abs(rad_to_deg(angle_axis.angle()));
-    // x=traverse, y=lift, z=extend
-
-    if(translation_error_mm.x() > traverse_tolerance_mm){
-      Logger::Instance()->Debug("Bot Traverse position out of spec: by {}mm. Expected: {}. Computed: {}. Allowed tolerance: {}",
-                                translation_error_mm.x(), expected_bot_pose.Translation.x(), computed_bot_pose.Translation.x(), traverse_tolerance_mm);
-      return false;
-    }
-
-    if(translation_error_mm.y() > lift_tolerance_mm){
-      Logger::Instance()->Debug("Bot Lift position out of spec: by {}mm. Expected: {}. Computed: {}. Allowed tolerance: {}",
-                                translation_error_mm.y(), expected_bot_pose.Translation.y(), computed_bot_pose.Translation.y(), lift_tolerance_mm);
-      return false;
-    }
-
-    if(translation_error_mm.z() > extend_tolerance_mm){
-      Logger::Instance()->Debug("Bot Extend position out of spec: by {}mm. Expected: {}. Computed: {}. Allowed tolerance: {}",
-                                translation_error_mm.z(), expected_bot_pose.Translation.z(), computed_bot_pose.Translation.z(), extend_tolerance_mm);
-      return false;
-    }
-
-    if(rotation_error_degrees > angle_tolerance_degrees){
-      Logger::Instance()->Debug("Bot Rotation out of spec: by {}deg. Allowed tolerance: {}",
-                                rotation_error_degrees, angle_tolerance_degrees);
-      return false;
-    }
-
-    return true;
-}
-
-
 
 
 SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
@@ -2510,20 +2465,7 @@ SideDispenseOccupancyResult DropZoneSearcher::compute_side_dispense_solution(
         
         RigidTransformation bot_pose = ransac_kabsch(arucos);
 
-      // Ensure that the pose is within tolerance and return a DcApiErrorCode if not.
-      if (!is_pose_valid(bot_pose, request->ExpectedBotPose, 200, 80, 80, 10))
-      {
-          Logger::Instance()->Debug("Side-dispense pose validation failed! Expected pose: {}. Actual pose: {}",request->ExpectedBotPose.to_string(), bot_pose.to_string());
-
-          return SideDispenseOccupancyResult{
-              DcApiErrorCode::UnexpectedBagPosition,
-              nullptr,
-              nullptr,
-              nullptr,
-          };
-      }
-
-
+        // TODO (Nigel): Ensure that the pose is within tolerance and return a DcApiErrorCode if not.
         for (int i = 0; i < points_in_camera_coord->cols(); ++i) {
             Eigen::Vector3d point_cloud_point = points_in_camera_coord->col(i);
             Eigen::Vector3d point_cloud_camera_point(meter_to_mm(point_cloud_point(0)), meter_to_mm(point_cloud_point(1)), meter_to_mm(point_cloud_point(2)));

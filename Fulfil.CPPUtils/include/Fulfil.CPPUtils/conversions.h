@@ -11,7 +11,5 @@ namespace fulfil::utils
     float mm_to_meter(float millimeters);
     float to_meters(float millimeters);
     int round_to_nearest_int(float f);
-    float deg_to_rad(float deg);
-    float rad_to_deg(float rad);
 }
 #endif //FULFIL_CPPUTILS_CONVERSIONS_H
