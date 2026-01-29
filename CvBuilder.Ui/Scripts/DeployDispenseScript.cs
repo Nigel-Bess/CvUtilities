@@ -1,20 +1,28 @@
-﻿using CvBuilder.Ui.Deploy;
-using CvBuilder.Ui.DeployDispense;
+﻿using CvBuilder.Ui.DeployDispense;
 using CvBuilder.Ui.Hardcoded;
-using CvBuilder.Ui.Terminal;
 
 namespace CvBuilder.Ui.Scripts;
 
-internal class DeployDispenseScript : IScript
+internal class DeployDispenseScript : CombinedScript
 {
-    public string Name { get; }
+    public override string Name { get; }
+
+    private readonly DeployableBuild _build;
+    private readonly Dispense _dispense;
     public DeployDispenseScript(DeployableBuild build, Dispense dispense)
     {
         Name = $"Deploy {build} to {dispense}";
     }
 
-    public Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
+    public override IEnumerable<IScript> SubSteps()
     {
-        throw new NotImplementedException();
+        yield return new Ssh(_dispense.Login);
+        yield return BasicTextCommand.MultiLine([
+            "cd ~/code/Fulfil.ComputerVision/",
+            $"yq -i -y \".services.depthcam.image = \\\"{_build.ImageIdentifier()}\\\"\" docker-compose.dab.yml",
+            "docker compose -f docker-compose.dab.yml pull",
+            "docker compose -f docker-compose.dab.yml down",
+            "docker compose -f docker-compose.dab.yml up -d --remove-orphans",
+            ]);
     }
 }
