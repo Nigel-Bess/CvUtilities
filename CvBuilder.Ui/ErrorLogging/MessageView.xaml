@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="Fulfil.Visualization.ErrorLogging.MessageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Fulfil.Visualization.ErrorLogging"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             xmlns:vm="clr-namespace:Fulfil.Visualization.ErrorLogging.ViewModels"
+             d:DataContext="{d:DesignInstance vm:MessageViewModel}">
+    <UserControl.Resources>
+        <Style TargetType="Label">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Height="25" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="{Binding Time}" Grid.Column="0" Background="LightGray"/>
+        <Label Content="{Binding Text}" Grid.Column="1" Foreground="{Binding Color}" HorizontalContentAlignment="Left" Padding="2"/>
+    </Grid>
+</UserControl>

@@ -4,6 +4,6 @@ namespace CvBuilder.Ui.Scripts;
 
 public interface IScript
 {
-    public Task RunAsync(TerminalViewModel terminal);
+    public Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal);
     public string Name { get; }
 }

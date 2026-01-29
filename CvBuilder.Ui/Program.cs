@@ -1,5 +1,6 @@
 ﻿using CvBuilder.Ui.Deploy;
 using CvBuilder.Ui.Terminal;
+using Fulfil.Visualization.ErrorLogging;
 
 namespace CvBuilder.Ui;
 
@@ -13,6 +14,7 @@ public static class Program
 
         var mainWindowVm = new MainWindowViewModel() { BuildAndDeployVm = buildAndDeployVm };
         var mainWindow = new MainWindow() { DataContext = mainWindowVm };
+        UserInfo.LogInfo("Program Started");
         mainWindow.Show();
     }
 }

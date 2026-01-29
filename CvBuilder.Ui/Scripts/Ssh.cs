@@ -1,4 +1,5 @@
 ﻿using CvBuilder.Ui.Terminal;
+using Fulfil.Visualization.ErrorLogging;
 
 namespace CvBuilder.Ui.Scripts;
 
@@ -19,5 +20,6 @@ internal class Ssh : IScript
         terminal.Enter(_sshLogin.PassWord);
         await terminal.AwaitText("Welcome");
         await Task.Delay(100);
+        UserInfo.LogSuccess
     }
 }

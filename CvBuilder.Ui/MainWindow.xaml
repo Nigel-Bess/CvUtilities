@@ -3,17 +3,23 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lgging="clr-namespace:Fulfil.Visualization.ErrorLogging"
         xmlns:local="clr-namespace:CvBuilder.Ui"
        
         xmlns:deploy="clr-namespace:CvBuilder.Ui.Deploy"
         mc:Ignorable="d"
-        Title="CV Utilities" Height="450" Width="800"
+        Title="CV Utilities" Height="550" Width="800"
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="150"/>
+        </Grid.RowDefinitions>
         <TabControl>
             <TabItem Header="Build and Deploy">
                 <deploy:BuildAndDeployControl DataContext="{Binding BuildAndDeployVm}"/>
              </TabItem>
         </TabControl>
+        <lgging:ErrorLog Grid.Row="1"/>
     </Grid>
 </Window>
