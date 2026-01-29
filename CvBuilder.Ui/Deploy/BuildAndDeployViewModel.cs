@@ -25,9 +25,9 @@ public class BuildAndDeployViewModel
     }
 
 
-    public void StartBuild()
+    public async void StartBuild()
     {
         var build = new BuildDispense(branchName: BuildBranchText, facilityName: BuildFacilityText);
-        _ = ScriptRunner.Run(build);
+        await ScriptRunner.Run(build);
     }
 }

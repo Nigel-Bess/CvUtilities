@@ -39,8 +39,9 @@ internal class BuildDispense : CombinedScript
     {
         var maxTimeMs = (int)TimeSpan.FromMinutes(20).TotalMilliseconds;
         var buildSuccess = terminal.AwaitAll(["Pushing [==================================================>]", "code/Fulfil.ComputerVision"], maxTimeMs);
-        var buildFailure = terminal.AwaitText("Build Failed");
-        var firstToComplete = await Task.WhenAny([buildFailure, buildSuccess]);
+        var alreadyExisted = terminal.AwaitAll(["Layer already exists", "code/Fulfil.ComputerVision"], maxTimeMs);
+        var buildFailure = terminal.AwaitText("did not complete successfully", maxTimeMs);
+        var firstToComplete = await Task.WhenAny([buildFailure, buildSuccess, alreadyExisted]);
         if (!await firstToComplete) return ScriptCompletionInfo.Failure("Build timed out");
         if (firstToComplete == buildFailure) return ScriptCompletionInfo.Failure("Build failed!");
         return ScriptCompletionInfo.Success;
