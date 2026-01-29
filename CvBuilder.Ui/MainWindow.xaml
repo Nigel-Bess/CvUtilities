@@ -10,16 +10,23 @@
         mc:Ignorable="d"
         Title="CV Utilities" Height="550" Width="800"
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}">
+    
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition/>
             <RowDefinition Height="150"/>
         </Grid.RowDefinitions>
-        <TabControl>
+        <Menu Grid.Row="0">
+            <MenuItem Header="Settings">
+                <MenuItem Header="GH Credentials" Command="{Binding OpenGithubCredentials}" />
+            </MenuItem>
+        </Menu>
+        <TabControl Grid.Row="1">
             <TabItem Header="Build and Deploy">
                 <deploy:BuildAndDeployControl DataContext="{Binding BuildAndDeployVm}"/>
              </TabItem>
         </TabControl>
-        <lgging:ErrorLog Grid.Row="1"/>
+        <lgging:ErrorLog Grid.Row="2"/>
     </Grid>
 </Window>

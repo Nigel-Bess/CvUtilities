@@ -22,7 +22,7 @@ public class ScriptRunner
             UserInfo.LogError($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
             return;
         }
-        UserInfo.LogInfo($"Starting script: {script.Name}");
+        UserInfo.LogInfo($"Running script: {script.Name}...");
         CurrentRunningScript = script;
         var result = await script.RunAsync(Terminal);
         CurrentRunningScript = null;

@@ -16,6 +16,7 @@ internal class Ssh : IScript
     public async Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
     {
         var host = _sshLogin.HostName;
+        UserInfo.LogInfo($"SSHing into {host}");
         terminal.Enter($"ssh {host}");
         if (!await terminal.AwaitText("password:"))
         {
