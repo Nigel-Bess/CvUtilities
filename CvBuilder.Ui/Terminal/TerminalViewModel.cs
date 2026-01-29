@@ -71,14 +71,6 @@ public class TerminalViewModel : Notifier
 
         try
         {
-            var existing = TerminalOutput;
-            if (!string.IsNullOrEmpty(existing))
-            {
-                tail.Append(existing);
-                if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
-                if (tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
-            }
-
             return await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs)) == tcs.Task;
         }
         finally
