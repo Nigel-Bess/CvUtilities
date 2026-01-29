@@ -17,5 +17,7 @@ internal class Ssh : IScript
         terminal.Enter($"ssh {_sshLogin.HostName}");
         await terminal.AwaitText("password:");
         terminal.Enter(_sshLogin.PassWord);
+        await terminal.AwaitText("Welcome");
+        await Task.Delay(100);
     }
 }

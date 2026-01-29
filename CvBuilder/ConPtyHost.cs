@@ -60,7 +60,9 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
     public void SendCommand(string text)
     {
         if (_cts.IsCancellationRequested) return;
-        var bytes = Encoding.UTF8.GetBytes(text.EndsWith('\n') ? text : text + "\r\n");
+        var textWithReturn = text.EndsWith('\n') || text.EndsWith('\r') ? text : text + "\r";
+        var bytes = Encoding.UTF8.GetBytes(textWithReturn);
+        _in.Flush();
         _in.Write(bytes, 0, bytes.Length);
         _in.Flush();
     }
