@@ -12,10 +12,12 @@ internal class BuildDispense : CombinedScript
     public override IEnumerable<IScript> SubSteps()
     {
         yield return new Ssh(SshLogin.WhismanDab);
-        yield return new BasicTextCommand("cd code /Fulfil.ComputerVision/");
-        yield return new BasicTextCommand($"git reset --hard HEAD");
-        yield return new BasicTextCommand($"git fetch origin {_branchName}");
-        yield return new BasicTextCommand($"git checkout {_branchName}");
-        yield return new BasicTextCommand($"git pull");
+        yield return BasicTextCommand.MultiLine([
+            "cd code /Fulfil.ComputerVision/",
+            "git reset --hard HEAD",
+            $"git fetch origin {_branchName}",
+            $"git checkout {_branchName}",
+            "git pull",
+        ]);
     }
 }

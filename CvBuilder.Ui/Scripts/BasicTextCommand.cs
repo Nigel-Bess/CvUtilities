@@ -18,4 +18,7 @@ internal class BasicTextCommand : IScript
         terminal.Enter(_command);
         await Task.Delay(_delay);
     }
+
+    public static BasicTextCommand MultiLine(List<string> lines) =>
+    new(string.Join(" && ", lines));
 }
