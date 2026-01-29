@@ -27,17 +27,27 @@
             <ColumnDefinition/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <StackPanel Margin="5">
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal">
                 <Label Content="Branch Name:"/>
                 <TextBox/>
                 <Button Content="Start Build" HorizontalAlignment="Left"/>
             </StackPanel>
             
-            <GroupBox Header="Builds">
+            <GroupBox Header="Builds" Grid.Row="1">
                 
             </GroupBox>
-        </StackPanel>
+            <StackPanel Orientation="Horizontal" Grid.Row="2">
+                <Label Content="Deploy a :"/>
+                <TextBox/>
+                <Button Content="Deploy" HorizontalAlignment="Left"/>
+            </StackPanel>
+        </Grid>
         <t:TerminalView Grid.Column="1" DataContext="{Binding TerminalVm}"/>
        
     </Grid>
