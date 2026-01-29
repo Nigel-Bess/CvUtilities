@@ -1,5 +1,7 @@
 ﻿
 using CvBuilder.Ui.Wpf;
+using System.IO;
+using System.Windows.Input;
 namespace CvBuilder.Ui.Terminal;
 
 public class TerminalViewModel : Notifier
@@ -8,26 +10,24 @@ public class TerminalViewModel : Notifier
     private readonly SynchronizationContext _ui;
     public string TerminalOutput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string TerminalInput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
-    public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
-    public Command EnterCommand { get; }
+    public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
+    public ICommand EnterCommand { get; }
     public TerminalViewModel()
     {
-        EnterCommand = new(Enter);
+        EnterCommand = new AsyncRelayCommand(Enter);
         _ui = SynchronizationContext.Current ?? new();
-        _cmd = new CmdHost();
     }
-
-
-    private void OnDirectoryChanged(string dir) => CurrentDirectoryStr = dir;
-    private void AddLine(string s) => TerminalOutput += $"{s}\n";
+    private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
     private void AddText(string s) => TerminalOutput += $"{s}";
-
-    private void Enter()
+    private void Return() => AddText("\n");
+    private async Task Enter()
     {
         var line = TerminalInput;
-        if (string.IsNullOrWhiteSpace(line)) return;
+        var directory = CurrentDirectoryStr;
+        AddLine(line);
         TerminalInput = "";
-        AddLine($"{CurrentDirectoryStr}> {line}");
-        _cmd.Execute(line);
+        var (errorDode, stdOut, stdErr) = await RunCmd.ExecuteAsync(line, directory);
+        AddText(stdOut);
+        Return();
     }
 }

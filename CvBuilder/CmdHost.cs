@@ -25,7 +25,9 @@ public sealed class CmdHost : IDisposable
         p.Start();
         return p;
     }
-
+    public async Task SendToConsoleAsync(string text)
+    {
+    }
     public void Execute(string cmd) => SendToConsole(cmd + "\r\n");
 
     void SendToConsole(string text)
