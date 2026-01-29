@@ -1,15 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace CvBuilder.Ui.Terminal
 {
@@ -21,6 +11,52 @@ namespace CvBuilder.Ui.Terminal
         public TerminalView()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
+            DataContextChanged += OnDataContextChanged;
+            ScrollToBottom();
         }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not TerminalViewModel vm) return;
+            AttachToVm(vm);
+        }
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.OldValue is TerminalViewModel oldVm)
+            {
+                DetachFromVm(oldVm);
+            }
+
+            // attach to new VM
+            if (e.NewValue is TerminalViewModel newVm)
+            {
+                AttachToVm(newVm);
+            }
+        }
+
+        private void DetachFromVm(TerminalViewModel vm)
+        {
+            vm.OnGotText -= OnMessagesChanged;
+        }
+
+        private void AttachToVm(TerminalViewModel vm)
+        {
+            vm.OnGotText += OnMessagesChanged;
+        }
+
+        private void OnMessagesChanged()
+        {
+            // Check if we were at the bottom before new items
+            var atBottom = ScrollViewer.VerticalOffset + ScrollViewer.ViewportHeight
+                           >= ScrollViewer.ExtentHeight - 1;
+            if (!atBottom) return;
+            ScrollToBottom();
+
+        }
+
+
+        private void ScrollToBottom() => this.InvokeIfRequired(ScrollViewer.ScrollToEnd);
     }
 }

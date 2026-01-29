@@ -8,6 +8,7 @@ public class TerminalViewModel : Notifier
 {
     private readonly CmdHost _cmd;
     private readonly SynchronizationContext _ui;
+    public Action OnGotText { get; set; }
     public string TerminalOutput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string TerminalInput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
@@ -18,7 +19,11 @@ public class TerminalViewModel : Notifier
         _ui = SynchronizationContext.Current ?? new();
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
-    private void AddText(string s) => TerminalOutput += $"{s}";
+    private void AddText(string s)
+    {
+        TerminalOutput += $"{s}";
+        OnGotText?.Invoke();
+    }
     private void Return() => AddText("\n");
     private async Task Enter()
     {
