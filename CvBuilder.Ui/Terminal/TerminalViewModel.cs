@@ -26,8 +26,9 @@ public class TerminalViewModel : Notifier
         var directory = CurrentDirectoryStr;
         AddLine(line);
         TerminalInput = "";
-        var (errorDode, stdOut, stdErr) = await RunCmd.ExecuteAsync(line, directory);
+        var (errorDode, stdOut, stdErr, newDirectory) = await RunCmd.ExecuteAsync(line, directory);
         AddText(stdOut);
+        CurrentDirectoryStr = newDirectory;
         Return();
     }
 }
