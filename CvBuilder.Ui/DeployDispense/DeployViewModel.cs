@@ -54,9 +54,9 @@ public class DeployViewModel
         //if (!result.Succeeded) UserInfo.LogError(result.FailureReason!);
     }
 
-    private void DeploySingle(Dispense dispenes)
+    private void DeploySingle(Dispense dispense)
     {
-        var script = new MockScript();
+        var script = new MockScript($"Deploy to {dispense}");
         _ = _runner.Run(script);
     }
 

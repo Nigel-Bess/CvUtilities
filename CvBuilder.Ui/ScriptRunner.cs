@@ -17,6 +17,7 @@ public class ScriptRunner
     }
     public async Task<ScriptCompletionInfo> Run(IScript script)
     {
+        ReportViewModel.Start(script);
         var result = await RunInternal(script);
         if (!result.Succeeded)
         {

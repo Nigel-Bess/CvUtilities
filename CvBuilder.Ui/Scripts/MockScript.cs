@@ -9,8 +9,9 @@ internal class MockScript : IScript
     public Action<double> ReportProgress { get; set; }
     private readonly int _repeats;
     private readonly TimeSpan _interval;
-    public MockScript(double completionTimeSeconds = 20, double updateIntervalMs = 100)
+    public MockScript(string name, double completionTimeSeconds = 20, double updateIntervalMs = 100)
     {
+        Name = name;
         _repeats = (int)(completionTimeSeconds * 1000 / updateIntervalMs);
         _interval = TimeSpan.FromMilliseconds(updateIntervalMs);
     }
