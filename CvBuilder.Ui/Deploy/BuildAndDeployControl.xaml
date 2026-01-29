@@ -37,19 +37,24 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal">
-                <Label Content="Branch Name:"/>
-                <TextBox Text="{Binding BuildTargetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <StackPanel Orientation="Vertical">
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Branch Name:"/>
+                        <TextBox Text="{Binding BuildBranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Facility Name:"/>
+                        <TextBox Text="{Binding BuildFacilityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </StackPanel>
+               
                 <Button Content="Start Build" HorizontalAlignment="Left" Command="{Binding StartBuildCommand}"/>
             </StackPanel>
             
             <GroupBox Header="Builds" Grid.Row="1">
                 
             </GroupBox>
-            <StackPanel Orientation="Horizontal" Grid.Row="2">
-                <Label Content="Existing Build:"/>
-                <TextBox/>
-                <Button Content="Deploy" HorizontalAlignment="Left"/>
-            </StackPanel>
+
         </Grid>
         <t:TerminalView Grid.Column="1" DataContext="{Binding ScriptRunner.Terminal}"/>
        

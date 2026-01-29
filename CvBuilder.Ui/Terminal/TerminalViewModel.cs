@@ -54,7 +54,33 @@ public class TerminalViewModel : Notifier
         _host.SendCommand(line);
     }
 
-    public async Task<bool> AwaitText(string text, int timeoutMs = 10000, int existingTailSize = 100)
+    public async Task<bool> AwaitAll(IEnumerable<string> toFind, int timeoutMs = 10000)
+    {
+        var tasks = new List<Task<bool>>();
+        foreach (var str in toFind)
+        {
+            tasks.Add(AwaitText(str, timeoutMs));
+        }
+        foreach (var t in tasks)
+        {
+            if (!await t) return false;
+        }
+        return true;
+    }
+
+    public async Task<(bool Success, string? First)> AwaitAny(IEnumerable<string> toFind, int timeoutMs = 10000)
+    {
+        var tasks = new Dictionary<Task<bool>, string>();
+        foreach (var str in toFind)
+        {
+            tasks[AwaitText(str, timeoutMs)] = str;
+        }
+        var first = await Task.WhenAny(tasks.Keys);
+        var success = await first;
+        return (success, success ? tasks[first] : null);
+    }
+
+    public async Task<bool> AwaitText(string text, int timeoutMs = 10000)
     {
         if (string.IsNullOrEmpty(text)) return true;
         var textSinceLastCommand = _textSinceLastCommand.ToString();

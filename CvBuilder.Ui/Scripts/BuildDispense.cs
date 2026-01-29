@@ -31,19 +31,19 @@ internal class BuildDispense : CombinedScript
         yield return new BasicTextCommand("bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh");
         yield return new PromptResponse(name: "Input branch name", prompt: "Enter Branch Name", response: _branchName);
         yield return new PromptResponse(name: "Input facility name", prompt: "Enter Facility Name", response: _facilityName);
+        yield return new GitLogin();
         yield return new GenericScript("Wait for build to finish", WaitForBuildToFinish);
     }
 
     private async Task<ScriptCompletionInfo> WaitForBuildToFinish(TerminalViewModel terminal)
     {
-        const string FailureText = "Build Failed";//TODO
-        const string SuccessText = "Build Complete"; // TODO
-        var waitForFailure = terminal.AwaitText(FailureText);
-        var waitForSuccess = terminal.AwaitText(SuccessText);
-        var winner = await Task.WhenAny([waitForFailure, waitForSuccess]);
-        if (winner == waitForFailure) return ScriptCompletionInfo.Failure("Build Failed");
-        if (winner == waitForSuccess) return ScriptCompletionInfo.Success;
-        return ScriptCompletionInfo.Failure("Unknown error occurred. It is unclear if the build completed or failed. Assuming build failed.");
+        var maxTimeMs = (int)TimeSpan.FromMinutes(20).TotalMilliseconds;
+        var buildSuccess = terminal.AwaitAll(["Pushing [==================================================>]", "code/Fulfil.ComputerVision"], maxTimeMs);
+        var buildFailure = terminal.AwaitText("Build Failed");
+        var firstToComplete = await Task.WhenAny([buildFailure, buildSuccess]);
+        if (!await firstToComplete) return ScriptCompletionInfo.Failure("Build timed out");
+        if (firstToComplete == buildFailure) return ScriptCompletionInfo.Failure("Build failed!");
+        return ScriptCompletionInfo.Success;
     }
 
 }
