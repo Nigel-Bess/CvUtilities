@@ -12,7 +12,7 @@ public class BuildAndDeployViewModel
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
-    public ObservableCollection<DeployViewModel> DeployableBuilds { get; init; } = new();
+    public ObservableCollection<DeployViewModel> DeployableBuilds { get; }
 
     public string BuildBranchText
     {
@@ -38,6 +38,7 @@ public class BuildAndDeployViewModel
         ScriptRunner = scriptRunner;
         StartBuildCommand = new Command(StartBuild, CanStartBuild);
         FacilityOptions = Enum.GetValues<Facility>().Where(e => e != Facility.None).ToList();
+        DeployableBuilds = new(SettingsHelpers.GetDeployableBuilds().Select(NewDeployViewModel));
     }
 
     private bool CanStartBuild()
@@ -62,8 +63,10 @@ public class BuildAndDeployViewModel
         }
         var buildOutput = build.Output;
         SettingsHelpers.SaveDeployableBuild(buildOutput);
-        DeployableBuilds.Add(new(buildOutput, ScriptRunner) { OnRemove = OnRemoveBuild });
+        DeployableBuilds.Add(NewDeployViewModel(buildOutput));
     }
+
+    private DeployViewModel NewDeployViewModel(DeployableBuild build) => new(build, ScriptRunner) { OnRemove = OnRemoveBuild };
 
     private void OnRemoveBuild(DeployViewModel model) => DeployableBuilds.Remove(model);
 }
