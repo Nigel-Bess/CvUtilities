@@ -13,10 +13,11 @@ internal class BasicTextCommand : IScript
         _delay = TimeSpan.FromMilliseconds(delayMs);
     }
 
-    public async Task RunAsync(TerminalViewModel terminal)
+    public async Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
     {
         terminal.Enter(_command);
         await Task.Delay(_delay);
+        return ScriptCompletionInfo.Success;
     }
 
     public static BasicTextCommand MultiLine(List<string> lines) =>

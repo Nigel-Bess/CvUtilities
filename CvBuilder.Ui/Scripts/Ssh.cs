@@ -13,13 +13,23 @@ internal class Ssh : IScript
         Name = $"SSH {sshLogin.HostName}";
     }
 
-    public async Task RunAsync(TerminalViewModel terminal)
+    public async Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
     {
-        terminal.Enter($"ssh {_sshLogin.HostName}");
-        await terminal.AwaitText("password:");
+        var host = _sshLogin.HostName;
+        terminal.Enter($"ssh {host}");
+        if (!await terminal.AwaitText("password:"))
+        {
+            return ScriptCompletionInfo.Failure($"{host} never asked for a password.");
+        }
+
         terminal.Enter(_sshLogin.PassWord);
+        if (!await terminal.AwaitText("Welcome"))
+        {
+            return ScriptCompletionInfo.Failure($"Incorrect password when sshing into {host}");
+        }
         await terminal.AwaitText("Welcome");
         await Task.Delay(100);
-        UserInfo.LogSuccess
+        UserInfo.LogInfo($"SSHed into {host}");
+        return ScriptCompletionInfo.Success;
     }
 }

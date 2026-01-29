@@ -19,6 +19,6 @@ public class BuildAndDeployViewModel
     public void StartBuild()
     {
         var ssh = new Ssh(SshLogin.WhismanDab);
-        ScriptRunner.Run(ssh);
+        _ = ScriptRunner.Run(ssh);
     }
 }

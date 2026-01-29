@@ -1,6 +1,7 @@
 ﻿
 using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Terminal;
+using Fulfil.Visualization.ErrorLogging;
 
 namespace CvBuilder.Ui;
 
@@ -15,10 +16,20 @@ public class ScriptRunner
     }
     public async Task Run(IScript script)
     {
-        if (CurrentRunningScript is not null) throw new InvalidOperationException($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
+        if (CurrentRunningScript is not null)
+        {
+            UserInfo.LogError($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
+            return;
+        }
+        UserInfo.LogInfo($"Starting script: {script.Name}");
         CurrentRunningScript = script;
-        await script.RunAsync(Terminal);
-
+        var result = await script.RunAsync(Terminal);
         CurrentRunningScript = null;
+        if (!result.Succeeded)
+        {
+            UserInfo.LogError($"{script.Name} failed! {result.FailureReason}");
+            return;
+        }
+        UserInfo.LogSuccess($"{script.Name} completed successfully");
     }
 }
