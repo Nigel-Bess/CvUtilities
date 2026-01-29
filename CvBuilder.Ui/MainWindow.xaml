@@ -12,7 +12,7 @@
     <Grid>
         <TabControl>
             <TabItem Header="Build and Deploy">
-                <deploy:BuildAndDeployControl/>
+                <deploy:BuildAndDeployControl DataContext="{Binding BuildAndDeployVm}"/>
              </TabItem>
         </TabControl>
     </Grid>

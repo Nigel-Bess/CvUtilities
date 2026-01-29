@@ -1,6 +1,6 @@
 ﻿using CvBuilder.Ui.Terminal;
 
-namespace CvBuilder.Ui;
+namespace CvBuilder.Ui.Scripts;
 
 public interface IScript
 {

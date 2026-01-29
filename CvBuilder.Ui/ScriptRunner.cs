@@ -1,10 +1,12 @@
 ﻿
+using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Terminal;
 
 namespace CvBuilder.Ui;
 
 public class ScriptRunner
 {
+    public bool IsIdle() => CurrentRunningScript is null;
     public IScript? CurrentRunningScript { get; private set; } = null;
     public TerminalViewModel Terminal { get; }
     public ScriptRunner(TerminalViewModel terminalViewModel)

@@ -13,28 +13,34 @@ public class TerminalViewModel : Notifier
     public string TerminalInput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
     public ICommand EnterCommand { get; }
+    private readonly ICmdHost _host;
     public TerminalViewModel()
     {
-        EnterCommand = new AsyncRelayCommand(() => Enter());
+        EnterCommand = new Command(() => Enter());
         _ui = SynchronizationContext.Current ?? new();
+        _host = new ConPtyCmdHost();
+        _host.OnTextOutput += OnOutputFromCmd;
+    }
+    private void OnOutputFromCmd(string s)
+    {
+        AddText(s);
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
-    private void AddText(string s)
-    {
-        TerminalOutput += $"{s}";
-        OnGotText?.Invoke();
-    }
+
     private void Return() => AddText("\n");
-    public async Task<(bool Success, string ErrorMessage)> Enter(string? line = null)
+    void AddText(string s) =>
+     _ui.Post(_ =>
+     {
+         TerminalOutput += s;
+         OnGotText?.Invoke();
+     }, null);
+
+    public void Enter(string? line = null)
     {
         line ??= TerminalInput;
-        var directory = CurrentDirectoryStr;
-        AddLine(line);
         TerminalInput = "";
-        var (errorCode, stdOut, stdErr, newDirectory) = await RunCmd.ExecuteAsync(line, directory);
-        AddText(stdOut);
-        CurrentDirectoryStr = newDirectory;
+        AddLine(line);
         Return();
-        return (errorCode == 0, stdErr);
+        _host.SendCommand(line);
     }
 }
