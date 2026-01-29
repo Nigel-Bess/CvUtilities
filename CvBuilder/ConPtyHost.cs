@@ -5,10 +5,10 @@ using System.Text;
 
 namespace CvBuilder;
 
-public sealed class ConPtyCmdHost : ICmdHost, IDisposable
+public sealed class ConPtyCmdHost : ICmdHost
 {
     public int BufferSize { get; } = 8192;
-    public Action<string> OnTextOutput { get; set; } = _ => { };
+    public Action<TerminalOp> OnOp { get; set; } = _ => { };
 
     readonly Stream _in;
     readonly Stream _out;
@@ -58,14 +58,22 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
         }
     }
 
-    public void SendCommand(string text)
+    public void Send(string text)
     {
         if (_cts.IsCancellationRequested) return;
-        var textWithReturn = text.EndsWith('\n') || text.EndsWith('\r') ? text : text + "\r";
-        var bytes = Encoding.UTF8.GetBytes(textWithReturn);
+
+        var s = text.EndsWith('\n') || text.EndsWith('\r') ? text : text + "\r";
+        var bytes = Encoding.UTF8.GetBytes(s);
+
         _in.Flush();
         _in.Write(bytes, 0, bytes.Length);
         _in.Flush();
+    }
+
+    public void Resize(short cols, short rows)
+    {
+        var hr = ResizePseudoConsole(_hpc, new COORD { X = cols, Y = rows });
+        if (hr != 0) throw new Win32Exception(hr);
     }
 
     public void Dispose()
@@ -73,7 +81,7 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
         _cts.Cancel();
         try { _out.Dispose(); } catch { }
         try { _in.Dispose(); } catch { }
-        try { _proc?.Dispose(); } catch { }
+        try { _proc.Dispose(); } catch { }
         try { ClosePseudoConsole(_hpc); } catch { }
         _cts.Dispose();
     }
@@ -87,7 +95,8 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
             try { n = await _out.ReadAsync(buf.AsMemory(0, buf.Length), ct); }
             catch { break; }
             if (n <= 0) break;
-            OnTextOutput(Encoding.UTF8.GetString(buf, 0, n));
+
+            OnOp(new TerminalOp.AppendText(Encoding.UTF8.GetString(buf, 0, n)));
         }
     }
 
@@ -113,7 +122,7 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
     struct PROCESS_INFORMATION
     {
         public IntPtr hProcess, hThread;
-        public int dwProcessId, dwThreadId;
+        public int dwProcessId, dwProcessThreadId;
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -121,6 +130,9 @@ public sealed class ConPtyCmdHost : ICmdHost, IDisposable
 
     [DllImport("kernel32.dll")]
     static extern int CreatePseudoConsole(COORD size, SafeFileHandle hInput, SafeFileHandle hOutput, int dwFlags, out IntPtr phPC);
+
+    [DllImport("kernel32.dll")]
+    static extern int ResizePseudoConsole(IntPtr hPC, COORD size);
 
     [DllImport("kernel32.dll")] static extern void ClosePseudoConsole(IntPtr hPC);
 

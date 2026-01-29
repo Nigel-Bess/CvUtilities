@@ -21,17 +21,19 @@ public class TerminalViewModel : Notifier
         _ui = SynchronizationContext.Current ?? new();
         Reset();
     }
-    private void OnOutputFromCmd(string s)
+    private void OnOutputFromCmd(TerminalOp operation)
     {
+        if (operation is not TerminalOp.AppendText append) return;
+        var s = append.Text;
         AddText(s);
         _textSinceLastCommand.Append(s);
     }
     public void Reset(string message = "")
     {
-        _host?.OnTextOutput -= OnOutputFromCmd;
+        _host?.OnOp -= OnOutputFromCmd;
         _host?.Dispose();
         _host = new ConPtyCmdHost();
-        _host.OnTextOutput += OnOutputFromCmd;
+        _host.OnOp += OnOutputFromCmd;
         TerminalOutput = message;
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
@@ -51,7 +53,7 @@ public class TerminalViewModel : Notifier
         AddLine(line);
         Return();
         _textSinceLastCommand.Clear();
-        _host.SendCommand(line);
+        _host.Send(line);
     }
 
     public async Task<bool> AwaitAll(IEnumerable<string> toFind, int timeoutMs = 10000)
@@ -90,15 +92,16 @@ public class TerminalViewModel : Notifier
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var tail = new StringBuilder();
 
-        void Handler(string s)
+        void Handler(TerminalOp operation)
         {
-            tail.Append(s);
+            if (operation is not TerminalOp.AppendText append) return;
+            tail.Append(append.Text);
             if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
             if (tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase))
                 tcs.TrySetResult(true);
         }
 
-        _host.OnTextOutput += Handler;
+        _host.OnOp += Handler;
 
         try
         {
@@ -106,7 +109,7 @@ public class TerminalViewModel : Notifier
         }
         finally
         {
-            _host.OnTextOutput -= Handler;
+            _host.OnOp -= Handler;
         }
     }
 
