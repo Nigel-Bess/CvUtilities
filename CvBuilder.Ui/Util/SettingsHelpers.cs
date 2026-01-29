@@ -29,6 +29,8 @@ public static class SettingsHelpers
 
     public static void SaveDeployableBuild(DeployableBuild build) =>
         SanitizeAndSaveDeployableBuilds(GetDeployableBuilds().Append(build).ToList());
+    public static void RemoveDeployableBuild(DeployableBuild build) =>
+    SanitizeAndSaveDeployableBuilds(GetDeployableBuilds().Where(b => b != build).ToList());
 
     private static List<DeployableBuild> SanitizeAndSaveDeployableBuilds(List<DeployableBuild> builds)
     {

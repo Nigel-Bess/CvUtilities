@@ -5,4 +5,5 @@ namespace CvBuilder.Ui.Deploy;
 public record DeployableBuild(string BranchName, Facility Facility)
 {
     public bool IsValid() => Facility != Facility.None;
+    public override string ToString() => $"{BranchName}:{Facility.GetDescription()}";
 }

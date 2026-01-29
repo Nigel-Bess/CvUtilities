@@ -52,7 +52,7 @@ public class BuildAndDeployViewModel
     public async void StartBuild()
     {
         UserSettings.Default.Save();
-        var branchName = BuildBranchText;
+        var branchName = BuildBranchText.Trim();
         var build = new BuildDispense(branchName: branchName, facility: SelectedFacility);
         var result = await ScriptRunner.Run(build);
         if (!result.Succeeded)
@@ -62,6 +62,9 @@ public class BuildAndDeployViewModel
         }
         var buildOutput = build.Output;
         SettingsHelpers.SaveDeployableBuild(buildOutput);
-        DeployableBuilds.Add(new(buildOutput, ScriptRunner));
+        DeployableBuilds.Add(new(buildOutput, ScriptRunner) { OnRemove = OnRemoveBuild });
     }
+
+    private void OnRemoveBuild(DeployViewModel model) => DeployableBuilds.Remove(model);
 }
+
