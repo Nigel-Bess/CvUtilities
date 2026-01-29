@@ -14,13 +14,12 @@ public class ScriptRunner
     {
         Terminal = terminalViewModel;
     }
-    public async Task Run(IScript script)
+    public async Task<ScriptCompletionInfo> Run(IScript script)
     {
         Terminal.Reset($"Running {script.Name}");
         if (CurrentRunningScript is not null)
         {
-            UserInfo.LogError($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
-            return;
+            return ScriptCompletionInfo.Failure($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
         }
         UserInfo.LogInfo($"Running script: {script.Name}...");
         CurrentRunningScript = script;
@@ -28,10 +27,10 @@ public class ScriptRunner
         CurrentRunningScript = null;
         if (!result.Succeeded)
         {
-            UserInfo.LogError($"{script.Name} failed! {result.FailureReason}");
-            return;
+            return ScriptCompletionInfo.Failure($"{script.Name} failed! {result.FailureReason}");
         }
         UserInfo.LogSuccess($"{script.Name} completed successfully");
+        return ScriptCompletionInfo.Success;
 
     }
 }
