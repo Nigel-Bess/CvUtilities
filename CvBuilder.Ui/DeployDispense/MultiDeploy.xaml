@@ -9,13 +9,20 @@
              xmlns:outer="clr-namespace:CvBuilder.Ui"
              d:DataContext="{d:DesignInstance Type=local:MultiDeployViewModel}">
     <Grid>
-        <ItemsControl ItemsSource="{Binding Runners}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            
+        </ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Runners}" Margin="10">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <outer:ScriptRunReportControl DataContext="{Binding ReportViewModel}"/>
-                        <Button Content="Open Terminal" Command="{Binding OpenTerminalCommand}"/>
-                    </StackPanel>
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <outer:ScriptRunReportControl DataContext="{Binding ReportViewModel}" Height="25"/>
+                        <Button Content="Open Terminal" Command="{Binding OpenTerminalWindowCommand}" Grid.Column="1" Padding="5" Margin="5,0"/>
+                    </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

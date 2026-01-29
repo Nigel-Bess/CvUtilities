@@ -15,6 +15,7 @@ public class TerminalViewModel : Notifier
     public ICommand EnterCommand { get; }
     private ICmdHost _host;
     private StringBuilder _textSinceLastCommand { get; } = new();
+    private bool ConsoleHasStarted = false;
     public TerminalViewModel()
     {
         EnterCommand = new Command(() => Enter());
@@ -24,12 +25,14 @@ public class TerminalViewModel : Notifier
     private void OnOutputFromCmd(TerminalOp operation)
     {
         if (operation is not TerminalOp.AppendText append) return;
+        ConsoleHasStarted = true;
         var s = append.Text;
         AddText(s);
         _textSinceLastCommand.Append(s);
     }
     public void Reset(string message = "")
     {
+        ConsoleHasStarted = false;
         _host?.OnOp -= OnOutputFromCmd;
         _host?.Dispose();
         _host = new ConPtyCmdHost();
@@ -55,6 +58,31 @@ public class TerminalViewModel : Notifier
         _textSinceLastCommand.Clear();
         _host.Send(line);
     }
+    public async Task<bool> AwaitConsoleStartup(int timeoutMs = 100)
+    {
+        if (ConsoleHasStarted) return true;
+        if (_textSinceLastCommand.Length > 0) return ConsoleHasStarted = true;
+
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        void Handler(TerminalOp op)
+        {
+            if (op is TerminalOp.AppendText a && a.Text.Length > 0)
+                tcs.TrySetResult(true);
+        }
+
+        _host.OnOp += Handler;
+        try
+        {
+            var ok = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs)) == tcs.Task;
+            return ConsoleHasStarted = ok;
+        }
+        finally
+        {
+            _host.OnOp -= Handler;
+        }
+    }
+
     public async Task<bool> AwaitSequentially(IEnumerable<string> toFind, int timeoutMs = 10000)
     {
         var tasks = new List<Task<bool>>();

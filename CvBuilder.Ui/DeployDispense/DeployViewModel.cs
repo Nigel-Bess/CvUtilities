@@ -66,7 +66,7 @@ public class DeployViewModel
         });
         var vm = new MultiDeployViewModel(runners.ToList());
         var form = new MultiDeploy() { DataContext = vm };
-        var window = new Window() { Content = form, Width = 400, Height = 400 };
+        var window = new Window() { Content = form, Width = 800, Height = 400, Title = $"Deploying {_build}" };
         window.Show();
     }
 

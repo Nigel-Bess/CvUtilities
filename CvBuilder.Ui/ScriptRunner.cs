@@ -1,7 +1,10 @@
 ﻿
 using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Terminal;
+using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
+using System.Windows;
+using System.Windows.Input;
 
 namespace CvBuilder.Ui;
 
@@ -11,9 +14,17 @@ public class ScriptRunner
     public IScript? CurrentRunningScript { get; private set; } = null;
     public TerminalViewModel Terminal { get; }
     public ScriptRunReportViewModel ReportViewModel { get; } = new();
+    public ICommand OpenTerminalWindowCommand { get; }
     public ScriptRunner(TerminalViewModel terminalViewModel)
     {
         Terminal = terminalViewModel;
+        OpenTerminalWindowCommand = new Command(OpenTerminalWindow);
+    }
+    private void OpenTerminalWindow()
+    {
+        var terminalView = new TerminalView() { DataContext = Terminal };
+        var window = new Window() { Content = terminalView, Width = 300, Height = 300, Title = $"{CurrentRunningScript?.Name ?? "Terminal"}" };
+        window.Show();
     }
     public async Task<ScriptCompletionInfo> Run(IScript script)
     {
@@ -30,6 +41,7 @@ public class ScriptRunner
 
     public async Task<ScriptCompletionInfo> RunInternal(IScript script)
     {
+        await Terminal.AwaitConsoleStartup();
         OnGotProgress(0);
         script.ReportProgress += OnGotProgress;
         try
