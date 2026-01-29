@@ -1,4 +1,5 @@
-﻿using CvBuilder.Ui.Wpf;
+﻿using CvBuilder.Ui.Scripts;
+using CvBuilder.Ui.Wpf;
 using System.Windows.Input;
 
 namespace CvBuilder.Ui.Deploy;
@@ -17,6 +18,7 @@ public class BuildAndDeployViewModel
 
     public void StartBuild()
     {
-
+        var ssh = new Ssh(SshLogin.WhismanDab);
+        ScriptRunner.Run(ssh);
     }
 }

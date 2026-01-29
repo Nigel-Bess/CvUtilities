@@ -4,10 +4,16 @@ namespace CvBuilder.Ui.Scripts;
 
 internal class Ssh : IScript
 {
-    public string Name => throw new NotImplementedException();
-
-    public Task RunAsync(TerminalViewModel terminal)
+    public string Name { get; }
+    private readonly SshLogin _sshLogin;
+    public Ssh(SshLogin sshLogin)
     {
-        throw new NotImplementedException();
+        _sshLogin = sshLogin;
+        Name = $"SSH {sshLogin.HostName}";
+    }
+
+    public async Task RunAsync(TerminalViewModel terminal)
+    {
+        terminal.Enter($"ssh {_sshLogin.HostName}");
     }
 }

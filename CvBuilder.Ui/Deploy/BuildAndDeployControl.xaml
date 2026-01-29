@@ -36,8 +36,8 @@
             </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal">
                 <Label Content="Branch Name:"/>
-                <TextBox/>
-                <Button Content="Start Build" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding BuildTargetText}"/>
+                <Button Content="Start Build" HorizontalAlignment="Left" Command="{Binding StartBuildCommand}"/>
             </StackPanel>
             
             <GroupBox Header="Builds" Grid.Row="1">
