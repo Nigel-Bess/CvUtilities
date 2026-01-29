@@ -1,3 +1,8 @@
-﻿namespace CvBuilder.Ui.Deploy;
+﻿using CvBuilder.Ui.Hardcoded;
 
-public record DeployableBuild(string BranchName, string FacilityName);
+namespace CvBuilder.Ui.Deploy;
+
+public record DeployableBuild(string BranchName, Facility Facility)
+{
+    public bool IsValid() => Facility != Facility.None;
+}

@@ -15,38 +15,32 @@ public static class SettingsHelpers
             if (builds is null)
             {
                 // don't log a warning - this is nominal behavior when no builds are saved
-                SaveDeployableBuilds([]);
-                return [];
+                return SanitizeAndSaveDeployableBuilds([]);
             }
-            var uniqueBuilds = builds.ToHashSet();
-            if (uniqueBuilds.Count != builds.Count)
-            {
-                builds = uniqueBuilds.ToList();
 
-            }
-            SaveDeployableBuilds(builds);
-            return builds;
+            return SanitizeAndSaveDeployableBuilds(builds);
         }
         catch (Exception e)
         {
             UserInfo.LogError($"Unable to deserialize {nameof(settings.CompletedDispenseBuildsJson)}: {e.Message}: {jsonText}");
-            SaveDeployableBuilds([]);
-            return [];
+            return SanitizeAndSaveDeployableBuilds([]);
         }
     }
 
-    public static void SaveDeployableBuild(DeployableBuild build)
-    {
-        var builds = GetDeployableBuilds();
-        builds.Add(build);
-        builds = builds.Take(100).ToList();
-        UserSettings.Default.CompletedDispenseBuildsJson = JsonHelpers.SerializeAsJson(builds.ToList());
-        UserSettings.Default.Save();
-    }
+    public static void SaveDeployableBuild(DeployableBuild build) =>
+        SanitizeAndSaveDeployableBuilds(GetDeployableBuilds().Append(build).ToList());
 
-    private static void SaveDeployableBuilds(IEnumerable<DeployableBuild> builds)
+    private static List<DeployableBuild> SanitizeAndSaveDeployableBuilds(List<DeployableBuild> builds)
     {
-        UserSettings.Default.CompletedDispenseBuildsJson = JsonHelpers.SerializeAsJson(builds.Take(100).ToList());
+        var uniqueBuilds = builds.ToHashSet();
+        if (uniqueBuilds.Count != builds.Count)
+        {
+            builds = uniqueBuilds.ToList();
+
+        }
+        var sanitized = builds.Where(b => b.IsValid()).Take(100).ToList();
+        UserSettings.Default.CompletedDispenseBuildsJson = JsonHelpers.SerializeAsJson(sanitized);
         UserSettings.Default.Save();
+        return sanitized;
     }
 }

@@ -59,7 +59,7 @@
                                 <StackPanel Orientation="Horizontal" >
                                     <Label Content="{Binding BranchName}"/>
                                     <Label Content="-"/>
-                                    <Label Content="{Binding FacilityName}"/>
+                                    <Label Content="{Binding Facility}"/>
                                     <Button Content="Deploy" Command="{Binding DeployCommand}"/>
                                 </StackPanel>
                             </DataTemplate>

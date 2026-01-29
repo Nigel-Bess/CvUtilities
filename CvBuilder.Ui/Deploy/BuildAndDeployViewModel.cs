@@ -4,7 +4,6 @@ using CvBuilder.Ui.Util;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Input;
 
 namespace CvBuilder.Ui.Deploy;
@@ -53,14 +52,8 @@ public class BuildAndDeployViewModel
     public async void StartBuild()
     {
         UserSettings.Default.Save();
-        var facilityName = SelectedFacility.GetDescription();
-        if (facilityName is null)
-        {
-            UserInfo.LogError($"No {nameof(DescriptionAttribute)} defined for {SelectedFacility}");
-            return;
-        }
         var branchName = BuildBranchText;
-        var build = new BuildDispense(branchName: branchName, facilityName: facilityName);
+        var build = new BuildDispense(branchName: branchName, facility: SelectedFacility);
         var result = await ScriptRunner.Run(build);
         if (!result.Succeeded)
         {

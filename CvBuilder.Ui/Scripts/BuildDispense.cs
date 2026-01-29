@@ -8,13 +8,13 @@ internal class BuildDispense : CombinedScript
 {
     public override string Name { get; }
     private readonly string _branchName;
-    private readonly string _facilityName;
-    public DeployableBuild Output => new(BranchName: _branchName, FacilityName: _facilityName);
-    public BuildDispense(string branchName, string facilityName)
+    private readonly Facility _facility;
+    public DeployableBuild Output => new(BranchName: _branchName, Facility: _facility);
+    public BuildDispense(string branchName, Facility facility)
     {
         Name = $"Build {branchName}";
         _branchName = branchName;
-        _facilityName = facilityName;
+        _facility = facility;
     }
 
     public override IEnumerable<IScript> SubSteps()
@@ -33,7 +33,7 @@ internal class BuildDispense : CombinedScript
         yield return new GitLogin();
         yield return new BasicTextCommand("bash /home/fulfil/code/Fulfil.ComputerVision/Fulfil.Dispense/scripts/dab-push-latest.sh");
         yield return new PromptResponse(name: "Input branch name", prompt: "Enter Branch Name", response: _branchName);
-        yield return new PromptResponse(name: "Input facility name", prompt: "Enter Facility Name", response: _facilityName);
+        yield return new PromptResponse(name: "Input facility name", prompt: "Enter Facility Name", response: _facility.GetDescription());
         yield return new GitLogin();
         yield return new GenericScript("Wait for build to finish", WaitForBuildToFinish);
     }

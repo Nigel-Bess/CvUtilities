@@ -1,4 +1,5 @@
-﻿using CvBuilder.Ui.Scripts;
+﻿using CvBuilder.Ui.Hardcoded;
+using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
 using System.Windows.Input;
@@ -8,13 +9,13 @@ namespace CvBuilder.Ui.Deploy;
 public class DeployViewModel
 {
     public string BranchName { get; }
-    public string FacilityName { get; }
+    public Facility Facility { get; }
     public ICommand DeployCommand { get; }
     private readonly ScriptRunner _runner;
     public DeployViewModel(DeployableBuild build, ScriptRunner runner)
     {
         BranchName = build.BranchName;
-        FacilityName = build.FacilityName;
+        Facility = build.Facility;
         _runner = runner;
         DeployCommand = new Command(Deploy, runner.IsIdle);
     }
