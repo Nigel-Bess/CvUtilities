@@ -1,15 +1,10 @@
-﻿using CvBuilder.Ui.Terminal;
-
-namespace CvBuilder.Ui.Deploy;
+﻿namespace CvBuilder.Ui.Deploy;
 
 public class BuildAndDeployViewModel
 {
-    public TerminalViewModel TerminalVm { get; }
-    private readonly ScriptRunner _scriptRunner;
-    public BuildAndDeployViewModel(TerminalViewModel terminalVm, ScriptRunner scriptRunner)
+    public ScriptRunner ScriptRunner { get; }
+    public BuildAndDeployViewModel(ScriptRunner scriptRunner)
     {
-        TerminalVm = terminalVm;
-        _scriptRunner = scriptRunner;
-
+        ScriptRunner = scriptRunner;
     }
 }
