@@ -1,5 +1,4 @@
 ﻿using CvBuilder.Ui.Hardcoded;
-using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Util;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
@@ -32,9 +31,36 @@ public class DeployViewModel
             UserInfo.LogError($"No dispenses defined for {Facility}");
             return;
         }
-        var deployScript = new DeployDispenseScript(_build);
-        var result = await _runner.Run(deployScript);
-        if (!result.Succeeded) UserInfo.LogError(result.FailureReason!);
+        var selectionFormVm = new SelectionFormViewModel<Dispense>(dispenseOptions);
+        var selectionForm = new SelectionForm() { DataContext = selectionFormVm };
+        var window = new OkCancelDialog("Dab Selection", "Deploy", selectionForm);
+        if (window.ShowDialog() != true) return;
+        var dabs = selectionFormVm.Selected;
+        if (!dabs.Any())
+        {
+            UserInfo.LogError($"Cannot deploy {_build}: No dabs selected");
+            return;
+        }
+        if (dabs.TryGetSingle(out var singleDab))
+        {
+            DeploySingle(singleDab);
+            return;
+        }
+        DeployMultiple(dabs);
+
+        //var deployScript = new DeployDispenseScript(_build);
+        //var result = await _runner.Run(deployScript);
+        //if (!result.Succeeded) UserInfo.LogError(result.FailureReason!);
+    }
+
+    private void DeploySingle(Dispense dispenes)
+    {
+        UserInfo.LogError($"Single-deploy not yet implemented");
+    }
+
+    private void DeployMultiple(IEnumerable<Dispense> dispenes)
+    {
+        UserInfo.LogError($"Multi-deploy not yet implemented");
     }
 
     public void Remove()

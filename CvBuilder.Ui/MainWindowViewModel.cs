@@ -1,4 +1,4 @@
-﻿using CvBuilder.Ui.Deploy;
+﻿using CvBuilder.Ui.DeployDispense;
 using CvBuilder.Ui.Scripts;
 using CvBuilder.Ui.Wpf;
 using System.Windows.Input;
