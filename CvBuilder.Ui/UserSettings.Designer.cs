@@ -22,5 +22,29 @@ namespace CvBuilder.Ui {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string GithubUsername {
+            get {
+                return ((string)(this["GithubUsername"]));
+            }
+            set {
+                this["GithubUsername"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string GithubPat {
+            get {
+                return ((string)(this["GithubPat"]));
+            }
+            set {
+                this["GithubPat"] = value;
+            }
+        }
     }
 }

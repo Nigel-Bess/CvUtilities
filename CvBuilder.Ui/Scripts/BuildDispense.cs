@@ -14,7 +14,7 @@ internal class BuildDispense : CombinedScript
     {
         yield return new Ssh(SshLogin.WhismanDab);
         yield return BasicTextCommand.MultiLine([
-            "cd code /Fulfil.ComputerVision/",
+            "cd ~/code/Fulfil.ComputerVision/",
             "git reset --hard HEAD",
             $"git fetch origin {_branchName}",
         ]);
