@@ -46,45 +46,38 @@ public class TerminalViewModel : Notifier
 
     public async Task<bool> AwaitText(string text, int timeoutMs = 10000)
     {
-        if (string.IsNullOrEmpty(text) || TerminalOutput.EndsWith(text, StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.IsNullOrEmpty(text)) return true;
 
+        var cap = _host.BufferSize * 2;
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var tail = new StringBuilder();
 
-        var bufferMultiplier = 2;
-        var cap = _host.BufferSize * bufferMultiplier;
-
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
-        CancellationTokenRegistration reg = default;
-
-        void Cleanup()
-        {
-            _host.OnTextOutput -= Handler;
-            reg.Dispose();
-            cts.Dispose();
-        }
-
         void Handler(string s)
         {
-
             tail.Append(s);
-
             if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
-            if (!tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase)) return;
-
-            Cleanup();
-            tcs.TrySetResult(true);
+            if (tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase))
+                tcs.TrySetResult(true);
         }
 
         _host.OnTextOutput += Handler;
 
-        reg = cts.Token.Register(() =>
+        try
         {
-            Cleanup();
-            tcs.TrySetResult(false);
-        });
+            var existing = TerminalOutput;
+            if (!string.IsNullOrEmpty(existing))
+            {
+                tail.Append(existing);
+                if (tail.Length > cap) tail.Remove(0, tail.Length - cap);
+                if (tail.ToString().Contains(text, StringComparison.OrdinalIgnoreCase)) return true;
+            }
 
-        return await tcs.Task;
+            return await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs)) == tcs.Task;
+        }
+        finally
+        {
+            _host.OnTextOutput -= Handler;
+        }
     }
 
 }

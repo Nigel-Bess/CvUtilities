@@ -44,7 +44,7 @@
                 
             </GroupBox>
             <StackPanel Orientation="Horizontal" Grid.Row="2">
-                <Label Content="Deploy a :"/>
+                <Label Content="Existing Build:"/>
                 <TextBox/>
                 <Button Content="Deploy" HorizontalAlignment="Left"/>
             </StackPanel>
