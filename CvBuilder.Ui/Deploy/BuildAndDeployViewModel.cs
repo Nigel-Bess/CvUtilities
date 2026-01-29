@@ -1,5 +1,6 @@
 ﻿using CvBuilder.Ui.Hardcoded;
 using CvBuilder.Ui.Scripts;
+using CvBuilder.Ui.Util;
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
 using System.Collections.ObjectModel;
@@ -12,7 +13,7 @@ public class BuildAndDeployViewModel
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
-    public ObservableCollection<DeployViewModel> DeployableBuilds { get; } = new();
+    public ObservableCollection<DeployViewModel> DeployableBuilds { get; init; } = new();
 
     public string BuildBranchText
     {
@@ -66,6 +67,8 @@ public class BuildAndDeployViewModel
             UserInfo.LogError(result.FailureReason);
             return;
         }
-        DeployableBuilds.Add(new(branchName: branchName, facilityName: facilityName, ScriptRunner));
+        var buildOutput = build.Output;
+        SettingsHelpers.SaveDeployableBuild(buildOutput);
+        DeployableBuilds.Add(new(buildOutput, ScriptRunner));
     }
 }

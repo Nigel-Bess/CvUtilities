@@ -11,10 +11,10 @@ public class DeployViewModel
     public string FacilityName { get; }
     public ICommand DeployCommand { get; }
     private readonly ScriptRunner _runner;
-    public DeployViewModel(string branchName, string facilityName, ScriptRunner runner)
+    public DeployViewModel(DeployableBuild build, ScriptRunner runner)
     {
-        BranchName = branchName;
-        FacilityName = facilityName;
+        BranchName = build.BranchName;
+        FacilityName = build.FacilityName;
         _runner = runner;
         DeployCommand = new Command(Deploy, runner.IsIdle);
     }

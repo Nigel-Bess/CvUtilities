@@ -1,4 +1,5 @@
-﻿using CvBuilder.Ui.Hardcoded;
+﻿using CvBuilder.Ui.Deploy;
+using CvBuilder.Ui.Hardcoded;
 using CvBuilder.Ui.Terminal;
 
 namespace CvBuilder.Ui.Scripts;
@@ -8,6 +9,7 @@ internal class BuildDispense : CombinedScript
     public override string Name { get; }
     private readonly string _branchName;
     private readonly string _facilityName;
+    public DeployableBuild Output => new(BranchName: _branchName, FacilityName: _facilityName);
     public BuildDispense(string branchName, string facilityName)
     {
         Name = $"Build {branchName}";
