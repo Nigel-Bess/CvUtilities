@@ -85,7 +85,7 @@ DropZoneSearcher::DropZoneSearcher(std::shared_ptr<Session> session,
 {
   this->session = session;
   this->debug = debug;
-  this->visualize = 0;
+  this->visualize = visualize;
   this->force_error = force_error;
   //Global variables for affecting algorithm
   this->shadow_buffer = shadow_buffer;
