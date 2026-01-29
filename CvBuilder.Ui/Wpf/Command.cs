@@ -11,11 +11,11 @@ public class Command : ICommand
         canExecute ??= O => true;
         Initialize(execute, canExecute);
     }
-    public Command(Action execute, Func<bool> canExecute = null)
+    public Command(Action execute, Func<bool>? canExecute = null)
     {
         canExecute ??= () => true;
 
-        Initialize(o => execute(), o => canExecute());
+        Initialize(o => execute(), o => canExecute?.Invoke() ?? true);
     }
     private void Initialize(Action<object?> execute, Func<object?, bool> canExecute)
     {

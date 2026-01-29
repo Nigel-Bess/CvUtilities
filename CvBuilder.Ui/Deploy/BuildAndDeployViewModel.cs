@@ -8,17 +8,17 @@ public class BuildAndDeployViewModel
 {
     public ScriptRunner ScriptRunner { get; }
     public ICommand StartBuildCommand { get; }
-    public string BuildTargetText { get; set; }
+    public string BuildTargetText { get; set; } = "";
     public BuildAndDeployViewModel(ScriptRunner scriptRunner)
     {
         ScriptRunner = scriptRunner;
-        StartBuildCommand = new Command(StartBuild, ScriptRunner.IsIdle);
+        StartBuildCommand = new Command(StartBuild, () => ScriptRunner.IsIdle() && !string.IsNullOrWhiteSpace(BuildTargetText));
     }
 
 
     public void StartBuild()
     {
-        var ssh = new Ssh(SshLogin.WhismanDab);
-        _ = ScriptRunner.Run(ssh);
+        var build = new BuildDispense(BuildTargetText);
+        _ = ScriptRunner.Run(build);
     }
 }

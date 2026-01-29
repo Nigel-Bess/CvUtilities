@@ -35,11 +35,11 @@ namespace CvBuilder.Ui.Terminal
                 AttachToVm(newVm);
             }
         }
-
         private void DetachFromVm(TerminalViewModel vm)
         {
             vm.OnGotText -= OnMessagesChanged;
         }
+
 
         private void AttachToVm(TerminalViewModel vm)
         {

@@ -7,6 +7,7 @@ internal class BuildDispense : CombinedScript
     public BuildDispense(string branchName)
     {
         Name = $"Build {branchName}";
+        _branchName = branchName;
     }
 
     public override IEnumerable<IScript> SubSteps()
@@ -16,8 +17,12 @@ internal class BuildDispense : CombinedScript
             "cd code /Fulfil.ComputerVision/",
             "git reset --hard HEAD",
             $"git fetch origin {_branchName}",
-            $"git checkout {_branchName}",
-            "git pull",
         ]);
+        yield return new GitLogin();
+        yield return BasicTextCommand.MultiLine([
+            $"git checkout {_branchName}",
+            "git pull"
+        ]);
+        yield return new GitLogin();
     }
 }
