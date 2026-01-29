@@ -1,14 +1,16 @@
 ﻿using CvBuilder.Ui.Deploy;
+using CvBuilder.Ui.DeployDispense;
+using CvBuilder.Ui.Hardcoded;
 using CvBuilder.Ui.Terminal;
 
 namespace CvBuilder.Ui.Scripts;
 
-internal class DeployDispense : IScript
+internal class DeployDispenseScript : IScript
 {
     public string Name { get; }
-    public DeployDispense(DeployableBuild build)
+    public DeployDispenseScript(DeployableBuild build, Dispense dispense)
     {
-
+        Name = $"Deploy {build} to {dispense}";
     }
 
     public Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)

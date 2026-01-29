@@ -1,6 +1,6 @@
 ﻿using CvBuilder.Ui.Hardcoded;
 
-namespace CvBuilder.Ui.Deploy;
+namespace CvBuilder.Ui.DeployDispense;
 
 public record DeployableBuild(string BranchName, Facility Facility)
 {

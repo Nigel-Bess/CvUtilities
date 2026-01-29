@@ -5,7 +5,7 @@ using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
 using System.Windows.Input;
 
-namespace CvBuilder.Ui.Deploy;
+namespace CvBuilder.Ui.DeployDispense;
 
 public class DeployViewModel
 {
@@ -26,7 +26,13 @@ public class DeployViewModel
 
     public async void Deploy()
     {
-        var deployScript = new DeployDispense(_build);
+        var dispenseOptions = Dispense.GetMachines(Facility);
+        if (!dispenseOptions.Any())
+        {
+            UserInfo.LogError($"No dispenses defined for {Facility}");
+            return;
+        }
+        var deployScript = new DeployDispenseScript(_build);
         var result = await _runner.Run(deployScript);
         if (!result.Succeeded) UserInfo.LogError(result.FailureReason!);
     }

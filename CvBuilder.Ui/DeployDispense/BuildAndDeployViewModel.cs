@@ -6,7 +6,7 @@ using Fulfil.Visualization.ErrorLogging;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 
-namespace CvBuilder.Ui.Deploy;
+namespace CvBuilder.Ui.DeployDispense;
 
 public class BuildAndDeployViewModel
 {
@@ -53,7 +53,7 @@ public class BuildAndDeployViewModel
     {
         UserSettings.Default.Save();
         var branchName = BuildBranchText.Trim();
-        var build = new BuildDispense(branchName: branchName, facility: SelectedFacility);
+        var build = new BuildDispenseScript(branchName: branchName, facility: SelectedFacility);
         var result = await ScriptRunner.Run(build);
         if (!result.Succeeded)
         {

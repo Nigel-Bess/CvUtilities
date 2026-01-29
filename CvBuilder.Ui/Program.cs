@@ -1,4 +1,4 @@
-﻿using CvBuilder.Ui.Deploy;
+﻿using CvBuilder.Ui.DeployDispense;
 using CvBuilder.Ui.Terminal;
 using CvBuilder.Ui.Util;
 using Fulfil.Visualization.ErrorLogging;
