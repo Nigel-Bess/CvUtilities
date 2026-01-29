@@ -16,6 +16,14 @@ public sealed class ConPtyCmdHost : ICmdHost
     readonly SafeFileHandle _proc;
     readonly CancellationTokenSource _cts = new();
 
+    readonly Decoder _decoder = Encoding.UTF8.GetDecoder();
+    readonly char[] _chars = new char[8192];
+
+    enum ParseState : byte { Text, Esc, Csi, Osc, OscEsc }
+    ParseState _state;
+    readonly StringBuilder _text = new();
+    readonly StringBuilder _seq = new();
+
     public ConPtyCmdHost(string commandLine = "cmd.exe", short cols = 120, short rows = 30)
     {
         var sa = new SECURITY_ATTRIBUTES { nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(), bInheritHandle = true };
@@ -89,6 +97,7 @@ public sealed class ConPtyCmdHost : ICmdHost
     async Task PumpOutputAsync(CancellationToken ct)
     {
         var buf = new byte[BufferSize];
+
         while (!ct.IsCancellationRequested)
         {
             int n;
@@ -96,8 +105,119 @@ public sealed class ConPtyCmdHost : ICmdHost
             catch { break; }
             if (n <= 0) break;
 
-            OnOp(new TerminalOp.AppendText(Encoding.UTF8.GetString(buf, 0, n)));
+            _decoder.Convert(buf, 0, n, _chars, 0, _chars.Length, false, out _, out var charsUsed, out _);
+            Process(_chars.AsSpan(0, charsUsed));
+            FlushText();
         }
+
+        FlushText();
+    }
+
+    void Process(ReadOnlySpan<char> s)
+    {
+        for (var i = 0; i < s.Length; i++)
+        {
+            var ch = s[i];
+
+            switch (_state)
+            {
+                case ParseState.Text:
+                    if (ch == '\x1b') { _state = ParseState.Esc; break; }
+                    _text.Append(ch);
+                    break;
+
+                case ParseState.Esc:
+                    if (ch == '[') { _seq.Clear(); _state = ParseState.Csi; break; }
+                    if (ch == ']') { _seq.Clear(); _state = ParseState.Osc; break; }
+                    _state = ParseState.Text; // unknown ESC sequence
+                    break;
+
+                case ParseState.Csi:
+                    if (ch is >= '\x40' and <= '\x7e')
+                    {
+                        HandleCsi(ch, _seq.ToString());
+                        _state = ParseState.Text;
+                    }
+                    else _seq.Append(ch);
+                    break;
+
+                case ParseState.Osc:
+                    if (ch == '\x07') { HandleOsc(_seq.ToString()); _state = ParseState.Text; break; } // BEL
+                    if (ch == '\x1b') { _state = ParseState.OscEsc; break; }
+                    _seq.Append(ch);
+                    break;
+
+                case ParseState.OscEsc:
+                    if (ch == '\\') HandleOsc(_seq.ToString()); // ST
+                    _state = ParseState.Text;
+                    break;
+            }
+        }
+    }
+
+    void HandleOsc(string payload)
+    {
+        // "0;title" or "2;title" (xterm)
+        var semi = payload.IndexOf(';');
+        if (semi <= 0) return;
+
+        if (payload.AsSpan(0, semi) is var code && (code.SequenceEqual("0".AsSpan()) || code.SequenceEqual("2".AsSpan())))
+        {
+            FlushText();
+            OnOp(new TerminalOp.SetTitle(payload[(semi + 1)..]));
+        }
+    }
+
+    void HandleCsi(char final, string p)
+    {
+        // cursor visible: ?25h / ?25l
+        if (p.StartsWith("?25", StringComparison.Ordinal) && (final == 'h' || final == 'l'))
+        {
+            FlushText();
+            OnOp(new TerminalOp.SetCursorVisible(final == 'h'));
+            return;
+        }
+
+        switch (final)
+        {
+            case 'm':
+                FlushText();
+                OnOp(new TerminalOp.SetSgr(p));
+                break;
+
+            case 'J':
+                FlushText();
+                OnOp(new TerminalOp.EraseDisplay((EraseDisplayMode)ParseFirstByte(p)));
+                break;
+
+            case 'K':
+                FlushText();
+                OnOp(new TerminalOp.EraseLine((EraseLineMode)ParseFirstByte(p)));
+                break;
+
+            case 'H':
+            case 'f':
+                FlushText();
+                var (r, c) = ParseRowCol(p);
+                OnOp(new TerminalOp.SetCursorPos(r, c));
+                break;
+        }
+    }
+
+    static byte ParseFirstByte(string p) => byte.TryParse(p.Split(';')[0], out var b) ? b : (byte)0;
+
+    static (short r, short c) ParseRowCol(string p)
+    {
+        var parts = p.Split(';');
+        short Parse(int idx, short d) => idx < parts.Length && short.TryParse(parts[idx], out var v) && v > 0 ? v : d;
+        return (Parse(0, 1), Parse(1, 1));
+    }
+
+    void FlushText()
+    {
+        if (_text.Length == 0) return;
+        OnOp(new TerminalOp.AppendText(_text.ToString()));
+        _text.Clear();
     }
 
     const int EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
@@ -122,7 +242,7 @@ public sealed class ConPtyCmdHost : ICmdHost
     struct PROCESS_INFORMATION
     {
         public IntPtr hProcess, hThread;
-        public int dwProcessId, dwProcessThreadId;
+        public int dwProcessId, dwThreadId;
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
