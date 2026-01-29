@@ -33,7 +33,7 @@
 
             <TextBox IsReadOnly="True" AcceptsReturn="False"
          Text="{Binding CurrentDirectoryStr}"
-         TextWrapping="NoWrap" Grid.Column="0"/>
+         TextWrapping="NoWrap" Grid.Column="0" Visibility="Collapsed"/>
             <TextBox IsReadOnly="True" AcceptsReturn="False"
     TextWrapping="NoWrap" Grid.Column="1" Text=">"/>
             <TextBox Text="{Binding TerminalInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="False" Grid.Column="2">

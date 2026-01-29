@@ -13,17 +13,24 @@ public class TerminalViewModel : Notifier
     public string TerminalInput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
     public ICommand EnterCommand { get; }
-    private readonly ICmdHost _host;
+    private ICmdHost _host;
     public TerminalViewModel()
     {
         EnterCommand = new Command(() => Enter());
         _ui = SynchronizationContext.Current ?? new();
-        _host = new ConPtyCmdHost();
-        _host.OnTextOutput += OnOutputFromCmd;
+        Reset();
     }
     private void OnOutputFromCmd(string s)
     {
         AddText(s);
+    }
+    public void Reset(string message = "")
+    {
+        _host?.OnTextOutput -= OnOutputFromCmd;
+        _host?.Dispose();
+        _host = new ConPtyCmdHost();
+        _host.OnTextOutput += OnOutputFromCmd;
+        TerminalOutput = message;
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
 

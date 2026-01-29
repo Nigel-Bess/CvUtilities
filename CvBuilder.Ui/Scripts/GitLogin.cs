@@ -1,4 +1,5 @@
 ﻿using CvBuilder.Ui.Terminal;
+using System.Windows;
 
 namespace CvBuilder.Ui.Scripts;
 
@@ -8,7 +9,22 @@ public class GitLogin : IScript
 
     public async Task<ScriptCompletionInfo> RunAsync(TerminalViewModel terminal)
     {
-        if (!await terminal.AwaitText("'https://github.com': ")) return ScriptCompletionInfo.Success; // github never asked for a username -> we are already logged in
+        if (!await terminal.AwaitText("'https://github.com':")) return ScriptCompletionInfo.Success; // github never asked for a username -> we are already logged in
+        var username = UserSettings.Default.GithubUsername;
+        var githubPat = UserSettings.Default.GithubPat;
+        if (new[] { username, githubPat }.Any(string.IsNullOrWhiteSpace))
+        {
+
+            var vm = new LoginFormViewModel();
+            var form = new LoginForm() { DataContext = vm };
+            var window = new Window() { Content = form, Width = 300, Height = 200 };
+            if (window.ShowDialog() == false) return ScriptCompletionInfo.Failure("Operation cancelled by user");
+            username = vm.Username;
+            githubPat = vm.Password;
+        }
+        terminal.Enter(username);
+        if (!await terminal.AwaitText("'https://github.com':")) return ScriptCompletionInfo.Failure("GH never asked for a password. Something must have gone wrong");
+        terminal.Enter(githubPat);
         return ScriptCompletionInfo.Success;
     }
 }

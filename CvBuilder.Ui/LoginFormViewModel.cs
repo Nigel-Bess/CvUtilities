@@ -9,7 +9,7 @@ public class LoginFormViewModel
     public string Password { get; set; }
     public ICommand LoginCommand { get; }
     public ICommand CancelCommand { get; }
-    public Action<bool> Close { get; init; }
+    public Action<bool> Close { get; set; }
     public LoginFormViewModel()
     {
         LoginCommand = new Command(() => Complete(true), () => !IsMissingInfo());

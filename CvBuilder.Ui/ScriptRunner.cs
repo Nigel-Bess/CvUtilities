@@ -16,6 +16,7 @@ public class ScriptRunner
     }
     public async Task Run(IScript script)
     {
+        Terminal.Reset($"Running {script.Name}");
         if (CurrentRunningScript is not null)
         {
             UserInfo.LogError($"Can not execute {script.Name} while {CurrentRunningScript.Name} is running!");
@@ -31,5 +32,6 @@ public class ScriptRunner
             return;
         }
         UserInfo.LogSuccess($"{script.Name} completed successfully");
+
     }
 }
