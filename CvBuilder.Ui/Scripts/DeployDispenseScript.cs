@@ -29,6 +29,7 @@ internal class DeployDispenseScript : CombinedScript
             "docker compose -f docker-compose.dab.yml up -d --remove-orphans",
             ]);
         yield return new GenericScript("Wait for deploy", WaitForDeployToFinish);
+        yield return new BasicTextCommand("exit");
     }
 
     private string EditFile(string remoteFileContents)

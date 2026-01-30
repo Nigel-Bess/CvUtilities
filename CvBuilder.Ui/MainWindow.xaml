@@ -23,9 +23,12 @@
             </MenuItem>
         </Menu>
         <TabControl Grid.Row="1">
-            <TabItem Header="Build and Deploy">
+            <TabItem Header="Build and Deploy Dispense">
                 <deploy:BuildAndDeployControl DataContext="{Binding BuildAndDeployVm}"/>
              </TabItem>
+            <TabItem Header="Dispense Offline Test">
+                
+            </TabItem>
         </TabControl>
         <lgging:ErrorLog Grid.Row="2"/>
     </Grid>
