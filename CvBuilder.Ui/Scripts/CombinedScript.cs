@@ -22,7 +22,16 @@ public abstract class CombinedScript : IScript
         {
             var progressReport = (double progress) => OnGotProgress(script, progress);
             script.ReportProgress += progressReport;
-            var subStepResult = await script.RunAsync(terminal);
+            ScriptCompletionInfo subStepResult;
+            try
+            {
+                subStepResult = await script.RunAsync(terminal);
+            }
+            catch (Exception ex)
+            {
+                subStepResult = ScriptCompletionInfo.Failure(ex.Message);
+            }
+
             progressReport(1);
             script.ReportProgress -= progressReport;
             if (!subStepResult.Succeeded)

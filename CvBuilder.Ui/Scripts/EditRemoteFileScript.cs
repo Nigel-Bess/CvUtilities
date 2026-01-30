@@ -31,6 +31,8 @@ public class EditRemoteFileScript : CombinedScript
         var localStr = $"\"{_localTempFilePath}\"";
         yield return new BasicTextCommand($"scp {hostStr} {localStr}"); // bring the file to local machine
         yield return sshAuth;
+        yield return new GenericScript("Wait for SCP Completion", WaitForLocalFileToExist); // edit the local file instance
+        yield return new GenericScript("Backup", MakeABackup);
         yield return new GenericScript("Edit File", EditLocalFile); // edit the local file instance
         yield return new BasicTextCommand($"scp {localStr} {hostStr}"); // copy the local file back to the host        
         yield return sshAuth;
@@ -38,6 +40,23 @@ public class EditRemoteFileScript : CombinedScript
         yield return new SshScript(_ssh);
         yield return new BasicTextCommand($"openssl dgst -sha256 {_remoteFilePath}");
         yield return new GenericScript("Wait for SCP to HOST", EnsureCompletionOfScp);
+    }
+
+    async Task<ScriptCompletionInfo> MakeABackup(TerminalViewModel terminal)
+    {
+        var saveDirectory = GetBackupDirectory();
+        var now = DateTime.Now;
+        var fileName = $"{Path.GetFileNameWithoutExtension(_remoteFilePath)}_Backup_{_ssh.HostName}_{now.Year}-{now.Month}-{now.Day}.{Path.GetExtension(_remoteFilePath)}";
+        File.Copy(_localTempFilePath, Path.Combine(saveDirectory, fileName), overwrite: true);
+        return ScriptCompletionInfo.Success;
+    }
+
+    private string GetBackupDirectory()
+    {
+        var root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var saveLocation = Path.Combine(root, "RemoteFileEditBackups");
+        Directory.CreateDirectory(saveLocation);
+        return saveLocation;
     }
     async Task<ScriptCompletionInfo> WaitForScpCompletionToHost(TerminalViewModel terminal)
     {
@@ -79,13 +98,17 @@ public class EditRemoteFileScript : CombinedScript
             return false;
         }
     }
-    private async Task<ScriptCompletionInfo> EditLocalFile(TerminalViewModel terminal)
+    private async Task<ScriptCompletionInfo> WaitForLocalFileToExist(TerminalViewModel terminal)
     {
 
         if (!await WaitForFileAsync(_localTempFilePath, TimeSpan.FromSeconds(2)))
         {
             return ScriptCompletionInfo.Failure("File did not exist after the SCP");
         }
+        return ScriptCompletionInfo.Success;
+    }
+    private async Task<ScriptCompletionInfo> EditLocalFile(TerminalViewModel terminal)
+    {
         var fileContents = File.ReadAllText(_localTempFilePath);
         var updated = _applyEdit(fileContents);
         File.WriteAllText(path: _localTempFilePath, contents: updated);
