@@ -58,7 +58,7 @@
                     <ItemsControl ItemsSource="{Binding DeployableBuilds}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid>
+                                <Grid Background="LightBlue" Margin="5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition/>
                                         <ColumnDefinition Width="Auto"/>
