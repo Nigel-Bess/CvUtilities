@@ -2,7 +2,7 @@
 
 namespace CvBuilder.Ui.Scripts;
 
-internal abstract class CombinedScript : IScript
+public abstract class CombinedScript : IScript
 {
     public Action<double> ReportProgress { get; set; }
     public abstract string Name { get; }

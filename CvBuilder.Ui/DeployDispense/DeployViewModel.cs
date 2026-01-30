@@ -72,7 +72,7 @@ public class DeployViewModel
 
     private IScript GenerateDeployScript(Dispense dispense)
     {
-        return new MockScript($"Deploy to {dispense}");
+        return new DeployDispenseScript(_build, dispense);
     }
     public void Remove()
     {
