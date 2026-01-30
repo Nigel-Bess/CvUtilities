@@ -53,8 +53,11 @@ public class EditRemoteFileScript : CombinedScript
     private async Task<ScriptCompletionInfo> EnsureCompletionOfScp(TerminalViewModel terminal)
     {
         var shaHash = GetLocalFileSha(_localTempFilePath);
+        var n = Math.Min(5, shaHash?.Length ?? 0);
+        var first5 = shaHash[..n];
+        var last5 = shaHash[^n..];
         if (!await terminal.AwaitText("SHA256")) return ScriptCompletionInfo.Failure("Remote host never gave us a sha256 hash");
-        if (!await terminal.AwaitText(shaHash)) return ScriptCompletionInfo.Failure($"Remote file sha256 hash did not match {shaHash}");
+        if (!(await terminal.AwaitAny([first5, last5])).Success) return ScriptCompletionInfo.Failure($"Remote file sha256 hash did not match {shaHash}"); // look for either the first 5 or last 5 since the hash often gets broken up into parts
         return ScriptCompletionInfo.Success;
     }
     static async Task<bool> WaitForFileAsync(string path, TimeSpan timeout, CancellationToken ct = default)
