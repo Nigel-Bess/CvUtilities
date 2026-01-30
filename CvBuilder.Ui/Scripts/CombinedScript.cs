@@ -15,8 +15,8 @@ public abstract class CombinedScript : IScript
         foreach (var script in subSteps) stepProgress[script] = 0;
         void OnGotProgress(IScript script, double subscriptProgress)
         {
-            stepProgress[script] += subscriptProgress / subSteps.Count;
-            ReportProgress?.Invoke(stepProgress.Values.Sum());
+            stepProgress[script] = subscriptProgress;
+            ReportProgress?.Invoke(stepProgress.Values.Sum() / subSteps.Count);
         }
         foreach (var script in subSteps)
         {

@@ -1,5 +1,6 @@
 ﻿using CvBuilder.Ui.DeployDispense;
 using CvBuilder.Ui.Hardcoded;
+using CvBuilder.Ui.Terminal;
 using System.IO;
 
 namespace CvBuilder.Ui.Scripts;
@@ -27,6 +28,7 @@ internal class DeployDispenseScript : CombinedScript
             "docker compose -f docker-compose.dab.yml down",
             "docker compose -f docker-compose.dab.yml up -d --remove-orphans",
             ]);
+        yield return new GenericScript("Wait for deploy", WaitForDeployToFinish);
     }
 
     private string EditFile(string remoteFileContents)
@@ -45,5 +47,13 @@ internal class DeployDispenseScript : CombinedScript
         using var sw = new StringWriter();
         yaml.Save(sw, assignAnchors: false);
         return sw.ToString();
+    }
+
+    private async Task<ScriptCompletionInfo> WaitForDeployToFinish(TerminalViewModel terminal)
+    {
+        var maxTimeMs = (int)TimeSpan.FromMinutes(1).TotalMilliseconds;
+        var deploySuccess = terminal.AwaitText("Running 10/10", maxTimeMs);
+        if (!await deploySuccess) return ScriptCompletionInfo.Failure("Deploy failed!");
+        return ScriptCompletionInfo.Success;
     }
 }

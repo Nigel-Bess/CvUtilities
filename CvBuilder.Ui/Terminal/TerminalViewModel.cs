@@ -1,5 +1,6 @@
 ﻿
 using CvBuilder.Ui.Wpf;
+using Fulfil.Visualization.ErrorLogging;
 using System.IO;
 using System.Text;
 using System.Windows.Input;
@@ -89,6 +90,7 @@ public class TerminalViewModel : Notifier
         foreach (var (idx, str) in toFind.Index())
         {
             if (!await AwaitText(str, timeoutMs: timeoutMs, inclueTextSinceLastCommand: idx == 0)) return false;
+            UserInfo.LogInfo($"Found {str}");
         }
         return true;
     }
