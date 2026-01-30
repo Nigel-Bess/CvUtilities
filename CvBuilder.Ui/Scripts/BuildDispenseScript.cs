@@ -36,6 +36,7 @@ internal class BuildDispenseScript : CombinedScript
         yield return new PromptResponse(name: "Input facility name", prompt: "Enter Facility Name", response: _facility.GetDescription());
         yield return new GitLogin();
         yield return new GenericScript("Wait for build to finish", WaitForBuildToFinish);
+        yield return new BasicTextCommand("exit");
     }
 
     private async Task<ScriptCompletionInfo> WaitForBuildToFinish(TerminalViewModel terminal)
