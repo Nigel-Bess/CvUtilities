@@ -2,6 +2,7 @@
 using CvBuilder.Ui.Terminal;
 using CvBuilder.Ui.Util;
 using System.IO;
+using System.Security.Cryptography;
 
 namespace CvBuilder.Ui.Scripts;
 
@@ -18,24 +19,67 @@ public class EditRemoteFileScript : CombinedScript
         Name = name;
         _ssh = ssh;
         _applyEdit = applyEdit;
-        _localTempFilePath = PathHelpers.GenerateTempFilePath($"{Name}_LOCAL_EDIT");
+        _localTempFilePath = PathHelpers.GenerateTempFilePath($"{Path.GetFileNameWithoutExtension(remoteFilePath)}_LOCAL_EDIT");
         _remoteFilePath = remoteFilePath;
         if (File.Exists(_localTempFilePath)) File.Delete(_localTempFilePath);
     }
 
     public override IEnumerable<IScript> SubSteps()
     {
-        var sshAuth = () => new PromptResponse("Auth Ssh", "password:", _ssh.PassWord);
-        yield return new BasicTextCommand($"scp {_ssh.HostName}:\"{_remoteFilePath}\" \"{_localTempFilePath}\""); // bring the file to local machine
-        yield return sshAuth();
+        var sshAuth = new PromptResponse("Auth Ssh", "password:", _ssh.PassWord);
+        var hostStr = $"{_ssh.HostName}:\"{_remoteFilePath}\"";
+        var localStr = $"\"{_localTempFilePath}\"";
+        yield return new BasicTextCommand($"scp {hostStr} {localStr}"); // bring the file to local machine
+        yield return sshAuth;
         yield return new GenericScript("Edit File", EditLocalFile); // edit the local file instance
-        yield return new BasicTextCommand($"scp \"{_localTempFilePath}\" {_ssh.HostName}:/{_remoteFilePath}"); // copy the local file back to the host
-        yield return sshAuth();
+        yield return new BasicTextCommand($"scp {localStr} {hostStr}"); // copy the local file back to the host        
+        yield return sshAuth;
+        yield return new GenericScript("Wait for return SCP", WaitForScpCompletionToHost);
+        yield return new SshScript(_ssh);
+        yield return new BasicTextCommand($"openssl dgst -sha256 {_remoteFilePath}");
+        yield return new GenericScript("Wait for SCP to HOST", EnsureCompletionOfScp);
     }
+    async Task<ScriptCompletionInfo> WaitForScpCompletionToHost(TerminalViewModel terminal)
+    {
+        var localFileName = Path.GetFileName(_localTempFilePath);
+        if (!await terminal.AwaitSequentially([localFileName, "100%"])) return ScriptCompletionInfo.Failure("Scp to remote did not complete");
+        return ScriptCompletionInfo.Success;
+    }
+    private string GetLocalFileSha(string localFilePath)
+    {
+        using var fs = File.OpenRead(localFilePath);
+        return Convert.ToHexString(SHA256.HashData(fs)).ToLowerInvariant();
+    }
+    private async Task<ScriptCompletionInfo> EnsureCompletionOfScp(TerminalViewModel terminal)
+    {
+        var shaHash = GetLocalFileSha(_localTempFilePath);
+        if (!await terminal.AwaitText("SHA256")) return ScriptCompletionInfo.Failure("Remote host never gave us a sha256 hash");
+        if (!await terminal.AwaitText(shaHash)) return ScriptCompletionInfo.Failure($"Remote file sha256 hash did not match {shaHash}");
+        return ScriptCompletionInfo.Success;
+    }
+    static async Task<bool> WaitForFileAsync(string path, TimeSpan timeout, CancellationToken ct = default)
+    {
+        if (File.Exists(path)) return true;
 
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+
+        try
+        {
+            while (!File.Exists(path))
+                await Task.Delay(100, linkedCts.Token);
+
+            return true;
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
     private async Task<ScriptCompletionInfo> EditLocalFile(TerminalViewModel terminal)
     {
-        if (!File.Exists(_localTempFilePath))
+
+        if (!await WaitForFileAsync(_localTempFilePath, TimeSpan.FromSeconds(2)))
         {
             return ScriptCompletionInfo.Failure("File did not exist after the SCP");
         }

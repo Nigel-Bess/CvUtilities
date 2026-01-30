@@ -19,7 +19,7 @@ internal class BuildDispenseScript : CombinedScript
 
     public override IEnumerable<IScript> SubSteps()
     {
-        yield return new Ssh(SshLogin.WhismanDab);
+        yield return new SshScript(SshLogin.WhismanDab);
         yield return BasicTextCommand.MultiLine([
             "cd ~/code/Fulfil.ComputerVision/",
             "git reset --hard HEAD",

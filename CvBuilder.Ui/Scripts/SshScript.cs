@@ -4,12 +4,12 @@ using Fulfil.Visualization.ErrorLogging;
 
 namespace CvBuilder.Ui.Scripts;
 
-internal class Ssh : IScript
+internal class SshScript : IScript
 {
     public Action<double> ReportProgress { get; set; }
     public string Name { get; }
     private readonly SshLogin _sshLogin;
-    public Ssh(SshLogin sshLogin)
+    public SshScript(SshLogin sshLogin)
     {
         _sshLogin = sshLogin;
         Name = $"SSH {sshLogin.HostName}";

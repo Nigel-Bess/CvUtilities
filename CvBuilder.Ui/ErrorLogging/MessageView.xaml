@@ -16,12 +16,12 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
-    <Grid Height="25" >
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
         <Label Content="{Binding Time}" Grid.Column="0" Background="LightGray"/>
-        <Label Content="{Binding Text}" Grid.Column="1" Foreground="{Binding Color}" HorizontalContentAlignment="Left" Padding="2"/>
+        <TextBlock Text="{Binding Text}" Grid.Column="1" Foreground="{Binding Color}" Padding="2" TextWrapping="Wrap"/>
     </Grid>
 </UserControl>

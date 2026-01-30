@@ -34,7 +34,10 @@ public class ScriptRunner
         {
             UserInfo.LogError($"{script.Name} Failed: {result.FailureReason}");
         }
-        UserInfo.LogSuccess($"{script.Name} completed successfully");
+        else
+        {
+            UserInfo.LogSuccess($"{script.Name} completed successfully");
+        }
         ReportViewModel.End(result);
         return result;
     }
