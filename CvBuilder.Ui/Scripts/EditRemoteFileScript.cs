@@ -1,6 +1,7 @@
 ﻿using CvBuilder.Ui.Hardcoded;
 using CvBuilder.Ui.Terminal;
 using CvBuilder.Ui.Util;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -14,13 +15,15 @@ public class EditRemoteFileScript : CombinedScript
     private readonly string _remoteFilePath;
     private readonly SshLogin _ssh;
     private readonly Func<string, string> _applyEdit;
-    public EditRemoteFileScript(string name, SshLogin ssh, string remoteFilePath, Func<string, string> applyEdit)
+    private readonly bool _keepSshAlive;
+    public EditRemoteFileScript(string name, SshLogin ssh, string remoteFilePath, Func<string, string> applyEdit, bool keepSshAlive = false)
     {
         Name = name;
         _ssh = ssh;
         _applyEdit = applyEdit;
-        _localTempFilePath = PathHelpers.GenerateTempFilePath($"{Path.GetFileNameWithoutExtension(remoteFilePath)}_LOCAL_EDIT");
+        _localTempFilePath = PathHelpers.GenerateTempFilePath($"{Path.GetFileNameWithoutExtension(remoteFilePath)}_LOCAL_EDIT_{NowString()}");
         _remoteFilePath = remoteFilePath;
+        _keepSshAlive = keepSshAlive;
         if (File.Exists(_localTempFilePath)) File.Delete(_localTempFilePath);
     }
 
@@ -40,13 +43,18 @@ public class EditRemoteFileScript : CombinedScript
         yield return new SshScript(_ssh);
         yield return new BasicTextCommand($"openssl dgst -sha256 {_remoteFilePath}");
         yield return new GenericScript("Wait for SCP to HOST", EnsureCompletionOfScp);
+        if (!_keepSshAlive) yield return new BasicTextCommand("exit");// end ssh session
     }
-
+    private string NowString()
+    {
+        var now = DateTime.Now;
+        return $"{now.Year}-{now.Month}-{now.Day}_{now.Hour}-{now.Minute}-{now.Second}";
+    }
     async Task<ScriptCompletionInfo> MakeABackup(TerminalViewModel terminal)
     {
         var saveDirectory = GetBackupDirectory();
         var now = DateTime.Now;
-        var fileName = $"{Path.GetFileNameWithoutExtension(_remoteFilePath)}_Backup_{_ssh.HostName}_{now.Year}-{now.Month}-{now.Day}.{Path.GetExtension(_remoteFilePath)}";
+        var fileName = $"{Path.GetFileNameWithoutExtension(_remoteFilePath)}_Backup_{_ssh.HostName}_{NowString()}.{Path.GetExtension(_remoteFilePath)}";
         File.Copy(_localTempFilePath, Path.Combine(saveDirectory, fileName), overwrite: true);
         return ScriptCompletionInfo.Success;
     }
@@ -79,33 +87,31 @@ public class EditRemoteFileScript : CombinedScript
         if (!(await terminal.AwaitAny([first5, last5])).Success) return ScriptCompletionInfo.Failure($"Remote file sha256 hash did not match {shaHash}"); // look for either the first 5 or last 5 since the hash often gets broken up into parts
         return ScriptCompletionInfo.Success;
     }
-    static async Task<bool> WaitForFileAsync(string path, TimeSpan timeout, CancellationToken ct = default)
-    {
-        if (File.Exists(path)) return true;
-
-        using var timeoutCts = new CancellationTokenSource(timeout);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
-
-        try
-        {
-            while (!File.Exists(path))
-                await Task.Delay(100, linkedCts.Token);
-
-            return true;
-        }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-        {
-            return false;
-        }
-    }
     private async Task<ScriptCompletionInfo> WaitForLocalFileToExist(TerminalViewModel terminal)
     {
 
-        if (!await WaitForFileAsync(_localTempFilePath, TimeSpan.FromSeconds(2)))
+        if (!await WaitForFileReleasedAsync(_localTempFilePath, TimeSpan.FromSeconds(2)))
         {
             return ScriptCompletionInfo.Failure("File did not exist after the SCP");
         }
         return ScriptCompletionInfo.Success;
+    }
+
+    private static async Task<bool> WaitForFileReleasedAsync(string path, TimeSpan timeout)
+    {
+        var sw = Stopwatch.StartNew();
+        while (sw.Elapsed < timeout)
+        {
+            try
+            {
+                using var _ = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
+                return true;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { } // still not usable (ACL/temp state)
+            await Task.Delay(50);
+        }
+        return false;
     }
     private async Task<ScriptCompletionInfo> EditLocalFile(TerminalViewModel terminal)
     {

@@ -1,5 +1,6 @@
 ﻿using CvBuilder.Ui.DeployDispense;
 using CvBuilder.Ui.Hardcoded;
+using System.IO;
 
 namespace CvBuilder.Ui.Scripts;
 
@@ -19,19 +20,30 @@ internal class DeployDispenseScript : CombinedScript
     public override IEnumerable<IScript> SubSteps()
     {
         var sshAuth = _dispense.Login;
-        yield return new EditRemoteFileScript("Edit docker compose", sshAuth, "~/code/Fulfil.ComputerVision/nigels_Test_file_.yaml", EditFile);
-        //yield return BasicTextCommand.MultiLine([
-        //    "cd ~/code/Fulfil.ComputerVision/",
-        //    "sudo apt-get install -y yq",
-        //    $"yq -i -y \".services.depthcam.image = \\\"{_build.ImageIdentifier()}\\\"\" docker-compose.dab.yml",
-        //    "docker compose -f docker-compose.dab.yml pull",
-        //    "docker compose -f docker-compose.dab.yml down",
-        //    "docker compose -f docker-compose.dab.yml up -d --remove-orphans",
-        //    ]);
+        yield return new EditRemoteFileScript("Edit docker compose", sshAuth, "~/code/Fulfil.ComputerVision/docker-compose.dab.yml", EditFile, keepSshAlive: true);
+        yield return BasicTextCommand.MultiLine([
+            "cd ~/code/Fulfil.ComputerVision/",
+            "docker compose -f docker-compose.dab.yml pull",
+            "docker compose -f docker-compose.dab.yml down",
+            "docker compose -f docker-compose.dab.yml up -d --remove-orphans",
+            ]);
     }
 
     private string EditFile(string remoteFileContents)
     {
-        return "Hello World";
+        static YamlDotNet.RepresentationModel.YamlScalarNode S(string v) => new(v);
+
+        var yaml = new YamlDotNet.RepresentationModel.YamlStream();
+        yaml.Load(new StringReader(remoteFileContents));
+
+        var root = (YamlDotNet.RepresentationModel.YamlMappingNode)yaml.Documents[0].RootNode;
+        var services = (YamlDotNet.RepresentationModel.YamlMappingNode)root.Children[S("services")];
+        var depthcam = (YamlDotNet.RepresentationModel.YamlMappingNode)services.Children[S("depthcam")];
+
+        depthcam.Children[S("image")] = S($"gcr.io/fulfil-web/cv-dispense/{_build.ImageIdentifier()}");
+
+        using var sw = new StringWriter();
+        yaml.Save(sw, assignAnchors: false);
+        return sw.ToString();
     }
 }
