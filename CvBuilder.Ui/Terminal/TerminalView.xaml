@@ -20,9 +20,10 @@
             <RowDefinition Height="25"/>            
         </Grid.RowDefinitions>
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="ScrollViewer">
-            <TextBox IsReadOnly="True"
-             Text="{Binding TerminalOutput}"
-             TextWrapping="Wrap"/>
+            <TextBox x:Name="OutputTextBox"
+                     IsReadOnly="True"
+                     IsUndoEnabled="False"
+                     TextWrapping="Wrap"/>
         </ScrollViewer>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>

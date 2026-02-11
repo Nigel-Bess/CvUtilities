@@ -37,25 +37,38 @@ namespace CvBuilder.Ui.Terminal
         }
         private void DetachFromVm(TerminalViewModel vm)
         {
-            vm.OnGotText -= OnMessagesChanged;
+            vm.OutputReset -= OnOutputReset;
+            vm.OutputAppended -= OnOutputAppended;
         }
 
 
         private void AttachToVm(TerminalViewModel vm)
         {
-            vm.OnGotText += OnMessagesChanged;
+            vm.OutputReset += OnOutputReset;
+            vm.OutputAppended += OnOutputAppended;
         }
 
-        private void OnMessagesChanged()
+        private void OnOutputReset()
         {
-            // Check if we were at the bottom before new items
-            var atBottom = ScrollViewer.VerticalOffset + ScrollViewer.ViewportHeight
-                           >= ScrollViewer.ExtentHeight - 1;
-            if (!atBottom) return;
-            ScrollToBottom();
-
+            this.InvokeIfRequired(() =>
+            {
+                OutputTextBox.Clear();
+                ScrollToBottom();
+            });
         }
 
+        private void OnOutputAppended(string s)
+        {
+            this.InvokeIfRequired(() =>
+            {
+                // Check if we were at the bottom before appending
+                var atBottom = ScrollViewer.VerticalOffset + ScrollViewer.ViewportHeight
+                               >= ScrollViewer.ExtentHeight - 1;
+
+                OutputTextBox.AppendText(s);
+                if (atBottom) ScrollToBottom();
+            });
+        }
 
         private void ScrollToBottom() => this.InvokeIfRequired(ScrollViewer.ScrollToEnd);
     }

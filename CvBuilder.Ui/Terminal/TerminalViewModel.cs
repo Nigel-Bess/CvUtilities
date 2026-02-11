@@ -1,6 +1,7 @@
 ﻿
 using CvBuilder.Ui.Wpf;
 using Fulfil.Visualization.ErrorLogging;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using System.Windows.Input;
@@ -9,14 +10,28 @@ namespace CvBuilder.Ui.Terminal;
 public class TerminalViewModel : Notifier
 {
     private readonly SynchronizationContext _ui;
-    public Action OnGotText { get; set; }
-    public string TerminalOutput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string TerminalInput { get => field; set { field = value; NotifyPropertyChanged(); } } = "";
     public string CurrentDirectoryStr { get => field; set { field = value; NotifyPropertyChanged(); } } = Directory.GetCurrentDirectory();
     public ICommand EnterCommand { get; }
     private ICmdHost _host;
     private StringBuilder _textSinceLastCommand { get; } = new();
     private bool ConsoleHasStarted = false;
+
+    /// <summary>
+    /// Raised on the UI thread when output should be cleared (e.g. on Reset, or when trimming output).
+    /// </summary>
+    public event Action? OutputReset;
+
+    /// <summary>
+    /// Raised on the UI thread with output to append.
+    /// </summary>
+    public event Action<string>? OutputAppended;
+
+    private readonly ConcurrentQueue<string> _pendingOutput = new();
+    private int _flushScheduled;
+    private readonly StringBuilder _rollingOutput = new();
+    public int MaxOutputChars { get; set; } = 200_000;
+
     public TerminalViewModel()
     {
         EnterCommand = new Command(() => Enter());
@@ -38,17 +53,72 @@ public class TerminalViewModel : Notifier
         _host?.Dispose();
         _host = new ConPtyCmdHost();
         _host.OnOp += OnOutputFromCmd;
-        TerminalOutput = message;
+
+        ClearPendingOutput();
+        ClearOutput();
+        if (!string.IsNullOrEmpty(message)) AddText(message);
     }
     private void AddLine(string s) => AddText($"{CurrentDirectoryStr}> {s}\n");
 
     private void Return() => AddText("\n");
-    void AddText(string s) =>
-     _ui.Post(_ =>
-     {
-         TerminalOutput += s;
-         OnGotText?.Invoke();
-     }, null);
+
+    void AddText(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return;
+        _pendingOutput.Enqueue(s);
+
+        if (Interlocked.Exchange(ref _flushScheduled, 1) == 0)
+        {
+            _ui.Post(_ => FlushPendingOutputOnUi(), null);
+        }
+    }
+
+    void FlushPendingOutputOnUi()
+    {
+        try
+        {
+            if (_pendingOutput.IsEmpty) return;
+
+            var batch = new StringBuilder();
+            while (_pendingOutput.TryDequeue(out var part))
+                batch.Append(part);
+
+            if (batch.Length == 0) return;
+
+            var trimmed = false;
+            _rollingOutput.Append(batch);
+            if (_rollingOutput.Length > MaxOutputChars && MaxOutputChars > 0)
+            {
+                _rollingOutput.Remove(0, _rollingOutput.Length - MaxOutputChars);
+                trimmed = true;
+            }
+
+            if (trimmed)
+            {
+                OutputReset?.Invoke();
+                OutputAppended?.Invoke(_rollingOutput.ToString());
+            }
+            else
+            {
+                OutputAppended?.Invoke(batch.ToString());
+            }
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _flushScheduled, 0);
+            if (!_pendingOutput.IsEmpty && Interlocked.Exchange(ref _flushScheduled, 1) == 0)
+                _ui.Post(_ => FlushPendingOutputOnUi(), null);
+        }
+    }
+
+    void ClearPendingOutput()
+    {
+        while (_pendingOutput.TryDequeue(out _)) { }
+        _rollingOutput.Clear();
+        Interlocked.Exchange(ref _flushScheduled, 0);
+    }
+
+    void ClearOutput() => _ui.Post(_ => OutputReset?.Invoke(), null);
 
     public void Enter(string? line = null)
     {
