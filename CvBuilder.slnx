@@ -1,7 +1,17 @@
 <Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
-  <Project Path="CvBuilder.Ui/CvBuilder.Ui.csproj" />
-  <Project Path="CvBuilder/CvBuilder.csproj" />
+  <Project Path="CvBuilder.Ui/CvBuilder.Ui.csproj">
+    <BuildType Project="Release" />
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="CvBuilder/CvBuilder.csproj">
+    <BuildType Project="Release" />
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
 </Solution>
