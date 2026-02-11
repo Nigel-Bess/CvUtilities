@@ -9,17 +9,19 @@ internal class BuildDispenseScript : CombinedScript
     public override string Name { get; }
     private readonly string _branchName;
     private readonly Facility _facility;
+    private readonly Dispense _buildBox;
     public DeployableBuild Output => new(BranchName: _branchName, Facility: _facility);
-    public BuildDispenseScript(string branchName, Facility facility)
+    public BuildDispenseScript(string branchName, Facility facility, Dispense buildBox)
     {
         Name = $"Build {branchName}";
         _branchName = branchName;
         _facility = facility;
+        _buildBox = buildBox;
     }
 
     public override IEnumerable<IScript> SubSteps()
     {
-        yield return new SshScript(SshLogin.WhismanDab);
+        yield return new SshScript(_buildBox.Login);
         yield return BasicTextCommand.MultiLine([
             "cd ~/code/Fulfil.ComputerVision/",
             "git reset --hard HEAD",

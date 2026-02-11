@@ -35,17 +35,32 @@ public class BuildAndDeployViewModel : Notifier
         }
     }
     public IEnumerable<Facility> FacilityOptions { get; }
+    public Dispense? SelectedBuildBox
+    {
+        get
+        {
+            var name = UserSettings.Default.SelectedBuildBoxName;
+            return BuildBoxOptions.FirstOrDefault(b => b.Name == name);
+        }
+        set
+        {
+            UserSettings.Default.SelectedBuildBoxName = value?.Name ?? "";
+        }
+    }
+    public IEnumerable<Dispense> BuildBoxOptions { get; }
     public BuildAndDeployViewModel(ScriptRunner scriptRunner)
     {
         ScriptRunner = scriptRunner;
         StartBuildCommand = new Command(StartBuild, CanStartBuild);
         DeployWithoutBuildingCommand = new Command(DeployWithoutBuilding, ScriptRunner.IsIdle);
         FacilityOptions = Enum.GetValues<Facility>().Where(e => e != Facility.None).ToList();
+        BuildBoxOptions = BuildMachine.All();
         DeployableBuilds = new(SettingsHelpers.GetDeployableBuilds().Select(NewDeployViewModel));
     }
 
     private bool CanStartBuild()
     {
+        if (SelectedBuildBox is null) return false;
         if (!ScriptRunner.IsIdle()) return false;
         if (string.IsNullOrWhiteSpace(BuildBranchText)) return false;
         if (SelectedFacility == Facility.None) return false;
@@ -64,7 +79,7 @@ public class BuildAndDeployViewModel : Notifier
     {
         UserSettings.Default.Save();
         var branchName = BuildBranchText.Trim();
-        var build = new BuildDispenseScript(branchName: branchName, facility: SelectedFacility);
+        var build = new BuildDispenseScript(branchName: branchName, facility: SelectedFacility, buildBox: SelectedBuildBox);
         var result = await ScriptRunner.Run(build);
         if (!result.Succeeded)
         {

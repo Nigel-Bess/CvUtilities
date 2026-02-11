@@ -82,5 +82,17 @@ namespace CvBuilder.Ui {
                 this["CompletedDispenseBuildsJson"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SelectedBuildBoxName {
+            get {
+                return ((string)(this["SelectedBuildBoxName"]));
+            }
+            set {
+                this["SelectedBuildBoxName"] = value;
+            }
+        }
     }
 }

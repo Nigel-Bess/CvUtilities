@@ -7,11 +7,11 @@
     <File Path=".editorconfig" />
   </Folder>
   <Project Path="CvBuilder.Ui/CvBuilder.Ui.csproj">
-    <BuildType Project="Release" />
+    <BuildType Solution="Debug|Any CPU" Project="Release" />
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="CvBuilder/CvBuilder.csproj">
-    <BuildType Project="Release" />
+    <BuildType Solution="Debug|Any CPU" Project="Release" />
     <Platform Solution="*|x64" Project="x64" />
   </Project>
 </Solution>
