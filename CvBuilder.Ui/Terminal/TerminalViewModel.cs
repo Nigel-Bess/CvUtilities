@@ -30,6 +30,9 @@ public class TerminalViewModel : Notifier
     private readonly ConcurrentQueue<string> _pendingOutput = new();
     private int _flushScheduled;
     private readonly StringBuilder _rollingOutput = new();
+
+    private readonly CancellationTokenSource _bgFlushCts = new();
+    private readonly Task _bgFlushTask;
     public int MaxOutputChars { get; set; } = 200_000;
 
     public TerminalViewModel()
@@ -37,6 +40,7 @@ public class TerminalViewModel : Notifier
         EnterCommand = new Command(() => Enter());
         _ui = SynchronizationContext.Current ?? new();
         Reset();
+        _bgFlushTask = StartBackgroundWorker(_bgFlushCts.Token);
     }
     private void OnOutputFromCmd(TerminalOp operation)
     {
@@ -66,12 +70,20 @@ public class TerminalViewModel : Notifier
     {
         if (string.IsNullOrEmpty(s)) return;
         _pendingOutput.Enqueue(s);
+    }
 
-        if (Interlocked.Exchange(ref _flushScheduled, 1) == 0)
+    private Task StartBackgroundWorker(CancellationToken token) => Task.Run(async () =>
+    {
+        while (!token.IsCancellationRequested)
         {
+            await Task.Delay(200, token);
+
+            if (_pendingOutput.IsEmpty) continue;
+            if (Interlocked.Exchange(ref _flushScheduled, 1) != 0) continue;
+
             _ui.Post(_ => FlushPendingOutputOnUi(), null);
         }
-    }
+    }, token);
 
     void FlushPendingOutputOnUi()
     {
