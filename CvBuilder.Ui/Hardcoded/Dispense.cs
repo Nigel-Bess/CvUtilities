@@ -7,12 +7,6 @@ public record Dispense(string Name, SshLogin Login, Facility Facility)
     private static ImmutableList<Dispense> DeployableDispenses = ImmutableList.Create<Dispense>([
             new("P1",new("fulfil@p1-dab.pioneer.fulfil.ai","FreshEngr") ,Facility.Pioneer),
             new("P2",new("fulfil@p2-dab.pioneer.fulfil.ai","FreshEngr") ,Facility.Pioneer),
-            new("C1",new("fulfil@c1-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
-            new("C2",new("fulfil@c2-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
-            new("C3",new("fulfil@c3-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
-            new("A1",new("fulfil@a1-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
-            new("A2",new("fulfil@a2-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
-            new("A3",new("fulfil@a3-dab.tan.fulfil.ai","FreshEngr") ,Facility.Tan),
         ]);
     public static Dispense W2Dab => new("W2", new("fulfil@w2-dab.whisman.fulfil.ai", "FreshEngr"), Facility.Whisman);
     public static Dispense WhismanBuildBox => new("Whisman Build Box", new("fulfil@clip-tb.whisman.fulfil.ai", "FreshEngr"), Facility.Whisman);
