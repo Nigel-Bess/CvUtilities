@@ -94,5 +94,17 @@ namespace CvBuilder.Ui {
                 this["SelectedBuildBoxName"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SlackToken {
+            get {
+                return ((string)(this["SlackToken"]));
+            }
+            set {
+                this["SlackToken"] = value;
+            }
+        }
     }
 }

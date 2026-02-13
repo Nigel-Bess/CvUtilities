@@ -7,4 +7,9 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SlackNet" Version="0.17.9" />
+    <PackageReference Include="SlackNet.Extensions.DependencyInjection" Version="0.17.9" />
+  </ItemGroup>
+
 </Project>

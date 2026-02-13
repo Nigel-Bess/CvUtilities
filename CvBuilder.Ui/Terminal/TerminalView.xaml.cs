@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using CvBuilder.Ui.Util;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace CvBuilder.Ui.Terminal
